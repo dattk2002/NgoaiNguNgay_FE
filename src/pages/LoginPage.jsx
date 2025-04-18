@@ -38,7 +38,7 @@ function LoginPage({ onLogin }) {
     <div className="w-full min-h-[calc(100vh-60px)] flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
         <h2 className="text-center text-xl font-semibold mb-6">
-          Chào mừng đến với LangConnect
+          Chào mừng đến với NgoaiNguNgay
           <br />
           <span className="text-gray-600 text-base font-normal">
             Đăng nhập tài khoản

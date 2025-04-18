@@ -33,7 +33,7 @@ const Tutor = ({ tutor }) => {
       <p className="text-lg font-medium text-gray-800 mb-6">
         ${tutor.rate}/hour
       </p>
-      <button className="w-full mt-auto bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 border border-gray-300 rounded-md transition duration-150 ease-in-out">
+      <button className="w-full mt-auto bg-[#333333] hover:bg-black text-white font-medium py-2 px-4 border border-gray-300 rounded-md transition duration-150 ease-in-out">
         View Profile
       </button>
     </div>

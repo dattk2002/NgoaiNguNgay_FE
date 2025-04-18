@@ -52,12 +52,12 @@ function SignupPage() {
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-60px)] flex items-center justify-center bg-gray-50">
+    <div className="w-full min-h-[calc(100vh-60px)] py-8 flex items-center justify-center bg-gray-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
         <h2 className="text-center text-lg font-semibold mb-4">
           Tạo tài khoản
           <br />
-          Tham gia LangConnect ngay
+          Tham gia NgoaiNguNgay ngay
         </h2>
         {error && (
           <div className="bg-red-50 border border-red-500 text-red-600 p-2 rounded text-sm text-center mb-4">

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 function Header({ user, onLogout }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const dropdownRef = useRef(null);
 
   const toggleMenu = () => {
@@ -29,6 +30,19 @@ function Header({ user, onLogout }) {
     };
   }, [dropdownRef]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   // Dropdown animation variants
   const dropdownVariants = {
     hidden: {
@@ -51,9 +65,34 @@ function Header({ user, onLogout }) {
     }
   };
 
+  // Header animation variants
+  const headerVariants = {
+    top: {
+      position: 'relative',
+      backgroundColor: 'rgba(255, 255, 255, 0)',
+      boxShadow: '0 0px 0px 0px rgba(0, 0, 0, 0)',
+      borderBottomWidth: '0px',
+    },
+    scrolled: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'rgba(255, 255, 255, 1)',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+      borderColor: 'rgb(229 231 235)',
+    }
+  };
+
   return (
-    <header className="bg-white shadow-sm w-full border-b border-gray-200">
-      <div className="w-full px-4 sm:px-6 py-3 flex justify-between items-center">
+    <motion.header
+      className="w-full z-50"
+      variants={headerVariants}
+      initial="top"
+      animate={isScrolled ? "scrolled" : "top"}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+    >
+      <div className="w-full px-4 sm:px-6 py-4 flex justify-between items-center">
         {/* Logo and Navigation Links */}
         <div className="flex items-center gap-4 sm:gap-6">
           <Link to="/" className="text-black text-lg sm:text-xl font-semibold">
@@ -191,7 +230,7 @@ function Header({ user, onLogout }) {
               </Link>
               <Link
                 to="/signup"
-                className="bg-black text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold hover:bg-gray-800"
+                className="px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold hover:bg-[#333333] hover:text-white"
               >
                 Sign up
               </Link>
@@ -256,7 +295,7 @@ function Header({ user, onLogout }) {
           </div>
         </div>
       )}
-    </header>
+    </motion.header>
   );
 }
 

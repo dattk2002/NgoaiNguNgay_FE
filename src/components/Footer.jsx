@@ -8,7 +8,7 @@ function Footer() {
       <div className="container mx-auto px-4">
         {/* Use Flexbox for layout - Column on small, Row on medium+ */}
         <div className="flex flex-col md:flex-row mb-8"> {/* Changed to flex, removed gap */}
-          {/* LangConnect Section */}
+          {/* NgoaiNguNgay Section */}
           {/* Added width, right margin for large gap, and bottom margin for small screens */}
           <div className="md:w-1/4 md:mr-100 mb-8 md:mb-0"> {/* Added md:w-1/4, md:mr-12, mb-8, md:mb-0 */}
             <h5 className="text-lg font-semibold mb-2">NgoaiNguNgay</h5>
