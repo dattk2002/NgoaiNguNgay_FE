@@ -17,6 +17,9 @@ import russiaFlag from '../assets/russia.svg';
 import portugalFlag from '../assets/portugal.svg';
 import koreaFlag from '../assets/korea.svg';
 
+// Import the banner image
+import bannerImage from '../assets/banner.webp';
+
 const Banner = () => {
   // Sample categories - replace with your actual data and icons
   const categories = [
@@ -105,30 +108,40 @@ const Banner = () => {
   };
 
   return (
-    <div className="w-full min-h-screen py-16 px-4 flex flex-col justify-center items-center">
-      {/* Top Section */}
-      <div className="max-w-[1240px] mx-auto">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-center">
-          Learn Any Language with Expert Teachers
-        </h1>
-        <p className="text-gray-600 mb-8 text-lg md:text-xl text-center">
-          Connect with native speakers and certified teachers for personalized
-          1-on-1 lessons in over 150 languages.
-        </p>
-        <div className="flex justify-center space-x-4 mb-12">
-          <button className="bg-[#333333] text-white py-3 px-6 rounded-md flex items-center space-x-2 font-semibold hover:bg-black transition duration-300">
-            <FiUserPlus /> {/* Placeholder for icon */}
-            <span>Become a Tutor</span>
-          </button>
-          <button className=" text-black border border-black py-3 px-6 rounded-md flex items-center space-x-2 font-semibold hover:bg-gray-100 transition duration-300">
-            {/* Placeholder for icon */}
-            <span>Start Learning</span>
+    <div className="w-full py-16 px-4 flex flex-col justify-center items-center">
+      {/* Top Section - Replaced with new layout */}
+      <div className="max-w-[1240px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-16 w-full">
+        {/* Left Column: Text Content */}
+        <div className="text-left">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-800 mb-6 leading-tight">
+            Become fluent in any language
+          </h1>
+          <ul className="space-y-3 mb-8">
+            <li className="flex items-center text-lg text-gray-700">
+              <span className="w-3 h-3 bg-black rounded-full mr-3 flex-shrink-0"></span>
+              Take customizable 1-on-1 lessons trusted by millions of users
+            </li>
+            <li className="flex items-center text-lg text-gray-700">
+              <span className="w-3 h-3 bg-black rounded-full mr-3 flex-shrink-0"></span>
+              Learn from certified teachers that fit your budget and schedule
+            </li>
+            <li className="flex items-center text-lg text-gray-700">
+              <span className="w-3 h-3 bg-black rounded-full mr-3 flex-shrink-0"></span>
+              Connect with a global community of language learners
+            </li>
+          </ul>
+          <button className="bg-[#333333] hover:bg-black text-white font-semibold py-3 px-8 rounded-lg transition duration-300 text-lg">
+            Start now
           </button>
         </div>
 
-        {/* Video Preview Placeholder */}
-        <div className="bg-gray-200 h-40 md:h-56 rounded-lg flex items-center justify-center text-gray-500 mb-16">
-          Video Chat Interface Preview
+        {/* Right Column: Banner Image */}
+        <div className="w-full">
+          <img
+            src={bannerImage}
+            alt="Language learning banner"
+            className="w-full h-auto object-contain" // Maintain aspect ratio
+          />
         </div>
       </div>
 

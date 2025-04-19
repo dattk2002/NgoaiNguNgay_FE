@@ -101,10 +101,10 @@ function Header({ user, onLogout }) {
           {/* Navigation Links - Hidden on mobile, visible on larger screens */}
           <div className="hidden md:flex items-center gap-4 sm:gap-6">
             <Link
-              to="/teachers"
+              to="/tutors"
               className="text-gray-700 hover:text-black text-sm sm:text-base"
             >
-              Find teachers
+              Become a tutor
             </Link>
             <Link
               to="/languages"
@@ -265,11 +265,11 @@ function Header({ user, onLogout }) {
         <div className="md:hidden bg-white border-b border-gray-200">
           <div className="flex flex-col px-4 py-2 space-y-2">
             <Link
-              to="/teachers"
+              to="/tutors"
               className="text-gray-700 hover:text-black text-sm py-2"
               onClick={toggleMenu}
             >
-              Find teachers
+              Become a tutor
             </Link>
             <Link
               to="/languages"
