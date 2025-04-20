@@ -8,11 +8,13 @@ function SignupPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError("");
 
     if (!fullName || !phone || !password || !confirmPassword) {
       setError("Vui lòng điền đầy đủ thông tin");
@@ -26,6 +28,11 @@ function SignupPage() {
 
     if (password !== confirmPassword) {
       setError("Mật khẩu không khớp");
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setError("Bạn phải đồng ý với Điều khoản dịch vụ");
       return;
     }
 
@@ -76,7 +83,15 @@ function SignupPage() {
             type="tel"
             placeholder="Số điện thoại (+84)"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^\d*$/.test(value)) {
+                setPhone(value);
+                setError("");
+              } else {
+                setError("Số điện thoại chỉ được chứa chữ số.");
+              }
+            }}
             className="p-3 text-base border border-gray-300 rounded focus:outline-none focus:border-gray-500"
           />
           <input
@@ -94,7 +109,12 @@ function SignupPage() {
             className="p-3 text-base border border-gray-300 rounded focus:outline-none focus:border-gray-500"
           />
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="h-4 w-4" />
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+            />
             Tôi đồng ý với{" "}
             <a href="#" className="text-blue-600 hover:underline">
               Điều khoản dịch vụ
