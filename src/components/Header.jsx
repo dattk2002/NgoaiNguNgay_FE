@@ -35,11 +35,11 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
       setIsScrolled(window.scrollY > 50);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
     handleScroll();
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -48,38 +48,39 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
       opacity: 0,
       y: -10,
       scale: 0.95,
-      transition: { duration: 0.15, ease: "easeOut" }
+      transition: { duration: 0.15, ease: "easeOut" },
     },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { duration: 0.2, ease: "easeIn" }
+      transition: { duration: 0.2, ease: "easeIn" },
     },
     exit: {
       opacity: 0,
       y: -10,
       scale: 0.95,
-      transition: { duration: 0.15, ease: "easeOut" }
-    }
+      transition: { duration: 0.15, ease: "easeOut" },
+    },
   };
 
   const headerVariants = {
     top: {
-      position: 'relative',
-      backgroundColor: 'rgba(255, 255, 255, 0)',
-      boxShadow: '0 0px 0px 0px rgba(0, 0, 0, 0)',
-      borderBottomWidth: '0px',
+      position: "relative",
+      backgroundColor: "rgba(255, 255, 255, 0)",
+      boxShadow: "0 0px 0px 0px rgba(0, 0, 0, 0)",
+      borderBottomWidth: "0px",
     },
     scrolled: {
-      position: 'fixed',
+      position: "fixed",
       top: 0,
       left: 0,
       right: 0,
-      backgroundColor: 'rgba(255, 255, 255, 1)',
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-      borderColor: 'rgb(229 231 235)',
-    }
+      backgroundColor: "rgba(255, 255, 255, 1)",
+      boxShadow:
+        "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)",
+      borderColor: "rgb(229 231 235)",
+    },
   };
 
   return (
@@ -93,7 +94,10 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
       >
         <div className="w-full px-4 sm:px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
-            <Link to="/" className="text-black text-lg sm:text-xl font-semibold">
+            <Link
+              to="/"
+              className="text-black text-lg sm:text-xl font-semibold"
+            >
               NgoaiNguNgay
             </Link>
             <div className="hidden md:flex items-center gap-4 sm:gap-6">
@@ -124,9 +128,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
             </div>
           </div>
 
-          <div
-            className="flex items-center gap-2 sm:gap-3"
-          >
+          <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <div
@@ -144,7 +146,12 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                       viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                   </span>
                   <div className="relative rounded-full border border-gray-300 group-hover:border-transparent transition-colors duration-150">
@@ -155,6 +162,15 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                       }
                       alt="User avatar"
                       className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover block"
+                      onError={(e) =>
+                        console.error(
+                          "Image loading error:",
+                          e,
+                          "Trying to load:",
+                          e.target.src
+                        )
+                      }
+                      referrerPolicy="no-referrer"
                     />
                   </div>
                 </div>
@@ -242,7 +258,11 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                  d={
+                    isMenuOpen
+                      ? "M6 18L18 6M6 6l12 12"
+                      : "M4 6h16M4 12h16M4 18h16"
+                  }
                 />
               </svg>
             </button>
@@ -254,7 +274,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
             <motion.div
               className="md:hidden bg-white border-b border-gray-200 overflow-hidden"
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
+              animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >

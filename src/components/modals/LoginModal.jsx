@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "../firebase/firebase";
+import { toast } from "react-toastify";
 
 // Placeholder icons - replace with actual icons or components
 const EyeIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
@@ -101,6 +104,29 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
     }
   };
 
+  const googleLogin = () => {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider).then((result) => {
+      if (result.user) {
+        const { uid, displayName, email, photoURL } = result.user;
+
+
+        onLogin({
+          id: uid,
+          name: displayName,
+          email: email,
+          avatarUrl: photoURL
+        });
+
+        toast.success("User login successfully!", {
+          position: "top-center",
+        });
+      }
+    }).catch((error) => {
+      setError("Google Sign-In failed. Please try again.");
+    });
+  }
+
   const modalVariants = {
     hidden: { opacity: 0, scale: 1 },
     visible: { opacity: 1, scale: 1 },
@@ -139,7 +165,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
 
-            <h2 className="text-2xl font-semibold text-center mb-4">Welcome!</h2>
+            <h2 className="text-black text-2xl font-semibold text-center mb-4">Welcome!</h2>
             <p className="text-sm text-gray-500 text-center mb-6">
               By logging in or creating an account, you agree to our{' '}
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">Terms of Service</a> and{' '}
@@ -156,7 +182,10 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
               <button className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
                 <FaFacebook className="w-6 h-6 text-blue-800" />
               </button>
-              <button className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <button
+                onClick={googleLogin}
+                className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
                 <FcGoogle className="w-6 h-6" />
               </button>
             </div>
@@ -184,7 +213,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
                     }
                   }}
                   placeholder="Phone Number"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                  className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
                   required
                 />
               </div>
@@ -200,7 +229,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
                     setError("");
                   }}
                   placeholder="Password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black pr-10"
+                  className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black pr-10"
                   required
                 />
                 <button

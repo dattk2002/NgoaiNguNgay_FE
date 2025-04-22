@@ -109,7 +109,7 @@ const TutorList = () => {
     <div className="container mx-auto px-4 py-12 relative">
       {" "}
       {/* Added relative positioning for arrows */}
-      <h2 className="text-3xl font-semibold text-center mb-10">
+      <h2 className="text-black text-3xl font-semibold text-center mb-10">
         Featured Teachers
       </h2>
       <Slider {...settings} className="mx-4">

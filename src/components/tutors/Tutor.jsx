@@ -15,7 +15,7 @@ const Tutor = ({ tutor }) => {
         alt={tutor.name}
         className="w-24 h-24 rounded-full mb-4 object-cover"
       />
-      <h3 className="text-xl font-semibold mb-1">{tutor.name}</h3>
+      <h3 className="text-black text-xl font-semibold mb-1">{tutor.name}</h3>
       <p className="text-gray-600 text-sm mb-3">{tutor.languages}</p>
       <div className="flex items-center justify-center text-sm text-gray-600 mb-3">
         <svg

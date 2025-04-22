@@ -61,9 +61,16 @@ button:focus-visible {
   scrollbar-width: none;
 }
 
-@media (prefers-color-scheme: light) {
+.sign-in-with-google-p{
+  font-size: 12px;
+  color: #b2b2b2;
+  font-weight: 600;
+  margin-top: 1rem;
+  text-align: center;
+}
+/* @media (prefers-color-scheme: light) {
   :root {
     color: #000000;
     background-color: #ffffff;
   }
-}
+} */
