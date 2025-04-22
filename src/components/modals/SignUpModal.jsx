@@ -11,7 +11,7 @@ const EyeOffIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stro
 // Assume isOpen, onClose, onSwitchToLogin, and onSignUpSuccess are passed as props
 function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [termsAgreed, setTermsAgreed] = useState(false);
@@ -58,13 +58,13 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
     e.preventDefault();
     setError("");
 
-    if (!name || !phone || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword) {
       setError("Vui lòng điền đầy đủ thông tin.");
       return;
     }
 
-    if (!/^\d*$/.test(phone)) {
-      setError("Số điện thoại chỉ được chứa chữ số.");
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError("Vui lòng nhập địa chỉ email hợp lệ.");
       return;
     }
 
@@ -80,7 +80,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
 
     const accountData = {
       name,
-      phone,
+      email,
       password,
       id: Date.now().toString(),
       avatarUrl: ''
@@ -89,17 +89,18 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
     const existingAccounts =
       JSON.parse(localStorage.getItem("accounts")) || [];
     const duplicate = existingAccounts.some(
-      (account) => account.phone === phone
+      (account) => account.email === email
     );
 
     if (duplicate) {
-      setError("Số điện thoại này đã được đăng ký.");
+      setError("Địa chỉ email này đã được đăng ký.");
       return;
     }
 
     existingAccounts.push(accountData);
     localStorage.setItem("accounts", JSON.stringify(existingAccounts));
     onSignUpSuccess();
+    onClose();
   };
 
   const modalVariants = {
@@ -164,7 +165,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
 
                 <div className="flex items-center mb-6">
                     <div className="flex-grow border-t border-gray-200"></div>
-                    <span className="flex-shrink mx-4 text-gray-400 text-sm">or sign up with phone</span>
+                    <span className="flex-shrink mx-4 text-gray-400 text-sm">or sign up with email</span>
                     <div className="flex-grow border-t border-gray-200"></div>
                 </div>
 
@@ -182,20 +183,15 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                     />
                  </div>
                  <div className="mb-1">
-                    <label htmlFor="phone" className="sr-only">Phone</label>
+                    <label htmlFor="email" className="sr-only">Email</label>
                     <input
-                        type="tel"
-                        id="phone"
-                        placeholder="Phone Number (+84)"
-                        value={phone}
+                        type="email"
+                        id="email"
+                        placeholder="Email Address"
+                        value={email}
                         onChange={(e) => {
-                            const value = e.target.value;
-                            if (/^\d*$/.test(value)) {
-                                setPhone(value);
-                                setError("");
-                            } else {
-                                setError("Số điện thoại chỉ được chứa chữ số.");
-                            }
+                            setEmail(e.target.value);
+                            setError("");
                         }}
                         className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
                         required
@@ -273,7 +269,10 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                 <p className="text-center text-sm text-gray-500 mt-2">
                     Already have an account?{' '}
                     <button
-                        onClick={onSwitchToLogin}
+                        onClick={() => {
+                           onClose();
+                           onSwitchToLogin();
+                        }}
                         className="font-medium text-[#333333] hover:text-black underline"
                     >
                         Log in

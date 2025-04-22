@@ -5,20 +5,18 @@ import { FcGoogle } from "react-icons/fc";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { toast } from "react-toastify";
+import { login as apiLogin } from '../api/auth';
 
 // Placeholder icons - replace with actual icons or components
 const EyeIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
 const EyeOffIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .529-1.68 1.54-3.197 2.79-4.375M9 4.305A11.95 11.95 0 0112 4c4.478 0 8.268 2.943 9.542 7a10.054 10.054 0 01-1.875 3.825M12 15a3 3 0 110-6 3 3 0 010 6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 1l22 22" /></svg>;
 
-const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
 const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -53,54 +51,41 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
     return undefined;
   }, [isOpen]); // Re-run effect when isOpen changes
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!phone || !password) {
-      setError('Vui lòng nhập số điện thoại và mật khẩu.');
+    if (!email || !password) {
+      setError('Vui lòng nhập email và mật khẩu.');
       return;
     }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        setError('Vui lòng nhập địa chỉ email hợp lệ.');
+        return;
+    }
 
-    const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
-    const matchedAccount = accounts.find(
-      (account) =>
-        account.phone === phone.replace(/\D/g, "") &&
-        account.password === password
-    );
+    setIsLoading(true);
 
-    if (matchedAccount) {
-      const storedAccounts = JSON.parse(
-        localStorage.getItem(REMEMBERED_ACCOUNTS_KEY) || "[]"
-      );
-      const now = Date.now();
-      let validAccounts = storedAccounts.filter(
-        (account) => account.expires > now
-      );
+    try {
+      const response = await apiLogin(email, password);
 
-      validAccounts = validAccounts.filter(acc => acc.phone !== phone);
-
-      if (keepLoggedIn) {
-        validAccounts.push({
-            phone: phone,
-            password: password,
-            expires: now + SEVEN_DAYS_MS,
-        });
-        localStorage.setItem(REMEMBERED_ACCOUNTS_KEY, JSON.stringify(validAccounts));
+      if (response.data?.token?.user) {
+        const userDetails = {
+          id: response.data.token.user.id,
+          name: response.data.token.user.fullName,
+          email: email,
+        };
+        onLogin(userDetails);
+        toast.success(response.message || "Đăng nhập thành công!");
+        onClose();
       } else {
-        localStorage.setItem(REMEMBERED_ACCOUNTS_KEY, JSON.stringify(validAccounts));
+        setError(response.message || "Đăng nhập không thành công. Dữ liệu không hợp lệ.");
       }
-
-      localStorage.removeItem("rememberedPhone");
-      localStorage.removeItem("rememberedPassword");
-
-      onLogin({
-        id: matchedAccount.id || Date.now().toString(),
-        name: matchedAccount.fullName,
-        phone: matchedAccount.phone,
-      });
-    } else {
-      setError("Số điện thoại hoặc mật khẩu không đúng");
+    } catch (apiError) {
+      setError(apiError.message || "Email hoặc mật khẩu không đúng hoặc đã xảy ra lỗi.");
+      console.error("Login API error:", apiError);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -109,7 +94,6 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
     signInWithPopup(auth, provider).then((result) => {
       if (result.user) {
         const { uid, displayName, email, photoURL } = result.user;
-
 
         onLogin({
           id: uid,
@@ -121,8 +105,10 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
         toast.success("User login successfully!", {
           position: "top-center",
         });
+        onClose();
       }
     }).catch((error) => {
+      console.error("Google Sign-In Error:", error);
       setError("Google Sign-In failed. Please try again.");
     });
   }
@@ -192,27 +178,22 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
 
             <div className="flex items-center mb-6">
               <div className="flex-grow border-t border-gray-200"></div>
-              <span className="flex-shrink mx-4 text-gray-400 text-sm">or log in with phone</span>
+              <span className="flex-shrink mx-4 text-gray-400 text-sm">or log in with email</span>
               <div className="flex-grow border-t border-gray-200"></div>
             </div>
 
             <form onSubmit={handleLogin}>
               <div className="mb-4">
-                <label htmlFor="phone" className="sr-only">Phone</label>
+                <label htmlFor="email" className="sr-only">Email</label>
                 <input
-                  type="tel"
-                  id="phone"
-                  value={phone}
+                  type="email"
+                  id="email"
+                  value={email}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    if (/^\d*$/.test(value)) {
-                      setPhone(value);
-                      setError("");
-                    } else {
-                      setError("Số điện thoại chỉ được chứa chữ số.");
-                    }
+                    setEmail(e.target.value);
+                    setError("");
                   }}
-                  placeholder="Phone Number"
+                  placeholder="Email Address"
                   className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
                   required
                 />
@@ -243,16 +224,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
               </div>
 
               <div className="flex items-center justify-between mb-6 text-sm">
-                <div className="flex items-center">
-                  <input
-                    id="keepLoggedIn"
-                    type="checkbox"
-                    checked={keepLoggedIn}
-                    onChange={(e) => setKeepLoggedIn(e.target.checked)}
-                    className="h-4 w-4 text-black border-gray-300 rounded focus:ring-red-500"
-                  />
-                  <label htmlFor="keepLoggedIn" className="ml-2 text-gray-700">Keep me logged in</label>
-                </div>
+                <div className="flex-grow"></div>
                 <a href="#" className="font-medium text-[#333333] hover:text-black">
                   Forgot password?
                 </a>
@@ -260,9 +232,10 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
 
               <button
                 type="submit"
-                className="w-full bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200"
+                className={`w-full bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isLoading}
               >
-                Log in
+                {isLoading ? 'Logging in...' : 'Log in'}
               </button>
             </form>
 
@@ -270,6 +243,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
               No account yet?{' '}
               <button
                 onClick={() => {
+                  onClose();
                   onSwitchToSignup();
                 }}
                 className="font-medium text-[#333333] hover:text-black underline"
