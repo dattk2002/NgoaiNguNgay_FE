@@ -47,8 +47,8 @@ const Tutor = ({ tutor }) => {
   const imageUrl = tutor.imageUrl || 'https://via.placeholder.com/300x200?text=Tutor'; // Placeholder
 
   return (
-    // Main card container - remove padding, add overflow hidden
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col mx-2 overflow-hidden h-full">
+    // Main card container - remove mx-2, keep other styles
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full">
 
       {/* Image container - relative positioning */}
       <div className="relative w-full" style={{ paddingTop: '66.66%' }}> {/* Aspect ratio 3:2 */}
