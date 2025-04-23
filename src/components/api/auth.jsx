@@ -1,11 +1,21 @@
 // Read the API base URL from environment variables specific to Vite
 const API_URL = import.meta.env.VITE_API_BASE_URL;
+// Read Mock API URLs
+const MOCK_LOGIN_URL = import.meta.env.VITE_MOCK_API_LOGIN_URL;
+const MOCK_TUTORS_URL = import.meta.env.VITE_MOCK_API_TUTORS_URL;
 
 // Optional: Add a check or default if the variable is not set
 if (!API_URL) {
   console.error("Error: VITE_API_BASE_URL environment variable is not set! Check your .env file.");
   // You might want to throw an error or set a default fallback,
   // but using a default might hide configuration issues.
+}
+// Optional: Add checks for mock URLs if they are critical
+if (!MOCK_LOGIN_URL) {
+  console.warn("Warning: VITE_MOCK_API_LOGIN_URL is not set. Mock login might fail.");
+}
+if (!MOCK_TUTORS_URL) {
+  console.warn("Warning: VITE_MOCK_API_TUTORS_URL is not set. Fetching mock tutors might fail.");
 }
 
 // Generic function for making API calls
@@ -56,9 +66,16 @@ async function mockApi(endpoint, mockData) {
 
 // Login function - Refactored for MockAPI endpoint validation
 export async function login(email, password) { // Use email as the primary identifier
-  const MOCK_API_URL = "https://65f80579b4f842e80886a1dc.mockapi.io/login";
+  // Use the environment variable for the Mock API URL
+  const MOCK_API_URL = MOCK_LOGIN_URL; // Use the variable read from .env
 
-  console.log(`[Mock API Login] Attempting login for: ${email}`);
+  // Check if the URL is actually defined before attempting to use it
+  if (!MOCK_API_URL) {
+    console.error("Mock login URL is not configured in .env file (VITE_MOCK_API_LOGIN_URL).");
+    throw new Error("Cấu hình API bị lỗi.");
+  }
+
+  console.log(`[Mock API Login] Attempting login for: ${email} using URL: ${MOCK_API_URL}`);
 
   try {
     // Fetch the predefined data from the MockAPI endpoint
@@ -303,7 +320,15 @@ export function getRefreshToken() {
 
 // Function to fetch tutors from the MockAPI endpoint
 export async function fetchTutors() {
-  const MOCK_TUTOR_API_URL = "https://65f80579b4f842e80886a1dc.mockapi.io/tutors";
+  // Use the environment variable for the Mock Tutor API URL
+  const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL; // Use the variable read from .env
+
+  // Check if the URL is actually defined
+  if (!MOCK_TUTOR_API_URL) {
+    console.error("Mock tutors URL is not configured in .env file (VITE_MOCK_API_TUTORS_URL).");
+    throw new Error("Cấu hình API bị lỗi.");
+  }
+
   console.log(`[Mock API] Fetching tutors from: ${MOCK_TUTOR_API_URL}`);
 
   try {
