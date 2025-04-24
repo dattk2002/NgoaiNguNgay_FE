@@ -199,10 +199,10 @@ const Banner = () => {
           >
             {categories.map((category, index) => (
               <div key={index} className="flex flex-col items-center cursor-pointer group text-center w-16"> {/* Fixed width for alignment */}
-                 <div className="mb-1.5 text-gray-600 group-hover:text-rose-500 transition duration-300 transform group-hover:scale-110 flex justify-center items-center h-8"> {/* Centering container */}
+                 <div className="mb-1.5 text-gray-600 group-hover:text-black transition duration-300 transform group-hover:scale-110 flex justify-center items-center h-8"> {/* Centering container */}
                    {category.icon}
                  </div>
-                 <span className="text-xs font-semibold text-gray-600 group-hover:text-rose-500 transition duration-300 truncate w-full">
+                 <span className="text-xs font-semibold text-gray-400 group-hover:text-black transition duration-300 truncate w-full">
                    {category.name}
                  </span>
               </div>

@@ -57,6 +57,7 @@ const TutorList = () => {
                 rate: parseFloat(tutor.price) || 0,
                 imageUrl: tutor.avatar,
                 description: tutor.description,
+                address: tutor.address,
               }}
             />
           ))}
