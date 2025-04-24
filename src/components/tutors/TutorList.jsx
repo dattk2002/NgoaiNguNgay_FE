@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"; // Import hooks
 import Tutor from "./Tutor"; // Import the Tutor component
 import { fetchTutors } from "../api/auth"; // Import the new API function
+import { FaArrowRight } from "react-icons/fa";
 
 // Sample data for tutors (can be fetched from an API later) - REMOVED
 
@@ -30,7 +31,7 @@ const TutorList = () => {
   }, []); // Empty dependency array means this runs once on mount
 
   const handleShowMore = () => {
-    setDisplayedTutorsCount(prevCount => prevCount + 6);
+    setDisplayedTutorsCount((prevCount) => prevCount + 6);
   };
 
   return (
@@ -48,7 +49,9 @@ const TutorList = () => {
               tutor={{
                 id: tutor.id,
                 name: tutor.name,
-                languages: Array.isArray(tutor.subject) ? tutor.subject.join(', ') : 'N/A',
+                languages: Array.isArray(tutor.subject)
+                  ? tutor.subject.join(", ")
+                  : "N/A",
                 rating: tutor.rating,
                 reviews: tutor.ratingCount,
                 rate: parseFloat(tutor.price) || 0,
@@ -63,9 +66,11 @@ const TutorList = () => {
         <div className="text-center mt-8">
           <button
             onClick={handleShowMore}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-150 ease-in-out"
+            className="bg-[#333333] hover:bg-black text-white font-bold py-2 px-6 rounded-lg transition duration-150 ease-in-out"
           >
-            Xem thêm
+            <div className="flex items-center justify-center">
+              Xem thêm <FaArrowRight className="ml-2" />
+            </div>
           </button>
         </div>
       )}
