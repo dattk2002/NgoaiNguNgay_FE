@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
+import logo from "../assets/logo.png";
 function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -98,7 +98,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
               to="/"
               className="text-black text-lg sm:text-xl font-semibold"
             >
-              NgoaiNguNgay
+              <img src={logo} alt="logo" className="w-12 h-12" />
             </Link>
             <div className="hidden md:flex items-center gap-4 sm:gap-6">
               <Link
@@ -137,10 +137,10 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                   aria-expanded={isDropdownOpen}
                   aria-label="User menu"
                 >
-                  <div className="absolute inset-0 bg-[#969bff] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-150 -z-10"></div>
+                  <div className="absolute inset-0 bg-[#333333] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-150 -z-10"></div>
                   <span className="p-1">
                     <svg
-                      className="w-6 h-6 text-gray-700 group-hover:text-black transition-colors duration-150"
+                      className="w-6 h-6 text-gray-700 group-hover:text-white transition-colors duration-150"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"

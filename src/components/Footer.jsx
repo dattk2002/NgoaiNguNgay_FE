@@ -1,6 +1,7 @@
 import React from 'react';
 // Import necessary icons
 import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
+import logo from '../assets/logo.png';
 
 function Footer() {
   return (
@@ -11,7 +12,7 @@ function Footer() {
           {/* NgoaiNguNgay Section */}
           {/* Added width, right margin for large gap, and bottom margin for small screens */}
           <div className="md:w-1/4 md:mr-100 mb-8 md:mb-0"> {/* Added md:w-1/4, md:mr-12, mb-8, md:mb-0 */}
-            <h5 className="text-gray-700 text-lg font-bold mb-2">NgoaiNguNgay</h5>
+            <h5 className="text-gray-700 text-lg font-bold mb-2"><img src={logo} alt="logo" className="w-12 h-12" /></h5>
             <p className="text-gray-600">Connect with language teachers worldwide</p>
           </div>
 
