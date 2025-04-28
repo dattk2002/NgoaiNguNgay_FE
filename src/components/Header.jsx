@@ -92,7 +92,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
         animate={isScrolled ? "scrolled" : "top"}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <div className="w-full px-4 sm:px-6 py-4 flex justify-between items-center">
+        <div className="w-full px-4 sm:px-6 py-2 flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
             <Link
               to="/"

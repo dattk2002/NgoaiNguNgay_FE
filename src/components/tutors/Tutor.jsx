@@ -1,6 +1,7 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
-// Heart Icon SVG Component (can be moved to a separate file)
+// Heart Icon SVG Component
 const HeartIcon = ({
   className = "w-6 h-6",
   fill = "white",
@@ -23,7 +24,7 @@ const HeartIcon = ({
   </svg>
 );
 
-// Star Icon SVG Component (can be moved to a separate file)
+// Star Icon SVG Component
 const StarIcon = ({ className = "w-5 h-5" }) => (
   <svg
     className={className}
@@ -35,7 +36,7 @@ const StarIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
-// Ambassador Icon SVG Component (can be moved to a separate file)
+// Ambassador Icon SVG Component
 const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
   <svg
     className={className}
@@ -48,90 +49,89 @@ const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
 );
 
 const Tutor = ({ tutor }) => {
+  const navigate = useNavigate();
+
   if (!tutor) {
     return null;
   }
 
-  // Default values and formatting
   const rating = typeof tutor.rating === "number" ? tutor.rating : 0;
   const reviews = typeof tutor.reviews === "number" ? tutor.reviews : 0;
-  const rate = typeof tutor.rate === "number" ? tutor.rate : 0;
+  const price = typeof tutor.price === "number" ? tutor.price : 0;
   const name = tutor.name || "Unnamed Tutor";
-  // Use address if available, otherwise default to "(webcam)" for the location display
   const location = tutor.address ? `${tutor.address} (webcam)` : "(webcam)";
   const description =
-    tutor.description || "Experienced tutor providing personalized lessons."; // Default description
+    tutor.description || "Experienced tutor providing personalized lessons.";
   const imageUrl =
-    tutor.imageUrl || "https://via.placeholder.com/300x200?text=Tutor"; // Placeholder
-  const languages = tutor.languages || "N/A"; // New: show subjects/languages
+    tutor.imageUrl || "https://via.placeholder.com/300x200?text=Tutor";
+  const subjects = tutor.subjects || "N/A";
+  console.log(tutor.subjects);
+  
+
+  const handleClick = () => {
+    if (tutor.id) {
+      navigate(`/teacher/${tutor.id}`);
+    } else {
+      console.error("Tutor ID is missing:", tutor);
+    }
+  };
 
   return (
-    // Main card container - remove mx-2, keep other styles
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full">
-      {/* Image container - relative positioning */}
+    <div
+      className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full cursor-pointer"
+    >
       <div className="relative w-full" style={{ paddingTop: "66.66%" }}>
-        {" "}
-        {/* Aspect ratio 3:2 */}
         <img
           src={imageUrl}
           alt={name}
-          className="absolute top-0 left-0 w-full h-full object-cover" // Position image absolutely
+          className="absolute top-0 left-0 w-full h-full object-cover"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src =
               "https://via.placeholder.com/300x200?text=Image+Error";
           }}
         />
-        {/* Image Overlay Gradient (optional, makes text more readable) */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-        {/* Heart Icon - positioned top-right */}
         <button className="absolute top-3 right-3 p-1 rounded-full bg-black/30 hover:bg-black/50 transition-colors duration-150">
           <HeartIcon className="w-5 h-5" fill="white" />
         </button>
-        {/* Text on Image - positioned bottom-left */}
         <div className="absolute bottom-4 left-4 text-white">
           <h3 className="text-2xl font-bold drop-shadow-md">{name}</h3>
-          <p className="text-sm drop-shadow-md">{location}</p>{" "}
-          {/* Display location */}
+          <p className="text-sm drop-shadow-md">{location}</p>
         </div>
       </div>
 
-      {/* Content below image - add padding back */}
-      <div className="p-4 flex flex-col flex-grow">
-        {" "}
-        {/* flex-grow ensures this part takes remaining space */}
-        {/* Rating and Badge Row */}
+      <div className="p-4 flex flex-col flex-grow relative group">
         <div className="flex items-center justify-between mb-2 text-sm">
-          {/* Rating */}
           <div className="flex items-center text-gray-800">
             <StarIcon className="w-5 h-5 text-yellow-400 mr-1" />
             <span className="font-bold">{rating.toFixed(1)}</span>
             <span className="text-gray-600 ml-1">({reviews} reviews)</span>
           </div>
-          {/* Ambassador Badge (Static for now) */}
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-            <AmbassadorIcon className="w-3 h-3 mr-1" /> {/* Ambassador icon */}
+            <AmbassadorIcon className="w-3 h-3 mr-1" />
             Ambassador
           </span>
         </div>
-        {/* Subjects (mapped from TutorList.languages) */}
-        <p className="text-gray-700 text-sm mb-2 truncate" title={languages}>
-          {languages}
+        <p className="text-gray-700 text-sm mb-2 truncate" title={subjects}>
+          {subjects}
         </p>
-        {/* Description (mapped from description) */}
         <p
           className="text-gray-900 font-semibold mb-2 text-base leading-tight truncate"
           title={description}
         >
           {description}
         </p>
-        {/* Price and Offer */}
-        <div className="text-gray-700 text-sm mt-auto pt-2">
-          {" "}
-          {/* mt-auto pushes this to the bottom */}
-          <span className="font-bold text-base">${rate.toFixed(2)}/h</span>
+        <div className="text-gray-700 text-sm mt-auto py-3 group-hover:hidden">
+          <span className="font-bold text-base">${price.toFixed(2)}/h</span>
           <span className="text-red-500 ml-2">• 1st lesson free</span>
         </div>
+        <button
+          className="hidden group-hover:block mt-auto pt-2 w-full bg-[#333333] hover:bg-black text-white font-bold py-2 rounded-lg transition duration-150 ease-in-out text-center"
+          onClick={handleClick}
+        >
+          Contact Now
+        </button>
       </div>
     </div>
   );

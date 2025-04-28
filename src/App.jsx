@@ -1,3 +1,4 @@
+// App.jsx
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
@@ -5,6 +6,8 @@ import Footer from './components/Footer';
 import SignupPage from './pages/SignUpPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HomePage from './pages/HomePage';
+import TutorList from './components/tutors/TutorList'; // Import TutorList
+import TeacherProfile from './components/tutors/TutorProfile'; // Import TeacherProfile
 import LoginModal from './components/modals/LoginModal';
 import SignUpModal from './components/modals/SignUpModal';
 
@@ -41,25 +44,24 @@ function App() {
     localStorage.setItem(REMEMBERED_ACCOUNTS_KEY, JSON.stringify(validRemembered)); // Clean expired
 
     if (validRemembered.length > 0) {
-       // Optionally auto-login the most recently remembered valid user
-       const accountToLogin = validRemembered[validRemembered.length - 1];
-       const allAccounts = JSON.parse(localStorage.getItem(ACCOUNTS_STORAGE_KEY) || "[]");
-       const matchedAccount = allAccounts.find(acc => acc.phone === accountToLogin.phone);
+      // Optionally auto-login the most recently remembered valid user
+      const accountToLogin = validRemembered[validRemembered.length - 1];
+      const allAccounts = JSON.parse(localStorage.getItem(ACCOUNTS_STORAGE_KEY) || "[]");
+      const matchedAccount = allAccounts.find(acc => acc.phone === accountToLogin.phone);
 
-       if (matchedAccount) {
-           const userData = {
-               id: matchedAccount.id || Date.now().toString(), // Ensure ID exists
-               name: matchedAccount.name, // Ensure name is fetched
-               phone: matchedAccount.phone,
-               avatarUrl: matchedAccount.avatarUrl || '' // Get avatar if available
-           };
-           setUser(userData);
-           localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData)); // Store as logged-in
-       }
+      if (matchedAccount) {
+        const userData = {
+          id: matchedAccount.id || Date.now().toString(), // Ensure ID exists
+          name: matchedAccount.name, // Ensure name is fetched
+          phone: matchedAccount.phone,
+          avatarUrl: matchedAccount.avatarUrl || '' // Get avatar if available
+        };
+        setUser(userData);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData)); // Store as logged-in
+      }
     }
     setIsLoadingAuth(false); // Done checking
   }, []);
-
 
   // --- Modal Handlers ---
   const openLoginModal = () => setIsLoginModalOpen(true);
@@ -70,8 +72,8 @@ function App() {
   // --- Auth Handlers ---
   const handleLogin = (userData) => {
     const fullUserData = {
-        ...userData,
-        avatarUrl: userData.avatarUrl || '' // Ensure avatarUrl exists
+      ...userData,
+      avatarUrl: userData.avatarUrl || '' // Ensure avatarUrl exists
     };
     setUser(fullUserData);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData)); // Store logged-in user
@@ -104,7 +106,7 @@ function App() {
 
   // Prevent rendering main UI until auth status is checked
   if (isLoadingAuth) {
-      return <div>Loading...</div>; // Or a proper spinner component
+    return <div>Loading...</div>; // Or a proper spinner component
   }
 
   return (
@@ -117,15 +119,25 @@ function App() {
           onLoginClick={openLoginModal} // Pass function to open modal
           onSignUpClick={openSignUpModal} // Pass function to open modal
         />
-        <main className="flex-1"> {/* Changed div to main for semantics */}
+        <main className="flex-1 mx-20">
           <Routes>
-             {/* Redirect logged-in users away from auth pages */}
-            <Route path="/signup-page" element={ user ? <Navigate to="/" /> : <SignupPage /> } /> {/* Keep distinct page route if needed */}
-            <Route path="/forgot-password" element={ user ? <Navigate to="/" /> : <ForgotPasswordPage /> } />
+            {/* Redirect logged-in users away from auth pages */}
+            <Route
+              path="/signup-page"
+              element={user ? <Navigate to="/" /> : <SignupPage />}
+            />
+            <Route
+              path="/forgot-password"
+              element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
+            />
             {/* Pass user to HomePage */}
             <Route path="/" element={<HomePage user={user} />} />
-            {/* Add other routes here */}
-             <Route path="*" element={<Navigate to="/" />} /> {/* Basic catch-all */}
+            {/* Add TutorList route */}
+            <Route path="/tutors" element={<TutorList user={user} />} />
+            {/* Add TeacherProfile route */}
+            <Route path="/teacher/:id" element={<TeacherProfile user={user} />} />
+            {/* Catch-all route */}
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
         <Footer />
