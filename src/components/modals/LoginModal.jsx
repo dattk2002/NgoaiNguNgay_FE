@@ -1,3 +1,4 @@
+// LoginModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaFacebook } from "react-icons/fa";
@@ -7,11 +8,10 @@ import { auth } from "../firebase/firebase";
 import { toast } from "react-toastify";
 import { login as apiLogin } from '../api/auth';
 
-// Placeholder icons - replace with actual icons or components
 const EyeIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
 const EyeOffIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .529-1.68 1.54-3.197 2.79-4.375M9 4.305A11.95 11.95 0 0112 4c4.478 0 8.268 2.943 9.542 7a10.054 10.054 0 01-1.875 3.825M12 15a3 3 0 110-6 3 3 0 010 6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 1l22 22" /></svg>;
 
-const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
+const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup, promptMessage }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,28 +28,24 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
       document.body.style.overflow = 'hidden';
       document.body.style.paddingRight = `${scrollbarWidth}px`;
 
-      // Also apply padding to the header if it's fixed
-      const header = document.querySelector('header'); // Adjust selector if needed
+      const header = document.querySelector('header');
       let originalHeaderPaddingRight = '';
       if (header && window.getComputedStyle(header).position === 'fixed') {
         originalHeaderPaddingRight = header.style.paddingRight;
         header.style.paddingRight = `${scrollbarWidth + parseInt(window.getComputedStyle(header).paddingRight || '0')}px`;
       }
 
-
-      // Cleanup function to restore original styles
       return () => {
         document.body.style.overflow = originalOverflow;
         document.body.style.paddingRight = originalPaddingRight;
 
         if (header && window.getComputedStyle(header).position === 'fixed') {
-            header.style.paddingRight = originalHeaderPaddingRight;
+          header.style.paddingRight = originalHeaderPaddingRight;
         }
       };
     }
-    // No cleanup needed if modal wasn't open
     return undefined;
-  }, [isOpen]); // Re-run effect when isOpen changes
+  }, [isOpen]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -60,8 +56,8 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
       return;
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
-        setError('Vui lòng nhập địa chỉ email hợp lệ.');
-        return;
+      setError('Vui lòng nhập địa chỉ email hợp lệ.');
+      return;
     }
 
     setIsLoading(true);
@@ -111,7 +107,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
       console.error("Google Sign-In Error:", error);
       setError("Google Sign-In failed. Please try again.");
     });
-  }
+  };
 
   const modalVariants = {
     hidden: { opacity: 0, scale: 1 },
@@ -152,6 +148,11 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
             </button>
 
             <h2 className="text-black text-2xl font-semibold text-center mb-4">Welcome!</h2>
+            {promptMessage && (
+              <div className="bg-blue-50 border border-blue-500 text-blue-600 p-3 rounded text-sm text-center mb-4">
+                {promptMessage}
+              </div>
+            )}
             <p className="text-sm text-gray-500 text-center mb-6">
               By logging in or creating an account, you agree to our{' '}
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">Terms of Service</a> and{' '}
@@ -251,7 +252,6 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
                 Sign up
               </button>
             </p>
-
           </motion.div>
         </motion.div>
       )}
@@ -259,4 +259,4 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup }) => {
   );
 };
 
-export default LoginModal; 
+export default LoginModal;

@@ -1,3 +1,4 @@
+// TeacherProfile.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchTutorById, fetchTutors } from "../api/auth";
@@ -19,7 +20,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-const TeacherProfile = ({ user }) => {
+const TeacherProfile = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [teacher, setTeacher] = useState(null);
@@ -30,8 +31,9 @@ const TeacherProfile = ({ user }) => {
 
   useEffect(() => {
     if (!user) {
-      navigate("/");
-      return;
+      // Trigger login modal immediately for unauthenticated users
+      onRequireLogin("Please log in to contact this tutor.");
+      // Don't redirect; allow viewing the profile
     }
 
     const loadData = async () => {
@@ -54,7 +56,16 @@ const TeacherProfile = ({ user }) => {
     };
 
     loadData();
-  }, [id, user, navigate]);
+  }, [id, user, navigate, onRequireLogin]);
+
+  const handleBookLesson = () => {
+    if (!user) {
+      onRequireLogin("Please log in to book a lesson.");
+      return;
+    }
+    // Proceed with booking logic (e.g., open booking modal or navigate)
+    console.log("Booking lesson for user:", user);
+  };
 
   const handleClick = () => {
     navigate("/languages");
@@ -85,7 +96,6 @@ const TeacherProfile = ({ user }) => {
   const days = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
   const dates = [1, 2, 3, 4, 5, 6, 7]; // Starting from May 3, 2025 (tomorrow)
 
-  // Mock availability data for the week (based on the image)
   const availability = {
     "00:00 - 04:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
     "04:00 - 08:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
@@ -301,7 +311,7 @@ const TeacherProfile = ({ user }) => {
                               </span>
                             ))
                           ) : (
-                            <p className="text-gray-700 text-sm">
+                            <p className="text-gray Ensino-700 text-sm">
                               No certifications specified
                             </p>
                           )}
@@ -332,10 +342,23 @@ const TeacherProfile = ({ user }) => {
             <p className="text-red-500 font-bold text-lg">
               USD {(parseFloat(teacher.price) * 0.5).toFixed(2)}
             </p>
-            <button className="w-full bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition">
+            <button
+              onClick={handleBookLesson}
+              className="w-full bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition"
+            >
               Book Lesson
             </button>
-            <button className="w-full bg-gray-100 text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-200 transition">
+            <button
+              onClick={() => {
+                if (!user) {
+                  onRequireLogin("Please log in to contact this tutor.");
+                  return;
+                }
+                // Proceed with contact logic
+                console.log("Contacting teacher:", teacher.name);
+              }}
+              className="w-full bg-gray-100 text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-200 transition"
+            >
               Contact teacher
             </button>
           </div>
@@ -421,7 +444,6 @@ const TeacherProfile = ({ user }) => {
 
         <div className="mt-4 overflow-x-auto">
           <div className="grid grid-cols-8 gap-1 min-w-[600px]">
-            {/* Header Row: Days and Dates */}
             <div className="text-sm font-medium text-gray-600"></div>
             {days.map((day, index) => (
               <div
@@ -431,7 +453,6 @@ const TeacherProfile = ({ user }) => {
                 {day} {dates[index]}
               </div>
             ))}
-            {/* Time Slots Rows */}
             {timeSlots.map((timeSlot) => (
               <React.Fragment key={timeSlot}>
                 <div className="text-sm text-gray-600 py-2">{timeSlot}</div>
@@ -454,7 +475,10 @@ const TeacherProfile = ({ user }) => {
           <div className="text-sm text-gray-500">
             Based on your timezone (UTC+00:00)
           </div>
-          <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+          <button
+            onClick={handleBookLesson}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+          >
             Schedule lesson
           </button>
         </div>
@@ -485,6 +509,8 @@ const TeacherProfile = ({ user }) => {
                     description: tutor.description,
                     address: tutor.address,
                   }}
+                  user={user}
+                  onRequireLogin={onRequireLogin}
                 />
               </div>
             ))}

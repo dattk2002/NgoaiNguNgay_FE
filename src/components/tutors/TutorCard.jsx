@@ -48,7 +48,7 @@ const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
   </svg>
 );
 
-const TutorCard = ({ tutor }) => {
+const TutorCard = ({ tutor, user, onRequireLogin }) => {
   const navigate = useNavigate();
 
   if (!tutor) {
@@ -65,12 +65,15 @@ const TutorCard = ({ tutor }) => {
   const imageUrl =
     tutor.imageUrl || "https://picsum.photos/300/200?random=1";
   const subjects = tutor.subjects || "N/A";
-  console.log(tutor.subjects);
-  
 
   const handleClick = () => {
-    if (tutor.id) {
+    if (!user && onRequireLogin) {
+      // If not logged in, redirect to profile and trigger login modal
       navigate(`/teacher/${tutor.id}`);
+      onRequireLogin("Please log in to contact this tutor.");
+    } else if (tutor.id) {
+      // If logged in, open tutor profile in a new tab
+      window.open(`/teacher/${tutor.id}`, "_blank", "noopener,noreferrer");
     } else {
       console.error("Tutor ID is missing:", tutor);
     }

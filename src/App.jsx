@@ -1,93 +1,103 @@
 // App.jsx
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import SignupPage from './pages/SignUpPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import HomePage from './pages/HomePage';
-import TutorList from './components/tutors/TutorList'; // Import TutorList
-import TeacherProfile from './components/tutors/TutorProfile'; // Import TeacherProfile
-import LoginModal from './components/modals/LoginModal';
-import SignUpModal from './components/modals/SignUpModal';
+import { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import SignupPage from "./pages/SignUpPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import HomePage from "./pages/HomePage";
+import TutorList from "./components/tutors/TutorList";
+import TeacherProfile from "./components/tutors/TutorProfile";
+import LoginModal from "./components/modals/LoginModal";
+import SignUpModal from "./components/modals/SignUpModal";
 
-// Key for storing logged-in user data
-const USER_STORAGE_KEY = 'loggedInUser';
-// Key for storing remembered accounts (for auto-login)
+const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
-// Key for storing all registered accounts
 const ACCOUNTS_STORAGE_KEY = "accounts";
 
 function App() {
-  // --- State ---
-  const [user, setUser] = useState(null); // Initialize user as null
+  const [user, setUser] = useState(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true); // To prevent flicker
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  // New state to track if login modal was triggered by a restricted action
+  const [loginPromptMessage, setLoginPromptMessage] = useState("");
 
-  // --- Effects ---
-  // Check for remembered user on initial load
   useEffect(() => {
     setIsLoadingAuth(true);
-    // 1. Check direct loggedInUser storage (highest priority)
     const storedUser = localStorage.getItem(USER_STORAGE_KEY);
     if (storedUser) {
       setUser(JSON.parse(storedUser));
       setIsLoadingAuth(false);
-      return; // Found user, stop checking
+      return;
     }
 
-    // 2. Check remembered accounts (for "Keep me logged in")
-    const remembered = JSON.parse(localStorage.getItem(REMEMBERED_ACCOUNTS_KEY) || "[]");
+    const remembered = JSON.parse(
+      localStorage.getItem(REMEMBERED_ACCOUNTS_KEY) || "[]"
+    );
     const now = Date.now();
-    const validRemembered = remembered.filter(acc => acc.expires > now);
-    localStorage.setItem(REMEMBERED_ACCOUNTS_KEY, JSON.stringify(validRemembered)); // Clean expired
+    const validRemembered = remembered.filter((acc) => acc.expires > now);
+    localStorage.setItem(
+      REMEMBERED_ACCOUNTS_KEY,
+      JSON.stringify(validRemembered)
+    );
 
     if (validRemembered.length > 0) {
-      // Optionally auto-login the most recently remembered valid user
       const accountToLogin = validRemembered[validRemembered.length - 1];
-      const allAccounts = JSON.parse(localStorage.getItem(ACCOUNTS_STORAGE_KEY) || "[]");
-      const matchedAccount = allAccounts.find(acc => acc.phone === accountToLogin.phone);
+      const allAccounts = JSON.parse(
+        localStorage.getItem(ACCOUNTS_STORAGE_KEY) || "[]"
+      );
+      const matchedAccount = allAccounts.find(
+        (acc) => acc.phone === accountToLogin.phone
+      );
 
       if (matchedAccount) {
         const userData = {
-          id: matchedAccount.id || Date.now().toString(), // Ensure ID exists
-          name: matchedAccount.name, // Ensure name is fetched
+          id: matchedAccount.id || Date.now().toString(),
+          name: matchedAccount.name,
           phone: matchedAccount.phone,
-          avatarUrl: matchedAccount.avatarUrl || '' // Get avatar if available
+          avatarUrl: matchedAccount.avatarUrl || "",
         };
         setUser(userData);
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData)); // Store as logged-in
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
       }
     }
-    setIsLoadingAuth(false); // Done checking
+    setIsLoadingAuth(false);
   }, []);
 
-  // --- Modal Handlers ---
-  const openLoginModal = () => setIsLoginModalOpen(true);
-  const closeLoginModal = () => setIsLoginModalOpen(false);
+  const openLoginModal = (message = "") => {
+    setLoginPromptMessage(message);
+    setIsLoginModalOpen(true);
+  };
+
+  const closeLoginModal = () => {
+    setIsLoginModalOpen(false);
+    setLoginPromptMessage(""); // Clear message on close
+  };
+
   const openSignUpModal = () => setIsSignUpModalOpen(true);
   const closeSignUpModal = () => setIsSignUpModalOpen(false);
 
-  // --- Auth Handlers ---
   const handleLogin = (userData) => {
     const fullUserData = {
       ...userData,
-      avatarUrl: userData.avatarUrl || '' // Ensure avatarUrl exists
+      avatarUrl: userData.avatarUrl || "",
     };
     setUser(fullUserData);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData)); // Store logged-in user
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData));
     closeLoginModal();
   };
 
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
-    // Optional: Clear remembered accounts on explicit logout?
-    // localStorage.removeItem(REMEMBERED_ACCOUNTS_KEY);
   };
 
-  // --- Modal Switching Handlers ---
   const switchToSignup = () => {
     closeLoginModal();
     openSignUpModal();
@@ -98,62 +108,67 @@ function App() {
     openLoginModal();
   };
 
-  // Called from SignUpModal on success
   const handleSignUpSuccess = () => {
     closeSignUpModal();
-    openLoginModal(); // Immediately open login modal
+    openLoginModal();
   };
 
-  // Prevent rendering main UI until auth status is checked
   if (isLoadingAuth) {
-    return <div>Loading...</div>; // Or a proper spinner component
+    return <div>Loading...</div>;
   }
 
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-gray-100 overflow-x-hidden">
-        {/* Pass user state and handlers to Header */}
         <Header
           user={user}
           onLogout={handleLogout}
-          onLoginClick={openLoginModal} // Pass function to open modal
-          onSignUpClick={openSignUpModal} // Pass function to open modal
+          onLoginClick={() => openLoginModal()}
+          onSignUpClick={openSignUpModal}
         />
         <main className="flex-1 mx-20">
           <Routes>
-            {/* Redirect logged-in users away from auth pages */}
             <Route
               path="/signup-page"
               element={user ? <Navigate to="/" /> : <SignupPage />}
             />
             <Route
+              path="/languages"
+              element={
+                <TutorList user={user} onRequireLogin={openLoginModal} />
+              }
+            />
+            <Route
               path="/forgot-password"
               element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
             />
-            {/* Pass user to HomePage */}
             <Route path="/" element={<HomePage user={user} />} />
-            {/* Add TutorList route */}
             <Route path="/languages" element={<TutorList user={user} />} />
-            {/* Add TeacherProfile route */}
-            <Route path="/teacher/:id" element={<TeacherProfile user={user} />} />
-            {/* Catch-all route */}
+            <Route
+              path="/teacher/:id"
+              element={
+                <TeacherProfile
+                  user={user}
+                  onRequireLogin={openLoginModal} // Pass handler to open login modal
+                />
+              }
+            />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
         <Footer />
-
-        {/* Render Modals controlled by App state */}
         <LoginModal
           isOpen={isLoginModalOpen}
           onClose={closeLoginModal}
-          onLogin={handleLogin} // Use the App's login handler
+          onLogin={handleLogin}
           onSwitchToSignup={switchToSignup}
+          promptMessage={loginPromptMessage} // Pass custom message
         />
         <SignUpModal
           isOpen={isSignUpModalOpen}
           onClose={closeSignUpModal}
-          onSignUpSuccess={handleSignUpSuccess} // Connect sign-up success to login modal
-          onSwitchToLogin={switchToLogin} // Allow switching back to login
+          onSignUpSuccess={handleSignUpSuccess}
+          onSwitchToLogin={switchToLogin}
         />
       </div>
     </Router>
