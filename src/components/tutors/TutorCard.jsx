@@ -48,7 +48,7 @@ const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
   </svg>
 );
 
-const Tutor = ({ tutor }) => {
+const TutorCard = ({ tutor }) => {
   const navigate = useNavigate();
 
   if (!tutor) {
@@ -63,7 +63,7 @@ const Tutor = ({ tutor }) => {
   const description =
     tutor.description || "Experienced tutor providing personalized lessons.";
   const imageUrl =
-    tutor.imageUrl || "https://via.placeholder.com/300x200?text=Tutor";
+    tutor.imageUrl || "https://picsum.photos/300/200?random=1";
   const subjects = tutor.subjects || "N/A";
   console.log(tutor.subjects);
   
@@ -88,7 +88,7 @@ const Tutor = ({ tutor }) => {
           onError={(e) => {
             e.target.onerror = null;
             e.target.src =
-              "https://via.placeholder.com/300x200?text=Image+Error";
+              "https://picsum.photos/300/200?random=1";
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
@@ -137,4 +137,4 @@ const Tutor = ({ tutor }) => {
   );
 };
 
-export default Tutor;
+export default TutorCard;

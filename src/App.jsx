@@ -133,7 +133,7 @@ function App() {
             {/* Pass user to HomePage */}
             <Route path="/" element={<HomePage user={user} />} />
             {/* Add TutorList route */}
-            <Route path="/tutors" element={<TutorList user={user} />} />
+            <Route path="/languages" element={<TutorList user={user} />} />
             {/* Add TeacherProfile route */}
             <Route path="/teacher/:id" element={<TeacherProfile user={user} />} />
             {/* Catch-all route */}

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchTutorById } from "../api/auth";
+import { fetchTutorById, fetchTutors } from "../api/auth";
 import {
   FaStar,
-  FaCalendar,
   FaUser,
   FaComment,
   FaBook,
@@ -12,11 +11,19 @@ import {
   FaCheckCircle,
   FaHeart,
 } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import ReviewsSection from "../ReviewSection";
+import TutorCard from "./TutorCard";
+import { FaArrowRight } from "react-icons/fa6";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 const TeacherProfile = ({ user }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [teacher, setTeacher] = useState(null);
+  const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("About Me");
@@ -27,21 +34,31 @@ const TeacherProfile = ({ user }) => {
       return;
     }
 
-    const loadTeacher = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const data = await fetchTutorById(id);
-        setTeacher(data);
+        setError(null);
+
+        const teacherData = await fetchTutorById(id);
+        setTeacher(teacherData);
+
+        const tutorsData = await fetchTutors();
+        const filteredTutors = tutorsData.filter((tutor) => tutor.id !== id);
+        setTutors(filteredTutors);
       } catch (err) {
-        console.error("Failed to fetch teacher:", err);
-        setError(err.message || "Could not load teacher profile.");
+        console.error("Failed to fetch data:", err);
+        setError(err.message || "Could not load data.");
       } finally {
         setLoading(false);
       }
     };
 
-    loadTeacher();
+    loadData();
   }, [id, user, navigate]);
+
+  const handleClick = () => {
+    navigate("/languages");
+  };
 
   if (loading) return <p className="text-center text-gray-500">Loading...</p>;
   if (error) return <p className="text-center text-red-500">Error: {error}</p>;
@@ -55,6 +72,58 @@ const TeacherProfile = ({ user }) => {
     "Films & TV Series",
     "Pets & Animals",
   ];
+
+  const timeSlots = [
+    "00:00 - 04:00",
+    "04:00 - 08:00",
+    "08:00 - 12:00",
+    "12:00 - 16:00",
+    "16:00 - 20:00",
+    "20:00 - 24:00",
+  ];
+
+  const days = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
+  const dates = [1, 2, 3, 4, 5, 6, 7]; // Starting from May 3, 2025 (tomorrow)
+
+  // Mock availability data for the week (based on the image)
+  const availability = {
+    "00:00 - 04:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
+    "04:00 - 08:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
+    "08:00 - 12:00": { thu: true, fri: true, sat: true, sun: true, mon: true, tue: true, wed: true },
+    "12:00 - 16:00": { thu: true, fri: true, sat: true, sun: true, mon: true, tue: true, wed: true },
+    "16:00 - 20:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
+    "20:00 - 24:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
+  };
+
+  const tabVariants = {
+    initial: { opacity: 0, x: 20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 },
+  };
+
+  const sliderSettings = {
+    dots: false,
+    infinite: tutors.length > 3,
+    speed: 500,
+    slidesToShow: Math.min(tutors.length, 3),
+    slidesToScroll: 1,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: Math.min(tutors.length, 2),
+          slidesToScroll: 1,
+        },
+      },
+      {
+        breakpoint: 600,
+        settings: {
+          slidesToShow: 1,
+          slidesToScroll: 1,
+        },
+      },
+    ],
+  };
 
   return (
     <div className="container mx-auto px-4 py-12 bg-white min-h-screen rounded-3xl">
@@ -147,87 +216,100 @@ const TeacherProfile = ({ user }) => {
               </div>
 
               <div className="mt-4">
-                {activeTab === "About Me" && (
-                  <>
-                    <p className="text-gray-700 text-sm">
-                      From{" "}
-                      <span className="font-medium">{teacher.address}</span>
-                    </p>
-                    <p className="text-gray-700 text-sm mt-2">
-                      Italki teacher since{" "}
-                      <span className="font-medium">Oct 20, 2021</span>
-                    </p>
-                    <h3 className="text-gray-800 font-semibold mt-4">
-                      About Me
-                    </h3>
-                    <p className="text-gray-700 text-sm mt-2">
-                      Interests:{" "}
-                      {interests.map((interest, index) => (
-                        <span
-                          key={index}
-                          className="inline-block bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded mr-1"
-                        >
-                          {interest}
-                        </span>
-                      ))}
-                    </p>
-                    <p className="text-gray-700 text-sm mt-4 leading-relaxed">
-                      Hello! I’m {teacher.name}, a passionate tutor from{" "}
-                      {teacher.address}. I specialize in teaching{" "}
-                      {teacher.nativeLanguage}
-                      {teacher.subjects && teacher.subjects.length > 0
-                        ? ` and ${teacher.subjects
-                            .map((s) => s.name)
-                            .join(", ")}`
-                        : ""}
-                      . I’m TEFL certified and have taught over{" "}
-                      {teacher.lessons} lessons to {teacher.students} students.
-                      My teaching style is interactive and tailored to each
-                      student’s needs. Let’s learn together!
-                    </p>
-                    <button className="text-blue-600 text-sm mt-2 hover:underline">
-                      Read more
-                    </button>
-                  </>
-                )}
-                {activeTab === "Me as a Teacher" && (
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    As a teacher, I focus on creating a supportive and engaging
-                    environment. I adapt my lessons to suit each student’s
-                    learning style, ensuring they feel confident and motivated.
-                  </p>
-                )}
-                {activeTab === "My lessons & teaching style" && (
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    My lessons are interactive and student-centered. I use a mix
-                    of conversation practice, grammar exercises, and cultural
-                    insights to make learning fun and effective.
-                  </p>
-                )}
-                {activeTab === "Resume & Certificates" && (
-                  <div>
-                    <p className="text-gray-700 text-sm">
-                      Teacher ID: {teacher.id}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {teacher.certifications &&
-                      teacher.certifications.length > 0 ? (
-                        teacher.certifications.map((cert, index) => (
-                          <span
-                            key={index}
-                            className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
-                          >
-                            {cert}
-                          </span>
-                        ))
-                      ) : (
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    variants={tabVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ duration: 0.3 }}
+                  >
+                    {activeTab === "About Me" && (
+                      <>
                         <p className="text-gray-700 text-sm">
-                          No certifications specified
+                          From{" "}
+                          <span className="font-medium">{teacher.address}</span>
                         </p>
-                      )}
-                    </div>
-                  </div>
-                )}
+                        <p className="text-gray-700 text-sm mt-2">
+                          Italki teacher since{" "}
+                          <span className="font-medium">Oct 20, 2021</span>
+                        </p>
+                        <h3 className="text-gray-800 font-semibold mt-4">
+                          About Me
+                        </h3>
+                        <p className="text-gray-700 text-sm mt-2">
+                          Interests:{" "}
+                          {interests.map((interest, index) => (
+                            <span
+                              key={index}
+                              className="inline-block bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded mr-1"
+                            >
+                              {interest}
+                            </span>
+                          ))}
+                        </p>
+                        <p className="text-gray-700 text-sm mt-4 leading-relaxed">
+                          Hello! I’m {teacher.name}, a passionate tutor from{" "}
+                          {teacher.address}. I specialize in teaching{" "}
+                          {teacher.nativeLanguage}
+                          {teacher.subjects && teacher.subjects.length > 0
+                            ? ` and ${teacher.subjects
+                                .map((s) => s.name)
+                                .join(", ")}`
+                            : ""}
+                          . I’m TEFL certified and have taught over{" "}
+                          {teacher.lessons} lessons to {teacher.students}{" "}
+                          students. My teaching style is interactive and
+                          tailored to each student’s needs. Let’s learn
+                          together!
+                        </p>
+                        <button className="text-blue-600 text-sm mt-2 hover:underline">
+                          Read more
+                        </button>
+                      </>
+                    )}
+                    {activeTab === "Me as a Teacher" && (
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        As a teacher, I focus on creating a supportive and
+                        engaging environment. I adapt my lessons to suit each
+                        student’s learning style, ensuring they feel confident
+                        and motivated.
+                      </p>
+                    )}
+                    {activeTab === "My lessons & teaching style" && (
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        My lessons are interactive and student-centered. I use a
+                        mix of conversation practice, grammar exercises, and
+                        cultural insights to make learning fun and effective.
+                      </p>
+                    )}
+                    {activeTab === "Resume & Certificates" && (
+                      <div>
+                        <p className="text-gray-700 text-sm">
+                          Teacher ID: {teacher.id}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {teacher.certifications &&
+                          teacher.certifications.length > 0 ? (
+                            teacher.certifications.map((cert, index) => (
+                              <span
+                                key={index}
+                                className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
+                              >
+                                {cert}
+                              </span>
+                            ))
+                          ) : (
+                            <p className="text-gray-700 text-sm">
+                              No certifications specified
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </div>
@@ -236,7 +318,9 @@ const TeacherProfile = ({ user }) => {
         <div className="md:w-100">
           <div className="relative rounded-lg overflow-hidden shadow-md">
             <iframe
-              src={teacher.videoUrl || "https://www.youtube.com/embed/x9tjWF5ArXc"}
+              src={
+                teacher.videoUrl || "https://www.youtube.com/embed/x9tjWF5ArXc"
+              }
               title={`${teacher.name} Introduction Video`}
               className="w-full h-48"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -251,7 +335,7 @@ const TeacherProfile = ({ user }) => {
             <button className="w-full bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition">
               Book Lesson
             </button>
-            <button className="w-full bg-gray-100 text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-300 transition">
+            <button className="w-full bg-gray-100 text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-200 transition">
               Contact teacher
             </button>
           </div>
@@ -331,103 +415,95 @@ const TeacherProfile = ({ user }) => {
 
       <div className="mt-10">
         <h2 className="text-2xl font-semibold text-gray-800">Availability</h2>
-        <div className="overflow-x-auto mt-4">
-          <table className="w-full text-center border-collapse bg-white rounded-xl shadow-md">
-            <thead>
-              <tr className="bg-blue-100">
-                <th className="p-3 text-gray-800">Time</th>
-                <th className="p-3 text-gray-800">Mon</th>
-                <th className="p-3 text-gray-800">Tue</th>
-                <th className="p-3 text-gray-800">Wed</th>
-                <th className="p-3 text-gray-800">Thu</th>
-                <th className="p-3 text-gray-800">Fri</th>
-                <th className="p-3 text-gray-800">Sat</th>
-                <th className="p-3 text-gray-800">Sun</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teacher.availability && teacher.availability.length > 0 ? (
-                teacher.availability.map((slot, index) => (
-                  <tr key={index} className="border-t hover:bg-gray-50">
-                    <td className="p-3 text-gray-700">{slot.time}</td>
-                    <td className="p-3">
-                      {slot.mon && (
-                        <FaCheckCircle className="text-green-500 mx-auto" />
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {slot.tue && (
-                        <FaCheckCircle className="text-green-500 mx-auto" />
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {slot.wed && (
-                        <FaCheckCircle className="text-green-500 mx-auto" />
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {slot.thu && (
-                        <FaCheckCircle className="text-green-500 mx-auto" />
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {slot.fri && (
-                        <FaCheckCircle className="text-green-500 mx-auto" />
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {slot.sat && (
-                        <FaCheckCircle className="text-green-500 mx-auto" />
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {slot.sun && (
-                        <FaCheckCircle className="text-green-500 mx-auto" />
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="8" className="p-3 text-gray-500">
-                    No availability data
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="text-sm text-teal-500 mb-2">
+          Available 10:00 Tomorrow
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <div className="grid grid-cols-8 gap-1 min-w-[600px]">
+            {/* Header Row: Days and Dates */}
+            <div className="text-sm font-medium text-gray-600"></div>
+            {days.map((day, index) => (
+              <div
+                key={day}
+                className="text-center text-sm font-medium text-gray-800"
+              >
+                {day} {dates[index]}
+              </div>
+            ))}
+            {/* Time Slots Rows */}
+            {timeSlots.map((timeSlot) => (
+              <React.Fragment key={timeSlot}>
+                <div className="text-sm text-gray-600 py-2">{timeSlot}</div>
+                {days.map((day) => (
+                  <div
+                    key={`${timeSlot}-${day}`}
+                    className={`h-8 ${
+                      availability[timeSlot][day.toLowerCase()]
+                        ? "bg-[#333333]"
+                        : "bg-gray-100"
+                    }`}
+                  ></div>
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-gray-500">
+            Based on your timezone (UTC+00:00)
+          </div>
+          <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+            Schedule lesson
+          </button>
         </div>
       </div>
 
+      <ReviewsSection teacher={teacher} />
+
       <div className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-800">
-          Reviews ({teacher.reviews ? teacher.reviews.length : 0})
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+          Recommended Tutors
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-          {teacher.reviews && teacher.reviews.length > 0 ? (
-            teacher.reviews.map((review, index) => (
-              <div
-                key={index}
-                className="bg-white p-6 rounded-xl shadow-md flex items-start gap-4 hover:shadow-lg transition"
-              >
-                <FaUser className="text-blue-500 w-10 h-10" />
-                <div>
-                  <p className="font-semibold text-gray-800">{review.name}</p>
-                  <p className="text-gray-600 text-sm">{review.role}</p>
-                  <p className="mt-2 text-gray-700">{review.comment}</p>
-                  <p className="text-gray-500 text-sm mt-1">{review.date}</p>
-                </div>
+        {tutors.length > 0 ? (
+          <Slider {...sliderSettings}>
+            {tutors.map((tutor) => (
+              <div key={tutor.id} className="px-3">
+                <TutorCard
+                  tutor={{
+                    id: tutor.id,
+                    name: tutor.name,
+                    subjects:
+                      Array.isArray(tutor.subjects) && tutor.subjects.length > 0
+                        ? tutor.subjects.map((subject) => subject.name).join(", ")
+                        : "N/A",
+                    rating: tutor.rating,
+                    reviews: tutor.ratingCount,
+                    price: parseFloat(tutor.price) || 0,
+                    imageUrl: tutor.avatar,
+                    description: tutor.description,
+                    address: tutor.address,
+                  }}
+                />
               </div>
-            ))
-          ) : (
-            <p className="text-gray-500">No reviews yet.</p>
-          )}
-        </div>
-        {teacher.reviews && teacher.reviews.length > 2 && (
-          <button className="mt-6 text-blue-600 hover:underline">
-            Show More
-          </button>
+            ))}
+          </Slider>
+        ) : (
+          <p className="text-center text-gray-500">
+            No recommended tutors available at this time.
+          </p>
         )}
+        <div className="mt-6 text-center">
+          <button
+            onClick={handleClick}
+            className="bg-[#333333] hover:bg-black text-white font-bold py-2 px-6 rounded-lg transition duration-150 ease-in-out"
+          >
+            <div className="flex items-center justify-center">
+              Xem thêm <FaArrowRight className="ml-2" />
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );
