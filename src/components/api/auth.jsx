@@ -1,4 +1,3 @@
-// auth.jsx
 // Read the API base URL from environment variables specific to Vite
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 // Read Mock API URLs
@@ -138,7 +137,6 @@ export async function mockLogin(username, password) {
         email: username || "mock.user@example.com",
         fullName: "Mock Test User",
         role: "Member",
- 
       },
     },
     role: "Member",
@@ -302,6 +300,25 @@ export async function fetchTutorById(id) {
     return tutor;
   } catch (error) {
     console.error(`Lỗi khi lấy dữ liệu tutor với ID ${id}:`, error);
+    throw error;
+  }
+}
+
+// New function to fetch tutors by subject
+export async function fetchTutorsBySubject(subject) {
+  try {
+    const tutorsData = await fetchTutors(); // Fetch all tutors
+    if (!subject) {
+      throw new Error("Subject parameter is required.");
+    }
+    const normalizedSubject = subject.toLowerCase() === 'portuguese' ? 'brazilian portuguese' : subject.toLowerCase();
+    const filteredTutors = tutorsData.filter(tutor => 
+      tutor.nativeLanguage && tutor.nativeLanguage.toLowerCase() === normalizedSubject
+    );
+    console.log(`[Mock API] Tutors filtered by subject '${subject}':`, filteredTutors);
+    return filteredTutors;
+  } catch (error) {
+    console.error(`Error fetching tutors by subject: ${subject}`, error);
     throw error;
   }
 }

@@ -1,4 +1,3 @@
-// App.jsx
 import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -15,6 +14,7 @@ import TutorList from "./components/tutors/TutorList";
 import TeacherProfile from "./components/tutors/TutorProfile";
 import LoginModal from "./components/modals/LoginModal";
 import SignUpModal from "./components/modals/SignUpModal";
+import TutorSubjectList from "./components/tutors/TutorSubjectList";
 
 const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
@@ -25,7 +25,6 @@ function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  // New state to track if login modal was triggered by a restricted action
   const [loginPromptMessage, setLoginPromptMessage] = useState("");
 
   useEffect(() => {
@@ -77,7 +76,7 @@ function App() {
 
   const closeLoginModal = () => {
     setIsLoginModalOpen(false);
-    setLoginPromptMessage(""); // Clear message on close
+    setLoginPromptMessage("");
   };
 
   const openSignUpModal = () => setIsSignUpModalOpen(true);
@@ -119,7 +118,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen flex flex-col bg-gray-100 overflow-x-hidden">
+      <div className="min-h-screen flex flex-col bg-gray-100 overflow-x-hidden overflow-y-hidden">
         <Header
           user={user}
           onLogout={handleLogout}
@@ -133,25 +132,28 @@ function App() {
               element={user ? <Navigate to="/" /> : <SignupPage />}
             />
             <Route
+              path="/forgot-password"
+              element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
+            />
+            <Route path="/" element={<HomePage user={user} />} />
+            <Route
               path="/languages"
               element={
                 <TutorList user={user} onRequireLogin={openLoginModal} />
               }
             />
             <Route
-              path="/forgot-password"
-              element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
-            />
-            <Route path="/" element={<HomePage user={user} />} />
-            <Route path="/languages" element={<TutorList user={user} />} />
-            <Route
               path="/teacher/:id"
               element={
                 <TeacherProfile
                   user={user}
-                  onRequireLogin={openLoginModal} // Pass handler to open login modal
+                  onRequireLogin={openLoginModal}
                 />
               }
+            />
+            <Route
+              path="/tutor/:subject"
+              element={<TutorSubjectList />}
             />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
@@ -162,7 +164,7 @@ function App() {
           onClose={closeLoginModal}
           onLogin={handleLogin}
           onSwitchToSignup={switchToSignup}
-          promptMessage={loginPromptMessage} // Pass custom message
+          promptMessage={loginPromptMessage}
         />
         <SignUpModal
           isOpen={isSignUpModalOpen}

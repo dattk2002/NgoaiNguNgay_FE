@@ -66,18 +66,20 @@ const TutorCard = ({ tutor, user, onRequireLogin }) => {
     tutor.imageUrl || "https://picsum.photos/300/200?random=1";
   const subjects = tutor.subjects || "N/A";
 
-  const handleClick = () => {
-    if (!user && onRequireLogin) {
-      // If not logged in, redirect to profile and trigger login modal
-      navigate(`/teacher/${tutor.id}`);
-      onRequireLogin("Please log in to contact this tutor.");
-    } else if (tutor.id) {
-      // If logged in, open tutor profile in a new tab
-      window.open(`/teacher/${tutor.id}`, "_blank", "noopener,noreferrer");
-    } else {
-      console.error("Tutor ID is missing:", tutor);
-    }
-  };
+const handleClick = () => {
+  if (!user && onRequireLogin) {
+    // If not logged in, redirect to profile and trigger login modal
+    console.log(tutor.nativeLanguage);
+    
+    navigate(`/teacher/${tutor.id}`); // Ensure nativeLanguage is used
+    onRequireLogin("Please log in to contact this tutor.");
+  } else if (tutor.id) {
+    // If logged in, open tutor profile in a new tab
+    window.open(`/teacher/${tutor.id}`, "_blank", "noopener,noreferrer");
+  } else {
+    console.error("Tutor ID is missing:", tutor);
+  }
+};
 
   return (
     <div

@@ -75,13 +75,13 @@ const TutorList = ({ user, onRequireLogin }) => {
           color="primary"
           onClick={() => handleLanguageFilter("")}
           sx={{
-            backgroundColor: selectedLanguage === "" ? "#000000" : "#e5e7eb",
+            backgroundColor: selectedLanguage === "" ? "#000000" : "#d1d5db",
             color: selectedLanguage === "" ? "#ffffff" : "#000000",
             "&:hover": {
               backgroundColor: selectedLanguage === "" ? "#333333" : "#d1d5db",
             },
             padding: "6px 12px",
-            borderRadius: "4px",
+            borderRadius: "20px",
             textTransform: "none",
           }}
         >
@@ -94,12 +94,12 @@ const TutorList = ({ user, onRequireLogin }) => {
             onClick={() => handleLanguageFilter(language)}
             sx={{
               backgroundColor:
-                selectedLanguage === language ? "#e5e7eb" : "transparent",
+                selectedLanguage === language ? "#000000" : "transparent",
               color: selectedLanguage === language ? "#ffffff" : "#000000",
               borderColor: "#d1d5db",
               "&:hover": {
                 backgroundColor:
-                  selectedLanguage === language ? "#000000" : "#ffffff",
+                  selectedLanguage === language ? "#333333" : "#d1d5db",
                 borderColor: "#9ca3af",
               },
               padding: "6px 12px",
