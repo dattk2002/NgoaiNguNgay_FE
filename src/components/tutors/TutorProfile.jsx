@@ -1,4 +1,3 @@
-// TeacherProfile.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchTutorById, fetchTutors } from "../api/auth";
@@ -20,7 +19,17 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-const TeacherProfile = ({ user, onRequireLogin }) => {
+// Define the 4-hour time ranges
+const timeRanges = [
+  "00:00 - 04:00",
+  "04:00 - 08:00",
+  "08:00 - 12:00",
+  "12:00 - 16:00",
+  "16:00 - 20:00",
+  "20:00 - 24:00",
+];
+
+const TutorProfile = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [teacher, setTeacher] = useState(null);
@@ -28,6 +37,11 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("About Me");
+
+  // State for availability data, now structured by 4-hour blocks
+  const [availabilityData, setAvailabilityData] = useState({});
+  const [availabilityDays, setAvailabilityDays] = useState([]);
+  const [availabilityDates, setAvailabilityDates] = useState([]);
 
   useEffect(() => {
     if (!user) {
@@ -43,6 +57,70 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
 
         const teacherData = await fetchTutorById(id);
         setTeacher(teacherData);
+
+        // --- Process and Set Availability Data into 4-hour blocks ---
+        const blockAvailability = {};
+        timeRanges.forEach(range => {
+          blockAvailability[range] = {
+            mon: false,
+            tue: false,
+            wed: false,
+            thu: false,
+            fri: false,
+            sat: false,
+            sun: false,
+          };
+        });
+
+        // Added a check to ensure teacherData.availability is an array
+        if (teacherData && Array.isArray(teacherData.availability)) {
+          teacherData.availability.forEach((timeSlot) => {
+            // Added checks for timeSlot and timeSlot.time before splitting
+            if (timeSlot && timeSlot.time) {
+                const hour = parseInt(timeSlot.time.split(":")[0], 10);
+                let timeRangeKey = null;
+
+                if (hour >= 0 && hour < 4) timeRangeKey = "00:00 - 04:00";
+                else if (hour >= 4 && hour < 8) timeRangeKey = "04:00 - 08:00";
+                else if (hour >= 8 && hour < 12) timeRangeKey = "08:00 - 12:00";
+                else if (hour >= 12 && hour < 16) timeRangeKey = "12:00 - 16:00";
+                else if (hour >= 16 && hour < 20) timeRangeKey = "16:00 - 20:00";
+                else if (hour >= 20 && hour < 24) timeRangeKey = "20:00 - 24:00";
+
+                if (timeRangeKey && blockAvailability[timeRangeKey]) {
+                    // If any time slot within the block is available, mark the block as available for that day
+                    // Added checks for day properties before accessing them
+                    if (timeSlot.mon === true) blockAvailability[timeRangeKey].mon = true;
+                    if (timeSlot.tue === true) blockAvailability[timeRangeKey].tue = true;
+                    if (timeSlot.wed === true) blockAvailability[timeRangeKey].wed = true;
+                    if (timeSlot.thu === true) blockAvailability[timeRangeKey].thu = true;
+                    if (timeSlot.fri === true) blockAvailability[timeRangeKey].fri = true;
+                    if (timeSlot.sat === true) blockAvailability[timeRangeKey].sat = true;
+                    if (timeSlot.sun === true) blockAvailability[timeRangeKey].sun = true;
+                }
+            } else {
+              // Optional: Log a warning if a time slot object or its time property is invalid
+              console.warn("Skipping invalid time slot data:", timeSlot);
+            }
+          });
+        }
+        setAvailabilityData(blockAvailability);
+        // --- End Process and Set Availability Data ---
+
+        const today = new Date();
+        const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const next7Days = [];
+        const next7Dates = [];
+
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(today);
+          date.setDate(today.getDate() + i);
+          next7Days.push(daysOfWeek[date.getDay()]);
+          next7Dates.push(date.getDate());
+        }
+
+        setAvailabilityDays(next7Days);
+        setAvailabilityDates(next7Dates);
 
         const tutorsData = await fetchTutors();
         const filteredTutors = tutorsData.filter((tutor) => tutor.id !== id);
@@ -84,27 +162,6 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
     "Pets & Animals",
   ];
 
-  const timeSlots = [
-    "00:00 - 04:00",
-    "04:00 - 08:00",
-    "08:00 - 12:00",
-    "12:00 - 16:00",
-    "16:00 - 20:00",
-    "20:00 - 24:00",
-  ];
-
-  const days = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
-  const dates = [1, 2, 3, 4, 5, 6, 7]; // Starting from May 3, 2025 (tomorrow)
-
-  const availability = {
-    "00:00 - 04:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
-    "04:00 - 08:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
-    "08:00 - 12:00": { thu: true, fri: true, sat: true, sun: true, mon: true, tue: true, wed: true },
-    "12:00 - 16:00": { thu: true, fri: true, sat: true, sun: true, mon: true, tue: true, wed: true },
-    "16:00 - 20:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
-    "20:00 - 24:00": { thu: false, fri: false, sat: false, sun: false, mon: false, tue: false, wed: false },
-  };
-
   const tabVariants = {
     initial: { opacity: 0, x: 20 },
     animate: { opacity: 1, x: 0 },
@@ -142,7 +199,7 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
           <div className="flex items-start gap-4">
             <img
               src={
-                teacher.avatar || "https://via.placeholder.com/100?text=Avatar"
+                teacher.imageUrl || "https://via.placeholder.com/100?text=Avatar"
               }
               alt={teacher.name}
               className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
@@ -150,7 +207,7 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
             <div className="flex-1">
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 pb-3">
                     {teacher.name}
                   </h1>
                   <p className="text-green-600 font-medium text-sm">
@@ -325,14 +382,14 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
           </div>
         </div>
 
-        <div className="md:w-100">
+        <div className="md:w-100"> {/* Consider adjusting width if needed */}
           <div className="relative rounded-lg overflow-hidden shadow-md">
             <iframe
               src={
                 teacher.videoUrl || "https://www.youtube.com/embed/x9tjWF5ArXc"
               }
               title={`${teacher.name} Introduction Video`}
-              className="w-full h-48"
+              className="w-full h-48" // Adjust height as necessary
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             ></iframe>
@@ -438,42 +495,62 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
 
       <div className="mt-10">
         <h2 className="text-2xl font-semibold text-gray-800">Availability</h2>
-        <div className="text-sm text-teal-500 mb-2">
+        {/* <div className="text-sm text-teal-500 mb-2">
           Available 10:00 Tomorrow
-        </div>
-
-        <div className="mt-4 overflow-x-auto">
-          <div className="grid grid-cols-8 gap-1 min-w-[600px]">
-            <div className="text-sm font-medium text-gray-600"></div>
-            {days.map((day, index) => (
+        </div> */}
+        <div className="mt-4 overflow-x-auto border border-gray-200 rounded-lg">
+          <div className="grid grid-cols-8 min-w-[600px]">
+            {/* Top-left empty cell */}
+            <div className="text-sm font-medium text-gray-600 border-b border-r border-gray-200"></div>
+            {/* Day and Date Headers */}
+            {availabilityDays.map((day, index) => (
               <div
                 key={day}
-                className="text-center text-sm font-medium text-gray-800"
+                className="text-center text-sm font-medium text-gray-800 py-2 border-b border-gray-200 last:border-r-0"
               >
-                {day} {dates[index]}
+                {day}
+                <br />
+                <span className="text-xs text-gray-600">
+                  {availabilityDates[index]}
+                </span>
               </div>
             ))}
-            {timeSlots.map((timeSlot) => (
-              <React.Fragment key={timeSlot}>
-                <div className="text-sm text-gray-600 py-2">{timeSlot}</div>
-                {days.map((day) => (
-                  <div
-                    key={`${timeSlot}-${day}`}
-                    className={`h-8 ${
-                      availability[timeSlot][day.toLowerCase()]
-                        ? "bg-[#333333]"
-                        : "bg-gray-100"
-                    }`}
-                  ></div>
-                ))}
+            {/* Availability Grid Cells */}
+            {timeRanges.map((timeRange) => (
+              <React.Fragment key={timeRange}>
+                <div className="text-sm text-gray-600 py-2 px-2 border-r border-b border-gray-200 last:border-b-0 flex items-center">
+                  {timeRange}
+                </div>
+                {availabilityDays.map((day) => {
+                  const dayAbbrev = day.toLowerCase(); // Get lowercase abbreviation
+                  // Check if any time slot within this range is available for this day
+                  // Use optional chaining and strict comparison for boolean true
+                  const isAvailable = availabilityData[timeRange]?.[dayAbbrev] === true;
+
+                  return (
+                    <div
+                      key={`${timeRange}-${day}`}
+                      className={`h-12 border border-gray-200 last:border-b-0 ${
+                        isAvailable
+                          ? "bg-green-400 cursor-pointer hover:bg-green-500"
+                          : "bg-gray-100"
+                      } ${
+                        day === availabilityDays[availabilityDays.length - 1]
+                          ? "border-r border-gray-200"
+                          : ""
+                      }`}
+                    >
+                      {/* You could add an onClick handler here to select a slot */}
+                    </div>
+                  );
+                })}
               </React.Fragment>
             ))}
           </div>
         </div>
-
         <div className="flex justify-between items-center mt-4">
           <div className="text-sm text-gray-500">
-            Based on your timezone (UTC+00:00)
+             Based on your timezone (UTC+07:00) {/* Updated to match image */}
           </div>
           <button
             onClick={handleBookLesson}
@@ -500,12 +577,14 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
                     name: tutor.name,
                     subjects:
                       Array.isArray(tutor.subjects) && tutor.subjects.length > 0
-                        ? tutor.subjects.map((subject) => subject.name).join(", ")
+                        ? tutor.subjects
+                            .map((subject) => subject.name)
+                            .join(", ")
                         : "N/A",
                     rating: tutor.rating,
                     reviews: tutor.ratingCount,
                     price: parseFloat(tutor.price) || 0,
-                    imageUrl: tutor.avatar,
+                    imageUrl: tutor.imageUrl,
                     description: tutor.description,
                     address: tutor.address,
                   }}
@@ -535,4 +614,4 @@ const TeacherProfile = ({ user, onRequireLogin }) => {
   );
 };
 
-export default TeacherProfile;
+export default TutorProfile;

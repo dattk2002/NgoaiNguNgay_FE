@@ -129,7 +129,7 @@ const TutorList = ({ user, onRequireLogin }) => {
                   rating: tutor.rating,
                   reviews: tutor.ratingCount,
                   price: parseFloat(tutor.price) || 0,
-                  imageUrl: tutor.avatar,
+                  imageUrl: tutor.imageUrl,
                   description: tutor.description,
                   address: tutor.address,
                 }}

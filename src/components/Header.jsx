@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "../assets/logo.png";
+
 function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -97,6 +98,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
             <Link
               to="/"
               className="text-black text-lg sm:text-xl font-semibold"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             >
               <img src={logo} alt="logo" className="w-12 h-12" />
             </Link>
