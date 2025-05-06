@@ -4,9 +4,11 @@ import {
   Routes,
   Route,
   Navigate,
+  // Remove useLocation import from here
 } from "react-router-dom";
 import Header from "./components/Header";
-import Footer from "./components/Footer";
+// Remove direct import of Footer from here
+import FooterHandler from "./components/FooterHandler"; // Import the new component
 import SignupPage from "./pages/SignUpPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import HomePage from "./pages/HomePage";
@@ -15,6 +17,7 @@ import TutorProfile from "./components/tutors/TutorProfile";
 import LoginModal from "./components/modals/LoginModal";
 import SignUpModal from "./components/modals/SignUpModal";
 import TutorSubjectList from "./components/tutors/TutorSubjectList";
+import MessagePage from "./pages/MessageListPage";
 
 const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
@@ -26,6 +29,8 @@ function App() {
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [loginPromptMessage, setLoginPromptMessage] = useState("");
+
+  // Remove useLocation() call from here
 
   useEffect(() => {
     setIsLoadingAuth(true);
@@ -125,7 +130,8 @@ function App() {
           onLoginClick={() => openLoginModal()}
           onSignUpClick={openSignUpModal}
         />
-        <main className="flex-1 mx-20">
+        {/* Removed mx-20 from main to allow MessagePage to use full width if needed */}
+        <main className="flex-1">
           <Routes>
             <Route
               path="/signup-page"
@@ -155,10 +161,19 @@ function App() {
               path="/tutor/:subject"
               element={<TutorSubjectList />}
             />
+
+            {/* NEW ROUTE for Messaging */}
+            <Route
+              path="/message/:id"
+              element={
+                user ? <MessagePage user={user} /> : <Navigate to="/" replace />
+              }
+            />
+
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
-        <Footer />
+        <FooterHandler /> {/* Use the new component here */}
         <LoginModal
           isOpen={isLoginModalOpen}
           onClose={closeLoginModal}
