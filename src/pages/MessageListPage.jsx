@@ -398,7 +398,7 @@ const MessagePage = ({ user }) => {
     );
 
   return (
-    <div className="container mx-auto flex h-[calc(100vh-8rem)] border my-4 mx-auto border-gray-300 rounded-lg overflow-hidden shadow-lg max-w-6xl">
+    <div className="container mx-auto flex h-[calc(100vh-8rem)] border my-4 border-gray-300 rounded-lg overflow-hidden shadow-lg max-w-6xl">
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full">
         <div className="p-4 border-b border-gray-200">
           <div className="relative">

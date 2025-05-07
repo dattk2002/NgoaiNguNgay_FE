@@ -62,29 +62,26 @@ const TutorCard = ({ tutor, user, onRequireLogin }) => {
   const location = tutor.address ? `${tutor.address} (webcam)` : "(webcam)";
   const description =
     tutor.description || "Experienced tutor providing personalized lessons.";
-  const imageUrl =
-    tutor.imageUrl || "https://picsum.photos/300/200?random=1";
+  const imageUrl = tutor.imageUrl || "https://picsum.photos/300/200?random=1";
   const subjects = tutor.subjects || "N/A";
 
-const handleClick = () => {
-  if (!user && onRequireLogin) {
-    // If not logged in, redirect to profile and trigger login modal
-    console.log(tutor.nativeLanguage);
-    
-    navigate(`/teacher/${tutor.id}`); // Ensure nativeLanguage is used
-    onRequireLogin("Please log in to contact this tutor.");
-  } else if (tutor.id) {
-    // If logged in, open tutor profile in a new tab
-    window.open(`/teacher/${tutor.id}`, "_blank", "noopener,noreferrer");
-  } else {
-    console.error("Tutor ID is missing:", tutor);
-  }
-};
+  const handleClick = () => {
+    if (!user && onRequireLogin) {
+      // If not logged in, redirect to profile and trigger login modal
+      console.log(tutor.nativeLanguage);
+
+      navigate(`/teacher/${tutor.id}`); // Ensure nativeLanguage is used
+      onRequireLogin("Please log in to contact this tutor.");
+    } else if (tutor.id) {
+      // If logged in, open tutor profile in a new tab
+      window.open(`/teacher/${tutor.id}`, "_blank", "noopener,noreferrer");
+    } else {
+      console.error("Tutor ID is missing:", tutor);
+    }
+  };
 
   return (
-    <div
-      className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full cursor-pointer"
-    >
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full cursor-pointer">
       <div className="relative w-full" style={{ paddingTop: "66.66%" }}>
         <img
           src={imageUrl}
@@ -92,14 +89,10 @@ const handleClick = () => {
           className="absolute top-0 left-0 w-full h-full object-cover"
           onError={(e) => {
             e.target.onerror = null;
-            e.target.src =
-              "https://picsum.photos/300/200?random=1";
+            e.target.src = "https://picsum.photos/300/200?random=1";
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-        <button className="absolute top-3 right-3 p-1 rounded-full bg-black/30 hover:bg-black/50 transition-colors duration-150">
-          <HeartIcon className="w-5 h-5" fill="white" />
-        </button>
         <div className="absolute bottom-4 left-4 text-white">
           <h3 className="text-2xl font-bold drop-shadow-md">{name}</h3>
           <p className="text-sm drop-shadow-md">{location}</p>

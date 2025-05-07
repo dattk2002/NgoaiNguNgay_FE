@@ -131,7 +131,7 @@ function App() {
           onSignUpClick={openSignUpModal}
         />
         {/* Removed mx-20 from main to allow MessagePage to use full width if needed */}
-        <main className="flex-1">
+        <main className="flex-1 py-8">
           <Routes>
             <Route
               path="/signup-page"
