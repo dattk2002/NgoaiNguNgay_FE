@@ -12,7 +12,7 @@ const EyeIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke=
 const EyeOffIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .529-1.68 1.54-3.197 2.79-4.375M9 4.305A11.95 11.95 0 0112 4c4.478 0 8.268 2.943 9.542 7a10.054 10.054 0 01-1.875 3.825M12 15a3 3 0 110-6 3 3 0 010 6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 1l22 22" /></svg>;
 
 const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup, promptMessage }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -51,25 +51,20 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup, promptMessage 
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
-      setError('Vui lòng nhập email và mật khẩu.');
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Vui lòng nhập địa chỉ email hợp lệ.');
+    if (!username || !password) {
+      setError('Vui lòng nhập tên đăng nhập và mật khẩu.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await apiLogin(email, password);
-
+      const response = await apiLogin(username, password);
       if (response.data?.token?.user) {
         const userDetails = {
           id: response.data.token.user.id,
           name: response.data.token.user.fullName,
-          email: email,
+          email: username,
         };
         onLogin(userDetails);
         toast.success(response.message || "Đăng nhập thành công!");
@@ -78,7 +73,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup, promptMessage 
         setError(response.message || "Đăng nhập không thành công. Dữ liệu không hợp lệ.");
       }
     } catch (apiError) {
-      setError(apiError.message || "Email hoặc mật khẩu không đúng hoặc đã xảy ra lỗi.");
+      setError(apiError.message || "Tên đăng nhập hoặc mật khẩu không đúng hoặc đã xảy ra lỗi.");
       console.error("Login API error:", apiError);
     } finally {
       setIsLoading(false);
@@ -185,16 +180,16 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup, promptMessage 
 
             <form onSubmit={handleLogin}>
               <div className="mb-4">
-                <label htmlFor="email" className="sr-only">Email</label>
+                <label htmlFor="username" className="sr-only">Tên đăng nhập</label>
                 <input
-                  type="email"
-                  id="email"
-                  value={email}
+                  type="text"
+                  id="username"
+                  value={username}
                   onChange={(e) => {
-                    setEmail(e.target.value);
+                    setUsername(e.target.value);
                     setError("");
                   }}
-                  placeholder="Email Address"
+                  placeholder="Tên đăng nhập"
                   className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
                   required
                 />
@@ -210,7 +205,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup, promptMessage 
                     setPassword(e.target.value);
                     setError("");
                   }}
-                  placeholder="Password"
+                  placeholder="Mật khẩu"
                   className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black pr-10"
                   required
                 />
