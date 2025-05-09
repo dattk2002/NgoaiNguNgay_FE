@@ -159,7 +159,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                   <div className="relative rounded-full border border-gray-300 group-hover:border-transparent transition-colors duration-150">
                     <img
                       src={
-                        user.avatarUrl ||
+                        user.profilePictureUrl ||
                         "https://avataaars.io/?avatarStyle=Circle&topType=ShortHairTheCaesarSidePart&accessoriesType=Sunglasses&hairColor=SilverGray&facialHairType=BeardLight&facialHairColor=BrownDark&clotheType=ShirtCrewNeck&clotheColor=Blue01&graphicType=Selena&eyeType=EyeRoll&eyebrowType=FlatNatural&mouthType=Grimace&skinColor=DarkBrown"
                       }
                       alt="User avatar"

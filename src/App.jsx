@@ -18,6 +18,8 @@ import LoginModal from "./components/modals/LoginModal";
 import SignUpModal from "./components/modals/SignUpModal";
 import TutorSubjectList from "./components/tutors/TutorSubjectList";
 import MessagePage from "./pages/MessageListPage";
+import ConfirmEmail from "./components/modals/ConfirmEmail";
+import { fetchUsers } from "./components/api/auth";
 
 const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
@@ -27,6 +29,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
+  const [isConfirmEmailModalOpen, setIsConfirmEmailModalOpen] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [loginPromptMessage, setLoginPromptMessage] = useState("");
 
@@ -87,13 +91,30 @@ function App() {
   const openSignUpModal = () => setIsSignUpModalOpen(true);
   const closeSignUpModal = () => setIsSignUpModalOpen(false);
 
-  const handleLogin = (userData) => {
+  const handleLogin = async (userData) => {
     const fullUserData = {
       ...userData,
       avatarUrl: userData.avatarUrl || "",
     };
     setUser(fullUserData);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData));
+
+    // Fetch the user's data to get the profilePictureUrl
+    try {
+      const users = await fetchUsers();
+      const targetUser = users.find((u) => u.id === userData.id);
+      if (targetUser && targetUser.profilePictureUrl) {
+        const updatedUserData = {
+          ...fullUserData,
+          profilePictureUrl: targetUser.profilePictureUrl,
+        };
+        setUser(updatedUserData);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUserData));
+      }
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
+    }
+
     closeLoginModal();
   };
 
@@ -112,9 +133,14 @@ function App() {
     openLoginModal();
   };
 
-  const handleSignUpSuccess = () => {
-    closeSignUpModal();
-    openLoginModal();
+  const handleSignUpSuccess = (email) => {
+    setConfirmEmail(email);
+    setIsConfirmEmailModalOpen(true);
+  };
+
+  const handleConfirmEmailSuccess = () => {
+    setIsConfirmEmailModalOpen(false);
+    openLoginModal("Your email has been confirmed. Please log in.");
   };
 
   if (isLoadingAuth) {
@@ -186,6 +212,12 @@ function App() {
           onClose={closeSignUpModal}
           onSignUpSuccess={handleSignUpSuccess}
           onSwitchToLogin={switchToLogin}
+        />
+        <ConfirmEmail
+          isOpen={isConfirmEmailModalOpen}
+          onClose={() => setIsConfirmEmailModalOpen(false)}
+          email={confirmEmail}
+          onConfirmSuccess={handleConfirmEmailSuccess}
         />
       </div>
     </Router>
