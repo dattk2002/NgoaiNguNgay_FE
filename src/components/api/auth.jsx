@@ -1,46 +1,56 @@
 // Read the API base URL from environment variables specific to Vite
-const API_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = import.meta.env.API_BASE_URL_PROD;
+
+const BASE_API_URL = "https://localhost:7297"
 // Read Mock API URLs
-const MOCK_LOGIN_URL = import.meta.env.VITE_MOCK_API_LOGIN_URL;
-const MOCK_TUTORS_URL = import.meta.env.VITE_MOCK_API_TUTORS_URL;
+const LOGIN_URL = import.meta.env.API_LOGIN_URL_PROD;
+const MOCK_TUTORS_URL = import.meta.env.VITE_MOCK_API_TUTORS_URL_PROD;
 
 // Optional: Add a check or default if the variable is not set
 if (!API_URL) {
-  console.error("Error: VITE_API_BASE_URL environment variable is not set! Check your .env file.");
+  console.error(
+    "Error: VITE_API_BASE_URL environment variable is not set! Check your .env file."
+  );
 }
 // Optional: Add checks for mock URLs if they are critical
-if (!MOCK_LOGIN_URL) {
-  console.warn("Warning: VITE_MOCK_API_LOGIN_URL is not set. Mock login might fail.");
+if (!LOGIN_URL) {
+  console.warn(
+    "Warning: VITE_MOCK_API_LOGIN_URL is not set. Mock login might fail."
+  );
 }
 if (!MOCK_TUTORS_URL) {
-  console.warn("Warning: VITE_MOCK_API_TUTORS_URL is not set. Fetching mock tutors might fail.");
+  console.warn(
+    "Warning: VITE_MOCK_API_TUTORS_URL is not set. Fetching mock tutors might fail."
+  );
 }
+
+
 
 // Generic function for making API calls
 async function callApi(endpoint, method, body, token) {
   const headers = {
     "Content-Type": "application/json",
+    "Accept": "application/json",
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(`${BASE_API_URL}${endpoint}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : null,
+      credentials: "include",
     });
 
-    const result = await response.json();
-
     if (!response.ok) {
-      throw new Error(result.errorMessage || "Lỗi khi gọi API");
+      const errorData = await response.json();
+      throw new Error(errorData.errorMessage || "Request failed");
     }
-
-    return result;
+    return await response.json();
   } catch (error) {
-    console.error(`Lỗi khi gọi API ${endpoint}:`, error);
+    console.error("API Error:", error);
     throw error;
   }
 }
@@ -59,67 +69,35 @@ async function mockApi(endpoint, mockData) {
   return response;
 }
 
+
 // Login function - Refactored for MockAPI endpoint validation
-export async function login(email, password) {
-  const MOCK_API_URL = MOCK_LOGIN_URL;
-
-  if (!MOCK_API_URL) {
-    console.error("Mock login URL is not configured in .env file (VITE_MOCK_API_LOGIN_URL).");
-    throw new Error("Cấu hình API bị lỗi.");
-  }
-
-  console.log(`[Mock API Login] Attempting login for: ${email} using URL: ${MOCK_API_URL}`);
-
+export async function login(username, password) {
   try {
-    const response = await fetch(MOCK_API_URL, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
+    const response = await callApi(
+      "/api/auth/login",
+      "POST",
+      { 
+        username: username,
+        password: password
+      }
+    );
 
-    if (!response.ok) {
-      throw new Error(`Lỗi khi gọi MockAPI: ${response.statusText} (${response.status})`);
+    // Kiểm tra response
+    if (!response?.data?.token) {
+      throw new Error(response?.message || "Invalid response format");
     }
 
-    const mockApiResponseArray = await response.json();
+    const { accessToken, refreshToken, user } = response.data.token;
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("user", JSON.stringify(user));
 
-    if (!Array.isArray(mockApiResponseArray) || mockApiResponseArray.length < 2) {
-      console.error("Invalid or unexpected response structure from MockAPI:", mockApiResponseArray);
-      throw new Error("Phản hồi không hợp lệ từ MockAPI.");
-    }
-
-    const successLoginData = mockApiResponseArray[0];
-    const credentialData = mockApiResponseArray[1];
-
-    if (
-      !credentialData ||
-      typeof credentialData.email !== "string" ||
-      typeof credentialData.password !== "string" ||
-      !successLoginData ||
-      !successLoginData.data?.token?.user ||
-      !successLoginData.data?.token?.accessToken
-    ) {
-      console.error("Invalid data structure within MockAPI response elements:", mockApiResponseArray);
-      throw new Error("Dữ liệu trả về từ MockAPI không đúng định dạng.");
-    }
-
-    if (email === credentialData.email && password === credentialData.password) {
-      console.log(`[Mock API Login] Credentials validated successfully for: ${email}`);
-      console.log("[Mock API Login] Mock Response Data:", successLoginData);
-
-      const userTokenData = successLoginData.data.token;
-      const userDetails = userTokenData.user;
-
-      localStorage.setItem("accessToken", userTokenData.accessToken);
-      localStorage.setItem("refreshToken", userTokenData.refreshToken);
-      localStorage.setItem("user", JSON.stringify(userDetails));
-
-      return successLoginData;
-    } else {
-      console.log(`[Login Failed] Invalid credentials provided for: ${email}`);
-      throw new Error("Email hoặc mật khẩu không đúng.");
-    }
+    return response;
   } catch (error) {
-    console.error(`Lỗi khi đăng nhập:`, error);
+    console.error("Login Failed:", error);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
     throw error;
   }
 }
@@ -167,7 +145,9 @@ export async function register(
     dateOfBirth,
     placeOfBirth,
   };
-  Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
+  Object.keys(body).forEach(
+    (key) => body[key] === undefined && delete body[key]
+  );
 
   return callApi("register", "POST", body);
 }
@@ -251,7 +231,9 @@ export async function fetchTutors() {
   const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL;
 
   if (!MOCK_TUTOR_API_URL) {
-    console.error("Mock tutors URL is not configured in .env file (VITE_MOCK_API_TUTORS_URL).");
+    console.error(
+      "Mock tutors URL is not configured in .env file (VITE_MOCK_API_TUTORS_URL)."
+    );
     throw new Error("Cấu hình API bị lỗi.");
   }
 
@@ -260,7 +242,9 @@ export async function fetchTutors() {
   try {
     const response = await fetch(MOCK_TUTOR_API_URL);
     if (!response.ok) {
-      throw new Error(`Lỗi khi gọi MockAPI tutors: ${response.statusText} (${response.status})`);
+      throw new Error(
+        `Lỗi khi gọi MockAPI tutors: ${response.statusText} (${response.status})`
+      );
     }
     const tutorsData = await response.json();
     console.log("[Mock API] Tutors fetched successfully:", tutorsData);
@@ -276,16 +260,22 @@ export async function fetchTutorById(id) {
   const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL;
 
   if (!MOCK_TUTOR_API_URL) {
-    console.error("Mock tutors URL is not configured in .env file (VITE_MOCK_API_TUTORS_URL).");
+    console.error(
+      "Mock tutors URL is not configured in .env file (VITE_MOCK_API_TUTORS_URL)."
+    );
     throw new Error("Cấu hình API bị lỗi.");
   }
 
-  console.log(`[Mock API] Fetching tutor with ID: ${id} from: ${MOCK_TUTOR_API_URL}`);
+  console.log(
+    `[Mock API] Fetching tutor with ID: ${id} from: ${MOCK_TUTOR_API_URL}`
+  );
 
   try {
     const response = await fetch(MOCK_TUTOR_API_URL);
     if (!response.ok) {
-      throw new Error(`Lỗi khi gọi MockAPI tutors: ${response.statusText} (${response.status})`);
+      throw new Error(
+        `Lỗi khi gọi MockAPI tutors: ${response.statusText} (${response.status})`
+      );
     }
     const tutorsData = await response.json();
     console.log("[Mock API] Tutors data:", tutorsData);
@@ -311,11 +301,19 @@ export async function fetchTutorsBySubject(subject) {
     if (!subject) {
       throw new Error("Subject parameter is required.");
     }
-    const normalizedSubject = subject.toLowerCase() === 'portuguese' ? 'brazilian portuguese' : subject.toLowerCase();
-    const filteredTutors = tutorsData.filter(tutor => 
-      tutor.nativeLanguage && tutor.nativeLanguage.toLowerCase() === normalizedSubject
+    const normalizedSubject =
+      subject.toLowerCase() === "portuguese"
+        ? "brazilian portuguese"
+        : subject.toLowerCase();
+    const filteredTutors = tutorsData.filter(
+      (tutor) =>
+        tutor.nativeLanguage &&
+        tutor.nativeLanguage.toLowerCase() === normalizedSubject
     );
-    console.log(`[Mock API] Tutors filtered by subject '${subject}':`, filteredTutors);
+    console.log(
+      `[Mock API] Tutors filtered by subject '${subject}':`,
+      filteredTutors
+    );
     return filteredTutors;
   } catch (error) {
     console.error(`Error fetching tutors by subject: ${subject}`, error);
