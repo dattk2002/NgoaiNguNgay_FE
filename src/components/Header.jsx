@@ -160,7 +160,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                     <img
                       src={
                         user.profilePictureUrl ||
-                        "https://avataaars.io/?avatarStyle=Circle&topType=ShortHairTheCaesarSidePart&accessoriesType=Sunglasses&hairColor=SilverGray&facialHairType=BeardLight&facialHairColor=BrownDark&clotheType=ShirtCrewNeck&clotheColor=Blue01&graphicType=Selena&eyeType=EyeRoll&eyebrowType=FlatNatural&mouthType=Grimace&skinColor=DarkBrown"
+                        "https://avatar.iran.liara.run/public"
                       }
                       alt="User avatar"
                       className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover block"
@@ -208,8 +208,9 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         Create an ad
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
+                      {/* Updated "My Profile" link */}
                       <Link
-                        to="/profile"
+                        to={user && user.id ? `/user/${user.id}` : "/"} // Link to user profile with ID, or home if user/id not available
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsDropdownOpen(false)}
                       >

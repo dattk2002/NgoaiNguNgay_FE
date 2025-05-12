@@ -83,20 +83,6 @@ async function callApi(endpoint, method, body, token) {
   }
 }
 
-// Mock API function for frontend testing (optional) - Keep if needed
-async function mockApi(endpoint, mockData) {
-  console.log(`[Mock API] Called: ${endpoint}`);
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  const response = {
-    data: mockData,
-    message: "Thành công (mock)",
-    statusCode: 200,
-    code: "Success",
-  };
-  console.log(`[Mock API] Response for ${endpoint}:`, response);
-  return response;
-}
-
 // Login function - Refactored for MockAPI endpoint validation
 export async function login(username, password) {
   try {
@@ -132,33 +118,6 @@ export async function login(username, password) {
     throw error;
   }
 }
-
-
-// Mock Login function (optional) - Keep if needed
-// export async function mockLogin(username, password) {
-//   console.log(`[Mock Login] Attempting mock login for user: ${username}`);
-//   const mockData = {
-//     token: {
-//       accessToken: "mock_access_token_12345",
-//       refreshToken: "mock_refresh_token_67890",
-//       user: {
-//         id: "mock_user_id_abc",
-//         username: username || "mock.user@example.com",
-//         email: username || "mock.user@example.com",
-//         fullName: "Mock Test User",
-//         role: "Member",
-//       },
-//     },
-//     role: "Member", // This might be redundant if user object contains role
-//     message: "Mock login successful"
-//   };
-//   localStorage.setItem("accessToken", mockData.token.accessToken);
-//   localStorage.setItem("refreshToken", mockData.token.refreshToken);
-//   localStorage.setItem("user", JSON.stringify(mockData.token.user));
-
-//   // Use mockApi to simulate a delay and standard mock response structure
-//   return mockApi("login", mockData);
-// }
 
 // Register function - MODIFIED
 export async function register(
@@ -409,6 +368,19 @@ export function isUserAuthenticated(user) {
   return user.emailCode === null;
 }
 
-// Example usage:
-// const users = await fetchUsers();
-// const isAuthenticated = isUserAuthenticated(users[0]);
+// Function to edit user profile
+export async function editUserProfile(token, fullName, dateOfBirth, gender) {
+  const body = {
+    fullName,
+    dateOfBirth,
+    gender,
+  };
+
+  try {
+    const response = await callApi("/api/profile", "PATCH", body, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to update user profile:", error);
+    throw error;
+  }
+}
