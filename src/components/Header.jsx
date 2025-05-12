@@ -84,6 +84,8 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
     },
   };
 
+  console.log("User in Header:", user); // Debug: Log the user object
+
   return (
     <>
       <motion.header
@@ -158,20 +160,10 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                   </span>
                   <div className="relative rounded-full border border-gray-300 group-hover:border-transparent transition-colors duration-150">
                     <img
-                      src={
-                        user.profilePictureUrl ||
-                        "https://avatar.iran.liara.run/public"
-                      }
+                      src={user?.profileImageUrl || "https://avatar.iran.liara.run/public"}
                       alt="User avatar"
                       className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover block"
-                      onError={(e) =>
-                        console.error(
-                          "Image loading error:",
-                          e,
-                          "Trying to load:",
-                          e.target.src
-                        )
-                      }
+                      onError={(e) => console.error("Image error:", e.target.src)}
                       referrerPolicy="no-referrer"
                     />
                   </div>
