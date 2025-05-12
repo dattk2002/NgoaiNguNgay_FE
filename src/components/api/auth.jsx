@@ -104,7 +104,7 @@ export async function login(username, password) {
     const { accessToken, refreshToken, user } = response.data.token;
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("user", JSON.stringify(user)); // Store user object
+    localStorage.setItem("user", JSON.stringify(user));
 
     return response; // Return the full response from the API
 
