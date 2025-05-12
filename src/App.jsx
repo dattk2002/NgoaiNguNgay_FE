@@ -300,6 +300,7 @@ import LoginModal from "./components/modals/LoginModal";
 import SignUpModal from "./components/modals/SignUpModal";
 import TutorSubjectList from "./components/tutors/TutorSubjectList";
 import MessagePage from "./pages/MessageListPage";
+import BecomeATutorPage from "./pages/BecomeATutorPage";
 import ConfirmEmail from "./components/modals/ConfirmEmail";
 import { fetchUsers } from "./components/api/auth";
 import UpdateInformationModal from "./components/modals/UpdateInformationModal";
@@ -503,6 +504,12 @@ function App() {
               path="/tutor/:subject"
               element={<TutorSubjectList />}
             />
+            <Route
+              path="/become-tutor"
+              element={<BecomeATutorPage />}
+            />
+
+            {/* NEW ROUTE for Messaging */}
             <Route
               path="/message/:id"
               element={
