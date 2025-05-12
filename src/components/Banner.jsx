@@ -56,7 +56,7 @@ const Banner = () => {
     exit: { opacity: 0, y: -20, transition: { duration: 0.5 } },
   };
 
-  const scrollAmount = 5 * 104; // 520px for 5 items
+  const scrollAmount = 2 * 104; // 208px for 2 items (assuming each item is 104px wide, including spacing)
 
   const scrollLeft = () => {
     if (categoryContainerRef.current) {
