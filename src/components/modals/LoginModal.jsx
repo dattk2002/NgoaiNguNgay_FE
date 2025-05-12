@@ -6,7 +6,7 @@ import { FcGoogle } from "react-icons/fc";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { toast } from "react-toastify";
-import { login, fetchUsers, isUserAuthenticated } from '../api/auth';
+import { login, isUserAuthenticated } from '../api/auth';
 
 const EyeIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
 const EyeOffIcon = () => <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .529-1.68 1.54-3.197 2.79-4.375M9 4.305A11.95 11.95 0 0112 4c4.478 0 8.268 2.943 9.542 7a10.054 10.054 0 01-1.875 3.825M12 15a3 3 0 110-6 3 3 0 010 6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 1l22 22" /></svg>;
@@ -59,23 +59,22 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup, promptMessage 
     }
 
     try {
-      const users = await fetchUsers();
-      const targetUser = users.find(user => user.email === username);
-
-      if (!targetUser) {
-        throw new Error("Tài khoản không tồn tại.");
-      }
-
-      if (!isUserAuthenticated(targetUser)) {
-        throw new Error("Tài khoản chưa được xác thực. Vui lòng kiểm tra email để xác thực trước khi đăng nhập.");
-      }
-
       const response = await login(username, password);
-      if (response.data?.token?.user) {
+      console.log("Login Response:", response); // Debugging: Log the response
+
+      if (!response || !response.data) {
+        throw new Error("Invalid response from server");
+      }
+
+      // Check if the response contains the expected user data
+      if (response.data.token && response.data.token.user) {
+        const { id, fullName, email, profileImageUrl } = response.data.token.user;
         const userDetails = {
-          id: response.data.token.user.id,
-          name: response.data.token.user.fullName,
-          email: username,
+          id,
+          fullName,
+          email,
+          profileImageUrl,
+
         };
         onLogin(userDetails);
         toast.success(response.message || "Đăng nhập thành công!");
@@ -84,7 +83,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, onSwitchToSignup, promptMessage 
         setError(response.errorMessage || "Đăng nhập không thành công. Dữ liệu không hợp lệ.");
       }
     } catch (error) {
-      setError(error.response?.data?.errorMessage || "Tên đăng nhập hoặc mật khẩu không đúng hoặc đã xảy ra lỗi.");
+      setError(error.message || "Tên đăng nhập hoặc mật khẩu không đúng hoặc đã xảy ra lỗi.");
       console.error("Login error:", error);
     } finally {
       setIsLoading(false);
