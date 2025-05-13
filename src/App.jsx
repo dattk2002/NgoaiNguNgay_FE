@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import Header from "./components/Header";
-import FooterHandler from "./components/FooterHandler"; 
+import FooterHandler from "./components/FooterHandler";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import HomePage from "./pages/HomePage";
 import TutorList from "./components/tutors/TutorList";
@@ -20,6 +20,7 @@ import ConfirmEmail from "./components/modals/ConfirmEmail";
 // import { fetchUsers } from "./components/api/auth";
 import UpdateInformationModal from "./components/modals/UpdateInformationModal";
 import UserProfile from "./components/users/UserProfile";
+import EditUserProfile from "./components/users/EditUserProfile"; // Import the new component
 
 // Import the NotFoundPage component
 import NotFoundPage from "./pages/NotFoundPage"; // Adjust the path if necessary
@@ -39,7 +40,6 @@ function App() {
   const [isUpdateInfoModalOpen, setIsUpdateInfoModalOpen] = useState(false);
 
   console.log("Hello: ", user);
-  
 
   useEffect(() => {
     setIsLoadingAuth(true);
@@ -79,6 +79,15 @@ function App() {
           name: matchedAccount.name,
           phone: matchedAccount.phone,
           avatarUrl: matchedAccount.avatarUrl || "",
+           // Include other relevant user data from storage here
+           fullName: matchedAccount.fullName || '',
+           dateOfBirth: matchedAccount.dateOfBirth || '',
+           gender: matchedAccount.gender || '',
+           bio: matchedAccount.bio || '',
+           learningLanguages: matchedAccount.learningLanguages || [],
+           interestsType: matchedAccount.interestsType || '',
+           languageSkills: matchedAccount.languageSkills || [],
+           interests: matchedAccount.interests || [],
         };
         setUser(userData);
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
@@ -101,9 +110,19 @@ function App() {
   const closeSignUpModal = () => setIsSignUpModalOpen(false);
 
   const handleLogin = async (userData) => {
+     // Ensure all relevant user data is included upon login
     const fullUserData = {
       ...userData,
       profileImageUrl: userData.profileImageUrl || "",
+      fullName: userData.fullName || '',
+      dateOfBirth: userData.dateOfBirth || '',
+      gender: userData.gender || '',
+      bio: userData.bio || '',
+      learningLanguages: userData.learningLanguages || [],
+      interestsType: userData.interestsType || '',
+      languageSkills: userData.languageSkills || [],
+      interests: userData.interests || [],
+      // Include other fields here
     };
     setUser(fullUserData);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData));
@@ -136,18 +155,27 @@ function App() {
     openLoginModal("Your email has been confirmed. Please log in.");
   };
 
+   // Keep handleUpdateInfoSubmit if you still use the UpdateInformationModal for initial profile setup
   const handleUpdateInfoSubmit = (info) => {
     const updatedUser = {
       ...user,
       fullName: info.fullName,
       dateOfBirth: info.dateOfBirth,
       gender: info.gender,
+      // You might want to update other fields here too
     };
     setUser(updatedUser);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
     localStorage.setItem("hasUpdatedProfile", "true");
     setIsUpdateInfoModalOpen(false);
   };
+
+   // Function to update user state after editing (used by EditUserProfile)
+   const handleProfileUpdate = (updatedUserData) => {
+        setUser(updatedUserData);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUserData));
+   };
+
 
   const getUserById = async (userId) => {
     try {
@@ -214,9 +242,16 @@ function App() {
                 user ? <MessagePage user={user} /> : <Navigate to="/" replace />
               }
             />
+             {/* Route for viewing a user profile */}
             <Route
               path="/user/:id"
               element={user ? <UserProfile loggedInUser={user} getUserById={getUserById} /> : <Navigate to="/signup-page" replace />}
+            />
+             {/* NEW ROUTE for editing a user profile */}
+            <Route
+              path="/user/edit/:id"
+               // Pass loggedInUser to EditUserProfile for authorization and initial data
+              element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/signup-page" replace />}
             />
 
             {/* This route catches all other paths and renders the NotFoundPage */}

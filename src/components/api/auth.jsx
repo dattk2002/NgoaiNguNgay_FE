@@ -347,3 +347,23 @@ export async function editUserProfile(token, fullName, dateOfBirth, gender) {
     throw error;
   }
 }
+
+// Function to fetch user by ID
+export async function fetchUserById(id) {
+  const token = getAccessToken();
+  if (!token) {
+    throw new Error("Authentication token not found.");
+  }
+
+  try {
+    const response = await callApi(`/api/profile`, "GET", null, token);
+    if (response && response.data) {
+      return response.data;
+    } else {
+      throw new Error("Invalid response format or missing data.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch user profile:", error);
+    throw error;
+  }
+}
