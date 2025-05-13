@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 const BecomeATutorPage = () => {
     const navigate = useNavigate();
     const [activeStep, setActiveStep] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         // Basic Information
         displayName: "",
@@ -190,6 +191,14 @@ const BecomeATutorPage = () => {
     }, []);
 
     const nextStep = () => {
+        // Không cần validation khi chuyển bước 5 sang bước 6
+        if (activeStep === 5) {
+            setActiveStep(6);
+            window.scrollTo(0, 0);
+            return;
+        }
+
+        // Các bước còn lại đều cần validation
         if (validateCurrentStep()) {
             setActiveStep(activeStep + 1);
             window.scrollTo(0, 0);
@@ -234,6 +243,25 @@ const BecomeATutorPage = () => {
                     toast.error("Please select your birthday");
                     return false;
                 }
+
+                // Validate minimum age (17 years)
+                if (formData.birthday) {
+                    const birthDate = new Date(formData.birthday);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const monthDifference = today.getMonth() - birthDate.getMonth();
+
+                    // Adjust age if birthday hasn't occurred yet this year
+                    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+
+                    if (age < 17) {
+                        toast.error("You must be at least 17 years old to register as a tutor");
+                        return false;
+                    }
+                }
+
                 if (!formData.streetAddress) {
                     toast.error("Please enter your street address");
                     return false;
@@ -267,7 +295,7 @@ const BecomeATutorPage = () => {
                     return false;
                 }
                 return true;
-            case 5:
+            case 5: // Certifications
                 for (let i = 0; i < formData.certifications.length; i++) {
                     if (!formData.certifications[i].name) {
                         toast.error(`Please enter certification name ${i + 1}`);
@@ -279,8 +307,7 @@ const BecomeATutorPage = () => {
                     }
                 }
                 return true;
-            case 6:
-                return true;
+            // Remove validation for step 6 since we handle it in handleSubmit
             default:
                 return true;
         }
@@ -290,42 +317,56 @@ const BecomeATutorPage = () => {
         e.preventDefault();
 
         if (activeStep !== 6) {
-            // Nếu chưa đến bước cuối, chuyển đến bước tiếp theo
+            // Nếu không phải bước cuối, sử dụng hàm nextStep
             nextStep();
             return;
         }
 
-        if (validateCurrentStep()) {
-            // Hiển thị thông báo loading
-            toast.info("Processing your information...");
+        // The video validation is now handled by the conditional rendering of the error message
+        // rather than using a toast notification
+        if (!formData.introductionVideo) {
+            // Don't show toast notification, we'll use our inline error message instead
+            return;
+        }
 
-            try {
-                // Tạo dữ liệu form để gửi đi (bỏ qua các preview)
-                const formDataToSubmit = {
-                    displayName: formData.displayName,
-                    communicationTool: formData.communicationTool,
-                    country: formData.country,
-                    livingIn: formData.livingIn,
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    birthday: formData.birthday,
-                    streetAddress: formData.streetAddress,
-                    languages: formData.languages,
-                    hourlyRate: formData.hourlyRate,
-                    description: formData.description,
-                    // Các file sẽ được xử lý riêng ở backend
-                };
+        setIsSubmitting(true);
+        try {
+            // Tạo dữ liệu form để gửi đi (bỏ qua các preview)
+            const formDataToSubmit = {
+                displayName: formData.displayName,
+                communicationTool: formData.communicationTool,
+                country: formData.country,
+                livingIn: formData.livingIn,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                birthday: formData.birthday,
+                streetAddress: formData.streetAddress,
+                languages: formData.languages,
+                hourlyRate: formData.hourlyRate,
+                description: formData.description,
+                // Các file sẽ được xử lý riêng ở backend
+            };
 
-                // Log dữ liệu (trong thực tế sẽ gửi API)
-                console.log("Form submitted:", formDataToSubmit);
+            // Log dữ liệu (trong thực tế sẽ gửi API)
+            console.log("Form submitted:", formDataToSubmit);
 
-                // Hiển thị thông báo thành công
+            // Giả lập gửi API request
+            setTimeout(() => {
+                // Hiển thị thông báo toast
                 toast.success("Registration successful! Your profile is under review.");
-            } catch (error) {
-                // Xử lý lỗi nếu có
-                console.error("Error submitting form:", error);
-                toast.error("An error occurred while registering. Please try again later.");
-            }
+                setIsSubmitting(false);
+
+                // Chuyển về trang home sau 1.5 giây
+                setTimeout(() => {
+                    navigate('/');
+                }, 1500);
+            }, 1000);
+
+        } catch (error) {
+            // Xử lý lỗi nếu có
+            console.error("Error submitting form:", error);
+            toast.error("An error occurred while registering. Please try again later.");
+            setIsSubmitting(false);
         }
     };
 
@@ -338,117 +379,82 @@ const BecomeATutorPage = () => {
             "Basic Information",
             "Personal Information",
             "Language Skills",
-            "Teacher Profile",
+            "Profile",
             "Certifications",
-            "Video Introduction",
+            "Introduction Video",
         ];
 
         return (
             <div className="w-full mb-12">
-                <div className="flex flex-col">
-                    {/* Steps with the line */}
-                    <div className="relative flex justify-between items-center">
-                        {/* Progress bar underneath */}
-                        <div className="absolute h-1 bg-gray-200 left-0 right-0 z-0"></div>
-                        <div
-                            className="absolute h-1 bg-blue-600 left-0 z-0 transition-all duration-300"
-                            style={{ width: `${((activeStep - 1) / 5) * 100}%` }}
-                        ></div>
+                {/* Progress bar container */}
+                <div className="relative mb-8">
+                    {/* The whole stepper container */}
+                    <div className="relative">
+                        {/* Steps display */}
+                        <div className="flex justify-between items-start relative">
+                            {/* Background line - positioned exactly at center of the circles */}
+                            <div className="absolute h-1 bg-gray-200" style={{ left: '20px', right: '20px', top: '20px' }}></div>
 
-                        {/* Step circles */}
-                        {steps.map((step, index) => (
+                            {/* Progress fill - grows based on active step */}
                             <div
-                                key={index}
-                                className="z-10 cursor-pointer"
-                                onClick={() => {
-                                    // Allow going back to previous steps
-                                    if (index + 1 < activeStep) {
-                                        setActiveStep(index + 1);
-                                    }
+                                className="absolute h-1 bg-[#333333] transition-all duration-300"
+                                style={{
+                                    left: '20px',
+                                    top: '20px',
+                                    width: activeStep === 1 ? '0%' : `calc(${(activeStep - 1) / (steps.length - 1)} * (100% - 40px))`
                                 }}
-                            >
-                                <div
-                                    className={`h-10 w-10 rounded-full flex items-center justify-center 
-                                    ${activeStep > index + 1
-                                            ? "bg-green-500 text-white"
-                                            : activeStep === index + 1
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-white text-gray-600 border-2 border-gray-300"
-                                        }
-                                    shadow-md transition-all duration-300`}
-                                >
-                                    {activeStep > index + 1 ? (
-                                        <svg
-                                            className="w-5 h-5"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth="2"
-                                                d="M5 13l4 4L19 7"
-                                            ></path>
-                                        </svg>
-                                    ) : (
-                                        <span className="text-center font-medium">{index + 1}</span>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ></div>
 
-                    {/* Step labels (separated from circles for better alignment) */}
-                    <div className="flex justify-between mt-2">
-                        <div className="text-center" style={{ width: '16.66%' }}>
-                            <span className={`text-xs font-medium inline-block
-                                ${activeStep === 1 ? "text-blue-600 font-bold" :
-                                    activeStep > 1 ? "text-green-500" : "text-gray-500"}`}
-                            >
-                                {steps[0]}
-                            </span>
-                        </div>
-                        <div className="text-center" style={{ width: '16.66%' }}>
-                            <span className={`text-xs font-medium inline-block
-                                ${activeStep === 2 ? "text-blue-600 font-bold" :
-                                    activeStep > 2 ? "text-green-500" : "text-gray-500"}`}
-                            >
-                                {steps[1]}
-                            </span>
-                        </div>
-                        <div className="text-center" style={{ width: '16.66%' }}>
-                            <span className={`text-xs font-medium inline-block
-                                ${activeStep === 3 ? "text-blue-600 font-bold" :
-                                    activeStep > 3 ? "text-green-500" : "text-gray-500"}`}
-                            >
-                                {steps[2]}
-                            </span>
-                        </div>
-                        <div className="text-center" style={{ width: '16.66%' }}>
-                            <span className={`text-xs font-medium inline-block
-                                ${activeStep === 4 ? "text-blue-600 font-bold" :
-                                    activeStep > 4 ? "text-green-500" : "text-gray-500"}`}
-                            >
-                                {steps[3]}
-                            </span>
-                        </div>
-                        <div className="text-center" style={{ width: '16.66%' }}>
-                            <span className={`text-xs font-medium inline-block
-                                ${activeStep === 5 ? "text-blue-600 font-bold" :
-                                    activeStep > 5 ? "text-green-500" : "text-gray-500"}`}
-                            >
-                                {steps[4]}
-                            </span>
-                        </div>
-                        <div className="text-center" style={{ width: '16.66%' }}>
-                            <span className={`text-xs font-medium inline-block
-                                ${activeStep === 6 ? "text-blue-600 font-bold" :
-                                    activeStep > 6 ? "text-green-500" : "text-gray-500"}`}
-                            >
-                                {steps[5]}
-                            </span>
+                            {steps.map((step, index) => (
+                                <div
+                                    key={index}
+                                    className="relative flex flex-col items-center"
+                                    style={{ width: `${100 / steps.length}%` }}
+                                >
+                                    {/* Circle */}
+                                    <div
+                                        className={`z-10 cursor-pointer h-10 w-10 rounded-full flex items-center justify-center shadow-md transition-all duration-300
+                                        ${activeStep > index + 1
+                                                ? "bg-[#000000] text-white"
+                                                : activeStep === index + 1
+                                                    ? "bg-[#333333] text-white"
+                                                    : "bg-white text-gray-600 border-2 border-gray-300"
+                                            }`}
+                                        onClick={() => {
+                                            if (index + 1 < activeStep) {
+                                                setActiveStep(index + 1);
+                                            }
+                                        }}
+                                    >
+                                        {activeStep > index + 1 ? (
+                                            <svg
+                                                className="w-5 h-5"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                    d="M5 13l4 4L19 7"
+                                                ></path>
+                                            </svg>
+                                        ) : (
+                                            <span className="text-center font-medium">{index + 1}</span>
+                                        )}
+                                    </div>
+
+                                    {/* Label */}
+                                    <span className={`text-xs font-medium text-center mt-2
+                                        ${activeStep === index + 1 ? "text-[#333333] font-bold" :
+                                            activeStep > index + 1 ? "text-[#000000]" : "text-gray-500"}`}
+                                    >
+                                        {step}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -653,10 +659,15 @@ const BecomeATutorPage = () => {
                                     onChange={handleChange}
                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
                                     style={formControlStyle}
+                                    max={(() => {
+                                        const date = new Date();
+                                        date.setFullYear(date.getFullYear() - 17);
+                                        return date.toISOString().split('T')[0];
+                                    })()}
                                     required
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    You must be at least 18 years old to register as a tutor
+                                    You must be at least 17 years old to register as a tutor
                                 </p>
                             </div>
 
@@ -751,7 +762,7 @@ const BecomeATutorPage = () => {
                                                 </select>
                                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
                                                     <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+
                                                     </svg>
                                                 </div>
                                             </div>
@@ -782,7 +793,6 @@ const BecomeATutorPage = () => {
                                                 </select>
                                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
                                                     <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                                     </svg>
                                                 </div>
                                             </div>
@@ -911,7 +921,7 @@ const BecomeATutorPage = () => {
                                     <p className="text-xs text-gray-500">
                                         Min 100 characters, max 1000 characters
                                     </p>
-                                    <p className={`text-xs ${formData.description.length < 100 ? 'text-red-500' : formData.description.length > 1000 ? 'text-red-500' : 'text-green-500'}`}>
+                                    <p className={`text-xs ${formData.description.length < 100 ? 'text-gray-500' : formData.description.length > 1000 ? 'text-gray-500' : 'text-gray-900'}`}>
                                         {formData.description.length}/1000 characters
                                     </p>
                                 </div>
@@ -980,32 +990,94 @@ const BecomeATutorPage = () => {
 
                                             <div className="flex flex-col sm:flex-row items-start gap-4">
                                                 {cert.filePreview && (
-                                                    <div className="flex items-center p-2 border rounded-md bg-gray-50 max-w-full">
-                                                        <svg className="h-8 w-8 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                                        </svg>
-                                                        <span className="text-sm text-gray-700 truncate">
-                                                            {cert.file && cert.file.name}
-                                                        </span>
+                                                    <div className="flex flex-col p-2 border rounded-md bg-gray-50 max-w-full">
+                                                        {cert.file && cert.file.type.includes('image') ? (
+                                                            <div className="flex items-center">
+                                                                <img
+                                                                    src={cert.filePreview}
+                                                                    alt="Certificate Preview"
+                                                                    className="h-20 w-20 object-contain mr-2 rounded-md border border-gray-200"
+                                                                />
+                                                                <div className="ml-2">
+                                                                    <span className="text-sm text-gray-700 block truncate max-w-[200px]">
+                                                                        {cert.file.name}
+                                                                    </span>
+                                                                    <span className="text-xs text-gray-500">
+                                                                        {(cert.file.size / 1024 / 1024).toFixed(2)} MB
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const fileInput = document.getElementById(`cert-file-${index}`);
+                                                                            if (fileInput) fileInput.click();
+                                                                        }}
+                                                                        className="text-xs text-blue-500 hover:text-blue-700 mt-1 inline-flex items-center"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                                                                        </svg>
+                                                                        Replace
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center">
+                                                                <svg className="h-8 w-8 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                                </svg>
+                                                                <div className="ml-2">
+                                                                    <span className="text-sm text-gray-700 block truncate max-w-[200px]">
+                                                                        {cert.file && cert.file.name}
+                                                                    </span>
+                                                                    <span className="text-xs text-gray-500">
+                                                                        {cert.file && (cert.file.size / 1024 / 1024).toFixed(2)} MB
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const fileInput = document.getElementById(`cert-file-${index}`);
+                                                                            if (fileInput) fileInput.click();
+                                                                        }}
+                                                                        className="text-xs text-blue-500 hover:text-blue-700 mt-1 inline-flex items-center"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                                                                        </svg>
+                                                                        Replace
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
 
-                                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                        <svg className="w-10 h-10 text-blue-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                                        </svg>
-                                                        <p className="mb-2 text-sm text-blue-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                                        <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 5MB)</p>
-                                                    </div>
+                                                {!cert.filePreview ? (
+                                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                            <svg className="w-10 h-10 text-blue-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                                            </svg>
+                                                            <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                                            <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 5MB)</p>
+                                                        </div>
+                                                        <input
+                                                            id={`cert-file-${index}`}
+                                                            type="file"
+                                                            onChange={(e) => handleCertificationFileChange(index, e)}
+                                                            accept=".pdf,.jpg,.jpeg,.png"
+                                                            className="hidden"
+                                                            required
+                                                        />
+                                                    </label>
+                                                ) : (
                                                     <input
+                                                        id={`cert-file-${index}`}
                                                         type="file"
                                                         onChange={(e) => handleCertificationFileChange(index, e)}
                                                         accept=".pdf,.jpg,.jpeg,.png"
                                                         className="hidden"
-                                                        required
                                                     />
-                                                </label>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1039,20 +1111,28 @@ const BecomeATutorPage = () => {
                 return (
                     <div className="space-y-6">
                         <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Video Introduction</h2>
-                        <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-md">
+                        <div className={`${formData.introductionVideo ? "bg-green-50 border-l-4 border-green-500" : "bg-blue-50 border-l-4 border-blue-500"} p-4 mb-6 rounded-md`}>
                             <div className="flex">
                                 <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg className={`h-5 w-5 ${formData.introductionVideo ? "text-green-500" : "text-blue-500"}`} viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                     </svg>
                                 </div>
                                 <div className="ml-3">
-                                    <p className="text-sm text-green-800">
-                                        Upload a short video introducing yourself and your teaching style. This will help students understand you better.
-                                    </p>
-                                    <p className="text-sm text-green-800 mt-1 font-medium">
-                                        This step is optional but recommended.
-                                    </p>
+                                    {formData.introductionVideo ? (
+                                        <p className="text-sm text-green-800 font-medium">
+                                            Video uploaded successfully! You can proceed to submit your application.
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm text-blue-800">
+                                                Upload a short video introducing yourself and your teaching style. This will help students understand you better.
+                                            </p>
+                                            <p className="text-sm text-blue-800 mt-1 font-medium">
+                                                You'll need to upload a video before you can submit your application.
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1060,7 +1140,7 @@ const BecomeATutorPage = () => {
                         <div className="space-y-5">
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Video Introduction
+                                    Video Introduction <span className="text-red-500">*</span>
                                 </label>
 
                                 <div className="space-y-4">
@@ -1101,10 +1181,9 @@ const BecomeATutorPage = () => {
                                 </div>
                             </div>
 
-                            <div className="p-5 bg-blue-50 rounded-lg">
-                                <h3 className="font-medium text-blue-800 mb-3">Video Tips</h3>
-                                <ul className="text-sm text-blue-700 space-y-2 list-disc pl-5">
-                                    <li>Introduce yourself clearly</li>
+                            <div className="p-5 bg-white rounded-lg">
+                                <h3 className="font-medium text-[#000000] mb-3">Video Tips</h3>
+                                <ul className="text-sm text-[#333333] space-y-2 list-disc pl-5">
                                     <li>Talk about your teaching experience</li>
                                     <li>Explain your teaching method</li>
                                     <li>Show your personality and enthusiasm</li>
@@ -1122,7 +1201,7 @@ const BecomeATutorPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 py-10">
+        <div className="min-h-screen bg-gray-100 py-10 relative">
             {/* Global style for all input fields */}
             <style jsx global>{`
                 input, select, textarea, option {
@@ -1138,14 +1217,35 @@ const BecomeATutorPage = () => {
             `}</style>
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Toast container */}
+                <ToastContainer
+                    position="top-center"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="colored"
+                />
+
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 py-6 px-6">
+                    <div className="bg-[#333333] py-6 px-6">
                         <h1 className="text-2xl font-bold text-white text-center">Become a Tutor</h1>
                         <p className="text-blue-100 text-center mt-1">Share your knowledge and connect with students worldwide</p>
                     </div>
                     <div className="p-6">
                         {renderStepIndicator()}
                         <form onSubmit={activeStep === 6 ? handleSubmit : (e) => e.preventDefault()}>
+                            {/* Error message for video validation that only appears when submit is clicked, not during navigation */}
+                            {activeStep === 6 && !formData.introductionVideo && (
+                                <div className="mb-4 bg-red-50 border border-red-500 text-red-600 p-3 rounded text-sm text-center">
+                                    Please upload an introduction video
+                                </div>
+                            )}
+
                             {renderStepContent()}
                             <div className="mt-8 flex justify-between items-center">
                                 {activeStep > 1 && (
@@ -1165,7 +1265,7 @@ const BecomeATutorPage = () => {
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${!activeStep > 1 ? 'ml-auto' : ''}`}
+                                        className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#333333] hover:bg-[#000000] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#333333] transition-colors ${!activeStep > 1 ? 'ml-auto' : ''}`}
                                     >
                                         Next
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 -mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -1175,12 +1275,25 @@ const BecomeATutorPage = () => {
                                 ) : (
                                     <button
                                         type="submit"
-                                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                                        disabled={isSubmitting || (activeStep === 6 && !formData.introductionVideo)}
+                                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 -ml-1" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                        Submit Application
+                                        {isSubmitting ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 -ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                                Submit Application
+                                            </>
+                                        )}
                                     </button>
                                 )}
                             </div>
@@ -1192,18 +1305,6 @@ const BecomeATutorPage = () => {
                     After registering, your profile will be reviewed within 1-3 business days.
                 </div>
             </div>
-            <ToastContainer
-                position="top-center"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="colored"
-            />
         </div>
     );
 };
