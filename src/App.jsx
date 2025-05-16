@@ -245,13 +245,13 @@ function App() {
              {/* Route for viewing a user profile */}
             <Route
               path="/user/:id"
-              element={user ? <UserProfile loggedInUser={user} getUserById={getUserById} /> : <Navigate to="/signup-page" replace />}
+              element={user ? <UserProfile loggedInUser={user} getUserById={getUserById} /> : <Navigate to="/" replace />}
             />
              {/* NEW ROUTE for editing a user profile */}
             <Route
               path="/user/edit/:id"
                // Pass loggedInUser to EditUserProfile for authorization and initial data
-              element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/signup-page" replace />}
+              element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/" replace />}
             />
 
             {/* This route catches all other paths and renders the NotFoundPage */}
