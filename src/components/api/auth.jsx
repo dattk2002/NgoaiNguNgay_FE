@@ -1,6 +1,6 @@
+// --- API Service File (No changes needed here, it correctly attaches the original error structure to `error.details`) ---
 const BASE_API_URL = "https://tutorbooking-dev-065fe6ad4a6a.herokuapp.com";
 
-// Read Mock API URLs (Keep these if you still need mock functionality)
 const LOGIN_URL = import.meta.env.API_LOGIN_URL_PROD;
 const MOCK_TUTORS_URL = import.meta.env.VITE_MOCK_API_TUTORS_URL_PROD;
 
@@ -15,7 +15,6 @@ if (!MOCK_TUTORS_URL) {
   );
 }
 
-// Generic function for making API calls
 async function callApi(endpoint, method, body, token) {
   const headers = {
     "Content-Type": "application/json",
@@ -25,76 +24,91 @@ async function callApi(endpoint, method, body, token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  // Construct the full URL using the base API URL
-  const fullUrl = `${BASE_API_URL}${endpoint}`; // Use BASE_API_URL consistently
+  const fullUrl = `${BASE_API_URL}${endpoint}`;
   console.log(`Calling API: ${method} ${fullUrl}`);
-  if (body) console.log("Request body:", body);
 
   try {
     const response = await fetch(fullUrl, {
-      // Use fullUrl for fetch
       method,
       headers,
       body: body ? JSON.stringify(body) : null,
-      credentials: "include", // Be cautious with 'include', ensure CORS is handled correctly
+      credentials: "include",
     });
 
-    // Log the raw response status
-    console.log(`API Response status: ${response.status} ${response.statusText}`);
+    console.log("Response:", response);
 
-    // It's good practice to check response status before trying to parse JSON,
-    // especially for non-2xx statuses which might not return JSON.
     if (!response.ok) {
-      const contentType = response.headers.get("content-type");
-      let errorMessage;
+      let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
+      let originalErrorData = null; // To potentially store the full error body
 
-      // Try to parse JSON error response if available
-      if (contentType && contentType.includes("application/json")) {
-        try {
-          const errorData = await response.json();
-          console.error("API Error response (JSON):", errorData);
-          errorMessage = errorData.errorMessage || errorData.message || `API Error: ${response.status} ${response.statusText}`;
-        } catch (jsonError) {
-          console.error("Failed to parse error response as JSON:", jsonError);
-          errorMessage = `API Error: ${response.status} ${response.statusText}`;
+      try {
+        // Clone the response before trying to read the body
+        const errorResponse = response.clone();
+        const errorData = await errorResponse.json();
+        originalErrorData = errorData; // Store the parsed data
+
+        console.error("API Error Details Received:", errorData); // Log raw error data
+
+        // *** Enhanced Error Message Formatting (Still useful for general error display) ***
+        // This section formats the message for the 'error.message' property of the thrown Error
+        // The component's catch block will primarily use error.details for structured errors,
+        // but error.message is a fallback for general errors or logging.
+        if (errorData) {
+          if (typeof errorData.errorMessage === 'string') {
+            formattedErrorMessage = errorData.errorMessage;
+          } else if (typeof errorData.errorMessage === 'object' && errorData.errorMessage !== null) {
+            const fieldErrors = Object.keys(errorData.errorMessage)
+              .map(field => {
+                const messages = Array.isArray(errorData.errorMessage[field])
+                  ? errorData.errorMessage[field].join(', ')
+                  : String(errorData.errorMessage[field]);
+                return `${field}: ${messages}`;
+              })
+              .join('; ');
+            formattedErrorMessage = `Validation Error: ${fieldErrors}`; // This is the string the user saw
+          } else if (typeof errorData.message === 'string') {
+             formattedErrorMessage = errorData.message;
+          } else {
+            console.warn("Error response body did not contain recognized 'errorMessage' or 'message' format.", errorData);
+          }
+           if (errorData.errorCode && !formattedErrorMessage.includes(`(${errorData.errorCode})`)) {
+               // Optionally add error code to the formatted message if not already included
+               // formattedErrorMessage = `${formattedErrorMessage} (${errorData.errorCode})`;
+           }
+
+        } else {
+            console.warn("Error response body was empty or not JSON.");
         }
-      } else {
-        try {
-          // Try to get text error if not JSON
-          const errorText = await response.text();
-          console.error("API Error response (text):", errorText);
-          errorMessage = errorText || `API Error: ${response.status} ${response.statusText}`;
-        } catch (textError) {
-          console.error("Failed to get error response text:", textError);
-          errorMessage = `API Error: ${response.status} ${response.statusText}`;
-        }
+        // *** End Enhanced Error Message Formatting ***
+
+      } catch (jsonError) {
+        console.warn("Failed to parse error response as JSON.", jsonError);
       }
 
-      throw new Error(errorMessage);
+      // Throw an error with the formatted message and potentially attach details
+      const error = new Error(formattedErrorMessage); // This error object's message property will contain the formatted string
+      error.status = response.status;
+      error.details = originalErrorData; // This is where the component gets the original structured data
+      throw error;
     }
 
-    // Handle cases where the API might return 204 No Content or similar
-    // Or if the expected successful response is not JSON
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const jsonResponse = await response.json();
       console.log("API JSON Response:", jsonResponse);
       return jsonResponse;
     } else {
-      // Return raw response or a default success object if no JSON is expected
       console.warn(
         `API response for ${fullUrl} was not JSON, content-type: ${contentType}`
       );
-      return { success: true, status: response.status }; // Or handle as needed
+      return { success: true, status: response.status, rawResponse: response };
     }
   } catch (error) {
-    console.error("API Error:", error);
-    // Re-throw the error so the calling function can handle it (e.g., display error message)
+    console.error("API Call Failed:", error.details || error.message);
     throw error;
   }
 }
 
-// Login function - Refactored for MockAPI endpoint validation
 export async function login(username, password) {
   try {
     const response = await callApi("/api/auth/login", "POST", {
@@ -102,12 +116,13 @@ export async function login(username, password) {
       password,
     });
 
-    if (!response || !response.data) {
-      throw new Error("Invalid login response format");
+    if (!response?.data?.token) {
+      // This checks if the core expected structure is missing even if status was OK (unlikely for login errors)
+      throw new Error("Invalid login response format received.");
     }
 
     const { accessToken, refreshToken, user } = response.data.token;
-    console.log("User:", user); // Debug: Log the user object
+    console.log("User:", user);
 
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
@@ -115,132 +130,144 @@ export async function login(username, password) {
 
     return response;
   } catch (error) {
-    console.error("Login Failed:", error);
+    console.error("Login Failed:", error.message);
+    // The important part is that the original error object (with .details) is re-thrown
     throw error;
   }
 }
 
-// Register function - MODIFIED
 export async function register(
   email,
   password,
   confirmPassword
-  // Removed fullName, dateOfBirth, placeOfBirth as per required body structure
 ) {
   const body = {
     email,
     password,
     confirmPassword,
   };
-  // No need to delete undefined keys if we only include required ones
-  // Object.keys(body).forEach(
-  //   (key) => body[key] === undefined && delete body[key]
-  // );
 
-  // Call callApi with the correct endpoint and the new body structure
-  return callApi("/api/auth/register", "POST", body);
+  try {
+    return await callApi("/api/auth/register", "POST", body);
+  } catch (error) {
+    console.error("Registration Failed:", error.message);
+    throw error;
+  }
 }
 
-// Confirm Email OTP function
 export async function confirmEmail(email, otp) {
   const body = { email, otp };
-  return callApi("/api/auth/confirm-email", "PATCH", body); // Correct endpoint
+  try {
+    return await callApi("/api/auth/confirm-email", "PATCH", body);
+  } catch (error) {
+    console.error("Confirm Email Failed:", error.message);
+    throw error;
+  }
 }
 
-// Forgot Password request function
 export async function forgotPassword(email) {
   const body = { email };
-  return callApi("/api/auth/forgot-password", "POST", body); // Correct endpoint
+  try {
+    return await callApi("/api/auth/forgot-password", "POST", body);
+  } catch (error) {
+    console.error("Forgot Password Failed:", error.message);
+    throw error;
+  }
 }
 
-// Confirm Reset Password OTP function
 export async function confirmResetPassword(email, otp) {
   const body = { email, otp };
-  return callApi("/api/auth/confirm-reset-password", "PATCH", body); // Correct endpoint
+  try {
+    return await callApi("/api/auth/confirm-reset-password", "PATCH", body);
+  } catch (error) {
+    console.error("Confirm Reset Password Failed:", error.message);
+    throw error;
+  }
 }
 
-// Reset Password function
 export async function resetPassword(email, password, confirmPassword) {
   const body = { email, password, confirmPassword };
-  return callApi("/api/auth/reset-password", "PATCH", body); // Correct endpoint
+  try {
+    return await callApi("/api/auth/reset-password", "PATCH", body);
+  } catch (error) {
+    console.error("Reset Password Failed:", error.message);
+    throw error;
+  }
 }
 
-// Refresh Token function
 export async function refreshToken(refreshTokenValue) {
   const body = { refreshToken: refreshTokenValue };
-  const response = await callApi("/api/auth/refresh-token", "POST", body); // Correct endpoint
+  try {
+    const response = await callApi("/api/auth/refresh-token", "POST", body);
 
-  // Check response structure based on expected successful refresh response
-  if (response?.data?.token) {
-    localStorage.setItem("accessToken", response.data.token.accessToken);
-    localStorage.setItem("refreshToken", response.data.token.refreshToken);
-    // Update user if it's part of the refresh response and needed
-    if (response.data.token.user) {
-      localStorage.setItem("user", JSON.stringify(response.data.token.user));
+    if (response?.data?.token) {
+      localStorage.setItem("accessToken", response.data.token.accessToken);
+      localStorage.setItem("refreshToken", response.data.token.refreshToken);
+      if (response.data.token.user) {
+        localStorage.setItem("user", JSON.stringify(response.data.token.user));
+      }
+    } else {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      // Use error.message from the thrown error for the toast if details are missing
+      throw new Error(
+        response?.message ||
+          response?.errorMessage ||
+          "Invalid refresh token response"
+      );
     }
-  } else {
-    // Optionally clear tokens if refresh fails or returns invalid data
+
+    return response;
+  } catch (error) {
+    console.error("Refresh Token Failed:", error.message);
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
-    // Use response message if available, otherwise a default error
-    throw new Error(
-      response?.message ||
-      response?.errorMessage ||
-      "Invalid refresh token response"
-    );
+    throw error;
   }
-
-  return response;
 }
 
-// Logout function
 export async function logout(refreshTokenValue) {
   const body = { refreshToken: refreshTokenValue };
-  // Assuming your logout endpoint is different and expects POST
-  const response = await callApi("/api/auth/logout", "POST", body); // Correct endpoint
+  try {
+    const response = await callApi("/api/auth/logout", "POST", body);
 
-  // Clear tokens regardless of API response success for client-side state
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
 
-  return response;
+    return response;
+  } catch (error) {
+    console.error("Logout Failed:", error.message);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    throw error;
+  }
 }
 
-// --- Local Storage Helper Functions ---
-
-// Get stored user data from localStorage
 export function getStoredUser() {
   const user = localStorage.getItem("user");
   try {
     return user ? JSON.parse(user) : null;
   } catch (error) {
     console.error("Error parsing stored user data:", error);
-    // Clear invalid user data from storage
     localStorage.removeItem("user");
     return null;
   }
 }
 
-// Get access token from localStorage
 export function getAccessToken() {
   return localStorage.getItem("accessToken");
 }
 
-// Get refresh token from localStorage
 export function getRefreshToken() {
   return localStorage.getItem("refreshToken");
 }
 
-// --- Tutor API Functions ---
-// NOTE: These mock tutor functions currently bypass callApi and fetch directly
-// from a mock URL. If you have a real API for tutors, you should refactor
-// these to use callApi with the appropriate base URL and endpoints.
-
-// Function to fetch tutors from the MockAPI endpoint - Keep if needed
 export async function fetchTutors() {
-  const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL; // This still uses the Mock URL
+  const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL;
 
   if (!MOCK_TUTOR_API_URL) {
     console.error(
@@ -260,16 +287,15 @@ export async function fetchTutors() {
     }
     const tutorsData = await response.json();
     console.log("[Mock API] Tutors fetched successfully:", tutorsData);
-    return tutorsData; // Mock API might return an array directly
+    return tutorsData;
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu tutors:", error);
     throw error;
   }
 }
 
-// Function to fetch a single tutor by ID from the MockAPI endpoint - Keep if needed
 export async function fetchTutorById(id) {
-  const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL; // This still uses the Mock URL
+  const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL;
 
   if (!MOCK_TUTOR_API_URL) {
     console.error(
@@ -283,8 +309,6 @@ export async function fetchTutorById(id) {
   );
 
   try {
-    // NOTE: This fetches ALL tutors from the mock API and then filters.
-    // A real API would typically have an endpoint like /tutors/{id}
     const response = await fetch(MOCK_TUTOR_API_URL);
     if (!response.ok) {
       throw new Error(
@@ -294,8 +318,6 @@ export async function fetchTutorById(id) {
     const tutorsData = await response.json();
     console.log("[Mock API] Tutors data:", tutorsData);
 
-    // Find the tutor with the matching ID
-    // Ensure ID matching is robust (e.g., compare numbers if IDs are numbers)
     const tutor = tutorsData.find((tutor) => String(tutor.id) === String(id));
     if (!tutor) {
       throw new Error(`Tutor with ID ${id} not found in mock data.`);
@@ -309,36 +331,26 @@ export async function fetchTutorById(id) {
   }
 }
 
-// New function to fetch tutors by subject - Keep if needed
 export async function fetchTutorsBySubject(subject) {
-  // *** IMPORTANT: This currently uses the MOCK_TUTORS_URL ***
-  // If you have a real API endpoint to filter tutors by subject,
-  // update this to use callApi with the correct endpoint and parameters.
-  // Example: return callApi(`/api/tutors/by-subject?subject=${encodeURIComponent(subject)}`, 'GET');
   try {
-    // NOTE: This fetches ALL tutors from the mock API and then filters.
-    // A real API would typically handle filtering on the server side.
-    const tutorsData = await fetchTutors(); // Fetch all tutors from mock
+    const tutorsData = await fetchTutors();
     if (!subject) {
-      // Consider returning all tutors or throwing a different error if subject is optional
       throw new Error("Subject parameter is required.");
     }
     const normalizedSubject =
       subject.toLowerCase() === "portuguese"
-        ? "brazilian portuguese" // Adjusting for specific mock data quirk
+        ? "brazilian portuguese"
         : subject.toLowerCase();
 
     const filteredTutors = tutorsData.filter(
       (tutor) =>
-        tutor.nativeLanguage && // Check if nativeLanguage exists
+        tutor.nativeLanguage &&
         tutor.nativeLanguage.toLowerCase() === normalizedSubject
     );
     console.log(
       `[Mock API] Tutors filtered by subject '${subject}' (normalized: '${normalizedSubject}'):`,
       filteredTutors.length
-    ); // Log count instead of full array
-    // console.log(filteredTutors); // Uncomment to see the actual data
-
+    );
     return filteredTutors;
   } catch (error) {
     console.error(`Error fetching tutors by subject: ${subject}`, error);
@@ -346,33 +358,28 @@ export async function fetchTutorsBySubject(subject) {
   }
 }
 
-// Function to check if a user's email is authenticated (emailCode is null)
 export function isUserAuthenticated(user) {
   return user.emailCode === null;
 }
 
-// Function to edit user profile
-export async function editUserProfile(token, userData) {
-  // Loại bỏ các trường có giá trị undefined hoặc null
-  const body = { ...userData };
-  Object.keys(body).forEach(key => {
-    if (body[key] === undefined || body[key] === null) {
-      delete body[key];
-    }
-  });
+export async function editUserProfile(token, fullName, dateOfBirth, gender) {
+  const body = {
+    fullName,
+    dateOfBirth,
+    gender,
+  };
 
   try {
     console.log("Sending profile update with data:", body);
     const response = await callApi("/api/profile/user", "PATCH", body, token);
     return response;
   } catch (error) {
-    console.error("Failed to update user profile:", error);
+    console.error("Failed to update user profile:", error.message);
     throw error;
   }
 }
 
-// Function to fetch user by ID
-export async function fetchUserById(id) {
+export async function fetchUserById() {
   const token = getAccessToken();
   if (!token) {
     throw new Error("Authentication token not found.");
@@ -406,12 +413,11 @@ export async function fetchUserById(id) {
       throw new Error("Invalid response format or missing data.");
     }
   } catch (error) {
-    console.error("Failed to fetch user profile:", error);
+    console.error("Failed to fetch user profile:", error.message);
     throw error;
   }
 }
 
-// Function to upload profile image
 export async function uploadProfileImage(file) {
   const token = getAccessToken();
   if (!token) {
