@@ -422,6 +422,7 @@ export async function uploadProfileImage(file) {
     // Create FormData object for file upload
     const formData = new FormData();
     formData.append('file', file);
+    console.log("Form data:", formData);
 
     // For file uploads, we need to use the fetch API directly
     // since our callApi function is designed for JSON data
@@ -457,20 +458,134 @@ export async function uploadProfileImage(file) {
     // Update user in localStorage to reflect the change globally
     if (result.data && (result.data.profileImageUrl || result.data.profilePictureUrl)) {
       try {
-        const newImageUrl = result.data.profileImageUrl || result.data.profilePictureUrl;
-        const user = getStoredUser();
+        // Get image URL from API result
+        let newImageUrl = result.data.profileImageUrl || result.data.profilePictureUrl;
 
+        // Make sure we have a clean URL without query parameters
+        newImageUrl = newImageUrl.split('?')[0];
+
+        // Add unique timestamp to ensure URL is always different
+        const uniqueTimestamp = Date.now();
+        const timestampedImageUrl = `${newImageUrl}?t=${uniqueTimestamp}`;
+
+        console.log("Original image URL:", newImageUrl);
+        console.log("Timestamped image URL:", timestampedImageUrl);
+
+        // Update in localStorage
+        const user = getStoredUser();
         if (user) {
-          user.profileImageUrl = newImageUrl;
+          // Update the user object with the new avatar URL
+          user.profileImageUrl = timestampedImageUrl;
+
+          // Remove existing user data from localStorage
+          localStorage.removeItem('user');
+
+          // Save updated user with new avatar URL
           localStorage.setItem('user', JSON.stringify(user));
-          console.log('Updated user in localStorage with new profileImageUrl:', newImageUrl);
+          console.log('Updated user in localStorage with new profileImageUrl:', timestampedImageUrl);
+
+          // Forcing browser to reload tokens to break any caching
+          const accessToken = getAccessToken();
+          const refreshToken = getRefreshToken();
+
+          if (accessToken) {
+            localStorage.removeItem('accessToken');
+            localStorage.setItem('accessToken', accessToken);
+          }
+
+          if (refreshToken) {
+            localStorage.removeItem('refreshToken');
+            localStorage.setItem('refreshToken', refreshToken);
+          }
         }
+
+        // Preload the image to ensure browser cache is updated
+        const preloadImage = new Image();
+        preloadImage.crossOrigin = "anonymous"; // Prevent CORS issues
+        preloadImage.src = timestampedImageUrl;
+
+        // Send avatar-updated event when image is loaded
+        preloadImage.onload = () => {
+          console.log('New avatar image preloaded successfully');
+
+          // Remove any previous image from browser cache if possible
+          const oldSrc = localStorage.getItem('previous_avatar_url');
+          if (oldSrc) {
+            try {
+              caches.open('avatar-cache').then(cache => cache.delete(oldSrc));
+            } catch (e) {
+              console.log('Cache API not available or error clearing cache:', e);
+            }
+          }
+
+          // Store current URL for future reference
+          localStorage.setItem('previous_avatar_url', timestampedImageUrl);
+
+          // Dispatch avatar-updated event for all components
+          window.dispatchEvent(new CustomEvent('avatar-updated', {
+            detail: {
+              profileImageUrl: timestampedImageUrl,
+              timestamp: uniqueTimestamp
+            }
+          }));
+
+          // Try dispatching again after a delay to ensure all components receive it
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('avatar-updated', {
+              detail: {
+                profileImageUrl: timestampedImageUrl,
+                timestamp: uniqueTimestamp + 1
+              }
+            }));
+
+            // Dispatch storage event to notify other tabs
+            window.dispatchEvent(new Event('storage'));
+
+            // Add another timestamp to document.cookie
+            document.cookie = "avatar_updated=" + uniqueTimestamp + "; path=/";
+
+            // Updating DOM elements directly if needed
+            const avatarElements = document.querySelectorAll('img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]');
+            avatarElements.forEach(img => {
+              // Force reload by adding a unique timestamp
+              img.src = timestampedImageUrl + '&reload=' + uniqueTimestamp;
+            });
+          }, 300);
+        };
+
+        // Handle image loading error
+        preloadImage.onerror = () => {
+          console.error('Failed to preload new avatar image:', timestampedImageUrl);
+          // Still try to update UI even if preload fails
+          window.dispatchEvent(new CustomEvent('avatar-updated', {
+            detail: {
+              profileImageUrl: timestampedImageUrl,
+              timestamp: uniqueTimestamp
+            }
+          }));
+        };
       } catch (error) {
         console.error('Error updating user in localStorage:', error);
       }
     }
 
-    return result;
+    // Create enhanced result with timestamped URLs
+    const enhancedResult = { ...result };
+
+    // Add timestamp to image URLs in result
+    if (enhancedResult.data) {
+      const timestamp = Date.now();
+      if (enhancedResult.data.profileImageUrl) {
+        const baseUrl = enhancedResult.data.profileImageUrl.split('?')[0];
+        enhancedResult.data.profileImageUrl = `${baseUrl}?t=${timestamp}`;
+      }
+      if (enhancedResult.data.profilePictureUrl) {
+        const baseUrl = enhancedResult.data.profilePictureUrl.split('?')[0];
+        enhancedResult.data.profilePictureUrl = `${baseUrl}?t=${timestamp}`;
+      }
+    }
+
+    return enhancedResult;
   } catch (error) {
     console.error("Failed to upload profile image:", error);
     throw error;
