@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"; // useNavigate is alr
 
 // Assuming fetchTutorsBySubject returns data structured similarly to what's needed
 import { fetchTutorsBySubject } from "../api/auth";
+import LanguageImage from "../../assets/language_banner.png"
 
 import {
   FaCheckCircle,
@@ -331,58 +332,7 @@ const TutorSubjectList = () => {
           {/* Right Illustration (Placeholder) */}
           <div className="md:w-1/3 flex justify-center md:justify-end">
             {/* Replace with your actual illustration SVG or Image */}
-            <svg
-              width="200"
-              height="150"
-              viewBox="0 0 200 150"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-gray-300"
-            >
-              <rect
-                x="10"
-                y="10"
-                width="180"
-                height="130"
-                rx="8"
-                fill="currentColor"
-                fillOpacity="0.3"
-              />
-              <circle
-                cx="60"
-                cy="60"
-                r="20"
-                fill="currentColor"
-                fillOpacity="0.5"
-              />
-              <rect
-                x="90"
-                y="40"
-                width="80"
-                height="15"
-                rx="4"
-                fill="currentColor"
-                fillOpacity="0.5"
-              />
-              <rect
-                x="90"
-                y="65"
-                width="60"
-                height="10"
-                rx="4"
-                fill="currentColor"
-                fillOpacity="0.4"
-              />
-              <rect
-                x="50"
-                y="95"
-                width="100"
-                height="25"
-                rx="6"
-                fill="currentColor"
-                fillOpacity="0.6"
-              />
-            </svg>
+            <img src={LanguageImage} alt="language_banner"/>
           </div>
         </div>
 

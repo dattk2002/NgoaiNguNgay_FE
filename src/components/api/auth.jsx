@@ -27,7 +27,8 @@ async function callApi(endpoint, method, body, token) {
 
   // Construct the full URL using the base API URL
   const fullUrl = `${BASE_API_URL}${endpoint}`; // Use BASE_API_URL consistently
-  console.log(`Calling API: ${method} ${fullUrl}`); // Log the full URL being called
+  console.log(`Calling API: ${method} ${fullUrl}`);
+  if (body) console.log("Request body:", body);
 
   try {
     const response = await fetch(fullUrl, {
@@ -38,28 +39,47 @@ async function callApi(endpoint, method, body, token) {
       credentials: "include", // Be cautious with 'include', ensure CORS is handled correctly
     });
 
+    // Log the raw response status
+    console.log(`API Response status: ${response.status} ${response.statusText}`);
+
     // It's good practice to check response status before trying to parse JSON,
     // especially for non-2xx statuses which might not return JSON.
     if (!response.ok) {
-      // Try to parse JSON error response if available, otherwise use status text
-      try {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.errorMessage ||
-            errorData.message ||
-            `API Error: ${response.status} ${response.statusText}`
-        );
-      } catch (jsonError) {
-        // If JSON parsing fails, throw a generic error with status
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      const contentType = response.headers.get("content-type");
+      let errorMessage;
+
+      // Try to parse JSON error response if available
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          const errorData = await response.json();
+          console.error("API Error response (JSON):", errorData);
+          errorMessage = errorData.errorMessage || errorData.message || `API Error: ${response.status} ${response.statusText}`;
+        } catch (jsonError) {
+          console.error("Failed to parse error response as JSON:", jsonError);
+          errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        }
+      } else {
+        try {
+          // Try to get text error if not JSON
+          const errorText = await response.text();
+          console.error("API Error response (text):", errorText);
+          errorMessage = errorText || `API Error: ${response.status} ${response.statusText}`;
+        } catch (textError) {
+          console.error("Failed to get error response text:", textError);
+          errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        }
       }
+
+      throw new Error(errorMessage);
     }
 
     // Handle cases where the API might return 204 No Content or similar
     // Or if the expected successful response is not JSON
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
-      return await response.json();
+      const jsonResponse = await response.json();
+      console.log("API JSON Response:", jsonResponse);
+      return jsonResponse;
     } else {
       // Return raw response or a default success object if no JSON is expected
       console.warn(
@@ -166,8 +186,8 @@ export async function refreshToken(refreshTokenValue) {
     // Use response message if available, otherwise a default error
     throw new Error(
       response?.message ||
-        response?.errorMessage ||
-        "Invalid refresh token response"
+      response?.errorMessage ||
+      "Invalid refresh token response"
     );
   }
 
@@ -332,18 +352,242 @@ export function isUserAuthenticated(user) {
 }
 
 // Function to edit user profile
-export async function editUserProfile(token, fullName, dateOfBirth, gender) {
-  const body = {
-    fullName,
-    dateOfBirth,
-    gender,
-  };
+export async function editUserProfile(token, userData) {
+  // Loại bỏ các trường có giá trị undefined hoặc null
+  const body = { ...userData };
+  Object.keys(body).forEach(key => {
+    if (body[key] === undefined || body[key] === null) {
+      delete body[key];
+    }
+  });
 
   try {
-    const response = await callApi("/api/profile", "PATCH", body, token);
+    console.log("Sending profile update with data:", body);
+    const response = await callApi("/api/profile/user", "PATCH", body, token);
     return response;
   } catch (error) {
     console.error("Failed to update user profile:", error);
+    throw error;
+  }
+}
+
+// Function to fetch user by ID
+export async function fetchUserById(id) {
+  const token = getAccessToken();
+  if (!token) {
+    throw new Error("Authentication token not found.");
+  }
+
+  try {
+    console.log("Fetching user profile data...");
+    const response = await callApi(`/api/profile/user`, "GET", null, token);
+    console.log("User profile API response:", response);
+
+    if (response && response.data) {
+      // Normalize data for component use
+      const userData = response.data;
+
+      // Handle response format differences if needed
+      // For example, ensure gender is a number
+      if (userData.gender !== undefined && typeof userData.gender === 'string') {
+        userData.gender = parseInt(userData.gender, 10);
+      }
+
+      // Ensure proficiency level is a number
+      if (userData.learningProficiencyLevel !== undefined &&
+        typeof userData.learningProficiencyLevel === 'string') {
+        userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
+      }
+
+      console.log("Normalized user data:", userData);
+      return userData;
+    } else {
+      console.error("Invalid API response format:", response);
+      throw new Error("Invalid response format or missing data.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch user profile:", error);
+    throw error;
+  }
+}
+
+// Function to upload profile image
+export async function uploadProfileImage(file) {
+  const token = getAccessToken();
+  if (!token) {
+    throw new Error("Authentication token not found.");
+  }
+
+  try {
+    // Create FormData object for file upload
+    const formData = new FormData();
+    formData.append('file', file);
+    console.log("Form data:", formData);
+
+    // For file uploads, we need to use the fetch API directly
+    // since our callApi function is designed for JSON data
+    const fullUrl = `${BASE_API_URL}/api/profile/image`;
+    console.log(`Uploading profile image to: ${fullUrl}`);
+
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Upload failed with status: ${response.status}`;
+
+      try {
+        // Try to parse error response
+        const errorData = await response.json();
+        errorMessage = errorData.errorMessage || errorMessage;
+      } catch (e) {
+        // If we can't parse JSON, use the default error message
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    // Parse the response
+    const result = await response.json();
+    console.log("Profile image upload response:", result);
+
+    // Update user in localStorage to reflect the change globally
+    if (result.data && (result.data.profileImageUrl || result.data.profilePictureUrl)) {
+      try {
+        // Get image URL from API result
+        let newImageUrl = result.data.profileImageUrl || result.data.profilePictureUrl;
+
+        // Make sure we have a clean URL without query parameters
+        newImageUrl = newImageUrl.split('?')[0];
+
+        // Add unique timestamp to ensure URL is always different
+        const uniqueTimestamp = Date.now();
+        const timestampedImageUrl = `${newImageUrl}?t=${uniqueTimestamp}`;
+
+        console.log("Original image URL:", newImageUrl);
+        console.log("Timestamped image URL:", timestampedImageUrl);
+
+        // Update in localStorage
+        const user = getStoredUser();
+        if (user) {
+          // Update the user object with the new avatar URL
+          user.profileImageUrl = timestampedImageUrl;
+
+          // Remove existing user data from localStorage
+          localStorage.removeItem('user');
+
+          // Save updated user with new avatar URL
+          localStorage.setItem('user', JSON.stringify(user));
+          console.log('Updated user in localStorage with new profileImageUrl:', timestampedImageUrl);
+
+          // Forcing browser to reload tokens to break any caching
+          const accessToken = getAccessToken();
+          const refreshToken = getRefreshToken();
+
+          if (accessToken) {
+            localStorage.removeItem('accessToken');
+            localStorage.setItem('accessToken', accessToken);
+          }
+
+          if (refreshToken) {
+            localStorage.removeItem('refreshToken');
+            localStorage.setItem('refreshToken', refreshToken);
+          }
+        }
+
+        // Preload the image to ensure browser cache is updated
+        const preloadImage = new Image();
+        preloadImage.crossOrigin = "anonymous"; // Prevent CORS issues
+        preloadImage.src = timestampedImageUrl;
+
+        // Send avatar-updated event when image is loaded
+        preloadImage.onload = () => {
+          console.log('New avatar image preloaded successfully');
+
+          // Remove any previous image from browser cache if possible
+          const oldSrc = localStorage.getItem('previous_avatar_url');
+          if (oldSrc) {
+            try {
+              caches.open('avatar-cache').then(cache => cache.delete(oldSrc));
+            } catch (e) {
+              console.log('Cache API not available or error clearing cache:', e);
+            }
+          }
+
+          // Store current URL for future reference
+          localStorage.setItem('previous_avatar_url', timestampedImageUrl);
+
+          // Dispatch avatar-updated event for all components
+          window.dispatchEvent(new CustomEvent('avatar-updated', {
+            detail: {
+              profileImageUrl: timestampedImageUrl,
+              timestamp: uniqueTimestamp
+            }
+          }));
+
+          // Try dispatching again after a delay to ensure all components receive it
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('avatar-updated', {
+              detail: {
+                profileImageUrl: timestampedImageUrl,
+                timestamp: uniqueTimestamp + 1
+              }
+            }));
+
+            // Dispatch storage event to notify other tabs
+            window.dispatchEvent(new Event('storage'));
+
+            // Add another timestamp to document.cookie
+            document.cookie = "avatar_updated=" + uniqueTimestamp + "; path=/";
+
+            // Updating DOM elements directly if needed
+            const avatarElements = document.querySelectorAll('img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]');
+            avatarElements.forEach(img => {
+              // Force reload by adding a unique timestamp
+              img.src = timestampedImageUrl + '&reload=' + uniqueTimestamp;
+            });
+          }, 300);
+        };
+
+        // Handle image loading error
+        preloadImage.onerror = () => {
+          console.error('Failed to preload new avatar image:', timestampedImageUrl);
+          // Still try to update UI even if preload fails
+          window.dispatchEvent(new CustomEvent('avatar-updated', {
+            detail: {
+              profileImageUrl: timestampedImageUrl,
+              timestamp: uniqueTimestamp
+            }
+          }));
+        };
+      } catch (error) {
+        console.error('Error updating user in localStorage:', error);
+      }
+    }
+
+    // Create enhanced result with timestamped URLs
+    const enhancedResult = { ...result };
+
+    // Add timestamp to image URLs in result
+    if (enhancedResult.data) {
+      const timestamp = Date.now();
+      if (enhancedResult.data.profileImageUrl) {
+        const baseUrl = enhancedResult.data.profileImageUrl.split('?')[0];
+        enhancedResult.data.profileImageUrl = `${baseUrl}?t=${timestamp}`;
+      }
+      if (enhancedResult.data.profilePictureUrl) {
+        const baseUrl = enhancedResult.data.profilePictureUrl.split('?')[0];
+        enhancedResult.data.profilePictureUrl = `${baseUrl}?t=${timestamp}`;
+      }
+    }
+
+    return enhancedResult;
+  } catch (error) {
+    console.error("Failed to upload profile image:", error);
     throw error;
   }
 }
