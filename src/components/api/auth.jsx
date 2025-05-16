@@ -27,7 +27,8 @@ async function callApi(endpoint, method, body, token) {
 
   // Construct the full URL using the base API URL
   const fullUrl = `${BASE_API_URL}${endpoint}`; // Use BASE_API_URL consistently
-  console.log(`Calling API: ${method} ${fullUrl}`); // Log the full URL being called
+  console.log(`Calling API: ${method} ${fullUrl}`);
+  if (body) console.log("Request body:", body);
 
   try {
     const response = await fetch(fullUrl, {
@@ -38,28 +39,47 @@ async function callApi(endpoint, method, body, token) {
       credentials: "include", // Be cautious with 'include', ensure CORS is handled correctly
     });
 
+    // Log the raw response status
+    console.log(`API Response status: ${response.status} ${response.statusText}`);
+
     // It's good practice to check response status before trying to parse JSON,
     // especially for non-2xx statuses which might not return JSON.
     if (!response.ok) {
-      // Try to parse JSON error response if available, otherwise use status text
-      try {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.errorMessage ||
-            errorData.message ||
-            `API Error: ${response.status} ${response.statusText}`
-        );
-      } catch (jsonError) {
-        // If JSON parsing fails, throw a generic error with status
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      const contentType = response.headers.get("content-type");
+      let errorMessage;
+
+      // Try to parse JSON error response if available
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          const errorData = await response.json();
+          console.error("API Error response (JSON):", errorData);
+          errorMessage = errorData.errorMessage || errorData.message || `API Error: ${response.status} ${response.statusText}`;
+        } catch (jsonError) {
+          console.error("Failed to parse error response as JSON:", jsonError);
+          errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        }
+      } else {
+        try {
+          // Try to get text error if not JSON
+          const errorText = await response.text();
+          console.error("API Error response (text):", errorText);
+          errorMessage = errorText || `API Error: ${response.status} ${response.statusText}`;
+        } catch (textError) {
+          console.error("Failed to get error response text:", textError);
+          errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        }
       }
+
+      throw new Error(errorMessage);
     }
 
     // Handle cases where the API might return 204 No Content or similar
     // Or if the expected successful response is not JSON
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
-      return await response.json();
+      const jsonResponse = await response.json();
+      console.log("API JSON Response:", jsonResponse);
+      return jsonResponse;
     } else {
       // Return raw response or a default success object if no JSON is expected
       console.warn(
@@ -166,8 +186,8 @@ export async function refreshToken(refreshTokenValue) {
     // Use response message if available, otherwise a default error
     throw new Error(
       response?.message ||
-        response?.errorMessage ||
-        "Invalid refresh token response"
+      response?.errorMessage ||
+      "Invalid refresh token response"
     );
   }
 
@@ -332,15 +352,18 @@ export function isUserAuthenticated(user) {
 }
 
 // Function to edit user profile
-export async function editUserProfile(token, fullName, dateOfBirth, gender) {
-  const body = {
-    fullName,
-    dateOfBirth,
-    gender,
-  };
+export async function editUserProfile(token, userData) {
+  // Loại bỏ các trường có giá trị undefined hoặc null
+  const body = { ...userData };
+  Object.keys(body).forEach(key => {
+    if (body[key] === undefined || body[key] === null) {
+      delete body[key];
+    }
+  });
 
   try {
-    const response = await callApi("/api/profile", "PATCH", body, token);
+    console.log("Sending profile update with data:", body);
+    const response = await callApi("/api/profile/user", "PATCH", body, token);
     return response;
   } catch (error) {
     console.error("Failed to update user profile:", error);
@@ -356,14 +379,100 @@ export async function fetchUserById(id) {
   }
 
   try {
-    const response = await callApi(`/api/profile`, "GET", null, token);
+    console.log("Fetching user profile data...");
+    const response = await callApi(`/api/profile/user`, "GET", null, token);
+    console.log("User profile API response:", response);
+
     if (response && response.data) {
-      return response.data;
+      // Normalize data for component use
+      const userData = response.data;
+
+      // Handle response format differences if needed
+      // For example, ensure gender is a number
+      if (userData.gender !== undefined && typeof userData.gender === 'string') {
+        userData.gender = parseInt(userData.gender, 10);
+      }
+
+      // Ensure proficiency level is a number
+      if (userData.learningProficiencyLevel !== undefined &&
+        typeof userData.learningProficiencyLevel === 'string') {
+        userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
+      }
+
+      console.log("Normalized user data:", userData);
+      return userData;
     } else {
+      console.error("Invalid API response format:", response);
       throw new Error("Invalid response format or missing data.");
     }
   } catch (error) {
     console.error("Failed to fetch user profile:", error);
+    throw error;
+  }
+}
+
+// Function to upload profile image
+export async function uploadProfileImage(file) {
+  const token = getAccessToken();
+  if (!token) {
+    throw new Error("Authentication token not found.");
+  }
+
+  try {
+    // Create FormData object for file upload
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // For file uploads, we need to use the fetch API directly
+    // since our callApi function is designed for JSON data
+    const fullUrl = `${BASE_API_URL}/api/profile/image`;
+    console.log(`Uploading profile image to: ${fullUrl}`);
+
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Upload failed with status: ${response.status}`;
+
+      try {
+        // Try to parse error response
+        const errorData = await response.json();
+        errorMessage = errorData.errorMessage || errorMessage;
+      } catch (e) {
+        // If we can't parse JSON, use the default error message
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    // Parse the response
+    const result = await response.json();
+    console.log("Profile image upload response:", result);
+
+    // Update user in localStorage to reflect the change globally
+    if (result.data && (result.data.profileImageUrl || result.data.profilePictureUrl)) {
+      try {
+        const newImageUrl = result.data.profileImageUrl || result.data.profilePictureUrl;
+        const user = getStoredUser();
+
+        if (user) {
+          user.profileImageUrl = newImageUrl;
+          localStorage.setItem('user', JSON.stringify(user));
+          console.log('Updated user in localStorage with new profileImageUrl:', newImageUrl);
+        }
+      } catch (error) {
+        console.error('Error updating user in localStorage:', error);
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to upload profile image:", error);
     throw error;
   }
 }
