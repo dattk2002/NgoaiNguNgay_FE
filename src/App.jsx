@@ -79,15 +79,15 @@ function App() {
           name: matchedAccount.name,
           phone: matchedAccount.phone,
           avatarUrl: matchedAccount.avatarUrl || "",
-           // Include other relevant user data from storage here
-           fullName: matchedAccount.fullName || '',
-           dateOfBirth: matchedAccount.dateOfBirth || '',
-           gender: matchedAccount.gender || '',
-           bio: matchedAccount.bio || '',
-           learningLanguages: matchedAccount.learningLanguages || [],
-           interestsType: matchedAccount.interestsType || '',
-           languageSkills: matchedAccount.languageSkills || [],
-           interests: matchedAccount.interests || [],
+          // Include other relevant user data from storage here
+          fullName: matchedAccount.fullName || '',
+          dateOfBirth: matchedAccount.dateOfBirth || '',
+          gender: matchedAccount.gender || '',
+          bio: matchedAccount.bio || '',
+          learningLanguages: matchedAccount.learningLanguages || [],
+          interestsType: matchedAccount.interestsType || '',
+          languageSkills: matchedAccount.languageSkills || [],
+          interests: matchedAccount.interests || [],
         };
         setUser(userData);
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
@@ -95,6 +95,60 @@ function App() {
     }
     setIsLoadingAuth(false);
   }, []);
+
+  useEffect(() => {
+    // Handle avatar update events to update the global user state
+    const handleAvatarUpdate = (event) => {
+      console.log("Avatar update event received in App:", event.detail);
+
+      if (event.detail && event.detail.profileImageUrl && user) {
+        // Update user state with the new avatar URL
+        const updatedUser = {
+          ...user,
+          profileImageUrl: event.detail.profileImageUrl
+        };
+
+        // Update state and localStorage
+        setUser(updatedUser);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+        console.log("User state updated with new avatar in App component");
+
+        // Update document title with a small change to trigger browser reactions
+        const currentTitle = document.title;
+        document.title = "Avatar Updated";
+        setTimeout(() => {
+          document.title = currentTitle;
+        }, 100);
+      }
+    };
+
+    // Listen for avatar-updated events
+    window.addEventListener('avatar-updated', handleAvatarUpdate);
+
+    // Listen for storage events (for cross-tab updates)
+    const handleStorageChange = () => {
+      try {
+        const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser && parsedUser.profileImageUrl !== user?.profileImageUrl) {
+            console.log("Updated user from storage in App:", parsedUser.profileImageUrl);
+            setUser(parsedUser);
+          }
+        }
+      } catch (error) {
+        console.error("Error handling storage event in App:", error);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Clean up event listeners on component unmount
+    return () => {
+      window.removeEventListener('avatar-updated', handleAvatarUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [user]); // Dependency is user to re-attach when user changes
 
   const openLoginModal = (message = "") => {
     setLoginPromptMessage(message);
@@ -110,7 +164,7 @@ function App() {
   const closeSignUpModal = () => setIsSignUpModalOpen(false);
 
   const handleLogin = async (userData) => {
-     // Ensure all relevant user data is included upon login
+    // Ensure all relevant user data is included upon login
     const fullUserData = {
       ...userData,
       profileImageUrl: userData.profileImageUrl || "",
@@ -155,7 +209,7 @@ function App() {
     openLoginModal("Your email has been confirmed. Please log in.");
   };
 
-   // Keep handleUpdateInfoSubmit if you still use the UpdateInformationModal for initial profile setup
+  // Keep handleUpdateInfoSubmit if you still use the UpdateInformationModal for initial profile setup
   const handleUpdateInfoSubmit = (info) => {
     const updatedUser = {
       ...user,
@@ -170,11 +224,11 @@ function App() {
     setIsUpdateInfoModalOpen(false);
   };
 
-   // Function to update user state after editing (used by EditUserProfile)
-   const handleProfileUpdate = (updatedUserData) => {
-        setUser(updatedUserData);
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUserData));
-   };
+  // Function to update user state after editing (used by EditUserProfile)
+  const handleProfileUpdate = (updatedUserData) => {
+    setUser(updatedUserData);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUserData));
+  };
 
 
   const getUserById = async (userId) => {
@@ -242,15 +296,15 @@ function App() {
                 user ? <MessagePage user={user} /> : <Navigate to="/" replace />
               }
             />
-             {/* Route for viewing a user profile */}
+            {/* Route for viewing a user profile */}
             <Route
               path="/user/:id"
               element={user ? <UserProfile loggedInUser={user} getUserById={getUserById} /> : <Navigate to="/signup-page" replace />}
             />
-             {/* NEW ROUTE for editing a user profile */}
+            {/* NEW ROUTE for editing a user profile */}
             <Route
               path="/user/edit/:id"
-               // Pass loggedInUser to EditUserProfile for authorization and initial data
+              // Pass loggedInUser to EditUserProfile for authorization and initial data
               element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/signup-page" replace />}
             />
 

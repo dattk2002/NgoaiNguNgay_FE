@@ -193,13 +193,13 @@ function EditUserProfile() {
 
       // Validate file size (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Image size must be less than 2MB');
+        toast.error('Kích thước ảnh phải nhỏ hơn 2MB');
         return;
       }
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast.error('Only image files are allowed');
+        toast.error('Chỉ chấp nhận file hình ảnh');
         return;
       }
 
@@ -222,40 +222,146 @@ function EditUserProfile() {
         // After successful upload, update the image URL from the API response
         if (result.data && (result.data.profileImageUrl || result.data.profilePictureUrl)) {
           const imageUrl = result.data.profileImageUrl || result.data.profilePictureUrl;
+
+          // Get base URL without any query parameters
+          const baseUrl = imageUrl.split('?')[0];
+
+          // Add unique timestamp to URL for cache busting
+          const uniqueTimestamp = Date.now();
+          const timestampedImageUrl = `${baseUrl}?t=${uniqueTimestamp}`;
+
+          console.log("Original image URL:", imageUrl);
+          console.log("Timestamped image URL for UI:", timestampedImageUrl);
+
+          // Update component state
           setFormData(prev => ({
             ...prev,
-            profileImageUrl: imageUrl
+            profileImageUrl: timestampedImageUrl
           }));
-          toast.success('Profile image uploaded successfully');
 
-          // Force reload to ensure avatar is updated everywhere in the app
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
+          // Preload the image to ensure it's in browser cache
+          const preloadImg = new Image();
+          preloadImg.crossOrigin = "anonymous"; // Prevent CORS issues
+          preloadImg.src = timestampedImageUrl;
+
+          preloadImg.onload = () => {
+            console.log("Avatar preloaded successfully in EditUserProfile");
+
+            // Update user in localStorage directly too
+            try {
+              const user = JSON.parse(localStorage.getItem('user'));
+              if (user) {
+                user.profileImageUrl = timestampedImageUrl;
+                localStorage.setItem('user', JSON.stringify(user));
+                console.log("Updated user in localStorage with new avatar URL");
+              }
+            } catch (error) {
+              console.error("Error updating localStorage:", error);
+            }
+
+            // Dispatch multiple avatar-updated events with slight delays
+            // to make sure the message is received by all components
+            window.dispatchEvent(new CustomEvent('avatar-updated', {
+              detail: {
+                profileImageUrl: timestampedImageUrl,
+                timestamp: uniqueTimestamp
+              }
+            }));
+
+            // Dispatch again after a delay
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('avatar-updated', {
+                detail: {
+                  profileImageUrl: timestampedImageUrl,
+                  timestamp: uniqueTimestamp + 1
+                }
+              }));
+
+              // Notify all tabs by triggering storage event
+              window.dispatchEvent(new Event('storage'));
+
+              // Force DOM updates for any avatar images
+              const avatarImages = document.querySelectorAll('img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]');
+              avatarImages.forEach(img => {
+                if (img) {
+                  img.src = timestampedImageUrl + '&reload=' + uniqueTimestamp;
+                }
+              });
+            }, 300);
+          };
+
+          // Notify user of success
+          toast.success('Cập nhật ảnh đại diện thành công');
+
+          // Release object URL to avoid memory leaks
+          URL.revokeObjectURL(previewUrl);
         } else {
-          // If the response structure is different, fetch user data again
+          // Fallback to fetching user data if response structure is different
           const userData = await fetchUserById(id);
-          setFormData(prev => ({
-            ...prev,
-            ...userData
-          }));
-          toast.success('Profile image uploaded successfully');
+          if (userData && userData.profileImageUrl) {
+            // Make sure we clean the URL before adding a timestamp
+            const baseUrl = userData.profileImageUrl.split('?')[0];
+            const uniqueTimestamp = Date.now();
+            const freshImageUrl = `${baseUrl}?t=${uniqueTimestamp}`;
 
-          // Force reload
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
+            setFormData(prev => ({
+              ...prev,
+              ...userData,
+              profileImageUrl: freshImageUrl
+            }));
+
+            // Update localStorage too
+            try {
+              const user = JSON.parse(localStorage.getItem('user'));
+              if (user) {
+                user.profileImageUrl = freshImageUrl;
+                localStorage.setItem('user', JSON.stringify(user));
+              }
+            } catch (error) {
+              console.error("Error updating localStorage:", error);
+            }
+
+            toast.success('Cập nhật ảnh đại diện thành công');
+
+            // Dispatch avatar update event
+            window.dispatchEvent(new CustomEvent('avatar-updated', {
+              detail: {
+                profileImageUrl: freshImageUrl,
+                timestamp: uniqueTimestamp
+              }
+            }));
+
+            // Force DOM updates
+            const avatarImages = document.querySelectorAll('img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]');
+            avatarImages.forEach(img => {
+              if (img) {
+                img.src = freshImageUrl + '&reload=' + uniqueTimestamp;
+              }
+            });
+
+            // Release object URL
+            URL.revokeObjectURL(previewUrl);
+          } else {
+            throw new Error('Không thể cập nhật ảnh đại diện');
+          }
         }
       } catch (error) {
         console.error('Error uploading profile image:', error);
-        toast.error(error.message || 'Failed to upload profile image');
+        toast.error(error.message || 'Cập nhật ảnh đại diện thất bại');
 
         // Revert to previous state if there was an error
-        const userData = await fetchUserById(id);
-        setFormData(prev => ({
-          ...prev,
-          profileImageUrl: userData.profileImageUrl || ''
-        }));
+        try {
+          const userData = await fetchUserById(id);
+          setFormData(prev => ({
+            ...prev,
+            profileImageUrl: userData.profileImageUrl || ''
+          }));
+
+          // Release object URL
+          URL.revokeObjectURL(previewUrl);
+        } catch (fetchError) {
+          console.error('Lỗi khi lấy dữ liệu người dùng:', fetchError);
+        }
       } finally {
         setIsUploadingImage(false);
       }

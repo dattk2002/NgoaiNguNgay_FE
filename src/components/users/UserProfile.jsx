@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate
 
 function UserProfile({ loggedInUser, getUserById }) {
@@ -7,14 +7,90 @@ function UserProfile({ loggedInUser, getUserById }) {
   const [profileUser, setProfileUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentAvatar, setCurrentAvatar] = useState(null);
+  const [avatarKey, setAvatarKey] = useState(Date.now());
+  const avatarRef = useRef(null);
 
-  // Remove modal-related state
-  // const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  // const [editFormData, setEditFormData] = useState({
-  //   fullName: profileUser?.fullName || '',
-  //   dateOfBirth: profileUser?.dateOfBirth || '',
-  //   gender: profileUser?.gender || '',
-  // });
+  // Listen for avatar updates through custom event
+  useEffect(() => {
+    const handleAvatarUpdate = (event) => {
+      console.log("Avatar update event received in UserProfile:", event.detail);
+      if (event.detail && event.detail.profileImageUrl && profileUser) {
+        console.log("Updating avatar in UserProfile:", event.detail.profileImageUrl);
+
+        // Ensure URL has a timestamp
+        let newUrl = event.detail.profileImageUrl;
+        if (!newUrl.includes('?')) {
+          newUrl = `${newUrl}?t=${Date.now()}`;
+        }
+
+        // Update local avatar immediately
+        setCurrentAvatar(newUrl);
+        setAvatarKey(Date.now());
+
+        // Update the profile user object
+        setProfileUser(prev => ({
+          ...prev,
+          profileImageUrl: newUrl
+        }));
+
+        // Also update DOM directly if possible
+        if (avatarRef.current) {
+          avatarRef.current.src = newUrl + '&reload=' + Date.now();
+        }
+
+        // Preload the image
+        const preloadImg = new Image();
+        preloadImg.crossOrigin = "anonymous";
+        preloadImg.src = newUrl;
+        preloadImg.onload = () => {
+          console.log("Avatar preloaded in UserProfile component");
+          // Force re-render with a new key
+          setAvatarKey(Date.now() + 1);
+        };
+      }
+    };
+
+    window.addEventListener('avatar-updated', handleAvatarUpdate);
+
+    return () => {
+      window.removeEventListener('avatar-updated', handleAvatarUpdate);
+    };
+  }, [profileUser]);
+
+  // Listen for storage events (for cross-tab updates)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log("Storage change detected in UserProfile");
+      if (profileUser) {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('user'));
+          if (storedUser && storedUser.id === profileUser.id && storedUser.profileImageUrl) {
+            console.log("Updating avatar from storage in UserProfile:", storedUser.profileImageUrl);
+            // Add timestamp if needed
+            let newUrl = storedUser.profileImageUrl;
+            if (!newUrl.includes('?')) {
+              newUrl = `${newUrl}?t=${Date.now()}`;
+            }
+            setCurrentAvatar(newUrl);
+            setAvatarKey(Date.now());
+
+            // Also update DOM directly if possible
+            if (avatarRef.current) {
+              avatarRef.current.src = newUrl + '&reload=' + Date.now();
+            }
+          }
+        } catch (error) {
+          console.error("Error handling storage event in UserProfile:", error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [profileUser]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -24,38 +100,44 @@ function UserProfile({ loggedInUser, getUserById }) {
         if (loggedInUser && loggedInUser.id === id) {
           // Use logged-in user data if viewing own profile
           setProfileUser(loggedInUser);
+          // Ensure avatar URL has timestamp
+          let avatarUrl = loggedInUser.profileImageUrl;
+          if (avatarUrl && !avatarUrl.includes('?')) {
+            avatarUrl = `${avatarUrl}?t=${Date.now()}`;
+          }
+          setCurrentAvatar(avatarUrl);
         } else {
           // Fetch user data by ID for other profiles
           const data = await getUserById(id);
-
-          if (data) {
-            setProfileUser(data);
-          } else {
-            setError("User not found.");
+          if (!data) {
+            throw new Error("User not found.");
           }
+          setProfileUser(data);
+          // Ensure avatar URL has timestamp
+          let avatarUrl = data.profileImageUrl;
+          if (avatarUrl && !avatarUrl.includes('?')) {
+            avatarUrl = `${avatarUrl}?t=${Date.now()}`;
+          }
+          setCurrentAvatar(avatarUrl);
         }
-
-      } catch (err) {
-        console.error("Failed to fetch user profile:", err);
-        setError("Failed to load user profile.");
+      } catch (error) {
+        console.error("Error loading user profile:", error);
+        setError(error.message || "Failed to load user profile.");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadUserData();
-  }, [id, loggedInUser, getUserById]); // Re-run effect if ID, loggedInUser, or getUserById changes
+  }, [id, loggedInUser, getUserById]);
 
-  // Remove modal handlers
-  // const openEditModal = () => {
-  //   setIsEditModalOpen(true);
-  // };
-  // const closeEditModal = () => {
-  //   setIsEditModalOpen(false);
-  // };
-  // const handleInputChange = (e) => { ... };
-  // const handleSubmit = (e) => { ... };
-  // const handleEditProfile = async (updatedInfo) => { ... };
+  // Remove modal-related state
+  // const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // const [editFormData, setEditFormData] = useState({
+  //   fullName: profileUser?.fullName || '',
+  //   dateOfBirth: profileUser?.dateOfBirth || '',
+  //   gender: profileUser?.gender || '',
+  // });
 
   // Handler for the Edit Profile button click
   const handleEditClick = () => {
@@ -88,7 +170,7 @@ function UserProfile({ loggedInUser, getUserById }) {
 
 
   if (isLoading) {
-    return <div className="text-center py-8">Loading profile...</div>;
+    return <div className="text-center py-8">Loading profile data...</div>;
   }
 
   if (error) {
@@ -107,9 +189,17 @@ function UserProfile({ loggedInUser, getUserById }) {
       {/* Left Column: Profile Summary */}
       <div className="md:col-span-1 bg-white shadow rounded-lg p-6 flex flex-col items-center">
         <img
-          src={profileUser.profileImageUrl || "https://avatar.iran.liara.run/public"}
+          ref={avatarRef}
+          key={avatarKey}
+          src={currentAvatar || profileUser?.profileImageUrl || "https://avatar.iran.liara.run/public"}
           alt="Profile Avatar"
           className="w-32 h-32 rounded-full object-cover mb-4 border-4 border-gray-300"
+          onError={(e) => {
+            console.error("Error loading profile image:", e);
+            e.target.src = "https://avatar.iran.liara.run/public";
+          }}
+          crossOrigin="anonymous"
+          loading="eager"
         />
         <h2 className="text-2xl font-bold text-gray-800 mb-2">{profileUser.name || profileUser.fullName || 'User'}</h2>
         {/* You might want to display a country flag here based on user data */}

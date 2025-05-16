@@ -7,7 +7,122 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [currentAvatar, setCurrentAvatar] = useState(null);
+  const [avatarKey, setAvatarKey] = useState(Date.now());
   const dropdownRef = useRef(null);
+  const imgRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.profileImageUrl) {
+      const urlWithTimestamp = user.profileImageUrl.includes('?')
+        ? user.profileImageUrl
+        : `${user.profileImageUrl}?t=${Date.now()}`;
+
+      setCurrentAvatar(urlWithTimestamp);
+      setAvatarKey(Date.now());
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = urlWithTimestamp;
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log("Storage change detected - checking for user updates");
+      try {
+        const updatedUser = JSON.parse(localStorage.getItem('user'));
+        if (updatedUser && updatedUser.profileImageUrl) {
+          const timestamp = Date.now();
+          let newUrl = updatedUser.profileImageUrl;
+          if (!newUrl.includes('?')) {
+            newUrl = `${newUrl}?t=${timestamp}`;
+          }
+
+          console.log("Updated avatar from storage event:", newUrl);
+          setCurrentAvatar(newUrl);
+          setAvatarKey(timestamp);
+
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = newUrl;
+
+          if (imgRef.current) {
+            imgRef.current.src = newUrl;
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleAvatarUpdate = (event) => {
+      console.log("Avatar update event received in Header:", event.detail);
+      if (event.detail && event.detail.profileImageUrl) {
+        console.log("Setting new avatar URL in Header:", event.detail.profileImageUrl);
+
+        let newUrl = event.detail.profileImageUrl;
+        if (!newUrl.includes('?')) {
+          newUrl = `${newUrl}?t=${Date.now()}`;
+        }
+
+        setCurrentAvatar(newUrl);
+        setAvatarKey(Date.now());
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = newUrl;
+        img.onload = () => {
+          console.log("Avatar preloaded in Header component");
+          setAvatarKey(Date.now() + 1);
+
+          if (imgRef.current) {
+            imgRef.current.src = newUrl + '&reload=' + Date.now();
+          }
+        };
+      }
+    };
+
+    window.addEventListener('avatar-updated', handleAvatarUpdate);
+
+    return () => {
+      window.removeEventListener('avatar-updated', handleAvatarUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser.profileImageUrl) {
+          const timestamp = Date.now();
+          let newUrl = parsedUser.profileImageUrl;
+
+          if (!newUrl.includes('?')) {
+            newUrl = `${newUrl}?t=${timestamp}`;
+          }
+
+          console.log("Updated avatar from localStorage in Header:", newUrl);
+          setCurrentAvatar(newUrl);
+          setAvatarKey(timestamp);
+
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = newUrl;
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing user from localStorage in Header:", error);
+    }
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -160,11 +275,19 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                   </span>
                   <div className="relative rounded-full border border-gray-300 group-hover:border-transparent transition-colors duration-150">
                     <img
-                      src={user?.profileImageUrl || "https://avatar.iran.liara.run/public"}
+                      ref={imgRef}
+                      key={avatarKey}
+                      src={currentAvatar || "https://avatar.iran.liara.run/public"}
                       alt="User avatar"
                       className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover block"
-                      onError={(e) => console.error("Image error:", e.target.src)}
+                      onError={(e) => {
+                        console.error("Image error in Header:", e.target.src);
+                        e.target.src = "https://avatar.iran.liara.run/public";
+                      }}
                       referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      style={{ maxWidth: '100%' }}
+                      loading="eager"
                     />
                   </div>
                 </div>
@@ -200,9 +323,8 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         Create an ad
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
-                      {/* Updated "My Profile" link */}
                       <Link
-                        to={user && user.id ? `/user/${user.id}` : "/"} // Link to user profile with ID, or home if user/id not available
+                        to={user && user.id ? `/user/${user.id}` : "/"}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsDropdownOpen(false)}
                       >
