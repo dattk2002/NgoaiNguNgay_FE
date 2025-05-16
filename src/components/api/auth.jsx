@@ -94,7 +94,9 @@ async function callApi(endpoint, method, body, token) {
 
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
-      return await response.json();
+      const jsonResponse = await response.json();
+      console.log("API JSON Response:", jsonResponse);
+      return jsonResponse;
     } else {
       console.warn(
         `API response for ${fullUrl} was not JSON, content-type: ${contentType}`
@@ -368,7 +370,8 @@ export async function editUserProfile(token, fullName, dateOfBirth, gender) {
   };
 
   try {
-    const response = await callApi("/api/profile", "PATCH", body, token);
+    console.log("Sending profile update with data:", body);
+    const response = await callApi("/api/profile/user", "PATCH", body, token);
     return response;
   } catch (error) {
     console.error("Failed to update user profile:", error.message);
@@ -383,10 +386,30 @@ export async function fetchUserById() {
   }
 
   try {
-    const response = await callApi(`/api/profile`, "GET", null, token);
+    console.log("Fetching user profile data...");
+    const response = await callApi(`/api/profile/user`, "GET", null, token);
+    console.log("User profile API response:", response);
+
     if (response && response.data) {
-      return response.data;
+      // Normalize data for component use
+      const userData = response.data;
+
+      // Handle response format differences if needed
+      // For example, ensure gender is a number
+      if (userData.gender !== undefined && typeof userData.gender === 'string') {
+        userData.gender = parseInt(userData.gender, 10);
+      }
+
+      // Ensure proficiency level is a number
+      if (userData.learningProficiencyLevel !== undefined &&
+        typeof userData.learningProficiencyLevel === 'string') {
+        userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
+      }
+
+      console.log("Normalized user data:", userData);
+      return userData;
     } else {
+      console.error("Invalid API response format:", response);
       throw new Error("Invalid response format or missing data.");
     }
   } catch (error) {
