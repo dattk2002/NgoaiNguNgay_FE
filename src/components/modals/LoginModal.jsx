@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, FacebookAuthProvider } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { toast } from "react-toastify";
 import { login } from "../api/auth"; // Assuming your API service file is named auth.js or similar
@@ -256,6 +256,33 @@ const LoginModal = ({
       });
   };
 
+  const facebookLogin = () => {
+    const provider = new FacebookAuthProvider();
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        if (user) {
+          const { uid, displayName, email, photoURL } = user;
+          onLogin({
+            id: uid,
+            name: displayName,
+            email: email,
+            profileImageUrl: photoURL,
+          });
+          toast.success("Đăng nhập Facebook thành công!", {
+            position: "top-center",
+          });
+          onClose();
+        }
+      })
+      .catch((error) => {
+        console.error("Facebook Sign-In Error:", error);
+        let userFacingErrorMessage = "Đăng nhập Facebook thất bại. Vui lòng thử lại.";
+        setGeneralError(userFacingErrorMessage);
+        toast.error(userFacingErrorMessage);
+      });
+  };
+
   const modalVariants = {
     hidden: { opacity: 0, scale: 1 },
     visible: { opacity: 1, scale: 1 },
@@ -345,7 +372,9 @@ const LoginModal = ({
             )}
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <button className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <button className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+              onClick={facebookLogin}
+              >
                 <FaFacebook className="w-6 h-6 text-blue-800" />
               </button>
 
