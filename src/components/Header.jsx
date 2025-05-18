@@ -210,14 +210,14 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
         animate={isScrolled ? "scrolled" : "top"}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <div className="w-full px-4 sm:px-6 py-2 flex justify-between items-center">
+        <div className="w-full px-4 sm:px-6 flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
             <Link
               to="/"
               className="text-black text-lg sm:text-xl font-semibold"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             >
-              <img src={logo} alt="logo" className="w-12 h-12" />
+              <img src={logo} alt="logo" className="w-20 h-20" />
             </Link>
             <div className="hidden md:flex items-center gap-4 sm:gap-6">
               <Link
