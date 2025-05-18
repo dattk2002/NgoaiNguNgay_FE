@@ -358,6 +358,48 @@ export async function fetchTutorsBySubject(subject) {
   }
 }
 
+export async function fetchTutorList(subject) {
+  try {
+    // The API URL for fetching the tutor list
+    const response = await callApi("/api/tutor/list-card", "GET");
+    // Assuming the actual tutor data is in response.data
+    if (response && response.data) {
+      let tutors = response.data; // Get the list of tutors
+
+      // Implement filtering logic if subject is provided
+      if (subject) {
+        console.log(`Filtering tutor list by subject: ${subject}`);
+        const normalizedSubject =
+          subject.toLowerCase() === "portuguese"
+            ? "brazilian portuguese"
+            : subject.toLowerCase();
+
+        tutors = tutors.filter(
+          (tutor) =>
+            tutor.nativeLanguage &&
+            tutor.nativeLanguage.toLowerCase() === normalizedSubject
+        );
+         console.log(
+          `Filtered tutor list by subject '${subject}' (normalized: '${normalizedSubject}'):`,
+          tutors.length
+        );
+      }
+
+
+      console.log("Fetched and potentially filtered tutor list:", tutors);
+      return tutors; // Return the full or filtered list
+    } else {
+      console.error("Invalid API response format for tutor list:", response);
+      // Throw an error if the expected data structure isn't found
+      throw new Error("Invalid response format or missing data for tutor list.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor list:", error.message);
+    // Re-throw the error so it can be caught by the component
+    throw error;
+  }
+}
+
 export function isUserAuthenticated(user) {
   return user.emailCode === null;
 }
