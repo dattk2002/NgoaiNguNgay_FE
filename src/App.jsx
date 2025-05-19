@@ -10,7 +10,7 @@ import FooterHandler from "./components/FooterHandler";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import HomePage from "./pages/HomePage";
 import TutorList from "./components/tutors/TutorList";
-import TutorProfile from "./components/tutors/TutorProfile";
+import TutorDetail from "./components/tutors/TutorDetail";
 import LoginModal from "./components/modals/LoginModal";
 import SignUpModal from "./components/modals/SignUpModal";
 import TutorSubjectList from "./components/tutors/TutorSubjectList";
@@ -274,7 +274,7 @@ function App() {
             <Route
               path="/teacher/:id"
               element={
-                <TutorProfile
+                <TutorDetail
                   user={user}
                   onRequireLogin={openLoginModal}
                 />
