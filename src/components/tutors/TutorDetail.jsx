@@ -12,7 +12,7 @@ import {
   FaHeart,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import ReviewsSection from "../ReviewSection"; 
+import ReviewsSection from "../ReviewSection";
 import TutorCard from "./TutorCard";
 import { FaArrowRight } from "react-icons/fa6";
 import Slider from "react-slick";
@@ -29,7 +29,7 @@ const timeRanges = [
   "20:00 - 24:00",
 ];
 
-const TutorProfile = ({ user, onRequireLogin }) => {
+const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [teacher, setTeacher] = useState(null);
@@ -251,11 +251,10 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                               {[...Array(5)].map((_, i) => (
                                 <div
                                   key={i}
-                                  className={`w-1 h-4 rounded-full ${
-                                    i < subject.level
+                                  className={`w-1 h-4 rounded-full ${i < subject.level
                                       ? "bg-blue-600"
                                       : "bg-gray-200"
-                                  }`}
+                                    }`}
                                 />
                               ))}
                             </div>
@@ -285,11 +284,10 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`pb-2 px-1 ${
-                        activeTab === tab
+                      className={`pb-2 px-1 ${activeTab === tab
                           ? "border-b-2 border-red-500 text-gray-800"
                           : "hover:text-gray-800"
-                      }`}
+                        }`}
                     >
                       {tab}
                     </button>
@@ -338,8 +336,8 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                           {teacher.nativeLanguage}
                           {teacher.subjects && teacher.subjects.length > 0
                             ? ` and ${teacher.subjects
-                                .map((s) => s.name)
-                                .join(", ")}`
+                              .map((s) => s.name)
+                              .join(", ")}`
                             : ""}
                           . I’m TEFL certified and have taught over{" "}
                           {teacher.lessons} lessons to {teacher.students}{" "}
@@ -375,7 +373,7 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {teacher.certifications &&
-                          teacher.certifications.length > 0 ? (
+                            teacher.certifications.length > 0 ? (
                             teacher.certifications.map((cert, index) => (
                               <span
                                 key={index}
@@ -547,17 +545,15 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                   return (
                     <div
                       key={`${timeRange}-${day}`}
-                      className={`h-12 border border-gray-200 last:border-b-0 ${
-                        isAvailable
+                      className={`h-12 border border-gray-200 last:border-b-0 ${isAvailable
                           ? // ? "bg-green-400 cursor-pointer hover:bg-green-500"
-                            // : "bg-gray-100"
-                            "bg-gray-100"
+                          // : "bg-gray-100"
+                          "bg-gray-100"
                           : "bg-green-400 cursor-pointer hover:bg-green-500"
-                      } ${
-                        day === availabilityDays[availabilityDays.length - 1]
+                        } ${day === availabilityDays[availabilityDays.length - 1]
                           ? "border-r border-gray-200"
                           : ""
-                      }`}
+                        }`}
                     >
                       {/* You could add an onClick handler here to select a slot */}
                     </div>
@@ -598,8 +594,8 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                     subjects:
                       Array.isArray(tutor.subjects) && tutor.subjects.length > 0
                         ? tutor.subjects
-                            .map((subject) => subject.name)
-                            .join(", ")
+                          .map((subject) => subject.name)
+                          .join(", ")
                         : "N/A",
                     rating: tutor.rating,
                     reviews: tutor.ratingCount,
@@ -635,4 +631,4 @@ const TutorProfile = ({ user, onRequireLogin }) => {
   );
 };
 
-export default TutorProfile;
+export default TutorDetail;

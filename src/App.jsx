@@ -17,10 +17,21 @@ import TutorSubjectList from "./components/tutors/TutorSubjectList";
 import MessagePage from "./pages/MessageListPage";
 import BecomeATutorPage from "./pages/BecomeATutorPage";
 import ConfirmEmail from "./components/modals/ConfirmEmail";
+import TutorProfile from "./components/tutors/TutorProfile";
 // import { fetchUsers } from "./components/api/auth";
 import UpdateInformationModal from "./components/modals/UpdateInformationModal";
 import UserProfile from "./components/users/UserProfile";
 import EditUserProfile from "./components/users/EditUserProfile"; // Import the new component
+
+// Import the tutor API functions
+import {
+  fetchTutorRegisterProfile,
+  fetchAllHashtags,
+  uploadProfileImage,
+  deleteProfileImage,
+  registerAsTutor,
+  fetchTutorDetail
+} from "./components/api/auth";
 
 // Import the NotFoundPage component
 import NotFoundPage from "./pages/NotFoundPage"; // Adjust the path if necessary
@@ -281,12 +292,32 @@ function App() {
               }
             />
             <Route
+              path="/tutorprofile/:id"
+              element={
+                <TutorProfile
+                  user={user}
+                  onRequireLogin={openLoginModal}
+                  fetchTutorDetail={fetchTutorDetail}
+                />
+              }
+            />
+            <Route
               path="/tutor/:subject"
               element={<TutorSubjectList />}
             />
             <Route
               path="/become-tutor"
-              element={<BecomeATutorPage />}
+              element={
+                <BecomeATutorPage
+                  user={user}
+                  onRequireLogin={openLoginModal}
+                  fetchProfileData={fetchTutorRegisterProfile}
+                  fetchHashtags={fetchAllHashtags}
+                  uploadProfileImage={uploadProfileImage}
+                  deleteProfileImage={deleteProfileImage}
+                  registerAsTutor={registerAsTutor}
+                />
+              }
             />
 
             {/* NEW ROUTE for Messaging */}
@@ -304,7 +335,7 @@ function App() {
             {/* NEW ROUTE for editing a user profile */}
             <Route
               path="/user/edit/:id"
-               // Pass loggedInUser to EditUserProfile for authorization and initial data
+              // Pass loggedInUser to EditUserProfile for authorization and initial data
               element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/" replace />}
             />
 
