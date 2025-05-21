@@ -59,7 +59,7 @@ const NotFoundPage = () => {
             <li>
               {/* Replace with actual routes */}
               <MotionLink
-                to="/find-teacher"
+                to="/languages"
                 className="text-[#333333] hover:underline text-lg"
                 whileHover={{ scale: 1.05, color: '#000' }} // Scale up slightly and change color on hover
                 transition={{ duration: 0.2 }}
@@ -70,7 +70,7 @@ const NotFoundPage = () => {
             <li>
               {/* Replace with actual routes */}
               <MotionLink
-                to="/become-teacher"
+                to="/become-tutor"
                 className="text-[#333333] hover:underline text-lg"
                 whileHover={{ scale: 1.05, color: '#000' }} // Scale up slightly and change color on hover
                 transition={{ duration: 0.2 }}

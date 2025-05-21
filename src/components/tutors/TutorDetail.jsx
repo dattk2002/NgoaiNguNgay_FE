@@ -18,6 +18,10 @@ import { FaArrowRight } from "react-icons/fa6";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import RecommendTutorCard from "./RecommendTutorCard";
+import Box from '@mui/material/Box';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -36,7 +40,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("About Me");
+  const [activeTab, setActiveTab] = useState(0);
 
   // State for availability data, now structured by 4-hour blocks
   const [availabilityData, setAvailabilityData] = useState({});
@@ -55,59 +59,96 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         setLoading(true);
         setError(null);
 
-        const teacherData = await fetchTutorById(id);
-        setTeacher(teacherData);
+        // Fetch tutor data using the updated API function
+        const apiTeacherData = await fetchTutorById(id);
 
-        // --- Process and Set Availability Data into 4-hour blocks ---
+        // --- Map API data and add mock data for missing fields ---
+        // Find the primary language from the languages array
+        const primaryLanguage = apiTeacherData.languages.find(lang => lang.isPrimary);
+
+        // Map hashtags to subjects format (mocking level as 5 for simplicity)
+        const subjects = apiTeacherData.hashtags.map(hashtag => ({
+          name: hashtag.name,
+          // Mocking level as 5 since it's not in the API response structure
+          level: 5
+        }));
+
+        // Process availabilityPatterns from API response
+        // The provided API response example has an empty availabilityPatterns array.
+        // You'll need to adjust this logic if the API starts returning availability data in a different format.
+        // For now, let's use the previous mock processing logic but expect potentially different input format.
         const blockAvailability = {};
         timeRanges.forEach((range) => {
           blockAvailability[range] = {
-            mon: false,
-            tue: false,
-            wed: false,
-            thu: false,
-            fri: false,
-            sat: false,
-            sun: false,
+            mon: false, tue: false, wed: false, thu: false, fri: false, sat: false, sun: false,
           };
         });
 
-        if (teacherData && Array.isArray(teacherData.availability)) {
-          teacherData.availability.forEach((timeSlot) => {
-            if (timeSlot && timeSlot.time) {
-              const hour = parseInt(timeSlot.time.split(":")[0], 10);
-              let timeRangeKey = null;
+        // *** IMPORTANT: If the API's availabilityPatterns structure is different,
+        //    the following loop needs to be updated to parse it correctly.
+        //    Based on the provided empty array, I'm keeping the old processing logic
+        //    as a placeholder, but it might need significant changes. ***
+        if (apiTeacherData && Array.isArray(apiTeacherData.availabilityPatterns)) {
+             // Assuming availabilityPatterns might contain objects similar to the old 'availability' structure
+            apiTeacherData.availabilityPatterns.forEach((timeSlot) => {
+              if (timeSlot && timeSlot.time) {
+                const hour = parseInt(timeSlot.time.split(":")[0], 10);
+                let timeRangeKey = null;
 
-              if (hour >= 0 && hour < 4) timeRangeKey = "00:00 - 04:00";
-              else if (hour >= 4 && hour < 8) timeRangeKey = "04:00 - 08:00";
-              else if (hour >= 8 && hour < 12) timeRangeKey = "08:00 - 12:00";
-              else if (hour >= 12 && hour < 16) timeRangeKey = "12:00 - 16:00";
-              else if (hour >= 16 && hour < 20) timeRangeKey = "16:00 - 20:00";
-              else if (hour >= 20 && hour < 24) timeRangeKey = "20:00 - 24:00";
+                if (hour >= 0 && hour < 4) timeRangeKey = "00:00 - 04:00";
+                else if (hour >= 4 && hour < 8) timeRangeKey = "04:00 - 08:00";
+                else if (hour >= 8 && hour < 12) timeRangeKey = "08:00 - 12:00";
+                else if (hour >= 12 && hour < 16) timeRangeKey = "12:00 - 16:00";
+                else if (hour >= 16 && hour < 20) timeRangeKey = "16:00 - 20:00";
+                else if (hour >= 20 && hour < 24) timeRangeKey = "20:00 - 24:00";
 
-              if (timeRangeKey && blockAvailability[timeRangeKey]) {
-                if (timeSlot.mon === true)
-                  blockAvailability[timeRangeKey].mon = true;
-                if (timeSlot.tue === true)
-                  blockAvailability[timeRangeKey].tue = true;
-                if (timeSlot.wed === true)
-                  blockAvailability[timeRangeKey].wed = true;
-                if (timeSlot.thu === true)
-                  blockAvailability[timeRangeKey].thu = true;
-                if (timeSlot.fri === true)
-                  blockAvailability[timeRangeKey].fri = true;
-                if (timeSlot.sat === true)
-                  blockAvailability[timeRangeKey].sat = true;
-                if (timeSlot.sun === true)
-                  blockAvailability[timeRangeKey].sun = true;
+                if (timeRangeKey && blockAvailability[timeRangeKey]) {
+                  if (timeSlot.mon === true) blockAvailability[timeRangeKey].mon = true;
+                  if (timeSlot.tue === true) blockAvailability[timeRangeKey].tue = true;
+                  if (timeSlot.wed === true) blockAvailability[timeRangeKey].wed = true;
+                  if (timeSlot.thu === true) blockAvailability[timeRangeKey].thu = true;
+                  if (timeSlot.fri === true) blockAvailability[timeRangeKey].fri = true;
+                  if (timeSlot.sat === true) blockAvailability[timeRangeKey].sat = true;
+                  if (timeSlot.sun === true) blockAvailability[timeRangeKey].sun = true;
+                }
+              } else {
+                 // Log a warning if the structure isn't as expected
+                console.warn("Skipping potentially invalid availabilityPattern data:", timeSlot);
               }
-            } else {
-              console.warn("Skipping invalid time slot data:", timeSlot);
-            }
-          });
-        }
-        setAvailabilityData(blockAvailability);
-        // --- End Process and Set Availability Data ---
+            });
+          }
+
+
+        const formattedTeacherData = {
+          id: apiTeacherData.userId, // Use userId from API
+          name: apiTeacherData.fullName || apiTeacherData.nickName, // Use fullName or nickName
+          email: apiTeacherData.email, // Add email from API
+          brief: apiTeacherData.brief, // Add brief from API
+          description: apiTeacherData.description, // Add description from API
+          teachingMethod: apiTeacherData.teachingMethod, // Add teachingMethod from API
+          verificationStatus: apiTeacherData.verificationStatus, // Add verificationStatus from API
+          becameTutorAt: apiTeacherData.becameTutorAt, // Add becameTutorAt from API
+          // Mocked data for fields not in the provided API response structure
+          imageUrl: apiTeacherData.profilePictureUrl, // Mocked
+          tag: "Professional Teacher", // Mocked
+          nativeLanguage: primaryLanguage ? primaryLanguage.languageCode : "English", // Derived or Mocked
+          subjects: subjects, // Mapped from hashtags, level mocked
+          address: "Unknown", // Mocked
+          lessons: 100, // Mocked
+          students: 50, // Mocked
+          rating: 4.5, // Mocked
+          ratingCount: 30, // Mocked
+          certifications: ["TEFL Certified"], // Mocked
+          videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Mocked
+          price: 10.00, // Mocked - Use a default or handle null if price is in API later
+          responseRate: "95%", // Mocked
+          availability: blockAvailability, // Processed from API or mocked
+        };
+        // --- End Mapping and Mocking ---
+
+        setTeacher(formattedTeacherData);
+        setAvailabilityData(blockAvailability); // Set processed availability data
+
 
         const today = new Date();
         const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -124,6 +165,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         setAvailabilityDays(next7Days);
         setAvailabilityDates(next7Dates);
 
+        // Keep fetching recommended tutors from the mock source for now
         const tutorsData = await fetchTutors();
         const filteredTutors = tutorsData.filter((tutor) => tutor.id !== id);
         setTutors(filteredTutors);
@@ -136,7 +178,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     };
 
     loadData();
-  }, [id, user, navigate, onRequireLogin]);
+  }, [id, user, navigate, onRequireLogin]); // Added dependencies
 
   const handleBookLesson = () => {
     if (!user) {
@@ -160,13 +202,31 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   };
 
   const handleClick = () => {
-    navigate("/languages");
+    navigate("/languages"); // Assuming this navigates to a list of subjects/languages
   };
 
-  if (loading) return <p className="text-center text-gray-500">Loading...</p>;
+  if (loading) return (
+    // Add black loading spinner similar to EditUserProfile
+    <div className="flex justify-center items-center min-h-screen">
+      <svg className="animate-spin h-8 w-8 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"></path>
+      </svg>
+    </div>
+  );
   if (error) return <p className="text-center text-red-500">Error: {error}</p>;
   if (!teacher)
     return <p className="text-center text-gray-500">Teacher not found.</p>;
+
+   // Use the 'brief' field from the API response if available, otherwise use a default
+  const aboutMeText = teacher.brief || `Hello! I'm ${teacher.name}, a passionate tutor. Let's learn together!`;
+
+   // Use the 'teachingMethod' field from the API response if available, otherwise use a default
+  const myLessonsText = teacher.teachingMethod || "My lessons are interactive and student-centered...";
+
+   // Use the 'description' field from the API response if available, otherwise use a default
+  const meAsTeacherText = teacher.description || "As a teacher, I focus on creating a supportive and engaging environment...";
+
 
   const interests = [
     "Travel",
@@ -174,7 +234,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     "Reading",
     "Films & TV Series",
     "Pets & Animals",
-  ];
+  ]; // Keep mock interests for now
 
   const tabVariants = {
     initial: { opacity: 0, x: 20 },
@@ -204,6 +264,35 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         },
       },
     ],
+  };
+
+  // Helper function to format date
+  const formatBecameTutorDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date)) return "Invalid Date";
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return "Invalid Date";
+    }
+  };
+
+  // Define the labels for the tabs
+  const tabLabels = [
+    "About Me",
+    "Me as a Teacher",
+    "My lessons & teaching style",
+    "Resume & Certificates",
+  ];
+
+  // Handler for tab change
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
   };
 
   return (
@@ -292,29 +381,30 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                       {tab}
                     </button>
                   ))}
-                </div>
-              </div>
+                </Tabs>
+              </Box>
 
               <div className="mt-4">
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={activeTab}
+                    key={activeTab} // Key off the active tab index
                     variants={tabVariants}
                     initial="initial"
                     animate="animate"
                     exit="exit"
                     transition={{ duration: 0.3 }}
                   >
-                    {activeTab === "About Me" && (
+                    {/* Conditional rendering based on activeTab index */}
+                    {activeTab === 0 && ( // "About Me"
                       <>
                         <p className="text-gray-700 text-sm">
                           From{" "}
-                          <span className="font-medium">{teacher.address}</span>
+                          <span className="font-medium">{teacher.address}</span> {/* Using mocked address */}
                         </p>
                         <p className="text-gray-700 text-sm mt-2">
-                          Italki teacher since{" "}
-                          <span className="font-medium">Oct 20, 2021</span>{" "}
-                          {/* Placeholder */}
+                          NgoaiNguNgay tutor since{" "}
+                          <span className="font-medium">{formatBecameTutorDate(teacher.becameTutorAt)}</span>{" "}
+                          {/* Formatted date */}
                         </p>
                         <h3 className="text-gray-800 font-semibold mt-4">
                           About Me
@@ -350,23 +440,17 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                         </button>
                       </>
                     )}
-                    {activeTab === "Me as a Teacher" && (
+                    {activeTab === 1 && ( // "Me as a Teacher"
                       <p className="text-gray-700 text-sm leading-relaxed">
-                        As a teacher, I focus on creating a supportive and
-                        engaging environment. I adapt my lessons to suit each
-                        student’s learning style, ensuring they feel confident
-                        and motivated. {/* Placeholder */}
+                        {meAsTeacherText} {/* Using description from API or default */}
                       </p>
                     )}
-                    {activeTab === "My lessons & teaching style" && (
+                    {activeTab === 2 && ( // "My lessons & teaching style"
                       <p className="text-gray-700 text-sm leading-relaxed">
-                        My lessons are interactive and student-centered. I use a
-                        mix of conversation practice, grammar exercises, and
-                        cultural insights to make learning fun and effective.{" "}
-                        {/* Placeholder */}
+                         {myLessonsText} {/* Using teachingMethod from API or default */}
                       </p>
                     )}
-                    {activeTab === "Resume & Certificates" && (
+                    {activeTab === 3 && ( // "Resume & Certificates"
                       <div>
                         <p className="text-gray-700 text-sm">
                           Teacher ID: {teacher.id}
@@ -383,7 +467,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                               </span>
                             ))
                           ) : (
-                            <p className="text-gray Ensino-700 text-sm">
+                            <p className="text-gray-700 text-sm">
                               No certifications specified
                             </p>
                           )}
@@ -402,7 +486,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           <div className="relative rounded-lg overflow-hidden shadow-md">
             <iframe
               src={
-                teacher.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ" // Changed placeholder to a generic embed
+                teacher.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ" // Using mocked videoUrl
               }
               title={`${teacher.name} Introduction Video`}
               className="w-full h-48" // Adjust height as necessary
@@ -413,7 +497,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           <div className="mt-4 space-y-3">
             <p className="text-gray-800 font-semibold text-sm">Trial Lesson</p>
             <p className="text-red-500 font-bold text-lg">
-              USD {(parseFloat(teacher.price) * 0.5).toFixed(2)}{" "}
+              USD {(parseFloat(teacher.price) * 0.5).toFixed(2)}{" "} {/* Using mocked price */}
               {/* Placeholder price calculation */}
             </p>
             <button
@@ -436,7 +520,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800">
-            {teacher.rating ? teacher.rating.toFixed(1) : "N/A"}{" "}
+            {teacher.rating ? teacher.rating.toFixed(1) : "N/A"}{" "} {/* Using mocked rating */}
             {/* Added check */}
           </p>
           <div className="flex justify-center gap-1 mt-1">
@@ -444,6 +528,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
               <FaStar
                 key={i}
                 className={
+                  // Using mocked rating
                   teacher.rating && i < Math.round(teacher.rating)
                     ? "text-yellow-400"
                     : "text-gray-300"
@@ -455,20 +540,20 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaUsers className="text-blue-500" /> {teacher.students || 0}
+            <FaUsers className="text-blue-500" /> {teacher.students || 0} {/* Using mocked students */}
           </p>
           <p className="text-gray-600 mt-2">Students</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaBook className="text-blue-500" /> {teacher.lessons || 0}
+            <FaBook className="text-blue-500" /> {teacher.lessons || 0} {/* Using mocked lessons */}
           </p>
           <p className="text-gray-600 mt-2">Lessons</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
             <FaClock className="text-blue-500" />{" "}
-            {teacher.responseRate || "N/A"}
+            {teacher.responseRate || "N/A"} {/* Using mocked responseRate */}
           </p>
           <p className="text-gray-600 mt-2">Response Rate</p>
         </div>
@@ -483,7 +568,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition">
             <p className="text-lg font-semibold text-gray-800">Trial Lesson</p>
             <p className="text-red-500 font-bold mt-2">
-              USD{" "}
+              USD
+              {/* Using mocked price */}
               {teacher.price
                 ? (parseFloat(teacher.price) * 0.5).toFixed(2)
                 : "N/A"}
@@ -494,6 +580,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
               Standard Lesson
             </p>
             <p className="text-red-500 font-bold mt-2">
+              {/* Using mocked price */}
               USD {teacher.price ? parseFloat(teacher.price).toFixed(2) : "N/A"}
             </p>
           </div>
@@ -502,7 +589,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
               Premium Package (5 Lessons)
             </p>
             <p className="text-red-500 font-bold mt-2">
-              USD{" "}
+               {/* Using mocked price */}
+              USD
               {teacher.price
                 ? (parseFloat(teacher.price) * 5 * 0.9).toFixed(2)
                 : "N/A"}
@@ -539,6 +627,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                 </div>
                 {availabilityDays.map((day) => {
                   const dayAbbrev = day.toLowerCase(); // Get lowercase abbreviation
+                   // Use the processed availabilityData
                   const isAvailable =
                     availabilityData[timeRange]?.[dayAbbrev] === true;
 
@@ -577,7 +666,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       </div>
 
       {/* Assuming ReviewsSection is a separate component */}
-      <ReviewsSection teacher={teacher} />
+      <ReviewsSection teacher={teacher} /> {/* Pass the mapped/mocked teacher object */}
 
       <div className="mt-10">
         <h2 className="text-2xl font-semibold text-gray-800 mb-6">
@@ -587,7 +676,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           <Slider {...sliderSettings}>
             {tutors.map((tutor) => (
               <div key={tutor.id} className="px-3">
-                <TutorCard
+                <RecommendTutorCard
                   tutor={{
                     id: tutor.id,
                     name: tutor.name,

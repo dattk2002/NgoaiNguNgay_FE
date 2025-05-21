@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 // --- API Service File (No changes needed here, it correctly attaches the original error structure to `error.details`) ---
 const BASE_API_URL = "https://tutorbooking-dev-065fe6ad4a6a.herokuapp.com";
 
@@ -28,11 +30,12 @@ async function callApi(endpoint, method, body, token) {
   console.log(`Calling API: ${method} ${fullUrl}`);
 
   try {
-    const response = await fetch(fullUrl, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : null,
-      credentials: "include",
+    const response = await axios({
+      method: method,
+      url: fullUrl,
+      headers: headers,
+      data: body, // axios uses 'data' for the request body
+      withCredentials: true, // corresponds to fetch's credentials: 'include'
     });
 
     console.log("Response:", response);
@@ -94,18 +97,41 @@ async function callApi(endpoint, method, body, token) {
 
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
-      const jsonResponse = await response.json();
-      console.log("API JSON Response:", jsonResponse);
-      return jsonResponse;
+      console.log("API JSON Response:", response.data);
+      return response.data; // axios puts the JSON body in response.data
     } else {
       console.warn(
         `API response for ${fullUrl} was not JSON, content-type: ${contentType}`
       );
+      // Return a structure similar to the fetch non-json case
       return { success: true, status: response.status, rawResponse: response };
     }
   } catch (error) {
-    console.error("API Call Failed:", error.details || error.message);
-    throw error;
+    console.error("API Call Failed:", error.message);
+
+    // Axios error handling
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      const formattedErrorMessage = `API Error: ${error.response.status} ${error.response.statusText} for ${fullUrl}`;
+      const originalErrorData = error.response.data; // Axios puts error details in error.response.data
+
+      console.error("API Error Details Received:", originalErrorData); // Log raw error data
+
+      // Re-throw a new Error object similar to the original fetch implementation
+      const customError = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage);
+      customError.status = error.response.status;
+      customError.details = originalErrorData; // Attach original data for components
+      throw customError;
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error("No response received:", error.request);
+      throw new Error(`API request failed: No response received for ${fullUrl}`);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error("Axios request setup error:", error.message);
+      throw new Error(`API request setup failed: ${error.message}`);
+    }
   }
 }
 
@@ -295,38 +321,20 @@ export async function fetchTutors() {
 }
 
 export async function fetchTutorById(id) {
-  const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL;
-
-  if (!MOCK_TUTOR_API_URL) {
-    console.error(
-      "Mock tutors URL is not configured in .env file (VITE_MOCK_API_TUTORS_URL)."
-    );
-    throw new Error("Cấu hình API bị lỗi.");
-  }
-
-  console.log(
-    `[Mock API] Fetching tutor with ID: ${id} from: ${MOCK_TUTOR_API_URL}`
-  );
+  console.log(`Fetching tutor with ID: ${id} from real API`);
 
   try {
-    const response = await fetch(MOCK_TUTOR_API_URL);
-    if (!response.ok) {
-      throw new Error(
-        `Lỗi khi gọi MockAPI tutors: ${response.statusText} (${response.status})`
-      );
-    }
-    const tutorsData = await response.json();
-    console.log("[Mock API] Tutors data:", tutorsData);
+    const response = await callApi(`/api/tutor/${id}`, "GET");
 
-    const tutor = tutorsData.find((tutor) => String(tutor.id) === String(id));
-    if (!tutor) {
-      throw new Error(`Tutor with ID ${id} not found in mock data.`);
+    if (response && response.data) {
+      console.log(`Tutor with ID ${id} fetched successfully:`, response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for fetchTutorById:", response);
+      throw new Error("API response did not contain expected tutor data.");
     }
-
-    console.log(`[Mock API] Tutor with ID ${id} fetched successfully:`, tutor);
-    return tutor;
   } catch (error) {
-    console.error(`Lỗi khi lấy dữ liệu tutor với ID ${id}:`, error);
+    console.error(`Lỗi khi lấy dữ liệu tutor với ID ${id} từ API:`, error);
     throw error;
   }
 }
@@ -584,5 +592,46 @@ export async function fetchTutorDetail(tutorId) {
   } catch (error) {
     console.error(`Failed to fetch tutor details for ID ${tutorId}:`, error.message);
     throw error;
+  }
+}
+
+export async function fetchAllTutor(page = 1, size = 20) {
+  try {
+    // Use the existing callApi helper to fetch from the specified endpoint
+    const response = await callApi(`/api/tutor/all?page=${page}&size=${size}`, "GET");
+
+    // Check if the response contains the 'data' property which should be an array
+    // callApi returns the entire JSON response object directly
+    if (response && Array.isArray(response.data)) {
+      console.log(`Fetched tutor list for page ${page}, size ${size}:`, response.data);
+      return response.data; // Return only the array of tutors
+    } else {
+      console.error("Invalid API response format for fetchAllTutor:", response);
+      // Throw a more specific error if the data array is missing or not an array
+      throw new Error("API response did not contain expected tutor data array.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch all tutors:", error.message);
+    throw error; // Re-throw the error so it can be handled by the calling component
+  }
+}
+
+// New function to fetch recommended tutors
+export async function fetchRecommendTutor() {
+  try {
+    const response = await callApi("/api/tutor/recommended-tutors", "GET");
+
+    // The response body has a 'data' field containing the list of recommended tutors
+    if (response && Array.isArray(response.data)) {
+      console.log("[API] Recommended tutors fetched successfully:", response.data);
+      return response.data; // Return the array of recommended tutors
+    } else {
+       console.error("Invalid API response format for fetchRecommendTutor:", response);
+       // Throw an error if the 'data' field is missing or not an array
+       throw new Error("API response did not contain expected recommended tutor data array.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch recommended tutors:", error.message);
+    throw error; // Re-throw the error for error handling in components
   }
 }
