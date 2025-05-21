@@ -9,7 +9,7 @@ import Header from "./components/Header";
 import FooterHandler from "./components/FooterHandler";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import HomePage from "./pages/HomePage";
-import TutorList from "./components/tutors/TutorList";
+import RecommendTutorList from "./components/tutors/RecommendTutorList";
 import TutorDetail from "./components/tutors/TutorDetail";
 import LoginModal from "./components/modals/LoginModal";
 import SignUpModal from "./components/modals/SignUpModal";
@@ -269,7 +269,7 @@ function App() {
             <Route
               path="/languages"
               element={
-                <TutorList user={user} onRequireLogin={openLoginModal} />
+                <RecommendTutorList user={user} onRequireLogin={openLoginModal} />
               }
             />
             <Route
