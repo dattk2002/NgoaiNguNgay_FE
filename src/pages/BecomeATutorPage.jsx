@@ -2,44 +2,99 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getAccessToken } from "../components/api/auth";
 
-const BecomeATutorPage = () => {
+const BecomeATutorPage = ({
+    user,
+    onRequireLogin,
+    fetchProfileData: fetchProfileDataApi,
+    fetchHashtags: fetchHashtagsApi,
+    uploadProfileImage: uploadProfileImageApi,
+    deleteProfileImage: deleteProfileImageApi,
+    registerAsTutor: registerAsTutorApi
+}) => {
     const navigate = useNavigate();
     const [activeStep, setActiveStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [hashtags, setHashtags] = useState([]);
     const [formData, setFormData] = useState({
         // Basic Information
-        displayName: "",
-        communicationTool: "",
-        country: "",
-        livingIn: "",
-        // Private Information
-        firstName: "",
-        lastName: "",
-        birthday: "",
-        streetAddress: "",
-        // Language Skills
-        languages: [{ language: "", level: "A1" }],
-        // Profile
+        fullName: "",
+        dateOfBirth: "",
+        gender: 1, // Default to male
+        timezone: "UTC+7", // Default to Vietnam timezone
         profilePhoto: null,
         profilePhotoPreview: "",
-        hourlyRate: "",
+
+        // Tutor Information
+        nickName: "",
+        brief: "",
         description: "",
-        // Certifications
-        certifications: [{ name: "", file: null, filePreview: "" }],
-        // Video Introduction
-        introductionVideo: null,
-        introductionVideoPreview: "",
+        teachingMethod: "",
+
+        // Hashtags
+        hashtagIds: [],
+
+        // Languages
+        languages: [{ languageCode: "", proficiency: 3, isPrimary: true }]
     });
 
-    const languageLevels = ["A1", "A2", "B1", "B2", "C1", "C2"];
-    const communicationTools = ["Skype", "Zoom", "Google Meet", "Microsoft Teams", "Discord"];
-    const countries = ["USA", "UK", "Canada", "Australia", "Vietnam", "Japan", "China", "Korea", "France", "Germany", "Spain", "Italy", "Brazil", "Mexico", "Russia", "India"];
+    const proficiencyLevels = [
+        { value: 1, label: "Beginner (A1)" },
+        { value: 2, label: "Elementary (A2)" },
+        { value: 3, label: "Intermediate (B1)" },
+        { value: 4, label: "Upper Intermediate (B2)" },
+        { value: 5, label: "Advanced (C1)" },
+        { value: 6, label: "Proficient (C2)" },
+        { value: 7, label: "Native" }
+    ];
+
+    const timezones = [
+        { value: "UTC-12", label: "(UTC-12:00) International Date Line West" },
+        { value: "UTC-11", label: "(UTC-11:00) Coordinated Universal Time-11" },
+        { value: "UTC-10", label: "(UTC-10:00) Hawaii" },
+        { value: "UTC-9", label: "(UTC-09:00) Alaska" },
+        { value: "UTC-8", label: "(UTC-08:00) Pacific Time (US & Canada)" },
+        { value: "UTC-7", label: "(UTC-07:00) Mountain Time (US & Canada)" },
+        { value: "UTC-6", label: "(UTC-06:00) Central Time (US & Canada)" },
+        { value: "UTC-5", label: "(UTC-05:00) Eastern Time (US & Canada)" },
+        { value: "UTC-4", label: "(UTC-04:00) Atlantic Time (Canada)" },
+        { value: "UTC-3", label: "(UTC-03:00) Brasilia" },
+        { value: "UTC-2", label: "(UTC-02:00) Mid-Atlantic" },
+        { value: "UTC-1", label: "(UTC-01:00) Azores" },
+        { value: "UTC+0", label: "(UTC+00:00) London, Dublin, Edinburgh" },
+        { value: "UTC+1", label: "(UTC+01:00) Paris, Amsterdam, Berlin" },
+        { value: "UTC+2", label: "(UTC+02:00) Athens, Istanbul, Helsinki" },
+        { value: "UTC+3", label: "(UTC+03:00) Moscow, Baghdad, Kuwait" },
+        { value: "UTC+4", label: "(UTC+04:00) Abu Dhabi, Dubai, Muscat" },
+        { value: "UTC+5", label: "(UTC+05:00) Islamabad, Karachi, Tashkent" },
+        { value: "UTC+6", label: "(UTC+06:00) Astana, Dhaka, Almaty" },
+        { value: "UTC+7", label: "(UTC+07:00) Bangkok, Hanoi, Jakarta" },
+        { value: "UTC+8", label: "(UTC+08:00) Beijing, Hong Kong, Singapore" },
+        { value: "UTC+9", label: "(UTC+09:00) Tokyo, Seoul, Osaka" },
+        { value: "UTC+10", label: "(UTC+10:00) Sydney, Melbourne, Brisbane" },
+        { value: "UTC+11", label: "(UTC+11:00) Vladivostok, Solomon Islands" },
+        { value: "UTC+12", label: "(UTC+12:00) Auckland, Wellington, Fiji" }
+    ];
+
     const availableLanguages = [
-        "English", "Vietnamese", "Japanese", "Korean", "Chinese", "French",
-        "German", "Spanish", "Italian", "Russian", "Portuguese", "Arabic",
-        "Hindi", "Thai", "Indonesian", "Dutch", "Swedish", "Norwegian",
-        "Danish", "Finnish", "Greek", "Turkish", "Polish", "Czech"
+        { value: "en", label: "English" },
+        { value: "vi", label: "Vietnamese" },
+        { value: "fr", label: "French" },
+        { value: "ja", label: "Japanese" },
+        { value: "ko", label: "Korean" },
+        { value: "zh", label: "Chinese" },
+        { value: "es", label: "Spanish" },
+        { value: "de", label: "German" },
+        { value: "it", label: "Italian" },
+        { value: "ru", label: "Russian" },
+        { value: "pt", label: "Portuguese" },
+        { value: "ar", label: "Arabic" },
+        { value: "hi", label: "Hindi" },
+        { value: "th", label: "Thai" },
+        { value: "id", label: "Indonesian" },
+        { value: "nl", label: "Dutch" }
     ];
 
     // Thêm CSS style inline
@@ -62,6 +117,70 @@ const BecomeATutorPage = () => {
         paddingRight: "1.95em"
     };
 
+    // Fetch profile data and hashtags on component mount
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            setIsLoading(true);
+            try {
+                await Promise.all([
+                    fetchProfileData(),
+                    fetchHashtags()
+                ]);
+            } catch (error) {
+                console.error("Error fetching initial data:", error);
+                toast.error("Failed to load initial data. Please try again.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInitialData();
+    }, []);
+
+    const fetchProfileData = async () => {
+        try {
+            const token = getAccessToken();
+            if (!token) {
+                toast.error("You must be logged in to register as a tutor.");
+                onRequireLogin();
+                return;
+            }
+
+            const response = await fetchProfileDataApi();
+            console.log("Profile data:", response);
+
+            if (response && response.data) {
+                setFormData(prev => ({
+                    ...prev,
+                    fullName: response.data.fullName || "",
+                    dateOfBirth: response.data.dateOfBirth ? new Date(response.data.dateOfBirth).toISOString().split('T')[0] : "",
+                    gender: response.data.gender !== undefined ? response.data.gender : 1,
+                    profilePhotoPreview: response.data.profileImageUrl || ""
+                }));
+            }
+        } catch (error) {
+            console.error("Error fetching profile data:", error);
+            toast.error("Failed to load profile data.");
+        }
+    };
+
+    const fetchHashtags = async () => {
+        try {
+            const token = getAccessToken();
+            if (!token) return;
+
+            const response = await fetchHashtagsApi();
+            console.log("Hashtags:", response);
+
+            if (response && response.data) {
+                setHashtags(response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching hashtags:", error);
+            toast.error("Failed to load hashtags.");
+        }
+    };
+
     const handleChange = (e) => {
         const { name, value, type } = e.target;
         console.log(`Field ${name} changed to: ${value}`);
@@ -74,54 +193,130 @@ const BecomeATutorPage = () => {
     };
 
     const handleFileChange = (e) => {
-        const { name, files } = e.target;
+        const { files } = e.target;
         if (files.length > 0) {
             const file = files[0];
+
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                toast.error('Image size must be less than 2MB');
+                return;
+            }
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                toast.error('Only image files are accepted');
+                return;
+            }
+
             const previewUrl = URL.createObjectURL(file);
 
-            if (name === "profilePhoto") {
-                setFormData({
-                    ...formData,
-                    profilePhoto: file,
-                    profilePhotoPreview: previewUrl
-                });
-            } else if (name === "introductionVideo") {
-                setFormData({
-                    ...formData,
-                    introductionVideo: file,
-                    introductionVideoPreview: previewUrl
-                });
+            setFormData(prev => ({
+                ...prev,
+                profilePhoto: file,
+                profilePhotoPreview: previewUrl
+            }));
+
+            // Upload the profile image to the server
+            uploadProfileImage(file);
+        }
+    };
+
+    const uploadProfileImage = async (file) => {
+        try {
+            const response = await uploadProfileImageApi(file);
+            console.log("Profile image uploaded:", response);
+
+            if (response && response.data && response.data.profileImageUrl) {
+                // Update profile preview with the server URL
+                setFormData(prev => ({
+                    ...prev,
+                    profilePhotoPreview: response.data.profileImageUrl
+                }));
+                toast.success("Profile image uploaded successfully");
             }
+        } catch (error) {
+            console.error("Error uploading profile image:", error);
+            toast.error("Failed to upload profile image. Please try again.");
+        }
+    };
+
+    const deleteProfileImage = async () => {
+        try {
+            await deleteProfileImageApi();
+
+            // Clear profile photo data
+            setFormData(prev => ({
+                ...prev,
+                profilePhoto: null,
+                profilePhotoPreview: ""
+            }));
+
+            toast.success("Profile image removed successfully");
+        } catch (error) {
+            console.error("Error deleting profile image:", error);
+            toast.error("Failed to delete profile image. Please try again.");
         }
     };
 
     const handleLanguageChange = (index, field, value) => {
-        console.log(`Language field ${field} at index ${index} changed to: ${value}`);
-
         const updatedLanguages = [...formData.languages];
         updatedLanguages[index] = {
             ...updatedLanguages[index],
             [field]: value,
         };
 
-        setFormData(prevState => {
-            const newState = { ...prevState, languages: updatedLanguages };
-            console.log('New languages state:', newState.languages);
-            return newState;
-        });
+        setFormData(prevState => ({
+            ...prevState,
+            languages: updatedLanguages
+        }));
     };
 
     const addLanguage = () => {
-        setFormData({
-            ...formData,
-            languages: [...formData.languages, { language: "", level: "A1" }],
-        });
+        // Only the first language is primary by default
+        const isPrimary = formData.languages.length === 0;
+
+        setFormData(prev => ({
+            ...prev,
+            languages: [...prev.languages, { languageCode: "", proficiency: 3, isPrimary }],
+        }));
     };
 
     const removeLanguage = (index) => {
         const updatedLanguages = [...formData.languages];
         updatedLanguages.splice(index, 1);
-        setFormData({ ...formData, languages: updatedLanguages });
+
+        // If we removed the primary language and there are other languages,
+        // make the first one primary
+        if (updatedLanguages.length > 0 && !updatedLanguages.some(lang => lang.isPrimary)) {
+            updatedLanguages[0].isPrimary = true;
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            languages: updatedLanguages
+        }));
+    };
+
+    const handleHashtagChange = (hashtagId) => {
+        setFormData(prev => {
+            // Ensure hashtagIds is an array
+            const hashtagIds = Array.isArray(prev.hashtagIds) ? [...prev.hashtagIds] : [];
+
+            if (hashtagIds.includes(hashtagId)) {
+                // Remove if already selected
+                return {
+                    ...prev,
+                    hashtagIds: hashtagIds.filter(id => id !== hashtagId)
+                };
+            } else {
+                // Add if not selected
+                return {
+                    ...prev,
+                    hashtagIds: [...hashtagIds, hashtagId]
+                };
+            }
+        });
     };
 
     const handleCertificationChange = (index, field, value) => {
@@ -165,8 +360,7 @@ const BecomeATutorPage = () => {
         // Cleanup object URLs when component unmounts
         return () => {
             if (formData.profilePhotoPreview) URL.revokeObjectURL(formData.profilePhotoPreview);
-            if (formData.introductionVideoPreview) URL.revokeObjectURL(formData.introductionVideoPreview);
-            formData.certifications.forEach(cert => {
+            formData.certifications?.forEach(cert => {
                 if (cert.filePreview) URL.revokeObjectURL(cert.filePreview);
             });
         };
@@ -176,29 +370,20 @@ const BecomeATutorPage = () => {
         // Thiết lập các giá trị mặc định để tránh lỗi hiển thị
         setFormData(prev => ({
             ...prev,
-            displayName: prev.displayName || "",
-            communicationTool: prev.communicationTool || "",
-            country: prev.country || "",
-            livingIn: prev.livingIn || "",
-            firstName: prev.firstName || "",
-            lastName: prev.lastName || "",
-            birthday: prev.birthday || "",
-            streetAddress: prev.streetAddress || "",
-            languages: prev.languages.length ? prev.languages : [{ language: "", level: "A1" }],
-            hourlyRate: prev.hourlyRate || "",
-            description: prev.description || ""
+            fullName: prev.fullName || "",
+            dateOfBirth: prev.dateOfBirth || "",
+            gender: prev.gender || 1,
+            timezone: prev.timezone || "UTC+7",
+            languages: prev.languages.length ? prev.languages : [{ languageCode: "", proficiency: 3, isPrimary: true }],
+            nickName: prev.nickName || "",
+            brief: prev.brief || "",
+            description: prev.description || "",
+            teachingMethod: prev.teachingMethod || "",
+            hashtagIds: prev.hashtagIds || [],
         }));
     }, []);
 
     const nextStep = () => {
-        // Không cần validation khi chuyển bước 5 sang bước 6
-        if (activeStep === 5) {
-            setActiveStep(6);
-            window.scrollTo(0, 0);
-            return;
-        }
-
-        // Các bước còn lại đều cần validation
         if (validateCurrentStep()) {
             setActiveStep(activeStep + 1);
             window.scrollTo(0, 0);
@@ -213,40 +398,22 @@ const BecomeATutorPage = () => {
     const validateCurrentStep = () => {
         switch (activeStep) {
             case 1: // Basic Information
-                if (!formData.displayName) {
-                    toast.error("Please enter a display name");
+                if (!formData.fullName) {
+                    toast.error("Please enter your full name");
                     return false;
                 }
-                if (!formData.communicationTool) {
-                    toast.error("Please select a communication tool");
+                if (!formData.dateOfBirth) {
+                    toast.error("Please select your date of birth");
                     return false;
                 }
-                if (!formData.country) {
-                    toast.error("Please select a country of origin");
-                    return false;
-                }
-                if (!formData.livingIn) {
-                    toast.error("Please select a current living location");
-                    return false;
-                }
-                return true;
-            case 2: // Private Information
-                if (!formData.firstName) {
-                    toast.error("Please enter your first name");
-                    return false;
-                }
-                if (!formData.lastName) {
-                    toast.error("Please enter your last name");
-                    return false;
-                }
-                if (!formData.birthday) {
-                    toast.error("Please select your birthday");
+                if (!formData.profilePhotoPreview) {
+                    toast.error("Please upload a profile photo");
                     return false;
                 }
 
-                // Validate minimum age (17 years)
-                if (formData.birthday) {
-                    const birthDate = new Date(formData.birthday);
+                // Validate minimum age (18 years)
+                if (formData.dateOfBirth) {
+                    const birthDate = new Date(formData.dateOfBirth);
                     const today = new Date();
                     let age = today.getFullYear() - birthDate.getFullYear();
                     const monthDifference = today.getMonth() - birthDate.getMonth();
@@ -256,116 +423,132 @@ const BecomeATutorPage = () => {
                         age--;
                     }
 
-                    if (age < 17) {
-                        toast.error("You must be at least 17 years old to register as a tutor");
+                    if (age < 18) {
+                        toast.error("You must be at least 18 years old to register as a tutor");
+                        return false;
+                    }
+                }
+                return true;
+
+            case 2: // Tutor Information
+                if (formData.brief && (formData.brief.length < 10 || formData.brief.length > 300)) {
+                    toast.error("Brief introduction must be between 10 and 300 characters");
+                    return false;
+                }
+                if (!formData.description || formData.description.length < 100 || formData.description.length > 3000) {
+                    toast.error("Description must be between 100 and 3000 characters");
+                    return false;
+                }
+                if (!formData.teachingMethod || formData.teachingMethod.length < 10 || formData.teachingMethod.length > 300) {
+                    toast.error("Teaching method must be between 10 and 300 characters");
+                    return false;
+                }
+                return true;
+
+            case 3:
+                // Make sure hashtagIds array exists
+                if (!formData.hashtagIds || !Array.isArray(formData.hashtagIds) || formData.hashtagIds.length === 0) {
+                    toast.error("Please select at least one hashtag");
+                    return false;
+                }
+
+                // Additional validation to ensure selected hashtags exist in the hashtags list
+                const invalidHashtags = formData.hashtagIds.filter(id =>
+                    !Array.isArray(hashtags) || !hashtags.some(tag => tag.id === id)
+                );
+
+                if (invalidHashtags.length > 0) {
+                    console.error("Invalid hashtag IDs detected:", invalidHashtags);
+                    toast.error("Some selected hashtags are invalid. Please refresh and try again.");
+                    return false;
+                }
+
+                return true;
+
+            case 4: // Languages
+                if (formData.languages.length === 0) {
+                    toast.error("Please add at least one language");
+                    return false;
+                }
+
+                // Validate each language
+                for (let i = 0; i < formData.languages.length; i++) {
+                    if (!formData.languages[i].languageCode) {
+                        toast.error(`Please select a language for Language ${i + 1}`);
                         return false;
                     }
                 }
 
-                if (!formData.streetAddress) {
-                    toast.error("Please enter your street address");
+                // Ensure at least one language is marked as primary
+                if (!formData.languages.some(lang => lang.isPrimary)) {
+                    toast.error("Please mark at least one language as primary");
                     return false;
                 }
+
                 return true;
-            case 3: // Language Skills
-                for (let i = 0; i < formData.languages.length; i++) {
-                    if (!formData.languages[i].language) {
-                        toast.error(`Please enter language ${i + 1}`);
-                        return false;
-                    }
-                }
-                return true;
-            case 4: // Profile
-                if (!formData.profilePhoto) {
-                    toast.error("Please upload a profile photo");
-                    return false;
-                }
-                if (!formData.hourlyRate) {
-                    toast.error("Please enter your hourly rate");
-                    return false;
-                }
-                if (!formData.description) {
-                    toast.error("Please enter a description about yourself");
-                    return false;
-                } else if (formData.description.length < 100) {
-                    toast.error("Description must be at least 100 characters");
-                    return false;
-                } else if (formData.description.length > 1000) {
-                    toast.error("Description cannot exceed 1000 characters");
-                    return false;
-                }
-                return true;
-            case 5: // Certifications
-                for (let i = 0; i < formData.certifications.length; i++) {
-                    if (!formData.certifications[i].name) {
-                        toast.error(`Please enter certification name ${i + 1}`);
-                        return false;
-                    }
-                    if (!formData.certifications[i].file) {
-                        toast.error(`Please upload certification file ${i + 1}`);
-                        return false;
-                    }
-                }
-                return true;
-            // Remove validation for step 6 since we handle it in handleSubmit
+
             default:
                 return true;
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (activeStep !== 6) {
-            // Nếu không phải bước cuối, sử dụng hàm nextStep
+        if (activeStep !== 4) {
+            // If not the final step, go to the next step
             nextStep();
             return;
         }
 
-        // The video validation is now handled by the conditional rendering of the error message
-        // rather than using a toast notification
-        if (!formData.introductionVideo) {
-            // Don't show toast notification, we'll use our inline error message instead
+        if (!validateCurrentStep()) {
             return;
         }
 
         setIsSubmitting(true);
+
         try {
-            // Tạo dữ liệu form để gửi đi (bỏ qua các preview)
-            const formDataToSubmit = {
-                displayName: formData.displayName,
-                communicationTool: formData.communicationTool,
-                country: formData.country,
-                livingIn: formData.livingIn,
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                birthday: formData.birthday,
-                streetAddress: formData.streetAddress,
-                languages: formData.languages,
-                hourlyRate: formData.hourlyRate,
+            const token = getAccessToken();
+            if (!token) {
+                toast.error("You must be logged in to register as a tutor");
+                onRequireLogin();
+                return;
+            }
+
+            // Format data to match API requirements
+            const payload = {
+                fullName: formData.fullName,
+                dateOfBirth: new Date(formData.dateOfBirth).toISOString(),
+                gender: parseInt(formData.gender),
+                timezone: formData.timezone,
+                nickName: formData.nickName || null,
+                brief: formData.brief || null,
                 description: formData.description,
-                // Các file sẽ được xử lý riêng ở backend
+                teachingMethod: formData.teachingMethod,
+                hashtagIds: formData.hashtagIds,
+                languages: formData.languages.map(lang => ({
+                    languageCode: lang.languageCode,
+                    proficiency: parseInt(lang.proficiency),
+                    isPrimary: lang.isPrimary
+                }))
             };
 
-            // Log dữ liệu (trong thực tế sẽ gửi API)
-            console.log("Form submitted:", formDataToSubmit);
+            console.log("Submitting tutor registration:", payload);
 
-            // Giả lập gửi API request
+            const response = await registerAsTutorApi(payload);
+            console.log("Registration successful:", response);
+
+            toast.success("Your tutor registration was successful! Your profile is now under review.");
+
+            // Redirect to home page after 2 seconds
             setTimeout(() => {
-                // Hiển thị thông báo toast
-                toast.success("Registration successful! Your profile is under review.");
-                setIsSubmitting(false);
-
-                // Chuyển về trang home sau 1.5 giây
-                setTimeout(() => {
-                    navigate('/');
-                }, 1500);
-            }, 1000);
+                navigate('/');
+            }, 2000);
 
         } catch (error) {
-            // Xử lý lỗi nếu có
-            console.error("Error submitting form:", error);
-            toast.error("An error occurred while registering. Please try again later.");
+            console.error("Error submitting tutor registration:", error);
+            toast.error(error.message || "Registration failed. Please try again later.");
+        } finally {
             setIsSubmitting(false);
         }
     };
@@ -374,14 +557,24 @@ const BecomeATutorPage = () => {
         console.log("Form data:", formData);
     }, [formData]);
 
+    // Add this useEffect to log hashtags whenever they change
+    useEffect(() => {
+        console.log("Current hashtags state:", hashtags);
+        console.log("Is Array:", Array.isArray(hashtags));
+        if (Array.isArray(hashtags)) {
+            console.log("Length:", hashtags.length);
+            if (hashtags.length > 0) {
+                console.log("First item:", hashtags[0]);
+            }
+        }
+    }, [hashtags]);
+
     const renderStepIndicator = () => {
         const steps = [
             "Basic Information",
-            "Personal Information",
-            "Language Skills",
-            "Profile",
-            "Certifications",
-            "Introduction Video",
+            "Tutor Information",
+            "Hashtags",
+            "Languages"
         ];
 
         return (
@@ -470,91 +663,123 @@ const BecomeATutorPage = () => {
                         <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Basic Information</h2>
                         <div className="space-y-5">
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Display Name <span className="text-red-500">*</span>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Profile Photo <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="text"
-                                    name="displayName"
-                                    defaultValue={formData.displayName || ""}
-                                    onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
-                                    placeholder="Display name"
-                                    style={formControlStyle}
-                                    readOnly={false}
-                                    required
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    This is the name that students will see
+                                <div className="flex flex-col md:flex-row items-center gap-5">
+                                    {formData.profilePhotoPreview ? (
+                                        <div className="relative">
+                                            <div className="w-32 h-32 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                <img
+                                                    src={formData.profilePhotoPreview}
+                                                    alt="Profile Preview"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={deleteProfileImage}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                                                title="Remove image"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="w-32 h-32 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                            <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                            </svg>
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-center w-full">
+                                            <label className="flex flex-col w-full h-32 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <svg className="w-10 h-10 text-blue-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                                    </svg>
+                                                    <p className="mb-2 text-sm text-blue-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                                    <p className="text-xs text-gray-500">JPG, PNG (Max 2MB)</p>
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    name="profilePhoto"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleFileChange}
+                                                    required
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    This is the photo that will be displayed to students.
                                 </p>
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Communication Tool <span className="text-red-500">*</span>
+                                    Full Name <span className="text-red-500">*</span>
                                 </label>
-                                <div className="relative">
-                                    <select
-                                        name="communicationTool"
-                                        defaultValue={formData.communicationTool || ""}
-                                        onChange={handleChange}
-                                        className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all bg-white text-black"
-                                        required
-                                        style={formSelectStyle}
-                                    >
-                                        <option value="" style={{ color: 'black', backgroundColor: 'white', padding: '10px' }}>
-                                            Select a communication tool
-                                        </option>
-                                        {communicationTools.map((tool) => (
-                                            <option
-                                                key={tool}
-                                                value={tool}
-                                                className="py-2 text-black"
-                                                style={{ color: 'black', backgroundColor: 'white', padding: '10px' }}
-                                            >
-                                                {tool}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <input
+                                    type="text"
+                                    name="fullName"
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
+                                    style={formControlStyle}
+                                    placeholder="Enter your full name"
+                                    required
+                                />
+                            </div>
 
-                                        </svg>
-                                    </div>
-                                </div>
+                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Date of Birth <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    name="dateOfBirth"
+                                    value={formData.dateOfBirth}
+                                    onChange={handleChange}
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
+                                    style={formControlStyle}
+                                    max={(() => {
+                                        const date = new Date();
+                                        date.setFullYear(date.getFullYear() - 18);
+                                        return date.toISOString().split('T')[0];
+                                    })()}
+                                    required
+                                />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    The tool you'll use for online teaching
+                                    You must be at least 18 years old to register as a tutor
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country <span className="text-red-500">*</span>
+                                        Gender <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <select
-                                            name="country"
-                                            defaultValue={formData.country || ""}
+                                            name="gender"
+                                            value={formData.gender}
                                             onChange={handleChange}
                                             className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all bg-white text-black"
                                             required
                                             style={formSelectStyle}
                                         >
-                                            <option value="">Select a country</option>
-                                            {countries.map((country) => (
-                                                <option
-                                                    key={country}
-                                                    value={country}
-                                                    className="py-2 text-black"
-                                                >
-                                                    {country}
-                                                </option>
-                                            ))}
+                                            <option value={0}>Other</option>
+                                            <option value={1}>Male</option>
+                                            <option value={2}>Female</option>
                                         </select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
                                             <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-
                                             </svg>
                                         </div>
                                     </div>
@@ -562,31 +787,29 @@ const BecomeATutorPage = () => {
 
                                 <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Living In <span className="text-red-500">*</span>
+                                        Timezone <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <select
-                                            name="livingIn"
-                                            defaultValue={formData.livingIn || ""}
+                                            name="timezone"
+                                            value={formData.timezone}
                                             onChange={handleChange}
                                             className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all bg-white text-black"
                                             required
                                             style={formSelectStyle}
                                         >
-                                            <option value="">Select a country</option>
-                                            {countries.map((country) => (
+                                            {timezones.map((timezone) => (
                                                 <option
-                                                    key={country}
-                                                    value={country}
+                                                    key={timezone.value}
+                                                    value={timezone.value}
                                                     className="py-2 text-black"
                                                 >
-                                                    {country}
+                                                    {timezone.label}
                                                 </option>
                                             ))}
                                         </select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
                                             <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-
                                             </svg>
                                         </div>
                                     </div>
@@ -598,96 +821,95 @@ const BecomeATutorPage = () => {
             case 2:
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Personal Information</h2>
-                        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-md">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm text-blue-800">
-                                        This information will not be displayed publicly. Only used for identity verification.
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Tutor Information</h2>
+                        <div className="space-y-5">
+                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Nickname
+                                </label>
+                                <input
+                                    type="text"
+                                    name="nickName"
+                                    value={formData.nickName}
+                                    onChange={handleChange}
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
+                                    style={formControlStyle}
+                                    placeholder="Enter your preferred nickname (optional)"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    This will be shown to students. Leave blank to use your full name.
+                                </p>
+                            </div>
+
+                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Brief Introduction
+                                </label>
+                                <textarea
+                                    name="brief"
+                                    value={formData.brief}
+                                    onChange={handleChange}
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                    rows="2"
+                                    style={formControlStyle}
+                                    placeholder="A brief introduction about yourself (0-300 characters)"
+                                ></textarea>
+                                <div className="flex justify-between mt-1">
+                                    <p className="text-xs text-gray-500">
+                                        Max 300 characters
+                                    </p>
+                                    <p className={`text-xs ${formData.brief.length > 300 ? 'text-red-500' : 'text-gray-500'}`}>
+                                        {formData.brief.length}/300 characters
                                     </p>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="space-y-5">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        First Name <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="firstName"
-                                        defaultValue={formData.firstName || ""}
-                                        onChange={handleChange}
-                                        className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
-                                        placeholder="Enter your first name"
-                                        style={formControlStyle}
-                                        required
-                                    />
-                                </div>
-                                <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Last Name <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="lastName"
-                                        defaultValue={formData.lastName || ""}
-                                        onChange={handleChange}
-                                        className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
-                                        placeholder="Enter your last name"
-                                        style={formControlStyle}
-                                        required
-                                    />
-                                </div>
-                            </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Birthday <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    name="birthday"
-                                    defaultValue={formData.birthday || ""}
-                                    onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
-                                    style={formControlStyle}
-                                    max={(() => {
-                                        const date = new Date();
-                                        date.setFullYear(date.getFullYear() - 17);
-                                        return date.toISOString().split('T')[0];
-                                    })()}
-                                    required
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    You must be at least 17 years old to register as a tutor
-                                </p>
-                            </div>
-
-                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Street Address <span className="text-red-100">*</span>
+                                    Full Description <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
-                                    name="streetAddress"
-                                    defaultValue={formData.streetAddress || ""}
+                                    name="description"
+                                    value={formData.description}
                                     onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
-                                    rows="3"
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                    rows="6"
                                     style={formControlStyle}
-                                    placeholder="Enter your full street address"
+                                    placeholder="Provide a detailed description about yourself, including your education, work experience, and teaching philosophy (100-3000 characters)"
                                     required
                                 ></textarea>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Enter your full address including street number, street name, district, city/province
-                                </p>
+                                <div className="flex justify-between mt-1">
+                                    <p className="text-xs text-gray-500">
+                                        Min 100 characters, max 3000 characters
+                                    </p>
+                                    <p className={`text-xs ${formData.description.length < 100 || formData.description.length > 3000 ? 'text-red-500' : 'text-gray-500'}`}>
+                                        {formData.description.length}/3000 characters
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Teaching Method <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    name="teachingMethod"
+                                    value={formData.teachingMethod}
+                                    onChange={handleChange}
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                    rows="3"
+                                    style={formControlStyle}
+                                    placeholder="Describe your teaching methods and approach (10-300 characters)"
+                                    required
+                                ></textarea>
+                                <div className="flex justify-between mt-1">
+                                    <p className="text-xs text-gray-500">
+                                        Min 10 characters, max 300 characters
+                                    </p>
+                                    <p className={`text-xs ${formData.teachingMethod.length < 10 || formData.teachingMethod.length > 300 ? 'text-red-500' : 'text-gray-500'}`}>
+                                        {formData.teachingMethod.length}/300 characters
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -695,7 +917,93 @@ const BecomeATutorPage = () => {
             case 3:
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Language Skills</h2>
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Hashtags</h2>
+                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-yellow-800">
+                                        Select relevant hashtags to help students find you. Choose hashtags that represent your teaching specialties, certifications, or target student groups.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                            <h3 className="text-lg font-medium text-gray-800 mb-4">Select Hashtags</h3>
+                            <p className="text-sm text-gray-600 mb-4">Select at least one hashtag that represents your teaching specialty.</p>
+
+                            <div className="flex flex-wrap gap-3 mt-4">
+                                {isLoading ? (
+                                    <div className="w-full flex justify-center py-8">
+                                        <svg className="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
+                                ) : !Array.isArray(hashtags) ? (
+                                    <p className="text-gray-500 text-center w-full py-8">Unable to load hashtags. Please try refreshing the page.</p>
+                                ) : hashtags.length === 0 ? (
+                                    <p className="text-gray-500 text-center w-full py-8">No hashtags available. Contact support if you believe this is an error.</p>
+                                ) : (
+                                    hashtags.map((hashtag) => (
+                                        <div
+                                            key={hashtag.id}
+                                            onClick={() => handleHashtagChange(hashtag.id)}
+                                            className={`
+                                                px-4 py-2 rounded-full text-sm cursor-pointer transition-colors
+                                                ${formData.hashtagIds.includes(hashtag.id)
+                                                    ? 'bg-blue-100 border-blue-300 text-blue-800 border'
+                                                    : 'bg-gray-100 border-gray-200 text-gray-800 border hover:bg-gray-200'
+                                                }
+                                            `}
+                                        >
+                                            #{hashtag.name}
+                                            {formData.hashtagIds.includes(hashtag.id) && (
+                                                <span className="ml-1 text-blue-600">✓</span>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <div className="mt-4">
+                                <p className="text-sm text-gray-700">
+                                    Selected hashtags ({formData.hashtagIds.length}):
+                                </p>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {formData.hashtagIds.length === 0 ? (
+                                        <span className="text-sm text-gray-500 italic">No hashtags selected</span>
+                                    ) : (
+                                        formData.hashtagIds.map(id => {
+                                            const tag = Array.isArray(hashtags) ? hashtags.find(h => h.id === id) : null;
+                                            return (
+                                                <span key={id} className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm flex items-center">
+                                                    #{tag ? tag.name : id}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHashtagChange(id)}
+                                                        className="ml-2 text-blue-200 hover:text-white"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </span>
+                                            )
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 4:
+                return (
+                    <div className="space-y-6">
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Languages</h2>
                         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md">
                             <div className="flex">
                                 <div className="flex-shrink-0">
@@ -741,10 +1049,8 @@ const BecomeATutorPage = () => {
                                             </label>
                                             <div className="relative">
                                                 <select
-                                                    defaultValue={lang.language || ""}
-                                                    onChange={(e) =>
-                                                        handleLanguageChange(index, "language", e.target.value)
-                                                    }
+                                                    value={lang.languageCode}
+                                                    onChange={(e) => handleLanguageChange(index, "languageCode", e.target.value)}
                                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white text-black"
                                                     required
                                                     style={formSelectStyle}
@@ -752,17 +1058,16 @@ const BecomeATutorPage = () => {
                                                     <option value="">Select a language</option>
                                                     {availableLanguages.map((language) => (
                                                         <option
-                                                            key={language}
-                                                            value={language}
+                                                            key={language.value}
+                                                            value={language.value}
                                                             className="py-2 text-black"
                                                         >
-                                                            {language}
+                                                            {language.label}
                                                         </option>
                                                     ))}
                                                 </select>
                                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
                                                     <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-
                                                     </svg>
                                                 </div>
                                             </div>
@@ -773,21 +1078,19 @@ const BecomeATutorPage = () => {
                                             </label>
                                             <div className="relative">
                                                 <select
-                                                    defaultValue={lang.level || "A1"}
-                                                    onChange={(e) =>
-                                                        handleLanguageChange(index, "level", e.target.value)
-                                                    }
+                                                    value={lang.proficiency}
+                                                    onChange={(e) => handleLanguageChange(index, "proficiency", parseInt(e.target.value))}
                                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white text-black"
                                                     required
                                                     style={formSelectStyle}
                                                 >
-                                                    {languageLevels.map((level) => (
+                                                    {proficiencyLevels.map((level) => (
                                                         <option
-                                                            key={level}
-                                                            value={level}
+                                                            key={level.value}
+                                                            value={level.value}
                                                             className="py-2 text-black"
                                                         >
-                                                            {level}
+                                                            {level.label}
                                                         </option>
                                                     ))}
                                                 </select>
@@ -821,377 +1124,6 @@ const BecomeATutorPage = () => {
                                 </svg>
                                 Add another language
                             </button>
-                        </div>
-                    </div>
-                );
-            case 4:
-                return (
-                    <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Teacher Profile</h2>
-                        <div className="space-y-5">
-                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Profile Photo <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex flex-col md:flex-row items-center gap-5">
-                                    {formData.profilePhotoPreview ? (
-                                        <div className="w-32 h-32 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                                            <img
-                                                src={formData.profilePhotoPreview}
-                                                alt="Profile Preview"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="w-32 h-32 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                                            <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                            </svg>
-                                        </div>
-                                    )}
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-center w-full">
-                                            <label className="flex flex-col w-full h-32 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <svg className="w-10 h-10 text-blue-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                                    </svg>
-                                                    <p className="mb-2 text-sm text-blue-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                                    <p className="text-xs text-gray-500">JPG, PNG (Max 5MB)</p>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    name="profilePhoto"
-                                                    className="hidden"
-                                                    accept="image/*"
-                                                    onChange={handleFileChange}
-                                                    required
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-2">
-                                    Upload a professional photo. This is the photo that students will see.
-                                </p>
-                            </div>
-
-                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Hourly Rate (USD/h) <span className="text-red-500">*</span>
-                                </label>
-                                <div className="relative mt-1 rounded-md shadow-sm">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-500 sm:text-sm">$</span>
-                                    </div>
-                                    <input
-                                        type="number"
-                                        name="hourlyRate"
-                                        defaultValue={formData.hourlyRate || ""}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black font-medium"
-                                        placeholder="e.g. 15"
-                                        style={formControlStyle}
-                                        min="1"
-                                        step="0.01"
-                                        required
-                                    />
-
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Set a competitive price to attract more students
-                                </p>
-                            </div>
-
-                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Description <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    name="description"
-                                    defaultValue={formData.description || ""}
-                                    onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black font-medium"
-                                    rows="6"
-                                    style={formControlStyle}
-                                    placeholder="Describe yourself, teaching experience, and teaching method."
-                                    required
-                                ></textarea>
-                                <div className="flex justify-between mt-1">
-                                    <p className="text-xs text-gray-500">
-                                        Min 100 characters, max 1000 characters
-                                    </p>
-                                    <p className={`text-xs ${formData.description.length < 100 ? 'text-gray-500' : formData.description.length > 1000 ? 'text-gray-500' : 'text-gray-900'}`}>
-                                        {formData.description.length}/1000 characters
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            case 5:
-                return (
-                    <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Certifications</h2>
-                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm text-yellow-800">
-                                        Add your teaching-related certifications.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-5">
-                            {formData.certifications.map((cert, index) => (
-                                <div key={index} className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm space-y-5">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="font-medium text-gray-800">Certification {index + 1}</h3>
-                                        {index > 0 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeCertification(index)}
-                                                className="text-red-500 hover:text-red-700 flex items-center transition-colors"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                </svg>
-                                                Remove
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Certification Name <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                defaultValue={cert.name || ""}
-                                                onChange={(e) =>
-                                                    handleCertificationChange(index, "name", e.target.value)
-                                                }
-                                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black font-medium"
-                                                placeholder="e.g. TEFL, CELTA, Master's in Education"
-                                                style={formControlStyle}
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Certification File <span className="text-red-500">*</span>
-                                            </label>
-
-                                            <div className="flex flex-col sm:flex-row items-start gap-4">
-                                                {cert.filePreview && (
-                                                    <div className="flex flex-col p-2 border rounded-md bg-gray-50 max-w-full">
-                                                        {cert.file && cert.file.type.includes('image') ? (
-                                                            <div className="flex items-center">
-                                                                <img
-                                                                    src={cert.filePreview}
-                                                                    alt="Certificate Preview"
-                                                                    className="h-20 w-20 object-contain mr-2 rounded-md border border-gray-200"
-                                                                />
-                                                                <div className="ml-2">
-                                                                    <span className="text-sm text-gray-700 block truncate max-w-[200px]">
-                                                                        {cert.file.name}
-                                                                    </span>
-                                                                    <span className="text-xs text-gray-500">
-                                                                        {(cert.file.size / 1024 / 1024).toFixed(2)} MB
-                                                                    </span>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const fileInput = document.getElementById(`cert-file-${index}`);
-                                                                            if (fileInput) fileInput.click();
-                                                                        }}
-                                                                        className="text-xs text-blue-500 hover:text-blue-700 mt-1 inline-flex items-center"
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
-                                                                        </svg>
-                                                                        Replace
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center">
-                                                                <svg className="h-8 w-8 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                                                </svg>
-                                                                <div className="ml-2">
-                                                                    <span className="text-sm text-gray-700 block truncate max-w-[200px]">
-                                                                        {cert.file && cert.file.name}
-                                                                    </span>
-                                                                    <span className="text-xs text-gray-500">
-                                                                        {cert.file && (cert.file.size / 1024 / 1024).toFixed(2)} MB
-                                                                    </span>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const fileInput = document.getElementById(`cert-file-${index}`);
-                                                                            if (fileInput) fileInput.click();
-                                                                        }}
-                                                                        className="text-xs text-blue-500 hover:text-blue-700 mt-1 inline-flex items-center"
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
-                                                                        </svg>
-                                                                        Replace
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {!cert.filePreview ? (
-                                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                            <svg className="w-10 h-10 text-blue-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                                            </svg>
-                                                            <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                                            <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 5MB)</p>
-                                                        </div>
-                                                        <input
-                                                            id={`cert-file-${index}`}
-                                                            type="file"
-                                                            onChange={(e) => handleCertificationFileChange(index, e)}
-                                                            accept=".pdf,.jpg,.jpeg,.png"
-                                                            className="hidden"
-                                                            required
-                                                        />
-                                                    </label>
-                                                ) : (
-                                                    <input
-                                                        id={`cert-file-${index}`}
-                                                        type="file"
-                                                        onChange={(e) => handleCertificationFileChange(index, e)}
-                                                        accept=".pdf,.jpg,.jpeg,.png"
-                                                        className="hidden"
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                            <button
-                                type="button"
-                                onClick={addCertification}
-                                className="flex items-center px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors"
-                            >
-                                <svg
-                                    className="w-5 h-5 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                                    ></path>
-                                </svg>
-                                Add another certification
-                            </button>
-                        </div>
-                    </div>
-                );
-            case 6:
-                return (
-                    <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Video Introduction</h2>
-                        <div className={`${formData.introductionVideo ? "bg-green-50 border-l-4 border-green-500" : "bg-blue-50 border-l-4 border-blue-500"} p-4 mb-6 rounded-md`}>
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <svg className={`h-5 w-5 ${formData.introductionVideo ? "text-green-500" : "text-blue-500"}`} viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    {formData.introductionVideo ? (
-                                        <p className="text-sm text-green-800 font-medium">
-                                            Video uploaded successfully! You can proceed to submit your application.
-                                        </p>
-                                    ) : (
-                                        <>
-                                            <p className="text-sm text-blue-800">
-                                                Upload a short video introducing yourself and your teaching style. This will help students understand you better.
-                                            </p>
-                                            <p className="text-sm text-blue-800 mt-1 font-medium">
-                                                You'll need to upload a video before you can submit your application.
-                                            </p>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-5">
-                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Video Introduction <span className="text-red-500">*</span>
-                                </label>
-
-                                <div className="space-y-4">
-                                    {formData.introductionVideoPreview ? (
-                                        <div className="w-full border rounded-lg overflow-hidden bg-black">
-                                            <video
-                                                src={formData.introductionVideoPreview}
-                                                controls
-                                                className="w-full h-auto max-h-60"
-                                            ></video>
-                                        </div>
-                                    ) : null}
-
-                                    <div className="flex flex-col items-center justify-center w-full h-40 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
-                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                <svg className="w-10 h-10 text-blue-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                                </svg>
-                                                <p className="mb-2 text-sm text-blue-500"><span className="font-semibold">Click to upload video</span></p>
-                                                <p className="text-xs text-gray-500">MP4 (Max 50MB, 1-3 minutes)</p>
-                                            </div>
-                                            <input
-                                                type="file"
-                                                name="introductionVideo"
-                                                onChange={handleFileChange}
-                                                accept="video/*"
-                                                className="hidden"
-                                            />
-                                        </label>
-                                    </div>
-
-                                    {formData.introductionVideo && (
-                                        <p className="text-xs text-green-600 text-center">
-                                            Selected video: {formData.introductionVideo.name}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="p-5 bg-white rounded-lg">
-                                <h3 className="font-medium text-[#000000] mb-3">Video Tips</h3>
-                                <ul className="text-sm text-[#333333] space-y-2 list-disc pl-5">
-                                    <li>Talk about your teaching experience</li>
-                                    <li>Explain your teaching method</li>
-                                    <li>Show your personality and enthusiasm</li>
-                                    <li>Ensure good lighting and clear audio</li>
-                                    <li>Choose a quiet place with no background noise</li>
-                                    <li>Look directly into the camera to create a connection</li>
-                                </ul>
-                            </div>
                         </div>
                     </div>
                 );
@@ -1238,11 +1170,11 @@ const BecomeATutorPage = () => {
                     </div>
                     <div className="p-6">
                         {renderStepIndicator()}
-                        <form onSubmit={activeStep === 6 ? handleSubmit : (e) => e.preventDefault()}>
+                        <form onSubmit={activeStep === 4 ? handleSubmit : (e) => e.preventDefault()}>
                             {/* Error message for video validation that only appears when submit is clicked, not during navigation */}
-                            {activeStep === 6 && !formData.introductionVideo && (
+                            {activeStep === 4 && !formData.languages.some(lang => lang.languageCode) && (
                                 <div className="mb-4 bg-red-50 border border-red-500 text-red-600 p-3 rounded text-sm text-center">
-                                    Please upload an introduction video
+                                    Please add at least one language
                                 </div>
                             )}
 
@@ -1261,7 +1193,7 @@ const BecomeATutorPage = () => {
                                     </button>
                                 )}
 
-                                {activeStep < 6 ? (
+                                {activeStep < 4 ? (
                                     <button
                                         type="button"
                                         onClick={nextStep}
@@ -1275,7 +1207,7 @@ const BecomeATutorPage = () => {
                                 ) : (
                                     <button
                                         type="submit"
-                                        disabled={isSubmitting || (activeStep === 6 && !formData.introductionVideo)}
+                                        disabled={isSubmitting || (activeStep === 4 && !formData.languages.some(lang => lang.languageCode))}
                                         className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? (

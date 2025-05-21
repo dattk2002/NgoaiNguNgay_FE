@@ -9,21 +9,33 @@ import Header from "./components/Header";
 import FooterHandler from "./components/FooterHandler";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import HomePage from "./pages/HomePage";
-import TutorList from "./components/tutors/TutorList";
-import TutorProfile from "./components/tutors/TutorProfile";
+import RecommendTutorList from "./components/tutors/RecommendTutorList";
+import TutorDetail from "./components/tutors/TutorDetail";
 import LoginModal from "./components/modals/LoginModal";
 import SignUpModal from "./components/modals/SignUpModal";
 import TutorSubjectList from "./components/tutors/TutorSubjectList";
 import MessagePage from "./pages/MessageListPage";
 import BecomeATutorPage from "./pages/BecomeATutorPage";
 import ConfirmEmail from "./components/modals/ConfirmEmail";
+import TutorProfile from "./components/tutors/TutorProfile";
 // import { fetchUsers } from "./components/api/auth";
 import UpdateInformationModal from "./components/modals/UpdateInformationModal";
 import UserProfile from "./components/users/UserProfile";
 import EditUserProfile from "./components/users/EditUserProfile"; // Import the new component
 
+// Import the tutor API functions
+import {
+  fetchTutorRegisterProfile,
+  fetchAllHashtags,
+  uploadProfileImage,
+  deleteProfileImage,
+  registerAsTutor,
+  fetchTutorDetail
+} from "./components/api/auth";
+
 // Import the NotFoundPage component
 import NotFoundPage from "./pages/NotFoundPage"; // Adjust the path if necessary
+import NotGrantedPermissionPage from "./pages/NotGrantedPermissionPage";
 
 const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
@@ -268,15 +280,25 @@ function App() {
             <Route
               path="/languages"
               element={
-                <TutorList user={user} onRequireLogin={openLoginModal} />
+                <RecommendTutorList user={user} onRequireLogin={openLoginModal} />
               }
             />
             <Route
               path="/teacher/:id"
               element={
+                <TutorDetail
+                  user={user}
+                  onRequireLogin={openLoginModal}
+                />
+              }
+            />
+            <Route
+              path="/tutorprofile/:id"
+              element={
                 <TutorProfile
                   user={user}
                   onRequireLogin={openLoginModal}
+                  fetchTutorDetail={fetchTutorDetail}
                 />
               }
             />
@@ -286,7 +308,17 @@ function App() {
             />
             <Route
               path="/become-tutor"
-              element={<BecomeATutorPage />}
+              element={
+                <BecomeATutorPage
+                  user={user}
+                  onRequireLogin={openLoginModal}
+                  fetchProfileData={fetchTutorRegisterProfile}
+                  fetchHashtags={fetchAllHashtags}
+                  uploadProfileImage={uploadProfileImage}
+                  deleteProfileImage={deleteProfileImage}
+                  registerAsTutor={registerAsTutor}
+                />
+              }
             />
 
             {/* NEW ROUTE for Messaging */}
@@ -304,12 +336,13 @@ function App() {
             {/* NEW ROUTE for editing a user profile */}
             <Route
               path="/user/edit/:id"
-               // Pass loggedInUser to EditUserProfile for authorization and initial data
+              // Pass loggedInUser to EditUserProfile for authorization and initial data
               element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/" replace />}
             />
 
             {/* This route catches all other paths and renders the NotFoundPage */}
             <Route path="*" element={<NotFoundPage />} />
+            {/* <Route path="*" element={<NotGrantedPermissionPage />} /> */}
 
           </Routes>
         </main>

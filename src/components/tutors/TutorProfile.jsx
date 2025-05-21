@@ -1,638 +1,549 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { fetchTutorById, fetchTutors } from "../api/auth";
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import {
-  FaStar,
-  FaUser,
-  FaComment,
-  FaBook,
-  FaUsers,
-  FaClock,
-  FaCheckCircle,
-  FaHeart,
-} from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
-import ReviewsSection from "../ReviewSection"; 
-import TutorCard from "./TutorCard";
-import { FaArrowRight } from "react-icons/fa6";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+    Box,
+    Container,
+    Typography,
+    Paper,
+    Chip,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Button,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
+    Grid,
+    Avatar,
+    Card,
+    CardContent,
+    Divider,
+    CircularProgress,
+    Alert,
+    Rating,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import { getAccessToken } from '../../components/api/auth';
 
-// Define the 4-hour time ranges
-const timeRanges = [
-  "00:00 - 04:00",
-  "04:00 - 08:00",
-  "08:00 - 12:00",
-  "12:00 - 16:00",
-  "16:00 - 20:00",
-  "20:00 - 24:00",
-];
+const StyledPaper = styled(Paper)(({ theme }) => ({
+    padding: theme.spacing(3),
+    marginBottom: theme.spacing(3),
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+}));
 
-const TutorProfile = ({ user, onRequireLogin }) => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [teacher, setTeacher] = useState(null);
-  const [tutors, setTutors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("About Me");
+const StyledChip = styled(Chip)(({ theme }) => ({
+    backgroundColor: '#f0f7ff',
+    color: '#333333',
+    fontWeight: 500,
+    margin: theme.spacing(0.5),
+    borderRadius: '4px',
+    height: '32px',
+    '&.MuiChip-colorSuccess': {
+        backgroundColor: '#dcfce7',
+        color: '#166534',
+    },
+    '&.MuiChip-colorError': {
+        backgroundColor: '#fee2e2',
+        color: '#991b1b',
+    },
+    '&.MuiChip-colorWarning': {
+        backgroundColor: '#fff7ed',
+        color: '#9a3412',
+    },
+}));
 
-  // State for availability data, now structured by 4-hour blocks
-  const [availabilityData, setAvailabilityData] = useState({});
-  const [availabilityDays, setAvailabilityDays] = useState([]);
-  const [availabilityDates, setAvailabilityDates] = useState([]);
-
-  useEffect(() => {
-    if (!user) {
-      // Trigger login modal immediately for unauthenticated users
-      onRequireLogin("Please log in to contact this tutor.");
-      // Don't redirect; allow viewing the profile
-    }
-
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const teacherData = await fetchTutorById(id);
-        setTeacher(teacherData);
-
-        // --- Process and Set Availability Data into 4-hour blocks ---
-        const blockAvailability = {};
-        timeRanges.forEach((range) => {
-          blockAvailability[range] = {
-            mon: false,
-            tue: false,
-            wed: false,
-            thu: false,
-            fri: false,
-            sat: false,
-            sun: false,
-          };
-        });
-
-        if (teacherData && Array.isArray(teacherData.availability)) {
-          teacherData.availability.forEach((timeSlot) => {
-            if (timeSlot && timeSlot.time) {
-              const hour = parseInt(timeSlot.time.split(":")[0], 10);
-              let timeRangeKey = null;
-
-              if (hour >= 0 && hour < 4) timeRangeKey = "00:00 - 04:00";
-              else if (hour >= 4 && hour < 8) timeRangeKey = "04:00 - 08:00";
-              else if (hour >= 8 && hour < 12) timeRangeKey = "08:00 - 12:00";
-              else if (hour >= 12 && hour < 16) timeRangeKey = "12:00 - 16:00";
-              else if (hour >= 16 && hour < 20) timeRangeKey = "16:00 - 20:00";
-              else if (hour >= 20 && hour < 24) timeRangeKey = "20:00 - 24:00";
-
-              if (timeRangeKey && blockAvailability[timeRangeKey]) {
-                if (timeSlot.mon === true)
-                  blockAvailability[timeRangeKey].mon = true;
-                if (timeSlot.tue === true)
-                  blockAvailability[timeRangeKey].tue = true;
-                if (timeSlot.wed === true)
-                  blockAvailability[timeRangeKey].wed = true;
-                if (timeSlot.thu === true)
-                  blockAvailability[timeRangeKey].thu = true;
-                if (timeSlot.fri === true)
-                  blockAvailability[timeRangeKey].fri = true;
-                if (timeSlot.sat === true)
-                  blockAvailability[timeRangeKey].sat = true;
-                if (timeSlot.sun === true)
-                  blockAvailability[timeRangeKey].sun = true;
-              }
-            } else {
-              console.warn("Skipping invalid time slot data:", timeSlot);
-            }
-          });
-        }
-        setAvailabilityData(blockAvailability);
-        // --- End Process and Set Availability Data ---
-
-        const today = new Date();
-        const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const next7Days = [];
-        const next7Dates = [];
-
-        for (let i = 0; i < 7; i++) {
-          const date = new Date(today);
-          date.setDate(today.getDate() + i);
-          next7Days.push(daysOfWeek[date.getDay()]);
-          next7Dates.push(date.getDate());
-        }
-
-        setAvailabilityDays(next7Days);
-        setAvailabilityDates(next7Dates);
-
-        const tutorsData = await fetchTutors();
-        const filteredTutors = tutorsData.filter((tutor) => tutor.id !== id);
-        setTutors(filteredTutors);
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-        setError(err.message || "Could not load data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [id, user, navigate, onRequireLogin]);
-
-  const handleBookLesson = () => {
-    if (!user) {
-      onRequireLogin("Please log in to book a lesson.");
-      return;
-    }
-    // Proceed with booking logic (e.g., open booking modal or navigate)
-    console.log("Booking lesson for user:", user);
-    // Example: navigate to a booking page, passing the teacher ID
-    // navigate(`/book/${teacher.id}`);
-  };
-
-  // Updated handler for the "Contact teacher" button
-  const handleContactTeacher = () => {
-    if (!user) {
-      onRequireLogin("Please log in to contact this tutor.");
-      return;
-    }
-    // Navigate to the message page with the teacher's ID
-    navigate(`/message/${teacher.id}`);
-  };
-
-  const handleClick = () => {
-    navigate("/languages");
-  };
-
-  if (loading) return <p className="text-center text-gray-500">Loading...</p>;
-  if (error) return <p className="text-center text-red-500">Error: {error}</p>;
-  if (!teacher)
-    return <p className="text-center text-gray-500">Teacher not found.</p>;
-
-  const interests = [
-    "Travel",
-    "Writing",
-    "Reading",
-    "Films & TV Series",
-    "Pets & Animals",
-  ];
-
-  const tabVariants = {
-    initial: { opacity: 0, x: 20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 },
-  };
-
-  const sliderSettings = {
-    dots: false,
-    infinite: tutors.length > 3,
-    speed: 500,
-    slidesToShow: Math.min(tutors.length, 3),
-    slidesToScroll: 1,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: Math.min(tutors.length, 2),
-          slidesToScroll: 1,
+const StyledButton = styled(Button)(({ theme }) => ({
+    backgroundColor: '#1a56db',
+    color: '#ffffff',
+    '&:hover': {
+        backgroundColor: '#1e429f',
+    },
+    '&.MuiButton-outlined': {
+        backgroundColor: 'transparent',
+        color: '#1a56db',
+        borderColor: '#1a56db',
+        '&:hover': {
+            backgroundColor: '#f0f4ff',
         },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
-    ],
-  };
+    },
+}));
 
-  return (
-    <div className="container mx-auto px-4 py-12 bg-white min-h-screen rounded-3xl max-w-7xl">
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="flex-1">
-          <div className="flex items-start gap-4">
-            <img
-              src={
-                teacher.imageUrl ||
-                "https://via.placeholder.com/100?text=Avatar"
-              }
-              alt={teacher.name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-            />
-            <div className="flex-1">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 pb-3">
-                    {teacher.name}
-                  </h1>
-                  <p className="text-green-600 font-medium text-sm">
-                    {teacher.tag || "Professional Teacher"}
-                  </p>
-                  <div className="flex items-center gap-2 text-gray-600 text-sm mt-1">
-                    <span>Visited 11 hours ago</span>
-                    <span>Teaches</span>
-                    <span className="text-gray-800 font-medium">
-                      {teacher.nativeLanguage || "English"}
-                      <span className="ml-1 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                        Native
-                      </span>
-                    </span>
-                  </div>
-                  <div className="mt-2 text-gray-600 text-sm">
-                    <span>Speaks</span>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {teacher.subjects && teacher.subjects.length > 0 ? (
-                        teacher.subjects.map((subject, index) => (
-                          <div key={index} className="flex items-center gap-1">
-                            <span className="text-blue-600 font-medium">
-                              {subject.name}
-                            </span>
-                            <div className="flex gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <div
-                                  key={i}
-                                  className={`w-1 h-4 rounded-full ${
-                                    i < subject.level
-                                      ? "bg-blue-600"
-                                      : "bg-gray-200"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-gray-600">
-                          No additional languages
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <button className="text-gray-600 hover:text-red-500">
-                  <FaHeart className="w-5 h-5" />
-                </button>
-              </div>
+const LargeAvatar = styled(Avatar)(({ theme }) => ({
+    width: theme.spacing(18),
+    height: theme.spacing(18),
+    margin: '0 auto 16px',
+    border: '4px solid white',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    fontSize: '3.5rem',
+    backgroundColor: '#c4c4c4',
+    color: 'white',
+}));
 
-              <div className="mt-6 border-b border-gray-200">
-                <div className="flex gap-4 text-sm font-medium text-gray-600">
-                  {[
-                    "About Me",
-                    "Me as a Teacher",
-                    "My lessons & teaching style",
-                    "Resume & Certificates",
-                  ].map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`pb-2 px-1 ${
-                        activeTab === tab
-                          ? "border-b-2 border-red-500 text-gray-800"
-                          : "hover:text-gray-800"
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-              </div>
+const SectionTitle = styled(Typography)(({ theme }) => ({
+    position: 'relative',
+    paddingBottom: theme.spacing(1.5),
+    marginBottom: theme.spacing(2),
+    fontWeight: 600,
+    color: '#333333',
+    '&:after': {
+        content: '""',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        width: '40px',
+        height: '3px',
+        backgroundColor: theme.palette.primary.main,
+    },
+}));
 
-              <div className="mt-4">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeTab}
-                    variants={tabVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={{ duration: 0.3 }}
-                  >
-                    {activeTab === "About Me" && (
-                      <>
-                        <p className="text-gray-700 text-sm">
-                          From{" "}
-                          <span className="font-medium">{teacher.address}</span>
-                        </p>
-                        <p className="text-gray-700 text-sm mt-2">
-                          Italki teacher since{" "}
-                          <span className="font-medium">Oct 20, 2021</span>{" "}
-                          {/* Placeholder */}
-                        </p>
-                        <h3 className="text-gray-800 font-semibold mt-4">
-                          About Me
-                        </h3>
-                        <p className="text-gray-700 text-sm mt-2">
-                          Interests:{" "}
-                          {interests.map((interest, index) => (
-                            <span
-                              key={index}
-                              className="inline-block bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded mr-1"
-                            >
-                              {interest}
-                            </span>
-                          ))}
-                        </p>
-                        <p className="text-gray-700 text-sm mt-4 leading-relaxed">
-                          Hello! I’m {teacher.name}, a passionate tutor from{" "}
-                          {teacher.address}. I specialize in teaching{" "}
-                          {teacher.nativeLanguage}
-                          {teacher.subjects && teacher.subjects.length > 0
-                            ? ` and ${teacher.subjects
-                                .map((s) => s.name)
-                                .join(", ")}`
-                            : ""}
-                          . I’m TEFL certified and have taught over{" "}
-                          {teacher.lessons} lessons to {teacher.students}{" "}
-                          students. My teaching style is interactive and
-                          tailored to each student’s needs. Let’s learn
-                          together!
-                        </p>
-                        <button className="text-blue-600 text-sm mt-2 hover:underline">
-                          Read more
-                        </button>
-                      </>
-                    )}
-                    {activeTab === "Me as a Teacher" && (
-                      <p className="text-gray-700 text-sm leading-relaxed">
-                        As a teacher, I focus on creating a supportive and
-                        engaging environment. I adapt my lessons to suit each
-                        student’s learning style, ensuring they feel confident
-                        and motivated. {/* Placeholder */}
-                      </p>
-                    )}
-                    {activeTab === "My lessons & teaching style" && (
-                      <p className="text-gray-700 text-sm leading-relaxed">
-                        My lessons are interactive and student-centered. I use a
-                        mix of conversation practice, grammar exercises, and
-                        cultural insights to make learning fun and effective.{" "}
-                        {/* Placeholder */}
-                      </p>
-                    )}
-                    {activeTab === "Resume & Certificates" && (
-                      <div>
-                        <p className="text-gray-700 text-sm">
-                          Teacher ID: {teacher.id}
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {teacher.certifications &&
-                          teacher.certifications.length > 0 ? (
-                            teacher.certifications.map((cert, index) => (
-                              <span
-                                key={index}
-                                className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
-                              >
-                                {cert}
-                              </span>
-                            ))
-                          ) : (
-                            <p className="text-gray Ensino-700 text-sm">
-                              No certifications specified
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-        </div>
+const VerificationBadge = styled(Box)(({ status, theme }) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing(0.5, 1.5),
+    borderRadius: '16px',
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    ...(status === 0 && {
+        backgroundColor: '#fff7ed',
+        color: '#9a3412',
+    }),
+    ...(status === 1 && {
+        backgroundColor: '#f0f7ff',
+        color: '#1e429f',
+    }),
+    ...(status === 2 && {
+        backgroundColor: '#dcfce7',
+        color: '#166534',
+    }),
+}));
 
-        <div className="md:w-100">
-          {/* Consider adjusting width if needed */}
-          <div className="relative rounded-lg overflow-hidden shadow-md">
-            <iframe
-              src={
-                teacher.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ" // Changed placeholder to a generic embed
-              }
-              title={`${teacher.name} Introduction Video`}
-              className="w-full h-48" // Adjust height as necessary
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </div>
-          <div className="mt-4 space-y-3">
-            <p className="text-gray-800 font-semibold text-sm">Trial Lesson</p>
-            <p className="text-red-500 font-bold text-lg">
-              USD {(parseFloat(teacher.price) * 0.5).toFixed(2)}{" "}
-              {/* Placeholder price calculation */}
-            </p>
-            <button
-              onClick={handleBookLesson}
-              className="w-full bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition"
-            >
-              Book Lesson
-            </button>
-            <button
-              // Use the new handler for contacting
-              onClick={handleContactTeacher}
-              className="w-full bg-gray-100 text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-200 transition"
-            >
-              Contact teacher
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <p className="text-2xl font-bold text-gray-800">
-            {teacher.rating ? teacher.rating.toFixed(1) : "N/A"}{" "}
-            {/* Added check */}
-          </p>
-          <div className="flex justify-center gap-1 mt-1">
-            {[...Array(5)].map((_, i) => (
-              <FaStar
-                key={i}
-                className={
-                  teacher.rating && i < Math.round(teacher.rating)
-                    ? "text-yellow-400"
-                    : "text-gray-300"
-                }
-              />
-            ))}
-          </div>
-          <p className="text-gray-600 mt-2">Rating</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaUsers className="text-blue-500" /> {teacher.students || 0}
-          </p>
-          <p className="text-gray-600 mt-2">Students</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaBook className="text-blue-500" /> {teacher.lessons || 0}
-          </p>
-          <p className="text-gray-600 mt-2">Lessons</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaClock className="text-blue-500" />{" "}
-            {teacher.responseRate || "N/A"}
-          </p>
-          <p className="text-gray-600 mt-2">Response Rate</p>
-        </div>
-      </div>
-
-      <div className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-800">
-          Lesson Packages
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-          {/* Added checks for teacher.price before parseFloat */}
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition">
-            <p className="text-lg font-semibold text-gray-800">Trial Lesson</p>
-            <p className="text-red-500 font-bold mt-2">
-              USD{" "}
-              {teacher.price
-                ? (parseFloat(teacher.price) * 0.5).toFixed(2)
-                : "N/A"}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition">
-            <p className="text-lg font-semibold text-gray-800">
-              Standard Lesson
-            </p>
-            <p className="text-red-500 font-bold mt-2">
-              USD {teacher.price ? parseFloat(teacher.price).toFixed(2) : "N/A"}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition">
-            <p className="text-lg font-semibold text-gray-800">
-              Premium Package (5 Lessons)
-            </p>
-            <p className="text-red-500 font-bold mt-2">
-              USD{" "}
-              {teacher.price
-                ? (parseFloat(teacher.price) * 5 * 0.9).toFixed(2)
-                : "N/A"}
-            </p>
-            <p className="text-gray-600 text-sm mt-1">10% Discount!</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-800">Availability</h2>
-        <div className="mt-4 overflow-x-auto border border-gray-200 rounded-lg">
-          <div className="grid grid-cols-8 min-w-[600px]">
-            {/* Top-left empty cell */}
-            <div className="text-sm font-medium text-gray-600 border-b border-r border-gray-200"></div>
-            {/* Day and Date Headers */}
-            {availabilityDays.map((day, index) => (
-              <div
-                key={day}
-                className="text-center text-sm font-medium text-gray-800 py-2 border-b border-gray-200 last:border-r-0"
-              >
-                {day}
-                <br />
-                <span className="text-xs text-gray-600">
-                  {availabilityDates[index]}
-                </span>
-              </div>
-            ))}
-            {/* Availability Grid Cells */}
-            {timeRanges.map((timeRange) => (
-              <React.Fragment key={timeRange}>
-                <div className="text-sm text-gray-600 py-2 px-2 border-r border-b border-gray-200 last:border-b-0 flex items-center">
-                  {timeRange}
-                </div>
-                {availabilityDays.map((day) => {
-                  const dayAbbrev = day.toLowerCase(); // Get lowercase abbreviation
-                  const isAvailable =
-                    availabilityData[timeRange]?.[dayAbbrev] === true;
-
-                  return (
-                    <div
-                      key={`${timeRange}-${day}`}
-                      className={`h-12 border border-gray-200 last:border-b-0 ${
-                        isAvailable
-                          ? // ? "bg-green-400 cursor-pointer hover:bg-green-500"
-                            // : "bg-gray-100"
-                            "bg-gray-100"
-                          : "bg-green-400 cursor-pointer hover:bg-green-500"
-                      } ${
-                        day === availabilityDays[availabilityDays.length - 1]
-                          ? "border-r border-gray-200"
-                          : ""
-                      }`}
-                    >
-                      {/* You could add an onClick handler here to select a slot */}
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-500">
-            Based on your timezone (UTC+07:00)
-          </div>
-          <button
-            onClick={handleBookLesson} // This button could navigate to the booking flow with selected time slot
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
-          >
-            Schedule lesson
-          </button>
-        </div>
-      </div>
-
-      {/* Assuming ReviewsSection is a separate component */}
-      <ReviewsSection teacher={teacher} />
-
-      <div className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-          Recommended Tutors
-        </h2>
-        {tutors.length > 0 ? (
-          <Slider {...sliderSettings}>
-            {tutors.map((tutor) => (
-              <div key={tutor.id} className="px-3">
-                <TutorCard
-                  tutor={{
-                    id: tutor.id,
-                    name: tutor.name,
-                    subjects:
-                      Array.isArray(tutor.subjects) && tutor.subjects.length > 0
-                        ? tutor.subjects
-                            .map((subject) => subject.name)
-                            .join(", ")
-                        : "N/A",
-                    rating: tutor.rating,
-                    reviews: tutor.ratingCount,
-                    price: parseFloat(tutor.price) || 0,
-                    imageUrl: tutor.imageUrl,
-                    description: tutor.description,
-                    address: tutor.address,
-                  }}
-                  user={user}
-                  onRequireLogin={onRequireLogin}
-                />
-              </div>
-            ))}
-          </Slider>
-        ) : (
-          <p className="text-center text-gray-500">
-            No recommended tutors available at this time.
-          </p>
-        )}
-        <div className="mt-6 text-center">
-          <button
-            onClick={handleClick}
-            className="bg-[#333333] hover:bg-black text-white font-bold py-2 px-6 rounded-lg transition duration-150 ease-in-out"
-          >
-            <div className="flex items-center justify-center">
-              Xem thêm <FaArrowRight className="ml-2" />{" "}
-              {/* "See more" in Vietnamese */}
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+const getProficiencyLabel = (level) => {
+    switch (level) {
+        case 1: return "Beginner (A1)";
+        case 2: return "Elementary (A2)";
+        case 3: return "Intermediate (B1)";
+        case 4: return "Upper Intermediate (B2)";
+        case 5: return "Advanced (C1)";
+        case 6: return "Proficient (C2)";
+        case 7: return "Native";
+        default: return "Unknown";
+    }
 };
 
-export default TutorProfile;
+const getLanguageName = (code) => {
+    const languages = {
+        'en': 'English',
+        'vi': 'Vietnamese',
+        'fr': 'French',
+        'ja': 'Japanese',
+        'ko': 'Korean',
+        'zh': 'Chinese',
+        'es': 'Spanish',
+        'de': 'German',
+        'it': 'Italian',
+        'ru': 'Russian',
+        'pt': 'Portuguese',
+        'ar': 'Arabic',
+        'hi': 'Hindi',
+        'th': 'Thai',
+        'id': 'Indonesian',
+        'nl': 'Dutch'
+    };
+    return languages[code] || code;
+};
+
+const getVerificationStatus = (status) => {
+    switch (status) {
+        case 0: return { label: "Pending Verification", color: '#b45309' };
+        case 1: return { label: "Under Review", color: '#1e429f' };
+        case 2: return { label: "Verified", color: '#166534' };
+        default: return { label: "Unknown Status", color: '#64748b' };
+    }
+};
+
+const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
+    const { id } = useParams();
+    const [tutorData, setTutorData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [timeSlots, setTimeSlots] = useState([]);
+
+    // Fetch tutor data when component mounts
+    useEffect(() => {
+        const fetchTutorData = async () => {
+            setLoading(true);
+            try {
+                if (!fetchTutorDetail) {
+                    throw new Error("Fetch tutor detail function not provided");
+                }
+
+                const response = await fetchTutorDetail(id);
+                console.log("Tutor data:", response);
+
+                if (response && response.data) {
+                    setTutorData(response.data);
+                    // If there are availability slots, set them
+                    if (response.data.availabilityPatterns && response.data.availabilityPatterns.length > 0) {
+                        setTimeSlots(response.data.availabilityPatterns);
+                    }
+                } else {
+                    throw new Error("Invalid data format received from server");
+                }
+            } catch (error) {
+                console.error("Error fetching tutor data:", error);
+                setError(error.message || "Failed to load tutor profile");
+                if (error.message === "Authentication token is required") {
+                    onRequireLogin && onRequireLogin();
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTutorData();
+    }, [id, fetchTutorDetail, onRequireLogin]);
+
+    if (loading) {
+        return (
+            <Container sx={{ py: 8, textAlign: 'center' }}>
+                <CircularProgress size={60} />
+                <Typography variant="h6" sx={{ mt: 2 }}>Loading tutor profile...</Typography>
+            </Container>
+        );
+    }
+
+    if (error) {
+        return (
+            <Container sx={{ py: 8 }}>
+                <Alert severity="error" sx={{ mb: 4 }}>
+                    {error}
+                </Alert>
+                <Button
+                    variant="contained"
+                    component={Link}
+                    to="/languages"
+                    sx={{ mt: 2 }}
+                >
+                    Return to Tutor List
+                </Button>
+            </Container>
+        );
+    }
+
+    if (!tutorData) {
+        return (
+            <Container sx={{ py: 8 }}>
+                <Alert severity="warning">
+                    No tutor data available. The tutor may have been removed or is no longer active.
+                </Alert>
+                <Button
+                    variant="contained"
+                    component={Link}
+                    to="/languages"
+                    sx={{ mt: 2 }}
+                >
+                    Return to Tutor List
+                </Button>
+            </Container>
+        );
+    }
+
+    const verificationInfo = getVerificationStatus(tutorData.verificationStatus);
+
+    return (
+        <Container maxWidth="lg" sx={{ py: 4, backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+            <Grid container spacing={4}>
+                {/* Left Column */}
+                <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <StyledPaper sx={{ textAlign: 'center', position: 'relative', p: 4, width: '100%' }}>
+                        <Box sx={{ position: 'relative', pb: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                                {tutorData.profilePictureUrl ? (
+                                    <LargeAvatar src={tutorData.profilePictureUrl} alt={tutorData.fullName} />
+                                ) : (
+                                    <LargeAvatar>{tutorData.fullName ? tutorData.fullName.charAt(0).toUpperCase() : "N"}</LargeAvatar>
+                                )}
+                            </Box>
+
+                            <Typography variant="h5" sx={{ mt: 2, fontWeight: 600, color: '#1e293b', width: '100%', textAlign: 'center' }}>
+                                {tutorData.nickName || tutorData.fullName}
+                            </Typography>
+
+                            {tutorData.nickName && tutorData.fullName !== tutorData.nickName && (
+                                <Typography variant="body2" sx={{ mt: 0.5, color: '#64748b', width: '100%', textAlign: 'center' }}>
+                                    ({tutorData.fullName})
+                                </Typography>
+                            )}
+
+                            <Box sx={{ mt: 2, width: '100%', display: 'flex', justifyContent: 'center' }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: verificationInfo.color,
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    {verificationInfo.label}
+                                </Typography>
+                            </Box>
+                        </Box>
+
+                        <Divider sx={{ my: 3 }} />
+
+                        <Box sx={{ textAlign: 'left', width: '100%' }}>
+                            <SectionTitle variant="h6">Email</SectionTitle>
+                            <Typography variant="body2" sx={{ color: '#64748b', wordBreak: 'break-word' }}>
+                                {tutorData.email}
+                            </Typography>
+                        </Box>
+
+                        <Divider sx={{ my: 3 }} />
+
+                        <Box sx={{ textAlign: 'left', width: '100%' }}>
+                            <SectionTitle variant="h6">Teaching Languages</SectionTitle>
+                            {tutorData.languages && tutorData.languages.length > 0 ? (
+                                tutorData.languages.map((lang, index) => (
+                                    <Box key={index} sx={{
+                                        mb: 2,
+                                        p: 2,
+                                        backgroundColor: '#f8fafc',
+                                        borderRadius: '8px',
+                                        border: '1px solid #e2e8f0'
+                                    }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Typography
+                                                variant="body1"
+                                                sx={{
+                                                    fontWeight: 600,
+                                                    color: '#334155'
+                                                }}
+                                            >
+                                                {getLanguageName(lang.languageCode)}
+                                            </Typography>
+                                            {lang.isPrimary && (
+                                                <Chip
+                                                    label="Primary"
+                                                    size="small"
+                                                    sx={{
+                                                        height: '20px',
+                                                        fontSize: '0.625rem',
+                                                        backgroundColor: '#dbeafe',
+                                                        color: '#1e40af',
+                                                        fontWeight: 600
+                                                    }}
+                                                />
+                                            )}
+                                        </Box>
+                                        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
+                                            <Rating
+                                                value={lang.proficiency}
+                                                max={7}
+                                                readOnly
+                                                size="small"
+                                                sx={{
+                                                    mr: 1,
+                                                    '& .MuiRating-iconFilled': {
+                                                        color: '#f59e0b',
+                                                    }
+                                                }}
+                                            />
+                                            <Typography variant="body2" sx={{ color: '#64748b' }}>
+                                                {getProficiencyLabel(lang.proficiency)}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                ))
+                            ) : (
+                                <Typography variant="body2" sx={{ color: '#64748b', fontStyle: 'italic' }}>
+                                    No language information available
+                                </Typography>
+                            )}
+                        </Box>
+
+                        <Box sx={{ mt: 4, width: '100%' }}>
+                            <StyledButton
+                                variant="contained"
+                                fullWidth
+                                disabled={tutorData.verificationStatus !== 2}
+                                sx={{
+                                    py: 1.5,
+                                    backgroundColor: '#e2e8f0',
+                                    color: '#64748b',
+                                    '&:hover': {
+                                        backgroundColor: '#e2e8f0',
+                                    }
+                                }}
+                            >
+                                BOOK A LESSON
+                            </StyledButton>
+
+                            {tutorData.verificationStatus !== 2 && (
+                                <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#64748b', textAlign: 'center' }}>
+                                    Booking will be available once the tutor is verified
+                                </Typography>
+                            )}
+                        </Box>
+                    </StyledPaper>
+
+                    <StyledPaper sx={{ width: '100%' }}>
+                        <SectionTitle variant="h6">Certifications & Skills</SectionTitle>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', mt: 2 }}>
+                            {tutorData.hashtags && tutorData.hashtags.length > 0 ? (
+                                tutorData.hashtags.map((tag) => (
+                                    <Chip
+                                        key={tag.id}
+                                        label={tag.name}
+                                        title={tag.description}
+                                        sx={{
+                                            backgroundColor: '#f1f5f9',
+                                            color: '#0f172a',
+                                            borderRadius: '4px',
+                                            height: '32px',
+                                            fontWeight: 500,
+                                            border: '1px solid #e2e8f0'
+                                        }}
+                                    />
+                                ))
+                            ) : (
+                                <Typography variant="body2" sx={{ color: '#64748b', fontStyle: 'italic' }}>
+                                    No certifications listed
+                                </Typography>
+                            )}
+                        </Box>
+                    </StyledPaper>
+                </Grid>
+
+                {/* Right Column */}
+                <Grid item xs={12} md={8}>
+                    <StyledPaper>
+                        <SectionTitle variant="h6">About Me</SectionTitle>
+                        {tutorData.brief && (
+                            <Typography
+                                variant="body1"
+                                sx={{
+                                    mb: 3,
+                                    fontWeight: 500,
+                                    color: '#334155',
+                                    fontStyle: 'italic'
+                                }}
+                            >
+                                "{tutorData.brief}"
+                            </Typography>
+                        )}
+
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line', color: '#334155' }}>
+                            {tutorData.description || "No description provided."}
+                        </Typography>
+                    </StyledPaper>
+
+                    <StyledPaper>
+                        <SectionTitle variant="h6">Teaching Method</SectionTitle>
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line', color: '#334155' }}>
+                            {tutorData.teachingMethod || "No teaching method information provided."}
+                        </Typography>
+                    </StyledPaper>
+
+                    <StyledPaper>
+                        <SectionTitle variant="h6">Availability Schedule</SectionTitle>
+
+                        {timeSlots && timeSlots.length > 0 ? (
+                            <TableContainer>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell sx={{ fontWeight: 600, color: '#334155' }}>Day</TableCell>
+                                            <TableCell sx={{ fontWeight: 600, color: '#334155' }}>Time</TableCell>
+                                            <TableCell sx={{ fontWeight: 600, color: '#334155' }}>Status</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {timeSlots.map((slot, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell>{slot.dayOfWeek}</TableCell>
+                                                <TableCell>{`${slot.startTime} - ${slot.endTime}`}</TableCell>
+                                                <TableCell>
+                                                    <StyledChip
+                                                        label={slot.isAvailable ? "Available" : "Unavailable"}
+                                                        color={slot.isAvailable ? "success" : "error"}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        ) : (
+                            <Alert severity="info" sx={{ mt: 2 }}>
+                                This tutor hasn't set their availability schedule yet.
+                            </Alert>
+                        )}
+                    </StyledPaper>
+
+                    <StyledPaper>
+                        <SectionTitle variant="h6">FAQs</SectionTitle>
+
+                        <Accordion sx={{ mb: 2, boxShadow: 'none', border: '1px solid #e2e8f0', borderRadius: '8px !important' }}>
+                            <AccordionSummary
+                                expandIcon={"▼"}
+                                sx={{ borderRadius: '8px' }}
+                            >
+                                <Typography sx={{ fontWeight: 500 }}>How do I book a lesson with this tutor?</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Typography variant="body2" color="text.secondary">
+                                    You can book a lesson by clicking the "Book a Lesson" button on the tutor's profile. Select an available time slot from the tutor's schedule and confirm your booking.
+                                </Typography>
+                            </AccordionDetails>
+                        </Accordion>
+
+                        <Accordion sx={{ mb: 2, boxShadow: 'none', border: '1px solid #e2e8f0', borderRadius: '8px !important' }}>
+                            <AccordionSummary
+                                expandIcon={"▼"}
+                                sx={{ borderRadius: '8px' }}
+                            >
+                                <Typography sx={{ fontWeight: 500 }}>What payment methods are accepted?</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Typography variant="body2" color="text.secondary">
+                                    We accept credit/debit cards, PayPal, and bank transfers for payments. All transactions are secure and encrypted.
+                                </Typography>
+                            </AccordionDetails>
+                        </Accordion>
+
+                        <Accordion sx={{ boxShadow: 'none', border: '1px solid #e2e8f0', borderRadius: '8px !important' }}>
+                            <AccordionSummary
+                                expandIcon={"▼"}
+                                sx={{ borderRadius: '8px' }}
+                            >
+                                <Typography sx={{ fontWeight: 500 }}>What is the cancellation policy?</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Typography variant="body2" color="text.secondary">
+                                    You can cancel or reschedule a lesson up to 24 hours before the scheduled time without any penalty. Late cancellations may result in a partial charge.
+                                </Typography>
+                            </AccordionDetails>
+                        </Accordion>
+                    </StyledPaper>
+                </Grid>
+            </Grid>
+        </Container>
+    );
+};
+
+export default TutorProfile; 

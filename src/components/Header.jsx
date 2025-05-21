@@ -14,7 +14,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
 
   useEffect(() => {
     if (user?.profileImageUrl) {
-      const urlWithTimestamp = user.profileImageUrl.includes('?')
+      const urlWithTimestamp = user.profileImageUrl.includes("?")
         ? user.profileImageUrl
         : `${user.profileImageUrl}?t=${Date.now()}`;
 
@@ -31,11 +31,11 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
     const handleStorageChange = () => {
       console.log("Storage change detected - checking for user updates");
       try {
-        const updatedUser = JSON.parse(localStorage.getItem('user'));
+        const updatedUser = JSON.parse(localStorage.getItem("user"));
         if (updatedUser && updatedUser.profileImageUrl) {
           const timestamp = Date.now();
           let newUrl = updatedUser.profileImageUrl;
-          if (!newUrl.includes('?')) {
+          if (!newUrl.includes("?")) {
             newUrl = `${newUrl}?t=${timestamp}`;
           }
 
@@ -56,9 +56,9 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
@@ -66,10 +66,13 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
     const handleAvatarUpdate = (event) => {
       console.log("Avatar update event received in Header:", event.detail);
       if (event.detail && event.detail.profileImageUrl) {
-        console.log("Setting new avatar URL in Header:", event.detail.profileImageUrl);
+        console.log(
+          "Setting new avatar URL in Header:",
+          event.detail.profileImageUrl
+        );
 
         let newUrl = event.detail.profileImageUrl;
-        if (!newUrl.includes('?')) {
+        if (!newUrl.includes("?")) {
           newUrl = `${newUrl}?t=${Date.now()}`;
         }
 
@@ -84,29 +87,29 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
           setAvatarKey(Date.now() + 1);
 
           if (imgRef.current) {
-            imgRef.current.src = newUrl + '&reload=' + Date.now();
+            imgRef.current.src = newUrl + "&reload=" + Date.now();
           }
         };
       }
     };
 
-    window.addEventListener('avatar-updated', handleAvatarUpdate);
+    window.addEventListener("avatar-updated", handleAvatarUpdate);
 
     return () => {
-      window.removeEventListener('avatar-updated', handleAvatarUpdate);
+      window.removeEventListener("avatar-updated", handleAvatarUpdate);
     };
   }, []);
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem('user');
+      const storedUser = localStorage.getItem("user");
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         if (parsedUser.profileImageUrl) {
           const timestamp = Date.now();
           let newUrl = parsedUser.profileImageUrl;
 
-          if (!newUrl.includes('?')) {
+          if (!newUrl.includes("?")) {
             newUrl = `${newUrl}?t=${timestamp}`;
           }
 
@@ -249,100 +252,115 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
 
           <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
-              <div className="relative" ref={dropdownRef}>
-                <div
-                  onClick={toggleDropdown}
-                  className="relative group flex items-center gap-1 sm:gap-1.5 p-0.5 focus:outline-none z-10 cursor-pointer"
-                  aria-expanded={isDropdownOpen}
-                  aria-label="User menu"
-                >
-                  <div className="absolute inset-0 bg-[#333333] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-150 -z-10"></div>
-                  <span className="p-1">
-                    <svg
-                      className="w-6 h-6 text-gray-700 group-hover:text-white transition-colors duration-150"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </span>
-                  <div className="relative rounded-full border border-gray-300 group-hover:border-transparent transition-colors duration-150">
-                    <img
-                      ref={imgRef}
-                      key={avatarKey}
-                      src={currentAvatar || "https://avatar.iran.liara.run/public"}
-                      alt="User avatar"
-                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover block"
-                      onError={(e) => {
-                        console.error("Image error in Header:", e.target.src);
-                        e.target.src = "https://avatar.iran.liara.run/public";
-                      }}
-                      referrerPolicy="no-referrer"
-                      crossOrigin="anonymous"
-                      style={{ maxWidth: '100%' }}
-                      loading="eager"
-                    />
-                  </div>
-                </div>
+              <>
+                <div className="text-black font-semibold">{`Welcome, ${user.name || user.fullName}`}</div>
+                <div className="relative" ref={dropdownRef}>
+                  <div
+                    onClick={toggleDropdown}
+                    className="relative group flex items-center gap-1 sm:gap-1.5 p-0.5 focus:outline-none z-10 cursor-pointer"
+                    aria-expanded={isDropdownOpen}
+                    aria-label="User menu"
+                  >
+                    <div className="absolute inset-0 bg-[#333333] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-150 -z-10"></div>
 
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div
-                      className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 origin-top-right"
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                      variants={dropdownVariants}
-                    >
-                      <Link
-                        to="/dashboard"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
-                        onClick={() => setIsDropdownOpen(false)}
+                    <span className="p-1">
+                      <svg
+                        className="w-6 h-6 text-gray-700 group-hover:text-white transition-colors duration-150"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
                       >
-                        My Dashboard
-                      </Link>
-                      <Link
-                        to="/messages"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        Messages & Lessons
-                      </Link>
-                      <Link
-                        to="/create-ad"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        Create an ad
-                      </Link>
-                      <div className="border-t border-gray-100 my-1"></div>
-                      <Link
-                        to={user && user.id ? `/user/${user.id}` : "/"}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        My Profile
-                      </Link>
-                      <button
-                        onClick={() => {
-                          onLogout();
-                          setIsDropdownOpen(false);
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    </span>
+                    <div className="relative rounded-full border border-gray-300 group-hover:border-transparent transition-colors duration-150">
+                      <img
+                        ref={imgRef}
+                        key={avatarKey}
+                        src={
+                          currentAvatar ||
+                          "https://avatar.iran.liara.run/public"
+                        }
+                        alt="User avatar"
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover block"
+                        onError={(e) => {
+                          console.error("Image error in Header:", e.target.src);
+                          e.target.src = "https://avatar.iran.liara.run/public";
                         }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        style={{ maxWidth: "100%" }}
+                        loading="eager"
+                      />
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {isDropdownOpen && (
+                      <motion.div
+                        className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 origin-top-right"
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        variants={dropdownVariants}
                       >
-                        Log Out
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                        <Link
+                          to="/dashboard"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          My Dashboard
+                        </Link>
+                        <Link
+                          to="/messages"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Messages & Lessons
+                        </Link>
+                        <Link
+                          to="/create-ad"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Create an ad
+                        </Link>
+                        <div className="border-t border-gray-100 my-1"></div>
+                        <Link
+                          to={user && user.id ? `/user/${user.id}` : "/"}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          My Profile
+                        </Link>
+                        <Link
+                          to={`/tutorprofile/${user?.id}`}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Tutor Profile
+                        </Link>
+
+                        <button
+                          onClick={() => {
+                            onLogout();
+                            setIsDropdownOpen(false);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Log Out
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </>
             ) : (
               <>
                 <button

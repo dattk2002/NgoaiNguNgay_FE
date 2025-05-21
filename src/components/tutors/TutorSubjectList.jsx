@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom"; // useNavigate is already imported
 
 // Assuming fetchTutorsBySubject returns data structured similarly to what's needed
-import { fetchTutorList } from "../api/auth";
+// Import fetchAllTutor instead
+import { fetchAllTutor } from "../api/auth";
 import LanguageImage from "../../assets/language_banner.png"
 
 import {
@@ -20,7 +21,8 @@ import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import { IoSearch } from "react-icons/io5";
-import CircularProgress from "@mui/material/CircularProgress";
+
+import TutorCard from "./TutorCard"; // Import the new component
 
 // --- Helper Function for Rendering Stars ---
 const renderStars = (rating) => {
@@ -42,24 +44,22 @@ const renderStars = (rating) => {
   );
 };
 
-// --- Mock Availability Data Structure (Adjust based on your actual data) ---
-const generateMockAvailability = () => {
-  const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-  // Using military time ranges for clarity
-  const times = ["00-04", "04-08", "08-12", "12-16", "16-20", "20-24"];
-  const availability = [];
-  days.forEach((day) => {
-    times.forEach((time) => {
-      availability.push({
-        day: day,
-        time: time,
-        // Randomly make some slots available for demo
-        available: Math.random() > 0.7,
-      });
-    });
-  });
-  return availability;
-};
+// --- Mock Availability Data Structure (Not needed if using real API) ---
+// const generateMockAvailability = () => {
+//   const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+//   const times = ["00-04", "04-08", "08-12", "12-16", "16-20", "20-24"];
+//   const availability = [];
+//   days.forEach((day) => {
+//     times.forEach((time) => {
+//       availability.push({
+//         day: day,
+//         time: time,
+//         available: Math.random() > 0.7,
+//       });
+//     });
+//   });
+//   return availability;
+// };
 
 const TutorSubjectList = () => {
   const { subject: initialSubject } = useParams();
@@ -70,7 +70,6 @@ const TutorSubjectList = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortOption, setSortOption] = useState("default"); // New state for sorting
   const [filters, setFilters] = useState({
     instantLesson: false,
     within72Hours: false,
@@ -98,66 +97,62 @@ const TutorSubjectList = () => {
         setLoading(true);
         setError(null);
 
-        // Use the new fetchTutorList function
-        const fetchedTeachersData = await fetchTutorList();
-        // The API returns an object with a 'data' property which is the array of tutors
-        const fetchedTeachers = fetchedTeachersData; // Directly use the data if it's already an array
+        // Call the new fetchAllTutor function
+        // fetchAllTutor should now return the array from the 'data' property
+        const fetchedTeachersData = await fetchAllTutor();
 
+        // Map the fetched array data to the structure expected by TutorCard
+        const processedTeachers = fetchedTeachersData.map((t) => {
+          const primaryLanguage = t.languages?.find((lang) => lang.isPrimary);
+          const otherLanguagesCount = (t.languages?.length || 0) - (primaryLanguage ? 1 : 0);
 
-        // *** Adapt to the new API structure ***
-        const processedTeachers = fetchedTeachers.map((t) => ({
-          // Map fields from the new API response
-          id: t.tutorId, // Changed from t.id
-          name: t.fullName, // Changed from t.name
-          imageUrl: t.profileImageUrl || "https://avatar.iran.liara.run/public", // Use profileImageUrl
-          tag: t.isProfessional ? "Professional Teacher" : "Community Tutor", // Example based on isProfessional
-          // nativeLanguage: findPrimaryLanguage(t.languages), // Helper function needed or simplify
-          nativeLanguage: t.languages?.find(lang => lang.isPrimary)?.languageCode?.toUpperCase() || "N/A",
-          
-          
-          otherLanguagesCount: t.languages?.filter(lang => !lang.isPrimary).length || 0,
-          rating: t.rating || (Math.random() * 1.5 + 3.5).toFixed(1), // Keep if not in API
+          return {
+            id: t.tutorId,
+            name: t.fullName,
+            imageUrl: t.profileImageUrl || "https://avatar.iran.liara.run/public",
+            rating: t.rating || 0,
+            nativeLanguage: primaryLanguage?.languageCode || "N/A",
+            otherLanguagesCount: otherLanguagesCount,
+            tag: t.isProfessional ? "Professional Teacher" : "Community Tutor",
 
-          // Fields that might still need mock data or be adjusted
-          lessons: t.lessons || Math.floor(Math.random() * 2000) + 50,
-          description:
-            t.description || // Assuming description is not in the new API
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-          price: t.price || (Math.random() * 50 + 20).toFixed(2), // Assuming price is not in the new API
-          availabilityText:
-            t.availabilityText ||
-            `Available ${Math.floor(Math.random() * 12) + 1}:00 ${
-              Math.random() > 0.5 ? "Today" : "Tomorrow"
-            }`,
-          videoUrl: t.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ", // Assuming videoUrl is not in new API
-          availabilityGrid: t.availabilityGrid || generateMockAvailability(),
-          badges:
-            t.badges ||
-            ["Test Preparation", "Business", "Kids"].slice(
-              0,
-              Math.floor(Math.random() * 4)
-            ),
-          languages: t.languages, // Add the original languages array
-        }));
+            // Fields NOT available in the new API response - using placeholders
+            lessons: 0,
+            description: "No description available.",
+            price: "N/A",
+            availabilityText: "Availability not specified",
+            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            availabilityGrid: [],
+            badges: [],
+          };
+        });
 
-        
+        // Filter by subject AFTER fetching all tutors
+        const filteredBySubject = initialSubject
+          ? processedTeachers.filter(
+              (tutor) =>
+                tutor.nativeLanguage.toLowerCase() ===
+                initialSubject.toLowerCase()
+            )
+          : processedTeachers;
 
-        if (processedTeachers.length === 0) {
-          // setError(`No tutors found for ${subject}`); // Subject might not be relevant anymore for the initial fetch
-          setError(`No tutors found.`);
+        if (filteredBySubject.length === 0) {
+          setError(`No tutors found for ${initialSubject || "selected criteria"}`);
+          setTeachers([]);
         } else {
-          setTeachers(processedTeachers);
+          setTeachers(filteredBySubject);
         }
+
       } catch (error) {
-        console.error("Error fetching tutors:", error); // Generic error message
-        setError("Failed to load tutors. Please try again later.");
+        console.error("Error fetching all tutors in component:", error);
+        // The error thrown by fetchAllTutor will be caught here
+        setError(error.message || "Failed to load tutors. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
     getTutors();
-  }, []); // Removed subject from dependency array as fetchTutorList doesn't take subject
+  }, [initialSubject]);
 
   // --- Hover Handlers ---
   const handleMouseEnter = (teacher) => {
@@ -266,69 +261,34 @@ const TutorSubjectList = () => {
     navigate(`/tutor/${newSubject}`); // Navigate to the new subject route
   };
 
-  // --- Handle Sort Change ---
-  const handleSortChange = (event) => {
-    setSortOption(event.target.value);
-  };
+  // --- Filtered Teachers (Apply actual filtering logic here) ---
+  const filteredTeachers = teachers.filter((teacher) => {
+    // Example: Filter by search term (case-insensitive)
+    const searchTermLower = filters.searchTerm.toLowerCase();
+    const nameMatch = teacher.name.toLowerCase().includes(searchTermLower);
 
-  // --- Sorted and Filtered Teachers ---
-  const sortedAndFilteredTeachers = teachers
-    .slice() // Create a shallow copy to avoid mutating the original array
-    .sort((a, b) => {
-      if (sortOption === "nativeLanguageAsc") {
-        return (a.nativeLanguage || "").localeCompare(b.nativeLanguage || "");
-      }
-      if (sortOption === "nativeLanguageDesc") {
-        return (b.nativeLanguage || "").localeCompare(a.nativeLanguage || "");
-      }
-      if (sortOption === "subjectPrimary") { // Handle the new sort option
-        const subjectLower = subject.toLowerCase();
-        // Check if the subject is primary for tutor 'a'
-        const aIsSubjectPrimary = a.languages?.some(lang =>
-          lang.languageCode?.toLowerCase() === subjectLower && lang.isPrimary
-        );
-        // Check if the subject is primary for tutor 'b'
-        const bIsSubjectPrimary = b.languages?.some(lang =>
-          lang.languageCode?.toLowerCase() === subjectLower && lang.isPrimary
-        );
+    // Add more complex matching for course/interests if needed
+    const descriptionMatch = teacher.description
+      .toLowerCase()
+      .includes(searchTermLower);
+    // Ensure teacher.subjects is an array before using some
+    const subjectMatch = Array.isArray(teacher.subjects)
+      ? teacher.subjects.some((sub) =>
+          sub.name.toLowerCase().includes(searchTermLower)
+        )
+      : false;
 
-        // Sort: primary tutors first (true before false)
-        if (aIsSubjectPrimary !== bIsSubjectPrimary) {
-          return bIsSubjectPrimary - aIsSubjectPrimary; // True (1) comes before False (0)
-        }
+    const searchMatch =
+      !searchTermLower || nameMatch || descriptionMatch || subjectMatch;
 
-        // If primary status is the same, sort alphabetically by name (optional, but good fallback)
-        return a.name.localeCompare(b.name);
-      }
-      return 0; // Default: no sorting or original order
-    })
-    .filter((teacher) => {
-      // Example: Filter by search term (case-insensitive)
-      const searchTermLower = filters.searchTerm.toLowerCase();
-      const nameMatch = teacher.name.toLowerCase().includes(searchTermLower);
+    // Add other filter conditions here (e.g., price, availability checkboxes)
+    // const instantLessonMatch = !filters.instantLesson || teacher.offersInstantLesson; // Assuming teacher obj has this
+    // const within72HoursMatch = !filters.within72Hours || teacher.availableWithin72Hours; // Assuming teacher obj has this
 
-      // Add more complex matching for course/interests if needed
-      const descriptionMatch = teacher.description
-        .toLowerCase()
-        .includes(searchTermLower);
-      // Ensure teacher.subjects is an array before using some
-      const subjectMatch = Array.isArray(teacher.subjects)
-        ? teacher.subjects.some((sub) =>
-            sub.name.toLowerCase().includes(searchTermLower)
-          )
-        : false;
-
-      const searchMatch =
-        !searchTermLower || nameMatch || descriptionMatch || subjectMatch;
-
-      // Add other filter conditions here (e.g., price, availability checkboxes)
-      // const instantLessonMatch = !filters.instantLesson || teacher.offersInstantLesson; // Assuming teacher obj has this
-      // const within72HoursMatch = !filters.within72Hours || teacher.availableWithin72Hours; // Assuming teacher obj has this
-
-      // Combine all filter conditions
-      return searchMatch;
-      /* && instantLessonMatch && within72HoursMatch */
-    });
+    // Combine all filter conditions
+    return searchMatch;
+    /* && instantLessonMatch && within72HoursMatch */
+  });
 
   // --- Loading and Error States ---
   const handleCardClick = (id) => {
@@ -339,7 +299,10 @@ const TutorSubjectList = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <CircularProgress sx={{ color: '#000' }} />
+        <svg className="animate-spin h-8 w-8 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"></path>
+        </svg>
       </div>
     );
   }
@@ -422,50 +385,16 @@ const TutorSubjectList = () => {
                 </InputAdornment>
               ),
             }}
-            // Make search input take full width on small screens, constrained on larger
-            sx={{ backgroundColor: "white", width: "100%", maxWidth: { xs: "100%", md: "300px" } }}
+            sx={{ backgroundColor: "white", width: "100%", maxWidth: "300px" }}
           />
-          {/* Sort Dropdown */}
-          <Select
-            value={sortOption}
-            onChange={handleSortChange}
-            variant="outlined"
-            size="small"
-            displayEmpty
-            renderValue={(value) => {
-              if (value === "default") {
-                return <em className="not-italic">Sort by...</em>;
-              }
-              if (value === "nativeLanguageAsc") {
-                return "Native Language (A-Z)";
-              }
-              if (value === "nativeLanguageDesc") {
-                return "Native Language (Z-A)";
-              }
-              if (value === "subjectPrimary") { // New sort option display text
-                return `${subject.charAt(0).toUpperCase() + subject.slice(1)} (Primary First)`;
-              }
-              return value;
-            }}
-            sx={{ minWidth: 180, backgroundColor: "white" }}
-          >
-            <MenuItem value="default">
-              <em>Default</em>
-            </MenuItem>
-            <MenuItem value="nativeLanguageAsc">Native Language (A-Z)</MenuItem>
-            <MenuItem value="nativeLanguageDesc">Native Language (Z-A)</MenuItem>
-            <MenuItem value="subjectPrimary">{subject.charAt(0).toUpperCase() + subject.slice(1)} (Primary First)</MenuItem> {/* New sort option */}
-            {/* Add other sort options here */}
-          </Select>
         </div>
       </div>
 
       {/* === Filters & Main Content Area === */}
-      {/* Adjusted main layout to potentially have tutor list and hover area side-by-side on medium+ screens */}
-      <div className="max-w-7xl mx-auto relative flex flex-col md:flex-row gap-8">
+      <div className="max-w-7xl mx-auto relative">
         {/* Keep relative for positioning tutor list */}
-        {/* Filter Buttons Row - kept within the original flow, maybe move to a sidebar on large screens later if needed */}
-        <div className="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-200 md:hidden"> {/* Hide filter buttons row on md+ */}
+        {/* Filter Buttons Row */}
+        <div className="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-200">
           {/* Example Filter Buttons - Replace with actual filter components (e.g., Menus, Popovers) */}
           <Button
             variant="outlined"
@@ -542,11 +471,9 @@ const TutorSubjectList = () => {
         </div>
 
         {/* Content Layout: Tutor List primarily */}
-        {/* Made the tutor list container take full width on small screens */}
-        <div className="flex flex-col gap-6 flex-1"> {/* flex-1 allows it to grow in the row layout */}
+        <div className="flex flex-col gap-8">
           {/* Intro Text & Availability Filters */}
-          {/* Stack intro text and filters vertically on small screens */}
-          <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+          <div className="flex justify-between items-start mb-6">
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 Improve your {subject} language skills with personalized online
@@ -558,7 +485,7 @@ const TutorSubjectList = () => {
                 language in a fun and interactive way.
               </p>
             </div>
-            <div className="flex flex-col gap-2 md:pl-4 flex-shrink-0 mt-4 md:mt-0"> {/* Added margin top on small screens */}
+            <div className="flex flex-col gap-2 pl-4 flex-shrink-0">
               <label className="flex items-center gap-2 text-sm text-black whitespace-nowrap">
                 <input
                   type="checkbox"
@@ -584,201 +511,26 @@ const TutorSubjectList = () => {
 
           {/* Tutor List */}
           <div className="flex flex-col gap-6">
-            {sortedAndFilteredTeachers.map((teacher) => (
-              <div
+            {filteredTeachers.map((teacher) => (
+              <TutorCard
                 key={teacher.id}
-                // Adjusted width to be full on small, md:w-[80%] on medium and up
-                className="relative flex cursor-pointer w-full md:w-[100%]"
-                // Disable hover effects on small screens
-                onMouseEnter={window.innerWidth >= 768 ? () => handleMouseEnter(teacher) : null}
-                onMouseLeave={window.innerWidth >= 768 ? handleMouseLeave : null}
-                onClick={() => handleCardClick(teacher.id)}
-                // Assign ref to the tutor card element
-                ref={(el) => (tutorCardRefs.current[teacher.id] = el)}
-              >
-                {/* Tutor Card */}
-                {/* Added z-10 to ensure card is above hover box */}
-                <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex gap-4 w-full hover:shadow-md transition-shadow duration-200 z-10 lg:max-w-screen-lg"> {/* Made the inner card full width */}
-                  {/* Left Part: Avatar & Rating */}
-                  <div className="flex flex-col items-center w-20 flex-shrink-0">
-                    <img
-                      src={teacher.imageUrl}
-                      alt={teacher.name}
-                      className="w-16 h-16 rounded-full object-cover mb-2 border border-gray-200"
-                    />
-                    {renderStars(teacher.rating)}
-                    <span className="text-xs text-gray-500 mt-1 text-center"> {/* Added text-center for small screens */}
-                      {teacher.rating} ({teacher.lessons} Lessons)
-                    </span>
-                  </div>
-                  {/* Right Part: Details */}
-                  <div className="flex-1">
-                    {/* Name & Badges */}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h2 className="text-lg font-semibold text-gray-800">
-                        {teacher.name}
-                      </h2>
-                      <span className="flex items-center gap-1 text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                        <FaCheckCircle />
-                        {teacher.tag}
-                      </span>
-                      {/* Render other badges/tags */}
-                      {teacher.badges?.map((badge) => (
-                        <span
-                          key={badge}
-                          className="flex items-center gap-1 text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
-                        >
-                          <FaCheckCircle /> {/* Use appropriate icons */}
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                    {/* Speaks */}
-                    <div className="text-sm text-gray-600 mb-2">
-                      <span className="font-medium mr-2">SPEAKS:</span>
-                      <span className="text-gray-800 font-semibold">
-                        {teacher.nativeLanguage}
-                      </span>
-                      <span className="ml-1 inline-block bg-gray-200 text-gray-700 text-xs font-medium px-1.5 py-0.5 rounded">
-                        Native
-                      </span>
-                      {teacher.otherLanguagesCount > 0 && (
-                        <span className="text-gray-500 ml-2">
-                          +{teacher.otherLanguagesCount}
-                        </span>
-                      )}
-                    </div>
-                    {/* Description */}
-                    <p className="text-gray-700 text-sm mb-3 line-clamp-2">
-                      {/* Limit description lines */}
-                      {teacher.description}
-                    </p>
-                    {/* Price, Availability & Actions */}
-                    {/* Adjusted layout for smaller screens */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 gap-3 sm:gap-1"> {/* Added flex-col on small, gap */}
-                      <span className="text-gray-800 font-semibold">
-                        USD {parseFloat(teacher.price).toFixed(2)}
-                        <span className="text-gray-500 font-normal text-sm">
-                          / trial
-                        </span>
-                      </span>
-                      <span className="text-sm text-green-600">
-                        {teacher.availabilityText}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <IconButton
-                          size="small"
-                          aria-label="favorite"
-                          sx={{
-                            color: "grey.500",
-                            "&:hover": { color: "error.main" },
-                          }}
-                        >
-                          <FaHeart />
-                        </IconButton>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          sx={{
-                            backgroundColor: "#333333", // Dark grey/black
-                            color: "#ffffff",
-                            textTransform: "none",
-                            fontSize: "0.8rem",
-                            padding: "4px 12px",
-                            borderRadius: "4px", // Less rounded than before
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "#000000", // Darker on hover
-                              boxShadow: "none",
-                            },
-                          }}
-                        >
-                          Book trial
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* End Tutor Card */}
-
-                {/* Hover Box (Render conditionally and positioned differently) */}
-                {/* Show only on medium screens and up */}
-                {hoveredTutor && hoveredTutor.id === teacher.id && window.innerWidth >= 768 && (
-                  <div
-                    ref={hoverBoxRef} // Assign ref to the hover box
-                    // Position absolutely to the right, adjusted width
-                    className="absolute left-[100%] ml-4 w-[300px] lg:w-[400px] bg-white shadow-xl rounded-2xl border border-gray-200 z-20"
-                    // Dynamically set the top position
-                    style={{ top: hoverBoxTop }}
-                    onMouseEnter={handleHoverBoxEnter} // Keep open when mouse enters
-                    onMouseLeave={handleHoverBoxLeave} // Close when mouse leaves
-                  >
-                    {/* Video Player */}
-                    {/* Apply rounded-t only */}
-                    <div className="relative aspect-video mb-4 rounded-t-lg overflow-hidden">
-                      <iframe
-                        src={hoveredTutor.videoUrl}
-                        title={`${hoveredTutor.name}'s video`}
-                        width="100%"
-                        height="100%"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="absolute top-0 left-0 w-full h-full"
-                      />
-                    </div>
-                    {/* Availability Grid */}
-                    <div className="grid grid-cols-7 gap-1 text-center p-4">
-                      {/* Day Headers */}
-                      {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-                        <div
-                          key={day}
-                          className="text-xs font-medium text-gray-500"
-                        >
-                          {day}
-                        </div>
-                      ))}
-                      {/* Placeholder Cells for the 6 time slots per day */}
-                      {Array.from({ length: 42 }).map((_, index) => {
-                        // Map the index to the correct availability item
-                        const availabilityItem =
-                          hoveredTutor.availabilityGrid?.[index];
-                        const isAvailable =
-                          availabilityItem?.available ?? false;
-
-                        return (
-                          <div
-                            key={index}
-                            className={`h-6 w-full border rounded ${
-                              isAvailable ? "bg-green-500" : "bg-gray-100"
-                            }`}
-                          />
-                        );
-                      })}
-                    </div>
-                    {/* Action Buttons in Hover Box */}
-                  </div>
-                )}
-                {/* End Hover Box */}
-              </div>
+                teacher={teacher}
+                hoveredTutor={hoveredTutor}
+                handleMouseEnter={handleMouseEnter}
+                handleMouseLeave={handleMouseLeave}
+                handleCardClick={handleCardClick}
+                hoverBoxTop={hoverBoxTop}
+                tutorCardRef={(el) => (tutorCardRefs.current[teacher.id] = el)} // Pass the ref setter
+                hoverBoxRef={hoverBoxRef} // Pass the hover box ref
+                handleHoverBoxEnter={handleHoverBoxEnter}
+                handleHoverBoxLeave={handleHoverBoxLeave}
+              />
             ))}
             {/* End Tutor List */}
           </div>
           {/* End Content Layout */}
         </div>
-         {/* Added a placeholder/area for the hover box on larger screens */}
-         {/* This div will occupy the remaining space in the flex row */}
-         {/* and the absolutely positioned hover box will visually appear here. */}
-         {/* Its size and positioning are controlled by the hover box div itself. */}
-         {/* Adjusted width to match the remaining space */}
-         <div className="hidden md:block md:w-[20%] lg:w-[400px] flex-shrink-0 relative">
-             {/* This div doesn't need content, it's just for layout */}
-             {/* The absolutely positioned hover box appears relative to its parent, */}
-             {/* which is the main 'max-w-7xl mx-auto relative flex flex-col md:flex-row gap-8' div. */}
-             {/* However, positioning it relative to the card and then visually aligning it */}
-             {/* in this right-hand space is complex. A simpler approach is to let the */}
-             {/* absolute positioning work relative to the main container and ensure */}
-             {/* there's space for it. */}
-         </div>
+        {/* End Filters & Main Content Area */}
       </div>
     </div>
   );

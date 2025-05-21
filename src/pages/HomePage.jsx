@@ -1,12 +1,12 @@
 import Banner from '../components/Banner';
 import HowItWork from '../components/HowItWork';
-import TutorList from '../components/tutors/TutorList';
+import RecommendTutorList from '../components/tutors/RecommendTutorList';
 
 function HomePage({ user }) {
     return (
       <>
         <Banner />
-        <TutorList />
+        <RecommendTutorList />
         <HowItWork />
       </>
     );
