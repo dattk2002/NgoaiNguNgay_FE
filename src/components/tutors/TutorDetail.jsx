@@ -284,11 +284,14 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   // Define the labels for the tabs
   const tabLabels = [
-    "About Me",
-    "Me as a Teacher",
+    "About me",
+    "Me as a teacher",
     "My lessons & teaching style",
-    "Resume & Certificates",
+    "Resume & certificates",
   ];
+
+  console.log(tabLabels);
+  
 
   // Handler for tab change
   const handleTabChange = (event, newValue) => {
@@ -363,26 +366,14 @@ const TutorDetail = ({ user, onRequireLogin }) => {
               </div>
 
               <div className="mt-6 border-b border-gray-200">
-                <div className="flex gap-4 text-sm font-medium text-gray-600">
-                  {[
-                    "About Me",
-                    "Me as a Teacher",
-                    "My lessons & teaching style",
-                    "Resume & Certificates",
-                  ].map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`pb-2 px-1 ${activeTab === tab
-                          ? "border-b-2 border-red-500 text-gray-800"
-                          : "hover:text-gray-800"
-                        }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </Tabs>
-              </Box>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Tabs value={activeTab} onChange={handleTabChange} aria-label="teacher detail tabs">
+                    {tabLabels.map((label, index) => (
+                      <Tab label={label} key={index} id={`tab-${index}`} aria-controls={`tabpanel-${index}`} />
+                    ))}
+                  </Tabs>
+                </Box>
+              </div>
 
               <div className="mt-4">
                 <AnimatePresence mode="wait">
@@ -421,7 +412,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                           ))}
                         </p>
                         <p className="text-gray-700 text-sm mt-4 leading-relaxed">
-                          Hello! I’m {teacher.name}, a passionate tutor from{" "}
+                          Hello! I'm {teacher.name}, a passionate tutor from{" "}
                           {teacher.address}. I specialize in teaching{" "}
                           {teacher.nativeLanguage}
                           {teacher.subjects && teacher.subjects.length > 0
@@ -429,10 +420,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                               .map((s) => s.name)
                               .join(", ")}`
                             : ""}
-                          . I’m TEFL certified and have taught over{" "}
+                          . I'm TEFL certified and have taught over{" "}
                           {teacher.lessons} lessons to {teacher.students}{" "}
                           students. My teaching style is interactive and
-                          tailored to each student’s needs. Let’s learn
+                          tailored to each student's needs. Let's learn
                           together!
                         </p>
                         <button className="text-blue-600 text-sm mt-2 hover:underline">

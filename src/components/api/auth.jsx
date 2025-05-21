@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 // --- API Service File (No changes needed here, it correctly attaches the original error structure to `error.details`) ---
 const BASE_API_URL = "https://tutorbooking-dev-065fe6ad4a6a.herokuapp.com";
 
@@ -30,24 +28,23 @@ async function callApi(endpoint, method, body, token) {
   console.log(`Calling API: ${method} ${fullUrl}`);
 
   try {
-    const response = await axios({
+    // Use fetch instead of axios
+    const response = await fetch(fullUrl, {
       method: method,
-      url: fullUrl,
       headers: headers,
-      data: body, // axios uses 'data' for the request body
-      withCredentials: true, // corresponds to fetch's credentials: 'include'
+      body: body ? JSON.stringify(body) : null, // fetch uses 'body' for the request body, must be stringified for JSON
+      credentials: 'include', // corresponds to axios's withCredentials: true
     });
 
-    console.log("Response:", response);
+    console.log("Response status:", response.status, response.statusText);
 
     if (!response.ok) {
       let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
       let originalErrorData = null; // To potentially store the full error body
 
       try {
-        // Clone the response before trying to read the body
-        const errorResponse = response.clone();
-        const errorData = await errorResponse.json();
+        // Try to parse the error response body as JSON
+        const errorData = await response.json();
         originalErrorData = errorData; // Store the parsed data
 
         console.error("API Error Details Received:", errorData); // Log raw error data
@@ -86,52 +83,34 @@ async function callApi(endpoint, method, body, token) {
 
       } catch (jsonError) {
         console.warn("Failed to parse error response as JSON.", jsonError);
+        // If JSON parsing fails, the original response status/text is used for the message
       }
 
       // Throw an error with the formatted message and potentially attach details
-      const error = new Error(formattedErrorMessage); // This error object's message property will contain the formatted string
+      const error = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage); // Use specific message from details if available, otherwise fallback to formatted message
       error.status = response.status;
       error.details = originalErrorData; // This is where the component gets the original structured data
       throw error;
     }
 
+    // Check content type and parse JSON response
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
-      console.log("API JSON Response:", response.data);
-      return response.data; // axios puts the JSON body in response.data
+      const jsonData = await response.json();
+      console.log("API JSON Response:", jsonData);
+      return jsonData; // fetch returns the JSON body after parsing
     } else {
       console.warn(
         `API response for ${fullUrl} was not JSON, content-type: ${contentType}`
       );
-      // Return a structure similar to the fetch non-json case
+      // Return a structure indicating success but non-JSON response
       return { success: true, status: response.status, rawResponse: response };
     }
   } catch (error) {
+    // Handle network errors or errors thrown during processing
     console.error("API Call Failed:", error.message);
-
-    // Axios error handling
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      const formattedErrorMessage = `API Error: ${error.response.status} ${error.response.statusText} for ${fullUrl}`;
-      const originalErrorData = error.response.data; // Axios puts error details in error.response.data
-
-      console.error("API Error Details Received:", originalErrorData); // Log raw error data
-
-      // Re-throw a new Error object similar to the original fetch implementation
-      const customError = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage);
-      customError.status = error.response.status;
-      customError.details = originalErrorData; // Attach original data for components
-      throw customError;
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error("No response received:", error.request);
-      throw new Error(`API request failed: No response received for ${fullUrl}`);
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error("Axios request setup error:", error.message);
-      throw new Error(`API request setup failed: ${error.message}`);
-    }
+    // Re-throw the original error, which might have details attached by the !response.ok block
+    throw error;
   }
 }
 
