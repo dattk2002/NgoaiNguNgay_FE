@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom"; // useNavigate is already imported
 
 // Assuming fetchTutorsBySubject returns data structured similarly to what's needed
-import { fetchTutorList } from "../api/auth";
+import { fetchTutorsBySubject } from "../api/auth";
 import LanguageImage from "../../assets/language_banner.png"
 
 import {
@@ -20,7 +20,6 @@ import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import { IoSearch } from "react-icons/io5";
-import CircularProgress from "@mui/material/CircularProgress";
 
 // --- Helper Function for Rendering Stars ---
 const renderStars = (rating) => {
@@ -70,7 +69,6 @@ const TutorSubjectList = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortOption, setSortOption] = useState("default"); // New state for sorting
   const [filters, setFilters] = useState({
     instantLesson: false,
     within72Hours: false,
@@ -98,58 +96,50 @@ const TutorSubjectList = () => {
         setLoading(true);
         setError(null);
 
-        // Use the new fetchTutorList function
-        const fetchedTeachersData = await fetchTutorList();
-        // The API returns an object with a 'data' property which is the array of tutors
-        const fetchedTeachers = fetchedTeachersData; // Directly use the data if it's already an array
+        // Assuming fetchTutorsBySubject can handle the subject parameter
+        const fetchedTeachers = await fetchTutorsBySubject(subject);
 
-
-        // *** Adapt to the new API structure ***
+        // *** Add Mock Data if needed for development/UI building ***
+        // Replace or supplement fetchedTeachers with mock data matching the screenshot structure if your API differs
         const processedTeachers = fetchedTeachers.map((t) => ({
-          // Map fields from the new API response
-          id: t.tutorId, // Changed from t.id
-          name: t.fullName, // Changed from t.name
-          imageUrl: t.profileImageUrl || "https://avatar.iran.liara.run/public", // Use profileImageUrl
-          tag: t.isProfessional ? "Professional Teacher" : "Community Tutor", // Example based on isProfessional
-          // nativeLanguage: findPrimaryLanguage(t.languages), // Helper function needed or simplify
-          nativeLanguage: t.languages?.find(lang => lang.isPrimary)?.languageCode?.toUpperCase() || "N/A",
-          
-          
-          otherLanguagesCount: t.languages?.filter(lang => !lang.isPrimary).length || 0,
-          rating: t.rating || (Math.random() * 1.5 + 3.5).toFixed(1), // Keep if not in API
-
-          // Fields that might still need mock data or be adjusted
-          lessons: t.lessons || Math.floor(Math.random() * 2000) + 50,
+          ...t,
+          // Ensure these fields exist, add mocks if not from API
+          id: t.id || Math.random().toString(36).substr(2, 9), // Ensure each tutor has a unique ID
+          name: t.name || `Teacher ${processedTeachers.length + 1}`, // Mock name if missing
+          imageUrl: t.imageUrl || "https://via.placeholder.com/100", // Placeholder avatar
+          tag: t.tag || "Professional Teacher",
+          nativeLanguage: t.nativeLanguage || "N/A",
+          otherLanguagesCount:
+            t.otherLanguagesCount || (t.subjects?.length || 1) - 1,
+          rating: t.rating || (Math.random() * 1.5 + 3.5).toFixed(1), // Random rating 3.5-5.0
+          lessons: t.lessons || Math.floor(Math.random() * 2000) + 50, // Random lesson count
           description:
-            t.description || // Assuming description is not in the new API
+            t.description ||
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-          price: t.price || (Math.random() * 50 + 20).toFixed(2), // Assuming price is not in the new API
+          price: t.price || (Math.random() * 50 + 20).toFixed(2), // Random price
           availabilityText:
             t.availabilityText ||
             `Available ${Math.floor(Math.random() * 12) + 1}:00 ${
               Math.random() > 0.5 ? "Today" : "Tomorrow"
             }`,
-          videoUrl: t.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ", // Assuming videoUrl is not in new API
-          availabilityGrid: t.availabilityGrid || generateMockAvailability(),
+          // Example YouTube video ID, replace with actual data structure if available
+          videoUrl: t.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ",
+          availabilityGrid: t.availabilityGrid || generateMockAvailability(), // Example availability grid data
           badges:
             t.badges ||
             ["Test Preparation", "Business", "Kids"].slice(
               0,
               Math.floor(Math.random() * 4)
-            ),
-          languages: t.languages, // Add the original languages array
+            ), // Example badges
         }));
 
-        
-
         if (processedTeachers.length === 0) {
-          // setError(`No tutors found for ${subject}`); // Subject might not be relevant anymore for the initial fetch
-          setError(`No tutors found.`);
+          setError(`No tutors found for ${subject}`);
         } else {
           setTeachers(processedTeachers);
         }
       } catch (error) {
-        console.error("Error fetching tutors:", error); // Generic error message
+        console.error("Error fetching tutors by subject:", error);
         setError("Failed to load tutors. Please try again later.");
       } finally {
         setLoading(false);
@@ -157,7 +147,7 @@ const TutorSubjectList = () => {
     };
 
     getTutors();
-  }, []); // Removed subject from dependency array as fetchTutorList doesn't take subject
+  }, [subject]); // Refetch when subject changes
 
   // --- Hover Handlers ---
   const handleMouseEnter = (teacher) => {
@@ -266,69 +256,34 @@ const TutorSubjectList = () => {
     navigate(`/tutor/${newSubject}`); // Navigate to the new subject route
   };
 
-  // --- Handle Sort Change ---
-  const handleSortChange = (event) => {
-    setSortOption(event.target.value);
-  };
+  // --- Filtered Teachers (Apply actual filtering logic here) ---
+  const filteredTeachers = teachers.filter((teacher) => {
+    // Example: Filter by search term (case-insensitive)
+    const searchTermLower = filters.searchTerm.toLowerCase();
+    const nameMatch = teacher.name.toLowerCase().includes(searchTermLower);
 
-  // --- Sorted and Filtered Teachers ---
-  const sortedAndFilteredTeachers = teachers
-    .slice() // Create a shallow copy to avoid mutating the original array
-    .sort((a, b) => {
-      if (sortOption === "nativeLanguageAsc") {
-        return (a.nativeLanguage || "").localeCompare(b.nativeLanguage || "");
-      }
-      if (sortOption === "nativeLanguageDesc") {
-        return (b.nativeLanguage || "").localeCompare(a.nativeLanguage || "");
-      }
-      if (sortOption === "subjectPrimary") { // Handle the new sort option
-        const subjectLower = subject.toLowerCase();
-        // Check if the subject is primary for tutor 'a'
-        const aIsSubjectPrimary = a.languages?.some(lang =>
-          lang.languageCode?.toLowerCase() === subjectLower && lang.isPrimary
-        );
-        // Check if the subject is primary for tutor 'b'
-        const bIsSubjectPrimary = b.languages?.some(lang =>
-          lang.languageCode?.toLowerCase() === subjectLower && lang.isPrimary
-        );
+    // Add more complex matching for course/interests if needed
+    const descriptionMatch = teacher.description
+      .toLowerCase()
+      .includes(searchTermLower);
+    // Ensure teacher.subjects is an array before using some
+    const subjectMatch = Array.isArray(teacher.subjects)
+      ? teacher.subjects.some((sub) =>
+          sub.name.toLowerCase().includes(searchTermLower)
+        )
+      : false;
 
-        // Sort: primary tutors first (true before false)
-        if (aIsSubjectPrimary !== bIsSubjectPrimary) {
-          return bIsSubjectPrimary - aIsSubjectPrimary; // True (1) comes before False (0)
-        }
+    const searchMatch =
+      !searchTermLower || nameMatch || descriptionMatch || subjectMatch;
 
-        // If primary status is the same, sort alphabetically by name (optional, but good fallback)
-        return a.name.localeCompare(b.name);
-      }
-      return 0; // Default: no sorting or original order
-    })
-    .filter((teacher) => {
-      // Example: Filter by search term (case-insensitive)
-      const searchTermLower = filters.searchTerm.toLowerCase();
-      const nameMatch = teacher.name.toLowerCase().includes(searchTermLower);
+    // Add other filter conditions here (e.g., price, availability checkboxes)
+    // const instantLessonMatch = !filters.instantLesson || teacher.offersInstantLesson; // Assuming teacher obj has this
+    // const within72HoursMatch = !filters.within72Hours || teacher.availableWithin72Hours; // Assuming teacher obj has this
 
-      // Add more complex matching for course/interests if needed
-      const descriptionMatch = teacher.description
-        .toLowerCase()
-        .includes(searchTermLower);
-      // Ensure teacher.subjects is an array before using some
-      const subjectMatch = Array.isArray(teacher.subjects)
-        ? teacher.subjects.some((sub) =>
-            sub.name.toLowerCase().includes(searchTermLower)
-          )
-        : false;
-
-      const searchMatch =
-        !searchTermLower || nameMatch || descriptionMatch || subjectMatch;
-
-      // Add other filter conditions here (e.g., price, availability checkboxes)
-      // const instantLessonMatch = !filters.instantLesson || teacher.offersInstantLesson; // Assuming teacher obj has this
-      // const within72HoursMatch = !filters.within72Hours || teacher.availableWithin72Hours; // Assuming teacher obj has this
-
-      // Combine all filter conditions
-      return searchMatch;
-      /* && instantLessonMatch && within72HoursMatch */
-    });
+    // Combine all filter conditions
+    return searchMatch;
+    /* && instantLessonMatch && within72HoursMatch */
+  });
 
   // --- Loading and Error States ---
   const handleCardClick = (id) => {
@@ -339,7 +294,7 @@ const TutorSubjectList = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <CircularProgress sx={{ color: '#000' }} />
+        Loading...
       </div>
     );
   }
@@ -422,50 +377,16 @@ const TutorSubjectList = () => {
                 </InputAdornment>
               ),
             }}
-            // Make search input take full width on small screens, constrained on larger
-            sx={{ backgroundColor: "white", width: "100%", maxWidth: { xs: "100%", md: "300px" } }}
+            sx={{ backgroundColor: "white", width: "100%", maxWidth: "300px" }}
           />
-          {/* Sort Dropdown */}
-          <Select
-            value={sortOption}
-            onChange={handleSortChange}
-            variant="outlined"
-            size="small"
-            displayEmpty
-            renderValue={(value) => {
-              if (value === "default") {
-                return <em className="not-italic">Sort by...</em>;
-              }
-              if (value === "nativeLanguageAsc") {
-                return "Native Language (A-Z)";
-              }
-              if (value === "nativeLanguageDesc") {
-                return "Native Language (Z-A)";
-              }
-              if (value === "subjectPrimary") { // New sort option display text
-                return `${subject.charAt(0).toUpperCase() + subject.slice(1)} (Primary First)`;
-              }
-              return value;
-            }}
-            sx={{ minWidth: 180, backgroundColor: "white" }}
-          >
-            <MenuItem value="default">
-              <em>Default</em>
-            </MenuItem>
-            <MenuItem value="nativeLanguageAsc">Native Language (A-Z)</MenuItem>
-            <MenuItem value="nativeLanguageDesc">Native Language (Z-A)</MenuItem>
-            <MenuItem value="subjectPrimary">{subject.charAt(0).toUpperCase() + subject.slice(1)} (Primary First)</MenuItem> {/* New sort option */}
-            {/* Add other sort options here */}
-          </Select>
         </div>
       </div>
 
       {/* === Filters & Main Content Area === */}
-      {/* Adjusted main layout to potentially have tutor list and hover area side-by-side on medium+ screens */}
-      <div className="max-w-7xl mx-auto relative flex flex-col md:flex-row gap-8">
+      <div className="max-w-7xl mx-auto relative">
         {/* Keep relative for positioning tutor list */}
-        {/* Filter Buttons Row - kept within the original flow, maybe move to a sidebar on large screens later if needed */}
-        <div className="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-200 md:hidden"> {/* Hide filter buttons row on md+ */}
+        {/* Filter Buttons Row */}
+        <div className="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-200">
           {/* Example Filter Buttons - Replace with actual filter components (e.g., Menus, Popovers) */}
           <Button
             variant="outlined"
@@ -542,11 +463,9 @@ const TutorSubjectList = () => {
         </div>
 
         {/* Content Layout: Tutor List primarily */}
-        {/* Made the tutor list container take full width on small screens */}
-        <div className="flex flex-col gap-6 flex-1"> {/* flex-1 allows it to grow in the row layout */}
+        <div className="flex flex-col gap-8">
           {/* Intro Text & Availability Filters */}
-          {/* Stack intro text and filters vertically on small screens */}
-          <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+          <div className="flex justify-between items-start mb-6">
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 Improve your {subject} language skills with personalized online
@@ -558,7 +477,7 @@ const TutorSubjectList = () => {
                 language in a fun and interactive way.
               </p>
             </div>
-            <div className="flex flex-col gap-2 md:pl-4 flex-shrink-0 mt-4 md:mt-0"> {/* Added margin top on small screens */}
+            <div className="flex flex-col gap-2 pl-4 flex-shrink-0">
               <label className="flex items-center gap-2 text-sm text-black whitespace-nowrap">
                 <input
                   type="checkbox"
@@ -584,21 +503,19 @@ const TutorSubjectList = () => {
 
           {/* Tutor List */}
           <div className="flex flex-col gap-6">
-            {sortedAndFilteredTeachers.map((teacher) => (
+            {filteredTeachers.map((teacher) => (
               <div
                 key={teacher.id}
-                // Adjusted width to be full on small, md:w-[80%] on medium and up
-                className="relative flex cursor-pointer w-full md:w-[100%]"
-                // Disable hover effects on small screens
-                onMouseEnter={window.innerWidth >= 768 ? () => handleMouseEnter(teacher) : null}
-                onMouseLeave={window.innerWidth >= 768 ? handleMouseLeave : null}
+                className="relative flex cursor-pointer" // Keep relative to position the hover box absolutely within it
+                onMouseEnter={() => handleMouseEnter(teacher)}
+                onMouseLeave={handleMouseLeave}
                 onClick={() => handleCardClick(teacher.id)}
                 // Assign ref to the tutor card element
                 ref={(el) => (tutorCardRefs.current[teacher.id] = el)}
               >
                 {/* Tutor Card */}
                 {/* Added z-10 to ensure card is above hover box */}
-                <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex gap-4 w-full hover:shadow-md transition-shadow duration-200 z-10 lg:max-w-screen-lg"> {/* Made the inner card full width */}
+                <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex gap-4 w-[70%] hover:shadow-md transition-shadow duration-200 z-10">
                   {/* Left Part: Avatar & Rating */}
                   <div className="flex flex-col items-center w-20 flex-shrink-0">
                     <img
@@ -607,7 +524,7 @@ const TutorSubjectList = () => {
                       className="w-16 h-16 rounded-full object-cover mb-2 border border-gray-200"
                     />
                     {renderStars(teacher.rating)}
-                    <span className="text-xs text-gray-500 mt-1 text-center"> {/* Added text-center for small screens */}
+                    <span className="text-xs text-gray-500 mt-1">
                       {teacher.rating} ({teacher.lessons} Lessons)
                     </span>
                   </div>
@@ -654,8 +571,7 @@ const TutorSubjectList = () => {
                       {teacher.description}
                     </p>
                     {/* Price, Availability & Actions */}
-                    {/* Adjusted layout for smaller screens */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 gap-3 sm:gap-1"> {/* Added flex-col on small, gap */}
+                    <div className="flex items-center justify-between mt-2">
                       <span className="text-gray-800 font-semibold">
                         USD {parseFloat(teacher.price).toFixed(2)}
                         <span className="text-gray-500 font-normal text-sm">
@@ -701,13 +617,12 @@ const TutorSubjectList = () => {
                 </div>
                 {/* End Tutor Card */}
 
-                {/* Hover Box (Render conditionally and positioned differently) */}
-                {/* Show only on medium screens and up */}
-                {hoveredTutor && hoveredTutor.id === teacher.id && window.innerWidth >= 768 && (
+                {/* Hover Box (Render conditionally) */}
+                {hoveredTutor && hoveredTutor.id === teacher.id && (
                   <div
                     ref={hoverBoxRef} // Assign ref to the hover box
-                    // Position absolutely to the right, adjusted width
-                    className="absolute left-[100%] ml-4 w-[300px] lg:w-[400px] bg-white shadow-xl rounded-2xl border border-gray-200 z-20"
+                    // Position absolutely to the right
+                    className="absolute left-[70%] ml-4 w-[400px] bg-white shadow-xl rounded-2xl border border-gray-200 z-20"
                     // Dynamically set the top position
                     style={{ top: hoverBoxTop }}
                     onMouseEnter={handleHoverBoxEnter} // Keep open when mouse enters
@@ -765,20 +680,7 @@ const TutorSubjectList = () => {
           </div>
           {/* End Content Layout */}
         </div>
-         {/* Added a placeholder/area for the hover box on larger screens */}
-         {/* This div will occupy the remaining space in the flex row */}
-         {/* and the absolutely positioned hover box will visually appear here. */}
-         {/* Its size and positioning are controlled by the hover box div itself. */}
-         {/* Adjusted width to match the remaining space */}
-         <div className="hidden md:block md:w-[20%] lg:w-[400px] flex-shrink-0 relative">
-             {/* This div doesn't need content, it's just for layout */}
-             {/* The absolutely positioned hover box appears relative to its parent, */}
-             {/* which is the main 'max-w-7xl mx-auto relative flex flex-col md:flex-row gap-8' div. */}
-             {/* However, positioning it relative to the card and then visually aligning it */}
-             {/* in this right-hand space is complex. A simpler approach is to let the */}
-             {/* absolute positioning work relative to the main container and ensure */}
-             {/* there's space for it. */}
-         </div>
+        {/* End Filters & Main Content Area */}
       </div>
     </div>
   );

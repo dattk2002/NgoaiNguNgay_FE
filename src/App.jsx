@@ -35,6 +35,7 @@ import {
 
 // Import the NotFoundPage component
 import NotFoundPage from "./pages/NotFoundPage"; // Adjust the path if necessary
+import NotGrantedPermissionPage from "./pages/NotGrantedPermissionPage";
 
 const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
@@ -341,6 +342,7 @@ function App() {
 
             {/* This route catches all other paths and renders the NotFoundPage */}
             <Route path="*" element={<NotFoundPage />} />
+            {/* <Route path="*" element={<NotGrantedPermissionPage />} /> */}
 
           </Routes>
         </main>
