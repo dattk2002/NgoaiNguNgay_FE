@@ -23,14 +23,9 @@ function EditUserProfile() {
     gender: 0,
     profileImageUrl: '',
     address: '',
-    userName: '',
     email: '',
     phoneNumber: '',
     timezone: '',
-    from: '',
-    livingIn: '',
-    learningLanguageCode: '',
-    learningProficiencyLevel: 0
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -54,15 +49,9 @@ function EditUserProfile() {
           gender: userData.gender !== undefined ? userData.gender : 0,
           profileImageUrl: userData.profileImageUrl || '',
           address: userData.address || '',
-          userName: userData.userName || '',
           email: userData.email || '',
           phoneNumber: userData.phoneNumber || '',
           timezone: userData.timezone || '',
-          from: userData.from || '',
-          livingIn: userData.livingIn || '',
-          learningLanguageCode: userData.learningLanguageCode || '',
-          learningProficiencyLevel: userData.learningProficiencyLevel !== undefined ?
-            userData.learningProficiencyLevel : 0
         });
         setError(null);
       } catch (err) {
@@ -93,6 +82,26 @@ function EditUserProfile() {
       case 'fullName':
         if (!value || value.trim() === '') {
           errors[fieldName] = 'Tên không được để trống.';
+        } else if (value.length < 2 || value.length > 50) {
+          errors[fieldName] = 'Tên phải từ 2 đến 50 ký tự.';
+        } else if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(value)) {
+          errors[fieldName] = 'Tên chỉ được chứa chữ cái và khoảng trắng.';
+        }
+        break;
+      case 'dateOfBirth':
+        if (value) {
+          const date = new Date(value);
+          const today = new Date();
+          const minDate = new Date();
+          minDate.setFullYear(today.getFullYear() - 100); // Không cho phép người dùng trên 100 tuổi
+
+          if (isNaN(date.getTime())) {
+            errors[fieldName] = 'Ngày sinh không hợp lệ.';
+          } else if (date > today) {
+            errors[fieldName] = 'Ngày sinh không thể lớn hơn ngày hiện tại.';
+          } else if (date < minDate) {
+            errors[fieldName] = 'Ngày sinh không hợp lệ (người dùng không thể trên 100 tuổi).';
+          }
         }
         break;
       case 'gender':
@@ -101,7 +110,19 @@ function EditUserProfile() {
           errors[fieldName] = 'Giới tính không hợp lệ (0 - Khác, 1 - Nam, 2 - Nữ).';
         }
         break;
-      // Add more validation rules for other fields as needed
+      case 'phoneNumber':
+        if (value) {
+          const phoneRegex = /^[0-9]{10,11}$/;
+          if (!phoneRegex.test(value.replace(/\s+/g, ''))) {
+            errors[fieldName] = 'Số điện thoại phải có 10-11 chữ số.';
+          }
+        }
+        break;
+      case 'timezone':
+        if (!value) {
+          errors[fieldName] = 'Vui lòng chọn múi giờ.';
+        }
+        break;
     }
 
     return errors;
@@ -410,18 +431,17 @@ function EditUserProfile() {
         return;
       }
 
+      // Prepare the update data based on field name
       let updateData = {};
       switch (fieldName) {
         case 'fullName':
           updateData = { fullName: valueToSave };
           break;
         case 'dateOfBirth':
-          // Đảm bảo ngày tháng được định dạng đúng
+          // Handle date format
           try {
-            // Kiểm tra nếu là ngày hợp lệ
             const date = new Date(valueToSave);
             if (!isNaN(date.getTime())) {
-              // Convert thành ISO string chuẩn cho API
               updateData = { dateOfBirth: date.toISOString() };
             } else {
               toast.error('Invalid date format. Please use YYYY-MM-DD format.');
@@ -438,36 +458,23 @@ function EditUserProfile() {
         case 'gender':
           updateData = { gender: parseInt(valueToSave) };
           break;
-        case 'from':
-          updateData = { from: valueToSave };
-          break;
-        case 'livingIn':
-          updateData = { livingIn: valueToSave };
+        case 'phoneNumber':
+          updateData = { phoneNumber: valueToSave };
           break;
         case 'timezone':
           updateData = { timezone: valueToSave };
           break;
-        case 'phoneNumber':
-          updateData = { phoneNumber: valueToSave };
-          break;
-        case 'learningLanguageCode':
-          updateData = { learningLanguageCode: valueToSave };
-          break;
-        case 'learningProficiencyLevel':
-          updateData = { learningProficiencyLevel: parseInt(valueToSave) };
-          break;
         default:
-          // For other fields we might need to add them to the API or handle differently
           toast.warning(`Saving field "${fieldName}" is not yet implemented with API.`);
           setIsSaving(false);
           setEditingFields(prev => ({ ...prev, [fieldName]: false }));
           return;
       }
 
-      // Log data before sending
+      // Log the data we're about to send
       console.log("Sending update data:", updateData);
 
-      // Call API to update the user profile with only the changed field
+      // Call API to update the user profile
       const response = await editUserProfile(token, updateData);
 
       // After successful update, fetch the latest data from the server
@@ -921,36 +928,12 @@ function EditUserProfile() {
                 />
 
                 <EditableField
-                  fieldName="from"
-                  label="From"
-                  value={formData.from || "Not specified"}
-                />
-
-                <EditableField
-                  fieldName="livingIn"
-                  label="Living in"
-                  value={formData.livingIn || "Not specified"}
-                />
-
-                <EditableField
                   fieldName="timezone"
                   label="Timezone"
                   value={formData.timezone || "Not specified"}
                   inputType="select"
                   options={timezoneOptions}
                 />
-
-                {/* Username - Read Only */}
-                <div className="py-3">
-                  <div className="flex items-center py-1">
-                    <div className="w-1/3 sm:w-1/4">
-                      <label className="text-gray-700 font-bold">Username</label>
-                    </div>
-                    <div className="w-2/3 sm:w-3/4">
-                      <span className="text-gray-700">{formData.userName}</span>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Email - Read Only */}
                 <div className="py-3">
@@ -969,29 +952,6 @@ function EditUserProfile() {
                   label="Phone Number"
                   value={formData.phoneNumber || "Not specified"}
                   inputType="tel"
-                />
-              </div>
-            </div>
-
-            {/* Learning Preferences Section */}
-            <div className="mb-12 border-b border-gray-200 pb-8">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Learning Preferences</h2>
-
-              <div className="space-y-2">
-                <EditableField
-                  fieldName="learningLanguageCode"
-                  label="Learning Language"
-                  value={formData.learningLanguageCode ? getLanguageLabel(formData.learningLanguageCode) : "Not specified"}
-                  inputType="select"
-                  options={languageOptions}
-                />
-
-                <EditableField
-                  fieldName="learningProficiencyLevel"
-                  label="Proficiency Level"
-                  value={getProficiencyLabel(formData.learningProficiencyLevel)}
-                  inputType="select"
-                  options={proficiencyOptions}
                 />
               </div>
             </div>

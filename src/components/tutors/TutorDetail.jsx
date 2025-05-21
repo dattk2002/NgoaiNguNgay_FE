@@ -13,6 +13,7 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import ReviewsSection from "../ReviewSection";
+import TutorCard from "./TutorCard";
 import { FaArrowRight } from "react-icons/fa6";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -32,7 +33,7 @@ const timeRanges = [
   "20:00 - 24:00",
 ];
 
-const TutorProfile = ({ user, onRequireLogin }) => {
+const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [teacher, setTeacher] = useState(null);
@@ -283,11 +284,14 @@ const TutorProfile = ({ user, onRequireLogin }) => {
 
   // Define the labels for the tabs
   const tabLabels = [
-    "About Me",
-    "Me as a Teacher",
+    "About me",
+    "Me as a teacher",
     "My lessons & teaching style",
-    "Resume & Certificates",
+    "Resume & certificates",
   ];
+
+  console.log(tabLabels);
+  
 
   // Handler for tab change
   const handleTabChange = (event, newValue) => {
@@ -339,12 +343,10 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                               {[...Array(5)].map((_, i) => (
                                 <div
                                   key={i}
-                                  className={`w-1 h-4 rounded-full ${
-                                    // Using the mocked level here
-                                    i < subject.level
+                                  className={`w-1 h-4 rounded-full ${i < subject.level
                                       ? "bg-blue-600"
                                       : "bg-gray-200"
-                                  }`}
+                                    }`}
                                 />
                               ))}
                             </div>
@@ -363,43 +365,15 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                 </button>
               </div>
 
-              {/* Replace custom buttons with MUI Tabs */}
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs value={activeTab} onChange={handleTabChange} aria-label="Teacher Info Tabs"
-                   // Basic styling to mimic original look - adjust as needed
-                   sx={{
-                     '& .MuiTabs-indicator': {
-                       backgroundColor: 'red', // Mimic red underline
-                     },
-                     '& .MuiTab-root': {
-                       textTransform: 'none', // Prevent uppercase
-                       minWidth: 0,
-                       padding: '8px 4px', // Adjust padding
-                       marginRight: '16px', // Adjust spacing between tabs
-                       color: 'gray', // Default text color
-                       fontWeight: 'medium', // Default font weight
-                     },
-                     '& .Mui-selected': {
-                       color: 'text.primary', // Selected text color (adjust if needed)
-                       fontWeight: 'semibold', // Selected font weight
-                       outline: 'none', // Remove outline for selected tab
-                     },
-                     '.MuiTouchRipple-root': { // Disable ripple effect on hover for a cleaner look
-                        display: 'none',
-                     },
-                   }}
-                >
-                  {tabLabels.map((label, index) => (
-                    <Tab key={label} label={label} value={index}
-                       // Add hover effect similar to original buttons and remove outline on focus
-                       sx={{
-                         '&:hover': { color: 'text.primary' }, // Hover text color
-                         '&:focus': { outline: 'none' }, // Remove outline on focus
-                       }}
-                    />
-                  ))}
-                </Tabs>
-              </Box>
+              <div className="mt-6 border-b border-gray-200">
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Tabs value={activeTab} onChange={handleTabChange} aria-label="teacher detail tabs">
+                    {tabLabels.map((label, index) => (
+                      <Tab label={label} key={index} id={`tab-${index}`} aria-controls={`tabpanel-${index}`} />
+                    ))}
+                  </Tabs>
+                </Box>
+              </div>
 
               <div className="mt-4">
                 <AnimatePresence mode="wait">
@@ -438,7 +412,19 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                           ))}
                         </p>
                         <p className="text-gray-700 text-sm mt-4 leading-relaxed">
-                          {aboutMeText} {/* Using brief from API or default */}
+                          Hello! I'm {teacher.name}, a passionate tutor from{" "}
+                          {teacher.address}. I specialize in teaching{" "}
+                          {teacher.nativeLanguage}
+                          {teacher.subjects && teacher.subjects.length > 0
+                            ? ` and ${teacher.subjects
+                              .map((s) => s.name)
+                              .join(", ")}`
+                            : ""}
+                          . I'm TEFL certified and have taught over{" "}
+                          {teacher.lessons} lessons to {teacher.students}{" "}
+                          students. My teaching style is interactive and
+                          tailored to each student's needs. Let's learn
+                          together!
                         </p>
                         <button className="text-blue-600 text-sm mt-2 hover:underline">
                           Read more
@@ -461,8 +447,8 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                           Teacher ID: {teacher.id}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {teacher.certifications && // Using mocked certifications
-                          teacher.certifications.length > 0 ? (
+                          {teacher.certifications &&
+                            teacher.certifications.length > 0 ? (
                             teacher.certifications.map((cert, index) => (
                               <span
                                 key={index}
@@ -639,16 +625,15 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                   return (
                     <div
                       key={`${timeRange}-${day}`}
-                      className={`h-12 border border-gray-200 last:border-b-0 ${
-                         // Swapped the classes based on the user's original code logic
-                        isAvailable
-                          ? "bg-gray-100"
+                      className={`h-12 border border-gray-200 last:border-b-0 ${isAvailable
+                          ? // ? "bg-green-400 cursor-pointer hover:bg-green-500"
+                          // : "bg-gray-100"
+                          "bg-gray-100"
                           : "bg-green-400 cursor-pointer hover:bg-green-500"
-                      } ${
-                        day === availabilityDays[availabilityDays.length - 1]
+                        } ${day === availabilityDays[availabilityDays.length - 1]
                           ? "border-r border-gray-200"
                           : ""
-                      }`}
+                        }`}
                     >
                       {/* You could add an onClick handler here to select a slot */}
                     </div>
@@ -689,8 +674,8 @@ const TutorProfile = ({ user, onRequireLogin }) => {
                     subjects:
                       Array.isArray(tutor.subjects) && tutor.subjects.length > 0
                         ? tutor.subjects
-                            .map((subject) => subject.name)
-                            .join(", ")
+                          .map((subject) => subject.name)
+                          .join(", ")
                         : "N/A",
                     rating: tutor.rating,
                     reviews: tutor.ratingCount,
@@ -726,4 +711,4 @@ const TutorProfile = ({ user, onRequireLogin }) => {
   );
 };
 
-export default TutorProfile;
+export default TutorDetail;

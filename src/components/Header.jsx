@@ -339,6 +339,14 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         >
                           My Profile
                         </Link>
+                        <Link
+                          to={`/tutorprofile/${user?.id}`}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Tutor Profile
+                        </Link>
+
                         <button
                           onClick={() => {
                             onLogout();

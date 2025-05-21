@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 // --- API Service File (No changes needed here, it correctly attaches the original error structure to `error.details`) ---
 const BASE_API_URL = "https://tutorbooking-dev-065fe6ad4a6a.herokuapp.com";
 
@@ -30,54 +28,89 @@ async function callApi(endpoint, method, body, token) {
   console.log(`Calling API: ${method} ${fullUrl}`);
 
   try {
-    const response = await axios({
+    // Use fetch instead of axios
+    const response = await fetch(fullUrl, {
       method: method,
-      url: fullUrl,
       headers: headers,
-      data: body, // axios uses 'data' for the request body
-      withCredentials: true, // corresponds to fetch's credentials: 'include'
+      body: body ? JSON.stringify(body) : null, // fetch uses 'body' for the request body, must be stringified for JSON
+      credentials: 'include', // corresponds to axios's withCredentials: true
     });
 
-    console.log("Response:", response);
+    console.log("Response status:", response.status, response.statusText);
 
-    // Axios throws for non-2xx status codes, so success case is simpler
-    const contentType = response.headers["content-type"];
+    if (!response.ok) {
+      let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
+      let originalErrorData = null; // To potentially store the full error body
+
+      try {
+        // Try to parse the error response body as JSON
+        const errorData = await response.json();
+        originalErrorData = errorData; // Store the parsed data
+
+        console.error("API Error Details Received:", errorData); // Log raw error data
+
+        // *** Enhanced Error Message Formatting (Still useful for general error display) ***
+        // This section formats the message for the 'error.message' property of the thrown Error
+        // The component's catch block will primarily use error.details for structured errors,
+        // but error.message is a fallback for general errors or logging.
+        if (errorData) {
+          if (typeof errorData.errorMessage === 'string') {
+            formattedErrorMessage = errorData.errorMessage;
+          } else if (typeof errorData.errorMessage === 'object' && errorData.errorMessage !== null) {
+            const fieldErrors = Object.keys(errorData.errorMessage)
+              .map(field => {
+                const messages = Array.isArray(errorData.errorMessage[field])
+                  ? errorData.errorMessage[field].join(', ')
+                  : String(errorData.errorMessage[field]);
+                return `${field}: ${messages}`;
+              })
+              .join('; ');
+            formattedErrorMessage = `Validation Error: ${fieldErrors}`; // This is the string the user saw
+          } else if (typeof errorData.message === 'string') {
+            formattedErrorMessage = errorData.message;
+          } else {
+            console.warn("Error response body did not contain recognized 'errorMessage' or 'message' format.", errorData);
+          }
+          if (errorData.errorCode && !formattedErrorMessage.includes(`(${errorData.errorCode})`)) {
+            // Optionally add error code to the formatted message if not already included
+            // formattedErrorMessage = `${formattedErrorMessage} (${errorData.errorCode})`;
+          }
+
+        } else {
+          console.warn("Error response body was empty or not JSON.");
+        }
+        // *** End Enhanced Error Message Formatting ***
+
+      } catch (jsonError) {
+        console.warn("Failed to parse error response as JSON.", jsonError);
+        // If JSON parsing fails, the original response status/text is used for the message
+      }
+
+      // Throw an error with the formatted message and potentially attach details
+      const error = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage); // Use specific message from details if available, otherwise fallback to formatted message
+      error.status = response.status;
+      error.details = originalErrorData; // This is where the component gets the original structured data
+      throw error;
+    }
+
+    // Check content type and parse JSON response
+    const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
-      console.log("API JSON Response:", response.data);
-      return response.data; // axios puts the JSON body in response.data
+      const jsonData = await response.json();
+      console.log("API JSON Response:", jsonData);
+      return jsonData; // fetch returns the JSON body after parsing
     } else {
       console.warn(
         `API response for ${fullUrl} was not JSON, content-type: ${contentType}`
       );
-      // Return a structure similar to the fetch non-json case
+      // Return a structure indicating success but non-JSON response
       return { success: true, status: response.status, rawResponse: response };
     }
   } catch (error) {
+    // Handle network errors or errors thrown during processing
     console.error("API Call Failed:", error.message);
-
-    // Axios error handling
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      const formattedErrorMessage = `API Error: ${error.response.status} ${error.response.statusText} for ${fullUrl}`;
-      const originalErrorData = error.response.data; // Axios puts error details in error.response.data
-
-      console.error("API Error Details Received:", originalErrorData); // Log raw error data
-
-      // Re-throw a new Error object similar to the original fetch implementation
-      const customError = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage);
-      customError.status = error.response.status;
-      customError.details = originalErrorData; // Attach original data for components
-      throw customError;
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error("No response received:", error.request);
-      throw new Error(`API request failed: No response received for ${fullUrl}`);
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error("Axios request setup error:", error.message);
-      throw new Error(`API request setup failed: ${error.message}`);
-    }
+    // Re-throw the original error, which might have details attached by the !response.ok block
+    throw error;
   }
 }
 
@@ -185,8 +218,8 @@ export async function refreshToken(refreshTokenValue) {
       // Use error.message from the thrown error for the toast if details are missing
       throw new Error(
         response?.message ||
-          response?.errorMessage ||
-          "Invalid refresh token response"
+        response?.errorMessage ||
+        "Invalid refresh token response"
       );
     }
 
@@ -312,20 +345,56 @@ export async function fetchTutorsBySubject(subject) {
   }
 }
 
+export async function fetchTutorList(subject) {
+  try {
+    // The API URL for fetching the tutor list
+    const response = await callApi("/api/tutor/list-card", "GET");
+    // Assuming the actual tutor data is in response.data
+    if (response && response.data) {
+      let tutors = response.data; // Get the list of tutors
+
+      // Implement filtering logic if subject is provided
+      if (subject) {
+        console.log(`Filtering tutor list by subject: ${subject}`);
+        const normalizedSubject =
+          subject.toLowerCase() === "portuguese"
+            ? "brazilian portuguese"
+            : subject.toLowerCase();
+
+        tutors = tutors.filter(
+          (tutor) =>
+            tutor.nativeLanguage &&
+            tutor.nativeLanguage.toLowerCase() === normalizedSubject
+        );
+        console.log(
+          `Filtered tutor list by subject '${subject}' (normalized: '${normalizedSubject}'):`,
+          tutors.length
+        );
+      }
+
+
+      console.log("Fetched and potentially filtered tutor list:", tutors);
+      return tutors; // Return the full or filtered list
+    } else {
+      console.error("Invalid API response format for tutor list:", response);
+      // Throw an error if the expected data structure isn't found
+      throw new Error("Invalid response format or missing data for tutor list.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor list:", error.message);
+    // Re-throw the error so it can be caught by the component
+    throw error;
+  }
+}
+
 export function isUserAuthenticated(user) {
   return user.emailCode === null;
 }
 
-export async function editUserProfile(token, fullName, dateOfBirth, gender) {
-  const body = {
-    fullName,
-    dateOfBirth,
-    gender,
-  };
-
+export async function editUserProfile(token, updateData) {
   try {
-    console.log("Sending profile update with data:", body);
-    const response = await callApi("/api/profile/user", "PATCH", body, token);
+    console.log("Sending profile update with data:", updateData);
+    const response = await callApi("/api/profile/user", "PATCH", updateData, token);
     return response;
   } catch (error) {
     console.error("Failed to update user profile:", error.message);
@@ -372,182 +441,135 @@ export async function fetchUserById() {
   }
 }
 
+/**
+ * Upload a profile image for the user
+ * @param {File} file - The image file to upload
+ * @returns {Promise<Object>} - The API response with the profile image URL
+ */
 export async function uploadProfileImage(file) {
-  const token = getAccessToken();
-  if (!token) {
-    throw new Error("Authentication token not found.");
-  }
-
   try {
-    // Create FormData object for file upload
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
     const formData = new FormData();
     formData.append('file', file);
-    console.log("Form data:", formData);
 
-    // For file uploads, we need to use the fetch API directly
-    // since our callApi function is designed for JSON data
     const fullUrl = `${BASE_API_URL}/api/profile/image`;
-    console.log(`Uploading profile image to: ${fullUrl}`);
 
     const response = await fetch(fullUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`
+        "Authorization": `Bearer ${token}`
       },
       body: formData
     });
 
     if (!response.ok) {
-      let errorMessage = `Upload failed with status: ${response.status}`;
-
-      try {
-        // Try to parse error response
-        const errorData = await response.json();
-        errorMessage = errorData.errorMessage || errorMessage;
-      } catch (e) {
-        // If we can't parse JSON, use the default error message
-      }
-
-      throw new Error(errorMessage);
+      throw new Error(`Failed to upload profile image: ${response.status}`);
     }
 
-    // Parse the response
-    const result = await response.json();
-    console.log("Profile image upload response:", result);
-
-    // Update user in localStorage to reflect the change globally
-    if (result.data && (result.data.profileImageUrl || result.data.profilePictureUrl)) {
-      try {
-        // Get image URL from API result
-        let newImageUrl = result.data.profileImageUrl || result.data.profilePictureUrl;
-
-        // Make sure we have a clean URL without query parameters
-        newImageUrl = newImageUrl.split('?')[0];
-
-        // Add unique timestamp to ensure URL is always different
-        const uniqueTimestamp = Date.now();
-        const timestampedImageUrl = `${newImageUrl}?t=${uniqueTimestamp}`;
-
-        console.log("Original image URL:", newImageUrl);
-        console.log("Timestamped image URL:", timestampedImageUrl);
-
-        // Update in localStorage
-        const user = getStoredUser();
-        if (user) {
-          // Update the user object with the new avatar URL
-          user.profileImageUrl = timestampedImageUrl;
-
-          // Remove existing user data from localStorage
-          localStorage.removeItem('user');
-
-          // Save updated user with new avatar URL
-          localStorage.setItem('user', JSON.stringify(user));
-          console.log('Updated user in localStorage with new profileImageUrl:', timestampedImageUrl);
-
-          // Forcing browser to reload tokens to break any caching
-          const accessToken = getAccessToken();
-          const refreshToken = getRefreshToken();
-
-          if (accessToken) {
-            localStorage.removeItem('accessToken');
-            localStorage.setItem('accessToken', accessToken);
-          }
-
-          if (refreshToken) {
-            localStorage.removeItem('refreshToken');
-            localStorage.setItem('refreshToken', refreshToken);
-          }
-        }
-
-        // Preload the image to ensure browser cache is updated
-        const preloadImage = new Image();
-        preloadImage.crossOrigin = "anonymous"; // Prevent CORS issues
-        preloadImage.src = timestampedImageUrl;
-
-        // Send avatar-updated event when image is loaded
-        preloadImage.onload = () => {
-          console.log('New avatar image preloaded successfully');
-
-          // Remove any previous image from browser cache if possible
-          const oldSrc = localStorage.getItem('previous_avatar_url');
-          if (oldSrc) {
-            try {
-              caches.open('avatar-cache').then(cache => cache.delete(oldSrc));
-            } catch (e) {
-              console.log('Cache API not available or error clearing cache:', e);
-            }
-          }
-
-          // Store current URL for future reference
-          localStorage.setItem('previous_avatar_url', timestampedImageUrl);
-
-          // Dispatch avatar-updated event for all components
-          window.dispatchEvent(new CustomEvent('avatar-updated', {
-            detail: {
-              profileImageUrl: timestampedImageUrl,
-              timestamp: uniqueTimestamp
-            }
-          }));
-
-          // Try dispatching again after a delay to ensure all components receive it
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('avatar-updated', {
-              detail: {
-                profileImageUrl: timestampedImageUrl,
-                timestamp: uniqueTimestamp + 1
-              }
-            }));
-
-            // Dispatch storage event to notify other tabs
-            window.dispatchEvent(new Event('storage'));
-
-            // Add another timestamp to document.cookie
-            document.cookie = "avatar_updated=" + uniqueTimestamp + "; path=/";
-
-            // Updating DOM elements directly if needed
-            const avatarElements = document.querySelectorAll('img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]');
-            avatarElements.forEach(img => {
-              // Force reload by adding a unique timestamp
-              img.src = timestampedImageUrl + '&reload=' + uniqueTimestamp;
-            });
-          }, 300);
-        };
-
-        // Handle image loading error
-        preloadImage.onerror = () => {
-          console.error('Failed to preload new avatar image:', timestampedImageUrl);
-          // Still try to update UI even if preload fails
-          window.dispatchEvent(new CustomEvent('avatar-updated', {
-            detail: {
-              profileImageUrl: timestampedImageUrl,
-              timestamp: uniqueTimestamp
-            }
-          }));
-        };
-      } catch (error) {
-        console.error('Error updating user in localStorage:', error);
-      }
-    }
-
-    // Create enhanced result with timestamped URLs
-    const enhancedResult = { ...result };
-
-    // Add timestamp to image URLs in result
-    if (enhancedResult.data) {
-      const timestamp = Date.now();
-      if (enhancedResult.data.profileImageUrl) {
-        const baseUrl = enhancedResult.data.profileImageUrl.split('?')[0];
-        enhancedResult.data.profileImageUrl = `${baseUrl}?t=${timestamp}`;
-      }
-      if (enhancedResult.data.profilePictureUrl) {
-        const baseUrl = enhancedResult.data.profilePictureUrl.split('?')[0];
-        enhancedResult.data.profilePictureUrl = `${baseUrl}?t=${timestamp}`;
-      }
-    }
-
-    return enhancedResult;
+    return await response.json();
   } catch (error) {
-    console.error("Failed to upload profile image:", error);
+    console.error("Profile image upload failed:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete the user's profile image
+ * @returns {Promise<Object>} - The API response
+ */
+export async function deleteProfileImage() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/profile/image", "DELETE", null, token);
+    return response;
+  } catch (error) {
+    console.error("Profile image deletion failed:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch the tutor registration profile data
+ * @returns {Promise<Object>} - The API response with the profile data
+ */
+export async function fetchTutorRegisterProfile() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/profile/tutor-register-profile", "GET", null, token);
+    return response;
+  } catch (error) {
+    console.error("Fetch tutor register profile failed:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch all available hashtags
+ * @returns {Promise<Array>} - The list of hashtags
+ */
+export async function fetchAllHashtags() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/hashtag/all", "GET", null, token);
+    return response;
+  } catch (error) {
+    console.error("Fetch hashtags failed:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Register as a tutor
+ * @param {Object} tutorData - The tutor registration data
+ * @returns {Promise<Object>} - The API response
+ */
+export async function registerAsTutor(tutorData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/tutor/register", "POST", tutorData, token);
+    return response;
+  } catch (error) {
+    console.error("Tutor registration failed:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor details by ID
+ * @param {string} tutorId - The ID of the tutor to fetch
+ * @returns {Promise<Object>} - The API response with the tutor data
+ */
+export async function fetchTutorDetail(tutorId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/tutor/${tutorId}`, "GET", null, token);
+    return response;
+  } catch (error) {
+    console.error(`Failed to fetch tutor details for ID ${tutorId}:`, error.message);
     throw error;
   }
 }
