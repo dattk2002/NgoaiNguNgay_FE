@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@mui/material";
 import { FaArrowRight } from "react-icons/fa6"; // Import FaArrowRight from react-icons/fa6
-import TutorCard from "./TutorCard";
-import { fetchTutors } from "../api/auth";
+import { fetchRecommendTutor } from "../api/auth"; // Changed import to fetchRecommendTutor
+import RecommendTutorCard from "./RecommendTutorCard";
 
-const TutorList = ({ user, onRequireLogin }) => {
+const RecommendTutorList = ({ user, onRequireLogin }) => {
   const [tutors, setTutors] = useState([]);
   const [filteredTutors, setFilteredTutors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,11 +16,12 @@ const TutorList = ({ user, onRequireLogin }) => {
     const loadTutors = async () => {
       try {
         setLoading(true);
-        const tutorsData = await fetchTutors();
+        // Call the new fetchRecommendTutor function
+        const tutorsData = await fetchRecommendTutor();
         setTutors(tutorsData);
         setFilteredTutors(tutorsData); // Initially show all tutors
       } catch (err) {
-        setError(err.message || "Could not load tutors.");
+        setError(err.message || "Could not load recommended tutors."); // Updated error message
       } finally {
         setLoading(false);
       }
@@ -29,18 +30,18 @@ const TutorList = ({ user, onRequireLogin }) => {
     loadTutors();
   }, []);
 
-  // Extract unique languages from tutors
+  // Extract unique languages from tutors - Updated to use the 'languages' array
   const languages = Array.from(
     new Set(
       tutors
         .flatMap((tutor) =>
-          tutor.subjects ? tutor.subjects.map((subject) => subject.name) : []
+          tutor.languages ? tutor.languages.map((lang) => lang.languageCode) : []
         )
         .filter((language) => language)
     )
   ).sort();
 
-  // Handle language filter change
+  // Handle language filter change - Updated to filter based on 'languages' array
   const handleLanguageFilter = (language) => {
     setSelectedLanguage(language);
     setVisibleTutors(3); // Reset visible tutors when changing filter
@@ -48,7 +49,7 @@ const TutorList = ({ user, onRequireLogin }) => {
       setFilteredTutors(tutors); // Show all tutors if no language selected
     } else {
       const filtered = tutors.filter((tutor) =>
-        tutor.subjects?.some((subject) => subject.name === language)
+        tutor.languages?.some((lang) => lang.languageCode === language)
       );
       setFilteredTutors(filtered);
     }
@@ -56,7 +57,7 @@ const TutorList = ({ user, onRequireLogin }) => {
 
   // Handle "Xem thêm" button click
   const handleLoadMore = () => {
-    setVisibleTutors((prev) => prev + 3); 
+    setVisibleTutors((prev) => prev + 3);
   };
 
   if (loading) return <p className="text-center text-gray-500">Loading...</p>;
@@ -117,21 +118,21 @@ const TutorList = ({ user, onRequireLogin }) => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTutors.slice(0, visibleTutors).map((tutor) => (
-              <TutorCard
-                key={tutor.id}
+              <RecommendTutorCard
+                key={tutor.tutorId}
                 tutor={{
-                  id: tutor.id,
-                  name: tutor.name,
-                  subjects:
-                    Array.isArray(tutor.subjects) && tutor.subjects.length > 0
-                      ? tutor.subjects.map((subject) => subject.name).join(", ")
+                  id: tutor.tutorId, // Mapped tutorId to id
+                  name: tutor.fullName, // Mapped fullName to name
+                  subjects: // Mapped languages array to subjects string
+                    Array.isArray(tutor.languages) && tutor.languages.length > 0
+                      ? tutor.languages.map((lang) => lang.languageCode).join(", ")
                       : "N/A",
-                  rating: tutor.rating,
-                  reviews: tutor.ratingCount,
-                  price: parseFloat(tutor.price) || 0,
-                  imageUrl: tutor.imageUrl,
-                  description: tutor.description,
-                  address: tutor.address,
+                  rating: tutor.rating || 0, // Used rating, default to 0 if undefined
+                  reviews: 0, // reviews (ratingCount) is not available in new data
+                  price: 0, // price is not available in new data
+                  imageUrl: tutor.profileImageUrl, // Mapped profileImageUrl to imageUrl
+                  description: tutor.description, // Used description
+                  address: "N/A", // address is not available in new data, defaulting to webcam
                 }}
                 user={user}
                 onRequireLogin={onRequireLogin}
@@ -174,4 +175,4 @@ const TutorList = ({ user, onRequireLogin }) => {
   );
 };
 
-export default TutorList;
+export default RecommendTutorList;
