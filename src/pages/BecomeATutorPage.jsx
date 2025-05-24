@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getAccessToken } from "../components/api/auth";
+import { formatLanguageCode } from '../utils/formatLanguageCode';
 
 const BecomeATutorPage = ({
     user,
@@ -1028,7 +1029,14 @@ const BecomeATutorPage = ({
                             {formData.languages.map((lang, index) => (
                                 <div key={index} className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <h3 className="font-medium text-gray-800">Language {index + 1}</h3>
+                                        <h3 className="font-medium text-gray-800">
+                                            Language {index + 1}: {formatLanguageCode(lang.languageCode)}
+                                            {lang.isPrimary && (
+                                                 <span className="ml-2 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                                                    Primary
+                                                </span>
+                                            )}
+                                        </h3>
                                         {index > 0 && (
                                             <button
                                                 type="button"
