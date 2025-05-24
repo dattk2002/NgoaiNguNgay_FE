@@ -37,6 +37,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { getAccessToken } from '../../components/api/auth';
+import { formatLanguageCode } from '../../utils/formatLanguageCode';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(3),
@@ -147,25 +148,7 @@ const getProficiencyLabel = (level) => {
 };
 
 const getLanguageName = (code) => {
-    const languages = {
-        'en': 'English',
-        'vi': 'Vietnamese',
-        'fr': 'French',
-        'ja': 'Japanese',
-        'ko': 'Korean',
-        'zh': 'Chinese',
-        'es': 'Spanish',
-        'de': 'German',
-        'it': 'Italian',
-        'ru': 'Russian',
-        'pt': 'Portuguese',
-        'ar': 'Arabic',
-        'hi': 'Hindi',
-        'th': 'Thai',
-        'id': 'Indonesian',
-        'nl': 'Dutch'
-    };
-    return languages[code] || code;
+    return formatLanguageCode(code);
 };
 
 const getVerificationStatus = (status) => {

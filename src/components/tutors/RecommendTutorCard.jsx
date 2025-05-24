@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { formatLanguageCode } from "../../utils/formatLanguageCode";
 
 // Star Icon SVG Component
 const StarIcon = ({ className = "w-5 h-5" }) => (
@@ -40,7 +41,10 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
   const description =
     tutor.description || "Experienced tutor providing personalized lessons.";
   const imageUrl = tutor.imageUrl || "https://picsum.photos/300/200?random=1";
-  const subjects = tutor.subjects || "N/A";
+  const subjects = formatLanguageCode(tutor.subjects) || "N/A";
+
+  console.log(subjects);
+  
 
   const handleClick = () => {
     if (!user && onRequireLogin) {
