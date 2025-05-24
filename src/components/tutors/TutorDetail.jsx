@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchTutorById, fetchTutors } from "../api/auth";
+import { formatTutorDate } from "../../utils/formatTutorDate";
 import {
   FaStar,
   FaUser,
@@ -22,6 +23,7 @@ import RecommendTutorCard from "./RecommendTutorCard";
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import { formatLanguageCode } from '../../utils/formatLanguageCode';
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -267,20 +269,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   };
 
   // Helper function to format date
-  const formatBecameTutorDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date)) return "Invalid Date";
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
-    } catch (e) {
-      console.error("Error formatting date:", e);
-      return "Invalid Date";
-    }
-  };
+  
 
   // Define the labels for the tabs
   const tabLabels = [
@@ -324,7 +313,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                     <span>Visited 11 hours ago</span>
                     <span>Teaches</span>
                     <span className="text-gray-800 font-medium">
-                      {teacher.nativeLanguage || "English"}
+                      {formatLanguageCode(teacher.nativeLanguage) || "English"}
                       <span className="ml-1 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
                         Native
                       </span>
@@ -337,7 +326,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                         teacher.subjects.map((subject, index) => (
                           <div key={index} className="flex items-center gap-1">
                             <span className="text-blue-600 font-medium">
-                              {subject.name}
+                              {formatLanguageCode(subject.name)}
                             </span>
                             <div className="flex gap-0.5">
                               {[...Array(5)].map((_, i) => (
@@ -394,7 +383,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                         </p>
                         <p className="text-gray-700 text-sm mt-2">
                           NgoaiNguNgay tutor since{" "}
-                          <span className="font-medium">{formatBecameTutorDate(teacher.becameTutorAt)}</span>{" "}
+                          <span className="font-medium">{formatTutorDate(teacher.becameTutorAt)}</span>{" "}
                           {/* Formatted date */}
                         </p>
                         <h3 className="text-gray-800 font-semibold mt-4">
@@ -414,10 +403,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                         <p className="text-gray-700 text-sm mt-4 leading-relaxed">
                           Hello! I'm {teacher.name}, a passionate tutor from{" "}
                           {teacher.address}. I specialize in teaching{" "}
-                          {teacher.nativeLanguage}
+                          {formatLanguageCode(teacher.nativeLanguage) || "English"}
                           {teacher.subjects && teacher.subjects.length > 0
                             ? ` and ${teacher.subjects
-                              .map((s) => s.name)
+                              .map((s) => formatLanguageCode(s.name))
                               .join(", ")}`
                             : ""}
                           . I'm TEFL certified and have taught over{" "}

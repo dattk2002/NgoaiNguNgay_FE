@@ -3,6 +3,7 @@ import { Button } from "@mui/material";
 import { FaArrowRight } from "react-icons/fa6"; // Import FaArrowRight from react-icons/fa6
 import { fetchRecommendTutor } from "../api/auth"; // Changed import to fetchRecommendTutor
 import RecommendTutorCard from "./RecommendTutorCard";
+import { formatLanguageCode } from "../../utils/formatLanguageCode";
 
 const RecommendTutorList = ({ user, onRequireLogin }) => {
   const [tutors, setTutors] = useState([]);
@@ -108,7 +109,8 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
               textTransform: "none",
             }}
           >
-            {language}
+            {formatLanguageCode(language)}
+            {/* {language} */}
           </Button>
         ))}
       </div>

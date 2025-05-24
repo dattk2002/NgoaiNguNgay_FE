@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom"; // useNavigate is alr
 // Import fetchAllTutor instead
 import { fetchAllTutor } from "../api/auth";
 import LanguageImage from "../../assets/language_banner.png"
+import { formatLanguageCode } from '../../utils/formatLanguageCode';
 
 import {
   FaCheckCircle,
@@ -111,7 +112,7 @@ const TutorSubjectList = () => {
             name: t.fullName,
             imageUrl: t.profileImageUrl || "https://avatar.iran.liara.run/public",
             rating: t.rating || 0,
-            nativeLanguage: primaryLanguage?.languageCode || "N/A",
+            nativeLanguage: formatLanguageCode(primaryLanguage?.languageCode) || "N/A",
             otherLanguagesCount: otherLanguagesCount,
             tag: t.isProfessional ? "Professional Teacher" : "Community Tutor",
 
@@ -326,7 +327,7 @@ const TutorSubjectList = () => {
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
               Find your best{" "}
               <strong className="text-[#333333]">
-                {subject.toUpperCase()}
+                {formatLanguageCode(subject).toUpperCase()}
               </strong>{" "}
               tutor online
             </h1>
