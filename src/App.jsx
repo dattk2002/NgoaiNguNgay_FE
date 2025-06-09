@@ -67,6 +67,10 @@ function App() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [loginPromptMessage, setLoginPromptMessage] = useState("");
   const [isUpdateInfoModalOpen, setIsUpdateInfoModalOpen] = useState(false);
+  const [loginModalCallbacks, setLoginModalCallbacks] = useState({ // New state for callbacks
+    onLoginSuccess: null,
+    onCloseWithoutLogin: null,
+  });
 
   console.log("User state in App.jsx:", user);
 
@@ -179,14 +183,21 @@ function App() {
     };
   }, [user]); // Dependency is user to re-attach when user changes
 
-  const openLoginModal = (message = "") => {
+  const openLoginModal = (message = "", onLoginSuccess = null, onCloseWithoutLogin = null) => {
     setLoginPromptMessage(message);
+    setLoginModalCallbacks({ onLoginSuccess, onCloseWithoutLogin }); // Store callbacks
     setIsLoginModalOpen(true);
   };
 
   const closeLoginModal = () => {
     setIsLoginModalOpen(false);
     setLoginPromptMessage("");
+    // If the user didn't log in (user state is still null), execute the onCloseWithoutLogin callback
+    if (!user && loginModalCallbacks.onCloseWithoutLogin) {
+      loginModalCallbacks.onCloseWithoutLogin();
+    }
+    // Clear callbacks after potential execution
+    setLoginModalCallbacks({ onLoginSuccess: null, onCloseWithoutLogin: null });
   };
 
   const openSignUpModal = () => setIsSignUpModalOpen(true);
@@ -210,7 +221,12 @@ function App() {
     };
     setUser(fullUserData);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData));
-    closeLoginModal();
+
+    // Execute the success callback BEFORE closing the modal and clearing callbacks
+    if (loginModalCallbacks.onLoginSuccess) {
+      loginModalCallbacks.onLoginSuccess();
+    }
+    closeLoginModal(); // This will also clear the callbacks via setLoginModalCallbacks
   };
 
   const handleLogout = () => {
@@ -295,7 +311,7 @@ function App() {
               path="/forgot-password"
               element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
             />
-            <Route path="/" element={<HomePage user={user} />} />
+            <Route path="/" element={<HomePage user={user} onRequireLogin={openLoginModal} />} />
             <Route
               path="/languages"
               element={
