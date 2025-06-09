@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import Header from "./components/Header";
 import FooterHandler from "./components/FooterHandler";
@@ -37,6 +38,22 @@ import {
 import NotFoundPage from "./pages/NotFoundPage"; // Adjust the path if necessary
 import NotGrantedPermissionPage from "./pages/NotGrantedPermissionPage";
 
+// New component to handle scrolling to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // "document.documentElement.scrollTo" is the modern compatible way to approach scrolling.
+    document.documentElement.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "smooth", // Optional: adds smooth scrolling animation
+    });
+  }, [pathname]); // Scroll to top whenever the pathname changes
+
+  return null; // This component doesn't render anything
+}
+
 const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
 const ACCOUNTS_STORAGE_KEY = "accounts";
@@ -51,7 +68,7 @@ function App() {
   const [loginPromptMessage, setLoginPromptMessage] = useState("");
   const [isUpdateInfoModalOpen, setIsUpdateInfoModalOpen] = useState(false);
 
-  console.log("Hello: ", user);
+  console.log("User state in App.jsx:", user);
 
   useEffect(() => {
     setIsLoadingAuth(true);
@@ -176,6 +193,7 @@ function App() {
   const closeSignUpModal = () => setIsSignUpModalOpen(false);
 
   const handleLogin = async (userData) => {
+    console.log("handleLogin called with userData:", userData);
     // Ensure all relevant user data is included upon login
     const fullUserData = {
       ...userData,
@@ -263,6 +281,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen flex flex-col bg-gray-100 overflow-x-hidden overflow-y-hidden">
         <Header
           user={user}

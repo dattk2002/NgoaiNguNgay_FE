@@ -172,13 +172,17 @@ const LoginModal = ({
       console.log("Login Response:", response);
 
       if (response?.data?.token?.user) {
-        const { id, fullName, email, profileImageUrl } =
+        const { id, fullName, email, profileImageUrl, username, phoneNumber } =
           response.data.token.user;
         const userDetails = {
           id,
           fullName,
           email,
           profileImageUrl,
+          username,
+          phoneNumber,
+          role: response.data.role,
+          roles: response.data.roles,
         };
         onLogin(userDetails);
         toast.success(response.message || "Đăng nhập thành công!");
@@ -243,7 +247,7 @@ const LoginModal = ({
             profileImageUrl: photoURL,
           });
 
-          toast.success("User login successfully!", {
+          toast.success("Đăng nhập người dùng thành công!", {
             position: "top-center",
           });
           onClose();
@@ -251,7 +255,7 @@ const LoginModal = ({
       })
       .catch((error) => {
         console.error("Google Sign-In Error:", error);
-        setGeneralError("Google Sign-In failed. Please try again.");
+        setGeneralError("Đăng nhập Google thất bại. Vui lòng thử lại.");
         toast.error("Đăng nhập Google thất bại. Vui lòng thử lại.");
       });
   };
@@ -334,7 +338,7 @@ const LoginModal = ({
             </button>
 
             <h2 className="text-black text-2xl font-semibold text-center mb-4">
-              Welcome!
+              Chào mừng!
             </h2>
 
             {promptMessage && (
@@ -344,23 +348,23 @@ const LoginModal = ({
             )}
 
             <p className="text-sm text-gray-500 text-center mb-6">
-              By logging in or creating an account, you agree to our&nbsp;
+              Bằng cách đăng nhập hoặc tạo tài khoản, bạn đồng ý với&nbsp;
               <a
                 href="/terms"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-gray-700"
               >
-                Terms of Service&nbsp;
+                Điều khoản dịch vụ của chúng tôi&nbsp;
               </a>
-               and&nbsp;
+               và&nbsp;
               <a
                 href="/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-gray-700"
               >
-                Privacy Policy
+                Chính sách bảo mật
               </a>
               .
             </p>
@@ -390,7 +394,7 @@ const LoginModal = ({
               <div className="flex-grow border-t border-gray-200"></div>
 
               <span className="flex-shrink mx-4 text-gray-400 text-sm">
-                or log in with email
+                hoặc đăng nhập bằng email
               </span>
 
               <div className="flex-grow border-t border-gray-200"></div>
@@ -410,7 +414,7 @@ const LoginModal = ({
                     setFieldErrors((prev) => ({ ...prev, username: "" }));
                     setGeneralError("");
                   }}
-                  placeholder="Email Address"
+                  placeholder="Địa chỉ Email"
                   className={`w-full px-4 py-3 border text-black rounded-lg focus:outline-none focus:ring-1
                     ${
                       fieldErrors.username
@@ -427,7 +431,7 @@ const LoginModal = ({
               <div className="relative mb-4">
                 <div className="relative">
                   <label htmlFor="password" className="sr-only">
-                    Password
+                    Mật khẩu
                   </label>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -451,7 +455,7 @@ const LoginModal = ({
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 cursor-pointer"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
                   >
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
@@ -467,7 +471,7 @@ const LoginModal = ({
                   href="#"
                   className="font-medium text-[#333333] hover:text-black"
                 >
-                  Forgot password?
+                  Quên mật khẩu?
                 </a>
               </div>
 
@@ -481,16 +485,16 @@ const LoginModal = ({
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <SpinnerIcon />
-                    Logging in...
+                    Đang đăng nhập...
                   </div>
                 ) : (
-                  "Log in"
+                  "Đăng nhập"
                 )}
               </button>
             </form>
 
             <p className="text-center text-sm text-gray-500 mt-6">
-              No account yet?
+              Chưa có tài khoản?
               <button
                 onClick={() => {
                   onClose();
@@ -498,7 +502,7 @@ const LoginModal = ({
                 }}
                 className="font-medium text-[#333333] hover:text-black underline"
               >
-                Sign up
+                Đăng ký
               </button>
             </p>
           </motion.div>

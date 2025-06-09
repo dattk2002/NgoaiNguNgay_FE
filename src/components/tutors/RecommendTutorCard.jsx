@@ -1,18 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
+import StarIconRender from "../../utils/starIconRender";
 
-// Star Icon SVG Component
-const StarIcon = ({ className = "w-5 h-5" }) => (
-  <svg
-    className={className}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-  </svg>
-);
+import { FaCheckCircle } from "react-icons/fa";
 
 // Ambassador Icon SVG Component
 const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
@@ -29,6 +20,8 @@ const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
 const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
   const navigate = useNavigate();
 
+  console.log("User prop in RecommendTutorCard:", tutor);
+
   if (!tutor) {
     return null;
   }
@@ -37,32 +30,44 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
   const reviews = typeof tutor.reviews === "number" ? tutor.reviews : 0;
   const price = typeof tutor.price === "number" ? tutor.price : 0;
   const name = tutor.name || "Unnamed Tutor";
-  const location = tutor.address ? `${tutor.address} (webcam)` : "(webcam)";
-  const description =
-    tutor.description || "Experienced tutor providing personalized lessons.";
+  const isProfessional = tutor.isProfessional;
+  const tag = tutor.isProfessional ? "Professional Teacher" : "";
+  console.log("Is Pro: ", isProfessional);
+
+  const location = tutor.address ? `${tutor.address}` : "";
+  const description = tutor.description || "Empty";
+
   const imageUrl = tutor.imageUrl || "https://picsum.photos/300/200?random=1";
   const subjects = formatLanguageCode(tutor.subjects) || "N/A";
 
-  console.log(subjects);
-  
+  // New function for 'Contact Now' button click
+  const handleContactClick = (event) => {
+    // Stop the click event from propagating to the parent card div
+    event.stopPropagation();
+    // This function will only be called if the button is not disabled (i.e., user is logged in)
+    if (tutor.id) {
+      // If logged in, navigate to the message page for this tutor
+      navigate(`/message/${tutor.id}`);
+    } else {
+      console.error("Tutor ID is missing:", tutor);
+    }
+  };
 
-  const handleClick = () => {
-    if (!user && onRequireLogin) {
-      // If not logged in, redirect to profile and trigger login modal
-      console.log(tutor.nativeLanguage);
-
-      navigate(`/teacher/${tutor.id}`); // Ensure nativeLanguage is used
-      onRequireLogin("Please log in to contact this tutor.");
-    } else if (tutor.id) {
-      // If logged in, open tutor profile in a new tab
-      window.open(`/teacher/${tutor.id}`, "_blank", "noopener,noreferrer");
+  // Modified function for card boundary click
+  const handleCardClick = () => {
+    if (tutor.id) {
+      // Navigate to the tutor detail page regardless of login status
+      navigate(`/teacher/${tutor.id}`);
     } else {
       console.error("Tutor ID is missing:", tutor);
     }
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full cursor-pointer">
+    <div
+      className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full cursor-pointer"
+      onClick={handleCardClick} // Assign handleCardClick to the main div
+    >
       <div className="relative w-full" style={{ paddingTop: "66.66%" }}>
         <img
           src={imageUrl}
@@ -82,15 +87,20 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
 
       <div className="p-4 flex flex-col flex-grow relative group">
         <div className="flex items-center justify-between mb-2 text-sm">
-          <div className="flex items-center text-gray-800">
-            <StarIcon className="w-5 h-5 text-yellow-400 mr-1" />
+          <div className="flex items-center text-gray-800 mr-1">
+            <StarIconRender
+              rating={rating}
+              className="w-4 h-4 text-yellow-500 mr-1"
+            />
             <span className="font-bold">{rating.toFixed(1)}</span>
-            <span className="text-gray-600 ml-1">({reviews} reviews)</span>
+            <span className="text-gray-600 ml-1">({reviews} đánh giá)</span>
           </div>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-            <AmbassadorIcon className="w-3 h-3 mr-1" />
-            Ambassador
-          </span>
+          {isProfessional && (
+            <span className="flex items-center gap-1 text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+              <FaCheckCircle />
+              {tag}
+            </span>
+          )}
         </div>
         <p className="text-gray-700 text-sm mb-2 truncate" title={subjects}>
           {subjects}
@@ -102,14 +112,19 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
           {description}
         </p>
         <div className="text-gray-700 text-sm mt-auto py-3 group-hover:hidden">
-          <span className="font-bold text-base">${price.toFixed(2)}/h</span>
-          <span className="text-red-500 ml-2">• 1st lesson free</span>
+          <span className="font-bold text-base">{price.toFixed(2)} VND/h</span>
+          <span className="text-red-500 ml-2">
+            • Buổi học đầu tiên miễn phí
+          </span>
         </div>
         <button
-          className="hidden group-hover:block mt-auto pt-2 w-full bg-[#333333] hover:bg-black text-white font-bold py-2 rounded-lg transition duration-150 ease-in-out text-center"
-          onClick={handleClick}
+          className={`hidden group-hover:block mt-auto pt-2 w-full font-bold py-2 rounded-lg transition duration-150 ease-in-out text-center
+            "bg-[#333333] hover:bg-black text-white"
+          }`}
+          onClick={handleContactClick}
+          // disabled={!user}
         >
-          Contact Now
+          Liên hệ ngay
         </button>
       </div>
     </div>

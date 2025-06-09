@@ -7,25 +7,7 @@ import {
 } from "react-icons/fa";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
-
-// Helper function for rendering stars (can be moved to a shared utility or kept here)
-const renderStars = (rating) => {
-  const fullStars = Math.floor(rating);
-  const halfStar = rating % 1 >= 0.5;
-  const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-
-  return (
-    <div className="flex text-yellow-500">
-      {[...Array(fullStars)].map((_, i) => (
-        <FaStar key={`full-${i}`} />
-      ))}
-      {/* Add half star logic if needed: {halfStar && <FaStarHalfAlt key="half" />} */}
-      {[...Array(emptyStars)].map((_, i) => (
-        <FaRegStar key={`empty-${i}`} />
-      ))}
-    </div>
-  );
-};
+import StarIconRender from "../../utils/starIconRender";
 
 const TutorCard = ({
   teacher,
@@ -41,6 +23,11 @@ const TutorCard = ({
 }) => {
   const isHovered = hoveredTutor && hoveredTutor.id === teacher.id;
 
+  console.log(teacher.isProfessional);
+  console.log(teacher);
+  
+  
+  
   return (
     <div
       key={teacher.id}
@@ -59,9 +46,9 @@ const TutorCard = ({
             alt={teacher.name}
             className="w-16 h-16 rounded-full object-cover mb-2 border border-gray-200"
           />
-          {renderStars(teacher.rating)}
+          <StarIconRender rating={teacher.rating} className="w-4 h-4 text-yellow-500" />
           <span className="text-xs text-gray-500 mt-1">
-            {teacher.rating} ({teacher.lessons} Lessons)
+            {teacher.rating} ({teacher.lessons} Buổi học)
           </span>
         </div>
         {/* Right Part: Details */}
@@ -71,10 +58,19 @@ const TutorCard = ({
             <h2 className="text-lg font-semibold text-gray-800">
               {teacher.name}
             </h2>
+            {teacher.isProfessional === true && (
             <span className="flex items-center gap-1 text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
               <FaCheckCircle />
               {teacher.tag}
             </span>
+            )}
+            {/* Render profession teacher tag if isProfessional is true */}
+            {/* {teacher.isProfessional === true && (
+              <span className="flex items-center gap-1 text-xs font-medium bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                <FaCheckCircle />
+                {teacher.tag}
+              </span>
+            )} */}
             {/* Render other badges/tags */}
             {teacher.badges?.map((badge) => (
               <span
@@ -88,12 +84,12 @@ const TutorCard = ({
           </div>
           {/* Speaks */}
           <div className="text-sm text-gray-600 mb-2">
-            <span className="font-medium mr-2">SPEAKS:</span>
+            <span className="font-medium mr-2">NÓI:</span>
             <span className="text-gray-800 font-semibold">
               {teacher.nativeLanguage}
             </span>
             <span className="ml-1 inline-block bg-gray-200 text-gray-700 text-xs font-medium px-1.5 py-0.5 rounded">
-              Native
+              Bản xứ
             </span>
             {teacher.otherLanguagesCount > 0 && (
               <span className="text-gray-500 ml-2">
@@ -110,7 +106,7 @@ const TutorCard = ({
           <div className="flex items-center justify-between mt-2">
             <span className="text-gray-800 font-semibold">
               USD {parseFloat(teacher.price).toFixed(2)}
-              <span className="text-gray-500 font-normal text-sm">/ trial</span>
+              <span className="text-gray-500 font-normal text-sm">/ buổi thử</span>
             </span>
             <span className="text-sm text-green-600">
               {teacher.availabilityText}
@@ -143,7 +139,7 @@ const TutorCard = ({
                   },
                 }}
               >
-                Book trial
+                Đặt buổi thử
               </Button>
             </div>
           </div>
@@ -164,7 +160,7 @@ const TutorCard = ({
           <div className="relative aspect-video mb-4 rounded-t-lg overflow-hidden">
             <iframe
               src={hoveredTutor.videoUrl}
-              title={`${hoveredTutor.name}'s video`}
+              title={`Video của ${hoveredTutor.name}`}
               width="100%"
               height="100%"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -175,7 +171,7 @@ const TutorCard = ({
           {/* Availability Grid */}
           <div className="grid grid-cols-7 gap-1 text-center p-4">
             {/* Day Headers */}
-            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+            {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
               <div key={day} className="text-xs font-medium text-gray-500">
                 {day}
               </div>
