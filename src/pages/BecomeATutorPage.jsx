@@ -42,60 +42,60 @@ const BecomeATutorPage = ({
     });
 
     const proficiencyLevels = [
-        { value: 1, label: "Beginner (A1)" },
-        { value: 2, label: "Elementary (A2)" },
-        { value: 3, label: "Intermediate (B1)" },
-        { value: 4, label: "Upper Intermediate (B2)" },
-        { value: 5, label: "Advanced (C1)" },
-        { value: 6, label: "Proficient (C2)" },
-        { value: 7, label: "Native" }
+        { value: 1, label: "Người mới bắt đầu (A1)" },
+        { value: 2, label: "Sơ cấp (A2)" },
+        { value: 3, label: "Trung cấp (B1)" },
+        { value: 4, label: "Trung cấp trên (B2)" },
+        { value: 5, label: "Nâng cao (C1)" },
+        { value: 6, label: "Thành thạo (C2)" },
+        { value: 7, label: "Bản ngữ" }
     ];
 
     const timezones = [
-        { value: "UTC-12", label: "(UTC-12:00) International Date Line West" },
-        { value: "UTC-11", label: "(UTC-11:00) Coordinated Universal Time-11" },
+        { value: "UTC-12", label: "(UTC-12:00) Đường đổi ngày quốc tế phía Tây" },
+        { value: "UTC-11", label: "(UTC-11:00) Giờ phối hợp quốc tế-11" },
         { value: "UTC-10", label: "(UTC-10:00) Hawaii" },
         { value: "UTC-9", label: "(UTC-09:00) Alaska" },
-        { value: "UTC-8", label: "(UTC-08:00) Pacific Time (US & Canada)" },
-        { value: "UTC-7", label: "(UTC-07:00) Mountain Time (US & Canada)" },
-        { value: "UTC-6", label: "(UTC-06:00) Central Time (US & Canada)" },
-        { value: "UTC-5", label: "(UTC-05:00) Eastern Time (US & Canada)" },
-        { value: "UTC-4", label: "(UTC-04:00) Atlantic Time (Canada)" },
+        { value: "UTC-8", label: "(UTC-08:00) Giờ Thái Bình Dương (Mỹ & Canada)" },
+        { value: "UTC-7", label: "(UTC-07:00) Giờ Miền Núi (Mỹ & Canada)" },
+        { value: "UTC-6", label: "(UTC-06:00) Giờ Trung tâm (Mỹ & Canada)" },
+        { value: "UTC-5", label: "(UTC-05:00) Giờ Miền Đông (Mỹ & Canada)" },
+        { value: "UTC-4", label: "(UTC-04:00) Giờ Đại Tây Dương (Canada)" },
         { value: "UTC-3", label: "(UTC-03:00) Brasilia" },
-        { value: "UTC-2", label: "(UTC-02:00) Mid-Atlantic" },
+        { value: "UTC-2", label: "(UTC-02:00) Giữa Đại Tây Dương" },
         { value: "UTC-1", label: "(UTC-01:00) Azores" },
-        { value: "UTC+0", label: "(UTC+00:00) London, Dublin, Edinburgh" },
+        { value: "UTC+0", label: "(UTC+00:00) Luân Đôn, Dublin, Edinburgh" },
         { value: "UTC+1", label: "(UTC+01:00) Paris, Amsterdam, Berlin" },
         { value: "UTC+2", label: "(UTC+02:00) Athens, Istanbul, Helsinki" },
         { value: "UTC+3", label: "(UTC+03:00) Moscow, Baghdad, Kuwait" },
         { value: "UTC+4", label: "(UTC+04:00) Abu Dhabi, Dubai, Muscat" },
         { value: "UTC+5", label: "(UTC+05:00) Islamabad, Karachi, Tashkent" },
         { value: "UTC+6", label: "(UTC+06:00) Astana, Dhaka, Almaty" },
-        { value: "UTC+7", label: "(UTC+07:00) Bangkok, Hanoi, Jakarta" },
-        { value: "UTC+8", label: "(UTC+08:00) Beijing, Hong Kong, Singapore" },
+        { value: "UTC+7", label: "(UTC+07:00) Bangkok, Hà Nội, Jakarta" },
+        { value: "UTC+8", label: "(UTC+08:00) Bắc Kinh, Hồng Kông, Singapore" },
         { value: "UTC+9", label: "(UTC+09:00) Tokyo, Seoul, Osaka" },
         { value: "UTC+10", label: "(UTC+10:00) Sydney, Melbourne, Brisbane" },
-        { value: "UTC+11", label: "(UTC+11:00) Vladivostok, Solomon Islands" },
+        { value: "UTC+11", label: "(UTC+11:00) Vladivostok, Quần đảo Solomon" },
         { value: "UTC+12", label: "(UTC+12:00) Auckland, Wellington, Fiji" }
     ];
 
     const availableLanguages = [
-        { value: "en", label: "English" },
-        { value: "vi", label: "Vietnamese" },
-        { value: "fr", label: "French" },
-        { value: "ja", label: "Japanese" },
-        { value: "ko", label: "Korean" },
-        { value: "zh", label: "Chinese" },
-        { value: "es", label: "Spanish" },
-        { value: "de", label: "German" },
-        { value: "it", label: "Italian" },
-        { value: "ru", label: "Russian" },
-        { value: "pt", label: "Portuguese" },
-        { value: "ar", label: "Arabic" },
-        { value: "hi", label: "Hindi" },
-        { value: "th", label: "Thai" },
-        { value: "id", label: "Indonesian" },
-        { value: "nl", label: "Dutch" }
+        { value: "en", label: "Tiếng Anh" },
+        { value: "vi", label: "Tiếng Việt" },
+        { value: "fr", label: "Tiếng Pháp" },
+        { value: "ja", label: "Tiếng Nhật" },
+        { value: "ko", label: "Tiếng Hàn" },
+        { value: "zh", label: "Tiếng Trung" },
+        { value: "es", label: "Tiếng Tây Ban Nha" },
+        { value: "de", label: "Tiếng Đức" },
+        { value: "it", label: "Tiếng Ý" },
+        { value: "ru", label: "Tiếng Nga" },
+        { value: "pt", label: "Tiếng Bồ Đào Nha" },
+        { value: "ar", label: "Tiếng Ả Rập" },
+        { value: "hi", label: "Tiếng Hindi" },
+        { value: "th", label: "Tiếng Thái" },
+        { value: "id", label: "Tiếng Indonesia" },
+        { value: "nl", label: "Tiếng Hà Lan" }
     ];
 
     // Thêm CSS style inline
@@ -129,7 +129,7 @@ const BecomeATutorPage = ({
                 ]);
             } catch (error) {
                 console.error("Error fetching initial data:", error);
-                toast.error("Failed to load initial data. Please try again.");
+                toast.error("Không thể tải dữ liệu ban đầu. Vui lòng thử lại.");
             } finally {
                 setIsLoading(false);
             }
@@ -142,7 +142,7 @@ const BecomeATutorPage = ({
         try {
             const token = getAccessToken();
             if (!token) {
-                toast.error("You must be logged in to register as a tutor.");
+                toast.error("Bạn phải đăng nhập để đăng ký làm gia sư.");
                 onRequireLogin();
                 return;
             }
@@ -161,7 +161,7 @@ const BecomeATutorPage = ({
             }
         } catch (error) {
             console.error("Error fetching profile data:", error);
-            toast.error("Failed to load profile data.");
+            toast.error("Không thể tải dữ liệu hồ sơ.");
         }
     };
 
@@ -178,7 +178,7 @@ const BecomeATutorPage = ({
             }
         } catch (error) {
             console.error("Error fetching hashtags:", error);
-            toast.error("Failed to load hashtags.");
+            toast.error("Không thể tải các thẻ hashtag.");
         }
     };
 
@@ -200,13 +200,13 @@ const BecomeATutorPage = ({
 
             // Validate file size (max 2MB)
             if (file.size > 2 * 1024 * 1024) {
-                toast.error('Image size must be less than 2MB');
+                toast.error('Kích thước ảnh phải nhỏ hơn 2MB');
                 return;
             }
 
             // Validate file type
             if (!file.type.startsWith('image/')) {
-                toast.error('Only image files are accepted');
+                toast.error('Chỉ chấp nhận các tệp ảnh');
                 return;
             }
 
@@ -234,11 +234,11 @@ const BecomeATutorPage = ({
                     ...prev,
                     profilePhotoPreview: response.data.profileImageUrl
                 }));
-                toast.success("Profile image uploaded successfully");
+                toast.success("Ảnh hồ sơ đã được tải lên thành công");
             }
         } catch (error) {
             console.error("Error uploading profile image:", error);
-            toast.error("Failed to upload profile image. Please try again.");
+            toast.error("Không thể tải ảnh hồ sơ. Vui lòng thử lại.");
         }
     };
 
@@ -253,10 +253,10 @@ const BecomeATutorPage = ({
                 profilePhotoPreview: ""
             }));
 
-            toast.success("Profile image removed successfully");
+            toast.success("Ảnh hồ sơ đã được gỡ bỏ thành công");
         } catch (error) {
             console.error("Error deleting profile image:", error);
-            toast.error("Failed to delete profile image. Please try again.");
+            toast.error("Không thể xóa ảnh hồ sơ. Vui lòng thử lại.");
         }
     };
 
@@ -400,15 +400,15 @@ const BecomeATutorPage = ({
         switch (activeStep) {
             case 1: // Basic Information
                 if (!formData.fullName) {
-                    toast.error("Please enter your full name");
+                    toast.error("Vui lòng nhập họ và tên của bạn");
                     return false;
                 }
                 if (!formData.dateOfBirth) {
-                    toast.error("Please select your date of birth");
+                    toast.error("Vui lòng chọn ngày sinh của bạn");
                     return false;
                 }
                 if (!formData.profilePhotoPreview) {
-                    toast.error("Please upload a profile photo");
+                    toast.error("Vui lòng tải lên ảnh hồ sơ");
                     return false;
                 }
 
@@ -424,8 +424,8 @@ const BecomeATutorPage = ({
                         age--;
                     }
 
-                    if (age < 18) {
-                        toast.error("You must be at least 18 years old to register as a tutor");
+                    if (age < 16) {
+                        toast.error("Bạn phải đủ 16 tuổi trở lên để đăng ký làm gia sư");
                         return false;
                     }
                 }
@@ -433,15 +433,15 @@ const BecomeATutorPage = ({
 
             case 2: // Tutor Information
                 if (formData.brief && (formData.brief.length < 10 || formData.brief.length > 300)) {
-                    toast.error("Brief introduction must be between 10 and 300 characters");
+                    toast.error("Giới thiệu ngắn gọn phải từ 10 đến 300 ký tự");
                     return false;
                 }
                 if (!formData.description || formData.description.length < 100 || formData.description.length > 3000) {
-                    toast.error("Description must be between 100 and 3000 characters");
+                    toast.error("Mô tả phải từ 100 đến 3000 ký tự");
                     return false;
                 }
                 if (!formData.teachingMethod || formData.teachingMethod.length < 10 || formData.teachingMethod.length > 300) {
-                    toast.error("Teaching method must be between 10 and 300 characters");
+                    toast.error("Phương pháp giảng dạy phải từ 10 đến 300 ký tự");
                     return false;
                 }
                 return true;
@@ -449,7 +449,7 @@ const BecomeATutorPage = ({
             case 3:
                 // Make sure hashtagIds array exists
                 if (!formData.hashtagIds || !Array.isArray(formData.hashtagIds) || formData.hashtagIds.length === 0) {
-                    toast.error("Please select at least one hashtag");
+                    toast.error("Vui lòng chọn ít nhất một hashtag");
                     return false;
                 }
 
@@ -460,7 +460,7 @@ const BecomeATutorPage = ({
 
                 if (invalidHashtags.length > 0) {
                     console.error("Invalid hashtag IDs detected:", invalidHashtags);
-                    toast.error("Some selected hashtags are invalid. Please refresh and try again.");
+                    toast.error("Một số hashtag đã chọn không hợp lệ. Vui lòng làm mới trang và thử lại.");
                     return false;
                 }
 
@@ -468,21 +468,21 @@ const BecomeATutorPage = ({
 
             case 4: // Languages
                 if (formData.languages.length === 0) {
-                    toast.error("Please add at least one language");
+                    toast.error("Vui lòng thêm ít nhất một ngôn ngữ");
                     return false;
                 }
 
                 // Validate each language
                 for (let i = 0; i < formData.languages.length; i++) {
                     if (!formData.languages[i].languageCode) {
-                        toast.error(`Please select a language for Language ${i + 1}`);
+                        toast.error(`Vui lòng chọn một ngôn ngữ cho Ngôn ngữ ${i + 1}`);
                         return false;
                     }
                 }
 
                 // Ensure at least one language is marked as primary
                 if (!formData.languages.some(lang => lang.isPrimary)) {
-                    toast.error("Please mark at least one language as primary");
+                    toast.error("Vui lòng đánh dấu ít nhất một ngôn ngữ là ngôn ngữ chính");
                     return false;
                 }
 
@@ -511,7 +511,7 @@ const BecomeATutorPage = ({
         try {
             const token = getAccessToken();
             if (!token) {
-                toast.error("You must be logged in to register as a tutor");
+                toast.error("Bạn phải đăng nhập để đăng ký làm gia sư");
                 onRequireLogin();
                 return;
             }
@@ -539,7 +539,7 @@ const BecomeATutorPage = ({
             const response = await registerAsTutorApi(payload);
             console.log("Registration successful:", response);
 
-            toast.success("Your tutor registration was successful! Your profile is now under review.");
+            toast.success("Đăng ký gia sư của bạn đã thành công! Hồ sơ của bạn hiện đang được xem xét.");
 
             // Redirect to home page after 2 seconds
             setTimeout(() => {
@@ -548,7 +548,7 @@ const BecomeATutorPage = ({
 
         } catch (error) {
             console.error("Error submitting tutor registration:", error);
-            toast.error(error.message || "Registration failed. Please try again later.");
+            toast.error(error.message || "Đăng ký thất bại. Vui lòng thử lại sau.");
         } finally {
             setIsSubmitting(false);
         }
@@ -572,10 +572,10 @@ const BecomeATutorPage = ({
 
     const renderStepIndicator = () => {
         const steps = [
-            "Basic Information",
-            "Tutor Information",
-            "Hashtags",
-            "Languages"
+            "Thông tin cơ bản",
+            "Thông tin gia sư",
+            "Hashtag",
+            "Ngôn ngữ"
         ];
 
         return (
@@ -661,11 +661,11 @@ const BecomeATutorPage = ({
             case 1:
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Basic Information</h2>
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Thông tin cơ bản</h2>
                         <div className="space-y-5">
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Profile Photo <span className="text-red-500">*</span>
+                                    Ảnh hồ sơ <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex flex-col md:flex-row items-center gap-5">
                                     {formData.profilePhotoPreview ? (
@@ -681,7 +681,7 @@ const BecomeATutorPage = ({
                                                 type="button"
                                                 onClick={deleteProfileImage}
                                                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                                                title="Remove image"
+                                                title="Gỡ ảnh"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -702,8 +702,8 @@ const BecomeATutorPage = ({
                                                     <svg className="w-10 h-10 text-blue-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                                     </svg>
-                                                    <p className="mb-2 text-sm text-blue-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                                    <p className="text-xs text-gray-500">JPG, PNG (Max 2MB)</p>
+                                                    <p className="mb-2 text-sm text-blue-500"><span className="font-semibold">Nhấp để tải lên</span> hoặc kéo và thả</p>
+                                                    <p className="text-xs text-gray-500">JPG, PNG (Tối đa 2MB)</p>
                                                 </div>
                                                 <input
                                                     type="file"
@@ -718,13 +718,13 @@ const BecomeATutorPage = ({
                                     </div>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    This is the photo that will be displayed to students.
+                                    Đây là ảnh sẽ được hiển thị cho học viên.
                                 </p>
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Full Name <span className="text-red-500">*</span>
+                                    Họ và tên đầy đủ <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
@@ -733,14 +733,14 @@ const BecomeATutorPage = ({
                                     onChange={handleChange}
                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
                                     style={formControlStyle}
-                                    placeholder="Enter your full name"
+                                    placeholder="Nhập họ và tên đầy đủ của bạn"
                                     required
                                 />
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Date of Birth <span className="text-red-500">*</span>
+                                    Ngày sinh <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="date"
@@ -757,14 +757,14 @@ const BecomeATutorPage = ({
                                     required
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    You must be at least 18 years old to register as a tutor
+                                    Bạn phải đủ 18 tuổi trở lên để đăng ký làm gia sư
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Gender <span className="text-red-500">*</span>
+                                        Giới tính <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <select
@@ -775,9 +775,9 @@ const BecomeATutorPage = ({
                                             required
                                             style={formSelectStyle}
                                         >
-                                            <option value={0}>Other</option>
-                                            <option value={1}>Male</option>
-                                            <option value={2}>Female</option>
+                                            <option value={0}>Khác</option>
+                                            <option value={1}>Nam</option>
+                                            <option value={2}>Nữ</option>
                                         </select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
                                             <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -788,7 +788,7 @@ const BecomeATutorPage = ({
 
                                 <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Timezone <span className="text-red-500">*</span>
+                                        Múi giờ <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <select
@@ -822,11 +822,11 @@ const BecomeATutorPage = ({
             case 2:
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Tutor Information</h2>
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Thông tin gia sư</h2>
                         <div className="space-y-5">
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Nickname
+                                    Biệt danh
                                 </label>
                                 <input
                                     type="text"
@@ -835,16 +835,16 @@ const BecomeATutorPage = ({
                                     onChange={handleChange}
                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
                                     style={formControlStyle}
-                                    placeholder="Enter your preferred nickname (optional)"
+                                    placeholder="Nhập biệt danh bạn muốn (tùy chọn)"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    This will be shown to students. Leave blank to use your full name.
+                                    Biệt danh này sẽ được hiển thị cho học viên. Để trống để sử dụng tên đầy đủ của bạn.
                                 </p>
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Brief Introduction
+                                    Giới thiệu ngắn gọn
                                 </label>
                                 <textarea
                                     name="brief"
@@ -853,21 +853,21 @@ const BecomeATutorPage = ({
                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
                                     rows="2"
                                     style={formControlStyle}
-                                    placeholder="A brief introduction about yourself (0-300 characters)"
+                                    placeholder="Giới thiệu ngắn gọn về bản thân (0-300 ký tự)"
                                 ></textarea>
                                 <div className="flex justify-between mt-1">
                                     <p className="text-xs text-gray-500">
-                                        Max 300 characters
+                                        Tối đa 300 ký tự
                                     </p>
                                     <p className={`text-xs ${formData.brief.length > 300 ? 'text-red-500' : 'text-gray-500'}`}>
-                                        {formData.brief.length}/300 characters
+                                        {formData.brief.length}/300 ký tự
                                     </p>
                                 </div>
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Full Description <span className="text-red-500">*</span>
+                                    Mô tả đầy đủ <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
                                     name="description"
@@ -876,22 +876,22 @@ const BecomeATutorPage = ({
                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
                                     rows="6"
                                     style={formControlStyle}
-                                    placeholder="Provide a detailed description about yourself, including your education, work experience, and teaching philosophy (100-3000 characters)"
+                                    placeholder="Cung cấp mô tả chi tiết về bản thân, bao gồm trình độ học vấn, kinh nghiệm làm việc và triết lý giảng dạy (100-3000 ký tự)"
                                     required
                                 ></textarea>
                                 <div className="flex justify-between mt-1">
                                     <p className="text-xs text-gray-500">
-                                        Min 100 characters, max 3000 characters
+                                        Tối thiểu 100 ký tự, tối đa 3000 ký tự
                                     </p>
                                     <p className={`text-xs ${formData.description.length < 100 || formData.description.length > 3000 ? 'text-red-500' : 'text-gray-500'}`}>
-                                        {formData.description.length}/3000 characters
+                                        {formData.description.length}/3000 ký tự
                                     </p>
                                 </div>
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Teaching Method <span className="text-red-500">*</span>
+                                    Phương pháp giảng dạy <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
                                     name="teachingMethod"
@@ -900,15 +900,15 @@ const BecomeATutorPage = ({
                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
                                     rows="3"
                                     style={formControlStyle}
-                                    placeholder="Describe your teaching methods and approach (10-300 characters)"
+                                    placeholder="Mô tả phương pháp và cách tiếp cận giảng dạy của bạn (10-300 ký tự)"
                                     required
                                 ></textarea>
                                 <div className="flex justify-between mt-1">
                                     <p className="text-xs text-gray-500">
-                                        Min 10 characters, max 300 characters
+                                        Tối thiểu 10 ký tự, tối đa 300 ký tự
                                     </p>
                                     <p className={`text-xs ${formData.teachingMethod.length < 10 || formData.teachingMethod.length > 300 ? 'text-red-500' : 'text-gray-500'}`}>
-                                        {formData.teachingMethod.length}/300 characters
+                                        {formData.teachingMethod.length}/300 ký tự
                                     </p>
                                 </div>
                             </div>
@@ -918,7 +918,7 @@ const BecomeATutorPage = ({
             case 3:
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Hashtags</h2>
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Hashtag</h2>
                         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md">
                             <div className="flex">
                                 <div className="flex-shrink-0">
@@ -928,15 +928,15 @@ const BecomeATutorPage = ({
                                 </div>
                                 <div className="ml-3">
                                     <p className="text-sm text-yellow-800">
-                                        Select relevant hashtags to help students find you. Choose hashtags that represent your teaching specialties, certifications, or target student groups.
+                                        Chọn các hashtag liên quan để học viên có thể tìm thấy bạn. Chọn các hashtag đại diện cho chuyên môn giảng dạy, chứng chỉ hoặc nhóm học viên mục tiêu của bạn.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-medium text-gray-800 mb-4">Select Hashtags</h3>
-                            <p className="text-sm text-gray-600 mb-4">Select at least one hashtag that represents your teaching specialty.</p>
+                            <h3 className="text-lg font-medium text-gray-800 mb-4">Chọn Hashtag</h3>
+                            <p className="text-sm text-gray-600 mb-4">Chọn ít nhất một hashtag đại diện cho chuyên môn giảng dạy của bạn.</p>
 
                             <div className="flex flex-wrap gap-3 mt-4">
                                 {isLoading ? (
@@ -947,9 +947,9 @@ const BecomeATutorPage = ({
                                         </svg>
                                     </div>
                                 ) : !Array.isArray(hashtags) ? (
-                                    <p className="text-gray-500 text-center w-full py-8">Unable to load hashtags. Please try refreshing the page.</p>
+                                    <p className="text-gray-500 text-center w-full py-8">Không có hashtag nào. Liên hệ hỗ trợ nếu bạn cho rằng đây là lỗi.</p>
                                 ) : hashtags.length === 0 ? (
-                                    <p className="text-gray-500 text-center w-full py-8">No hashtags available. Contact support if you believe this is an error.</p>
+                                    <p className="text-gray-500 text-center w-full py-8">Không có hashtag nào. Liên hệ hỗ trợ nếu bạn cho rằng đây là lỗi.</p>
                                 ) : (
                                     hashtags.map((hashtag) => (
                                         <div
@@ -974,11 +974,11 @@ const BecomeATutorPage = ({
 
                             <div className="mt-4">
                                 <p className="text-sm text-gray-700">
-                                    Selected hashtags ({formData.hashtagIds.length}):
+                                    Các hashtag đã chọn ({formData.hashtagIds.length}):
                                 </p>
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {formData.hashtagIds.length === 0 ? (
-                                        <span className="text-sm text-gray-500 italic">No hashtags selected</span>
+                                        <span className="text-sm text-gray-500 italic">Chưa có hashtag nào được chọn</span>
                                     ) : (
                                         formData.hashtagIds.map(id => {
                                             const tag = Array.isArray(hashtags) ? hashtags.find(h => h.id === id) : null;
@@ -1004,7 +1004,7 @@ const BecomeATutorPage = ({
             case 4:
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Languages</h2>
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Ngôn ngữ</h2>
                         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md">
                             <div className="flex">
                                 <div className="flex-shrink-0">
@@ -1014,12 +1014,12 @@ const BecomeATutorPage = ({
                                 </div>
                                 <div className="ml-3">
                                     <p className="text-sm text-yellow-800">
-                                        Add the languages you can teach and your level (A1-C2).
+                                        Thêm các ngôn ngữ bạn có thể giảng dạy và trình độ của bạn (A1-C2).
                                     </p>
                                     <div className="mt-2 text-xs">
-                                        <p><span className="font-bold">A1-A2:</span> Beginner</p>
-                                        <p><span className="font-bold">B1-B2:</span> Intermediate</p>
-                                        <p><span className="font-bold">C1-C2:</span> Advanced</p>
+                                        <p><span className="font-bold">A1-A2:</span> Người mới bắt đầu</p>
+                                        <p><span className="font-bold">B1-B2:</span> Trung cấp</p>
+                                        <p><span className="font-bold">C1-C2:</span> Nâng cao</p>
                                     </div>
                                 </div>
                             </div>
@@ -1030,10 +1030,10 @@ const BecomeATutorPage = ({
                                 <div key={index} className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm space-y-4">
                                     <div className="flex justify-between items-center">
                                         <h3 className="font-medium text-gray-800">
-                                            Language {index + 1}: {formatLanguageCode(lang.languageCode)}
+                                            Ngôn ngữ {index + 1}: {formatLanguageCode(lang.languageCode)}
                                             {lang.isPrimary && (
                                                  <span className="ml-2 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                                                    Primary
+                                                    Chính
                                                 </span>
                                             )}
                                         </h3>
@@ -1046,14 +1046,14 @@ const BecomeATutorPage = ({
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                                                 </svg>
-                                                Remove
+                                                Xóa
                                             </button>
                                         )}
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Language <span className="text-red-500">*</span>
+                                                Ngôn ngữ <span className="text-red-500">*</span>
                                             </label>
                                             <div className="relative">
                                                 <select
@@ -1063,7 +1063,7 @@ const BecomeATutorPage = ({
                                                     required
                                                     style={formSelectStyle}
                                                 >
-                                                    <option value="">Select a language</option>
+                                                    <option value="">Chọn một ngôn ngữ</option>
                                                     {availableLanguages.map((language) => (
                                                         <option
                                                             key={language.value}
@@ -1082,7 +1082,7 @@ const BecomeATutorPage = ({
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Level <span className="text-red-500">*</span>
+                                                Trình độ <span className="text-red-500">*</span>
                                             </label>
                                             <div className="relative">
                                                 <select
@@ -1130,7 +1130,7 @@ const BecomeATutorPage = ({
                                         d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                                     ></path>
                                 </svg>
-                                Add another language
+                                Thêm ngôn ngữ khác
                             </button>
                         </div>
                     </div>
@@ -1173,8 +1173,8 @@ const BecomeATutorPage = ({
 
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                     <div className="bg-[#333333] py-6 px-6">
-                        <h1 className="text-2xl font-bold text-white text-center">Become a Tutor</h1>
-                        <p className="text-blue-100 text-center mt-1">Share your knowledge and connect with students worldwide</p>
+                        <h1 className="text-2xl font-bold text-white text-center">Trở thành Gia sư</h1>
+                        <p className="text-blue-100 text-center mt-1">Chia sẻ kiến thức và kết nối với học viên trên toàn thế giới</p>
                     </div>
                     <div className="p-6">
                         {renderStepIndicator()}
@@ -1182,7 +1182,7 @@ const BecomeATutorPage = ({
                             {/* Error message for video validation that only appears when submit is clicked, not during navigation */}
                             {activeStep === 4 && !formData.languages.some(lang => lang.languageCode) && (
                                 <div className="mb-4 bg-red-50 border border-red-500 text-red-600 p-3 rounded text-sm text-center">
-                                    Please add at least one language
+                                    Vui lòng thêm ít nhất một ngôn ngữ
                                 </div>
                             )}
 
@@ -1197,7 +1197,7 @@ const BecomeATutorPage = ({
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 -ml-1" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
                                         </svg>
-                                        Previous
+                                        Trước
                                     </button>
                                 )}
 
@@ -1207,7 +1207,7 @@ const BecomeATutorPage = ({
                                         onClick={nextStep}
                                         className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#333333] hover:bg-[#000000] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#333333] transition-colors ${!activeStep > 1 ? 'ml-auto' : ''}`}
                                     >
-                                        Next
+                                        Tiếp theo
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 -mr-1" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                                         </svg>
@@ -1224,14 +1224,14 @@ const BecomeATutorPage = ({
                                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                 </svg>
-                                                Processing...
+                                                Đang xử lý...
                                             </>
                                         ) : (
                                             <>
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 -ml-1" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                 </svg>
-                                                Submit Application
+                                                Gửi đơn đăng ký
                                             </>
                                         )}
                                     </button>
@@ -1242,7 +1242,7 @@ const BecomeATutorPage = ({
                 </div>
 
                 <div className="mt-8 text-center text-gray-600 text-sm">
-                    After registering, your profile will be reviewed within 1-3 business days.
+                    Sau khi đăng ký, hồ sơ của bạn sẽ được xem xét trong vòng 1-3 ngày làm việc.
                 </div>
             </div>
         </div>

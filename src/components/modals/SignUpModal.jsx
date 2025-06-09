@@ -251,26 +251,26 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
             </button>
 
             <h2 className="text-black text-2xl font-semibold text-center mb-3">
-              Create Account
+              Tạo tài khoản
             </h2>
             <p className="text-sm text-gray-500 text-center mb-3">
-              Join NgoaiNguNgay today. By creating an account, you agreed to our{" "}
+              Tham gia NgoaiNguNgay ngay hôm nay. Bằng cách tạo tài khoản, bạn đồng ý với{" "}
               <a
                 href="/terms"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-gray-700"
               >
-                Terms of Service
+                Điều khoản dịch vụ
               </a>{" "}
-              and{" "}
+              và{" "}
               <a
                 href="/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-gray-700"
               >
-                Privacy Policy
+                Chính sách bảo mật
               </a>
               .
             </p>
@@ -293,7 +293,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
             <div className="flex items-center mb-6">
               <div className="flex-grow border-t border-gray-200"></div>
               <span className="flex-shrink mx-4 text-gray-400 text-sm">
-                or sign up with email
+                hoặc đăng ký bằng email
               </span>
               <div className="flex-grow border-t border-gray-200"></div>
             </div>
@@ -306,7 +306,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                 <input
                   type="email"
                   id="email"
-                  placeholder="Email Address"
+                  placeholder="Địa chỉ Email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(""); }}
                   className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
@@ -317,12 +317,12 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                   <div className="relative">
                     <div className="relative">
                       <label htmlFor="password" className="sr-only">
-                        Password
+                        Mật khẩu
                       </label>
                       <input
                         type={showPassword ? "text" : "password"}
                         id="password"
-                        placeholder="Password"
+                        placeholder="Mật khẩu"
                         value={password}
                         onChange={(e) => {
                           const newPassword = e.target.value;
@@ -340,7 +340,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                             } else {
                               setConfirmPasswordError("");
                             }
-                          } else if (!newPassword && confirmPassword) { 
+                          } else if (!newPassword && confirmPassword) {
                             // If password becomes empty, but confirm has value, confirm is now "mismatched" or should be re-evaluated based on new empty password
                              setConfirmPasswordError(PASSWORD_MISMATCH_MESSAGE); // Or clear it if that's preferred UX
                           } else {
@@ -353,7 +353,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                       <div
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 cursor-pointer"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
                       >
                         {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                       </div>
@@ -366,12 +366,12 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                   <div className="relative">
                     <div className="relative">
                       <label htmlFor="confirmPassword" className="sr-only">
-                        Confirm Password
+                        Xác nhận mật khẩu
                       </label>
                       <input
                         type={showConfirmPassword ? "text" : "password"}
                         id="confirmPassword"
-                        placeholder="Confirm Password"
+                        placeholder="Xác nhận mật khẩu"
                         value={confirmPassword}
                         onChange={(e) => {
                           const newConfirmPassword = e.target.value;
@@ -393,7 +393,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 cursor-pointer"
                         aria-label={
-                          showConfirmPassword ? "Hide password" : "Show password"
+                          showConfirmPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"
                         }
                       >
                         {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -413,23 +413,23 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                       className="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
                     />
                     <label htmlFor="terms" className="ml-2 text-sm text-gray-700">
-                      I agree to the{" "}
+                      Tôi đồng ý với{" "}
                       <a
                         href="/terms"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-medium text-[#333333] hover:text-black underline"
                       >
-                        Terms of Service
+                        Điều khoản dịch vụ
                       </a>{" "}
-                      and{" "}
+                      và{" "}
                       <a
                         href="/privacy"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-medium text-[#333333] hover:text-black underline"
                       >
-                        Privacy Policy
+                        Chính sách bảo mật
                       </a>
                     </label>
                   </div>
@@ -442,16 +442,16 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                     {isLoading ? (
                       <div className="flex items-center justify-center">
                         <SpinnerIcon />
-                        Signing up...
+                        Đang đăng ký...
                       </div>
                     ) : (
-                      'Sign Up'
+                      'Đăng ký'
                     )}
                   </button>
                 </form>
 
                 <p className="text-center text-sm text-gray-500 mt-2">
-                  Already have an account?{" "}
+                  Đã có tài khoản?{" "}
                   <button
                     onClick={() => {
                       onClose();
@@ -459,7 +459,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                     }}
                     className="font-medium text-[#333333] hover:text-black underline"
                   >
-                    Log in
+                    Đăng nhập
                   </button>
                 </p>
               </motion.div>

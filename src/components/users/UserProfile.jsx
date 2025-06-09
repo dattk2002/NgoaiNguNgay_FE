@@ -186,7 +186,7 @@ function UserProfile({ loggedInUser, getUserById }) {
   }
 
   if (!profileUser) {
-    return <div className="text-center py-8">User not found.</div>;
+    return <div className="text-center py-8">Không tìm thấy người dùng.</div>;
   }
 
   // Determine if the logged-in user is viewing their own profile
@@ -200,7 +200,7 @@ function UserProfile({ loggedInUser, getUserById }) {
           ref={avatarRef}
           key={avatarKey}
           src={currentAvatar || profileUser?.profileImageUrl || "https://avatar.iran.liara.run/public"}
-          alt="Profile Avatar"
+          alt="Ảnh đại diện"
           className="w-32 h-32 rounded-full object-cover mb-4 border-4 border-gray-300"
           onError={(e) => {
             console.error("Error loading profile image:", e);
@@ -209,24 +209,24 @@ function UserProfile({ loggedInUser, getUserById }) {
           crossOrigin="anonymous"
           loading="eager"
         />
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">{profileUser.name || profileUser.fullName || 'User'}</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">{profileUser.name || profileUser.fullName || 'Người dùng'}</h2>
         {/* You might want to display a country flag here based on user data */}
         {/* <img src={`path/to/flag/${profileUser.countryCode}.png`} alt="Country Flag" className="w-6 h-4 mb-2" /> */}
 
         <div className="text-gray-600 text-sm mb-4">
           {profileUser.isTutor && ( // Example conditional rendering for tutors
-            <span className="mr-4">{profileUser.posts} Posts</span>
+            <span className="mr-4">{profileUser.posts} Bài viết</span>
           )}
-          <span className="mr-4">{profileUser.following || 0} Following</span>
-          <span>{profileUser.followers || 0} Followers</span>
+          <span className="mr-4">{profileUser.following || 0} Đang theo dõi</span>
+          <span>{profileUser.followers || 0} Người theo dõi</span>
         </div>
 
-        <p className="text-gray-700 text-center mb-4">{profileUser.bio || 'No bio provided.'}</p>
+        <p className="text-gray-700 text-center mb-4">{profileUser.bio || 'Chưa cung cấp tiểu sử.'}</p>
 
         <div className="text-gray-500 text-sm text-center">
-          {profileUser.age ? `${profileUser.age}, ` : ''}
+          {profileUser.age ? `${profileUser.age} tuổi, ` : ''}
           {profileUser.gender ? `${profileUser.gender}, ` : ''}
-          {profileUser.location || 'Location Unknown'}
+          {profileUser.location || 'Vị trí không xác định'}
         </div>
 
       </div>
@@ -236,14 +236,14 @@ function UserProfile({ loggedInUser, getUserById }) {
         {/* Profile Section */}
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">Profile</h3>
+            <h3 className="text-xl font-semibold text-gray-800">Hồ sơ</h3>
             {isOwnProfile && (
-              <button className="text-blue-600 text-sm hover:underline" onClick={handleEditClick}>Edit Profile</button>
+              <button className="text-blue-600 text-sm hover:underline" onClick={handleEditClick}>Chỉnh sửa hồ sơ</button>
             )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
             <div>
-              <p className="font-medium mb-1">Learning</p>
+              <p className="font-medium mb-1">Đang học</p>
               <div className="flex flex-wrap gap-2">
                 {/* Assuming profileUser.learningLanguages is an array */}
                 {profileUser.learningLanguages && Array.isArray(profileUser.learningLanguages) && profileUser.learningLanguages.map((lang, index) => (
@@ -254,14 +254,14 @@ function UserProfile({ loggedInUser, getUserById }) {
               </div>
             </div>
             <div>
-              <p className="font-medium mb-1">Adult; Hobbies or Cultural Interest</p>
+              <p className="font-medium mb-1">Người lớn; Sở thích hoặc văn hóa</p>
               {/* Assuming profileUser.interestsType is a string */}
               <span className="bg-gray-200 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded">
                 {profileUser.interestsType || 'N/A'}
               </span>
             </div>
             <div>
-              <p className="font-medium mb-1">Language Skills</p>
+              <p className="font-medium mb-1">Kỹ năng ngôn ngữ</p>
               <div className="flex flex-wrap gap-2">
                 {/* Assuming profileUser.languageSkills is an array of objects like { language: '...', level: '...' } */}
                 {profileUser.languageSkills && Array.isArray(profileUser.languageSkills) && profileUser.languageSkills.map((skill, index) => (
@@ -272,7 +272,7 @@ function UserProfile({ loggedInUser, getUserById }) {
               </div>
             </div>
             <div>
-              <p className="font-medium mb-1">Interests</p>
+              <p className="font-medium mb-1">Sở thích</p>
               <div className="flex flex-wrap gap-2">
                 {/* Assuming profileUser.interests is an array */}
                 {profileUser.interests && Array.isArray(profileUser.interests) && profileUser.interests.map((interest, index) => (
@@ -288,7 +288,7 @@ function UserProfile({ loggedInUser, getUserById }) {
         {/* Lesson Feedback Section */}
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800 mr-2">Lesson Feedback</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mr-2">Phản hồi buổi học</h3>
             {/* Info icon Placeholder */}
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 cursor-help">
               <path strokeLinecap="round" strokeLinejoin="round" d="M11.251 15.3c-.158.114-.323.21-.5.298Zm-.177-4.937A1.67 1.67 0 0 1 11.5 9.75V9c0-.414-.336-.75-.75-.75h-.75a.75.75 0 0 0-.75.75v.75c0 .414.336.75.75.75 0 .108-.011.216-.032.32Zm-.058 3.549A3.337 3.337 0 0 1 9.75 12c0-.721.117-1.442.35-2.123-.166-.05-.336-.088-.51-.115A3.337 3.337 0 0 0 9.75 15c0 1.659 1.341 3 3 3s3-1.341 3-3c0-.721-.117-1.442-.35-2.123-.166-.05-.336-.088-.51-.115A3.337 3.337 0 0 0 14.25 15c0 1.243-1.007 2.25-2.25 2.25S9.75 16.243 9.75 15Z" />
@@ -299,7 +299,7 @@ function UserProfile({ loggedInUser, getUserById }) {
           {/* Lesson History */}
           <div className="mb-6">
             <div className="flex items-center text-gray-700 mb-2">
-              <span className="font-medium mr-2">Lesson history</span>
+              <span className="font-medium mr-2">Lịch sử buổi học</span>
               {/* Info icon Placeholder */}
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500 cursor-help">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m11.251 15.3c-.158.114-.323.21-.5.298Zm-.177-4.937A1.67 1.67 0 0 1 11.5 9.75V9c0-.414-.336-.75-.75-.75h-.75a.75.75 0 0 0-.75.75v.75c0 .414.336.75.75.75 0 .108-.011.216-.032.32Zm-.058 3.549A3.337 3.337 0 0 1 9.75 12c0-.721.117-1.442.35-2.123-.166-.05-.336-.088-.51-.115A3.337 3.337 0 0 0 9.75 15c0 1.659 1.341 3 3 3s3-1.341 3-3c0-.721-.117-1.442-.35-2.123-.166-.05-.336-.088-.51-.115A3.337 3.337 0 0 0 14.25 15c0 1.243-1.007 2.25-2.25 2.25S9.75 16.243 9.75 15Z" />
@@ -315,13 +315,13 @@ function UserProfile({ loggedInUser, getUserById }) {
                       {/* Empty header for the first column */}
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Last Month
+                      Tháng trước
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Last 3 Months
+                      3 tháng gần nhất
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      All Time
+                      Mọi lúc
                     </th>
                   </tr>
                 </thead>
@@ -329,7 +329,7 @@ function UserProfile({ loggedInUser, getUserById }) {
                   {/* Replace with actual data from profileUser */}
                   <tr>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      Completed lessons
+                      Số buổi đã hoàn thành
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {profileUser.lessonStats?.completedLastMonth || 0}
@@ -343,7 +343,7 @@ function UserProfile({ loggedInUser, getUserById }) {
                   </tr>
                   <tr>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      Attendance rate
+                      Tỷ lệ tham gia
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {profileUser.lessonStats?.attendanceLastMonth || 'N/A'}%
@@ -363,7 +363,7 @@ function UserProfile({ loggedInUser, getUserById }) {
           {/* Teacher Reviews */}
           <div>
             <div className="flex items-center text-gray-700 mb-2">
-              <span className="font-medium mr-2">Teacher reviews</span>
+              <span className="font-medium mr-2">Đánh giá giáo viên</span>
               {/* Info icon Placeholder */}
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500 cursor-help">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m11.251 15.3c-.158.114-.323.21-.5.298Zm-.177-4.937A1.67 1.67 0 0 1 11.5 9.75V9c0-.414-.336-.75-.75-.75h-.75a.75.75 0 0 0-.75.75v.75c0 .414.336.75.75.75 0 .108-.011.216-.032.32Zm-.058 3.549A3.337 3.337 0 0 1 9.75 12c0-.721.117-1.442.35-2.123-.166-.05-.336-.088-.51-.115A3.337 3.337 0 0 0 9.75 15c0 1.659 1.341 3 3 3s3-1.341 3-3c0-.721-.117-1.442-.35-2.123-.166-.05-.336-.088-.51-.115A3.337 3.337 0 0 0 14.25 15c0 1.243-1.007 2.25-2.25 2.25S9.75 16.243 9.75 15Z" />
@@ -383,7 +383,7 @@ function UserProfile({ loggedInUser, getUserById }) {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm italic">No record</p>
+              <p className="text-gray-500 text-sm italic">Chưa có bản ghi nào</p>
             )}
           </div>
 
@@ -392,7 +392,7 @@ function UserProfile({ loggedInUser, getUserById }) {
         {/* Activities Section */}
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800 mr-2">Activities</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mr-2">Hoạt động</h3>
             {/* Info icon Placeholder */}
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 cursor-help">
               <path strokeLinecap="round" strokeLinejoin="round" d="m11.251 15.3c-.158.114-.323.21-.5.298Zm-.177-4.937A1.67 1.67 0 0 1 11.5 9.75V9c0-.414-.336-.75-.75-.75h-.75a.75.75 0 0 0-.75.75v.75c0 .414.336.75.75.75 0 .108-.011.216-.032.32Zm-.058 3.549A3.337 3.337 0 0 1 9.75 12c0-.721.117-1.442.35-2.123-.166-.05-.336-.088-.51-.115A3.337 3.337 0 0 0 9.75 15c0 1.659 1.341 3 3 3s3-1.341 3-3c0-.721-.117-1.442-.35-2.123-.166-.05-.336-.088-.51-.115A3.337 3.337 0 0 0 14.25 15c0 1.243-1.007 2.25-2.25 2.25S9.75 16.243 9.75 15Z" />
@@ -412,7 +412,7 @@ function UserProfile({ loggedInUser, getUserById }) {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm italic">No record</p>
+            <p className="text-gray-500 text-sm italic">Chưa có bản ghi nào</p>
           )}
         </div>
       </div>

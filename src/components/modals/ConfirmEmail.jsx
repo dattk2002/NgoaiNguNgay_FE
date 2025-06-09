@@ -60,9 +60,9 @@ const ConfirmEmail = ({ isOpen, onClose, email, onConfirmSuccess }) => {
               </svg>
             </button>
 
-            <h2 className="text-black text-2xl font-semibold text-center mb-4">Confirm Your Email</h2>
+            <h2 className="text-black text-2xl font-semibold text-center mb-4">Xác nhận Email của bạn</h2>
             <p className="text-sm text-gray-500 text-center mb-6">
-              A 6-digit OTP has been sent to <span className="font-medium">{email}</span>. Please enter it below.
+              Mã OTP gồm 6 chữ số đã được gửi đến <span className="font-medium">{email}</span>. Vui lòng nhập mã dưới đây.
             </p>
 
             {error && (
@@ -73,13 +73,13 @@ const ConfirmEmail = ({ isOpen, onClose, email, onConfirmSuccess }) => {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="mb-4">
-                <label htmlFor="otp" className="sr-only">OTP</label>
+                <label htmlFor="otp" className="sr-only">Mã OTP</label>
                 <input
                   type="text"
                   id="otp"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter 6-digit OTP"
+                  placeholder="Nhập mã OTP gồm 6 chữ số"
                   className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
                   maxLength={6}
                   required
@@ -91,7 +91,7 @@ const ConfirmEmail = ({ isOpen, onClose, email, onConfirmSuccess }) => {
                 className={`w-full bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200 ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={isLoading}
               >
-                {isLoading ? "Verifying..." : "Verify OTP"}
+                {isLoading ? "Đang xác minh..." : "Xác minh mã OTP"}
               </button>
             </form>
           </motion.div>

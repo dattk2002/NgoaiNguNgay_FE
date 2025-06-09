@@ -8,7 +8,7 @@ const HowItWork = () => {
 
         {/* "How It Works" Section */}
         <div className="text-center mb-12">
-          <h2 className="text-black text-3xl font-semibold mb-10">How It Works</h2>
+          <h2 className="text-black text-3xl font-semibold mb-10">Cách hoạt động</h2> {/* Translated */}
           <div className="flex flex-col md:flex-row justify-around items-start space-y-8 md:space-y-0 md:space-x-4">
 
             {/* Feature 1: Find Your Teacher */}
@@ -16,10 +16,10 @@ const HowItWork = () => {
               <div className="bg-gray-100 rounded-full p-4 inline-block mb-4">
                 <FaSearch className="text-2xl text-gray-700" />
               </div>
-              <h3 className="text-gray-900 text-xl font-medium mb-2">Find Your Teacher</h3>
+              <h3 className="text-gray-900 text-xl font-medium mb-2">Tìm giáo viên của bạn</h3> {/* Translated */}
               <p className="text-gray-600 text-center">
-                Browse profiles, read reviews, and find the perfect teacher for your goals.
-              </p>
+                Duyệt hồ sơ, đọc đánh giá và tìm giáo viên hoàn hảo cho mục tiêu của bạn.
+              </p> {/* Translated */}
             </div>
 
             {/* Feature 2: Schedule Lessons */}
@@ -27,10 +27,10 @@ const HowItWork = () => {
               <div className="bg-gray-100 rounded-full p-4 inline-block mb-4">
                 <FaRegCalendarAlt className="text-2xl text-gray-700" />
               </div>
-              <h3 className="text-gray-900 text-xl font-medium mb-2">Schedule Lessons</h3>
+              <h3 className="text-gray-900 text-xl font-medium mb-2">Đặt lịch buổi học</h3> {/* Translated */}
               <p className="text-gray-600 text-center">
-                Book lessons at times that work for you using our flexible scheduling system.
-              </p>
+                Đặt lịch buổi học vào thời gian phù hợp với bạn bằng cách sử dụng hệ thống đặt lịch linh hoạt của chúng tôi.
+              </p> {/* Translated */}
             </div>
 
             {/* Feature 3: Start Learning */}
@@ -38,10 +38,10 @@ const HowItWork = () => {
               <div className="bg-gray-100 rounded-full p-4 inline-block mb-4">
                 <FaVideo className="text-2xl text-gray-700" />
               </div>
-              <h3 className="text-gray-900 text-xl font-medium mb-2">Start Learning</h3>
+              <h3 className="text-gray-900 text-xl font-medium mb-2">Bắt đầu học</h3> {/* Translated */}
               <p className="text-gray-600 text-center">
-                Connect via video chat and start improving your language skills.
-              </p>
+                Kết nối qua trò chuyện video và bắt đầu cải thiện kỹ năng ngôn ngữ của bạn.
+              </p> {/* Translated */}
             </div>
           </div>
         </div>
@@ -51,13 +51,13 @@ const HowItWork = () => {
 
         {/* "Ready to Start" Section */}
         <div className="text-center pt-12 border-t border-gray-200"> {/* Added top border */}
-          <h2 className="text-black text-3xl font-semibold mb-4">Ready to Start Your Language Journey?</h2>
+          <h2 className="text-black text-3xl font-semibold mb-4">Sẵn sàng bắt đầu hành trình ngôn ngữ của bạn?</h2> {/* Translated */}
           <p className="text-gray-600 mb-8">
-            Join thousands of students learning new languages every day
-          </p>
+            Tham gia cùng hàng ngàn sinh viên học ngôn ngữ mới mỗi ngày
+          </p> {/* Translated */}
           <button className="bg-black text-white font-semibold py-3 px-8 rounded-lg hover:bg-gray-800 transition duration-300">
-            Get Started Now
-          </button>
+            Bắt đầu ngay
+          </button> {/* Translated */}
         </div>
 
       </div>
