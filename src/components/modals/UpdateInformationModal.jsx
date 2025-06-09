@@ -24,8 +24,8 @@ const UpdateInformationModal = ({ isOpen, onClose, onSubmit, user }) => {
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
   ];
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
 
@@ -102,14 +102,14 @@ const UpdateInformationModal = ({ isOpen, onClose, onSubmit, user }) => {
               </svg>
             </button>
 
-            <h2 className="text-black text-2xl font-semibold text-center mb-4">Update Your Information</h2>
+            <h2 className="text-black text-2xl font-semibold text-center mb-4">Cập nhật thông tin của bạn</h2>
             <p className="text-sm text-gray-500 text-center mb-6">
-              Please complete your profile information (optional)
+              Vui lòng hoàn thành thông tin hồ sơ của bạn (tùy chọn)
             </p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <TextField
-                label="Full Name"
+                label="Họ và tên"
                 variant="outlined"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -118,11 +118,11 @@ const UpdateInformationModal = ({ isOpen, onClose, onSubmit, user }) => {
 
               <div className="grid grid-cols-3 gap-4">
                 <FormControl fullWidth>
-                  <InputLabel>Day</InputLabel>
+                  <InputLabel>Ngày</InputLabel>
                   <Select
                     value={day}
                     onChange={(e) => setDay(e.target.value)}
-                    label="Day"
+                    label="Ngày"
                   >
                     {days.map((d) => (
                       <MenuItem key={d} value={d}>
@@ -133,11 +133,11 @@ const UpdateInformationModal = ({ isOpen, onClose, onSubmit, user }) => {
                 </FormControl>
 
                 <FormControl fullWidth>
-                  <InputLabel>Month</InputLabel>
+                  <InputLabel>Tháng</InputLabel>
                   <Select
                     value={month}
                     onChange={(e) => setMonth(e.target.value)}
-                    label="Month"
+                    label="Tháng"
                   >
                     {months.map((m, i) => (
                       <MenuItem key={m} value={i + 1}>
@@ -148,11 +148,11 @@ const UpdateInformationModal = ({ isOpen, onClose, onSubmit, user }) => {
                 </FormControl>
 
                 <FormControl fullWidth>
-                  <InputLabel>Year</InputLabel>
+                  <InputLabel>Năm</InputLabel>
                   <Select
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
-                    label="Year"
+                    label="Năm"
                   >
                     {years.map((y) => (
                       <MenuItem key={y} value={y}>
@@ -164,15 +164,15 @@ const UpdateInformationModal = ({ isOpen, onClose, onSubmit, user }) => {
               </div>
 
               <FormControl component="fieldset">
-                <FormLabel component="legend">Gender</FormLabel>
+                <FormLabel component="legend">Giới tính</FormLabel>
                 <RadioGroup
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                   row
                 >
-                  <FormControlLabel value="male" control={<Radio />} label="Male" />
-                  <FormControlLabel value="female" control={<Radio />} label="Female" />
-                  <FormControlLabel value="other" control={<Radio />} label="Other" />
+                  <FormControlLabel value="male" control={<Radio />} label="Nam" />
+                  <FormControlLabel value="female" control={<Radio />} label="Nữ" />
+                  <FormControlLabel value="other" control={<Radio />} label="Khác" />
                 </RadioGroup>
               </FormControl>
 
@@ -182,7 +182,7 @@ const UpdateInformationModal = ({ isOpen, onClose, onSubmit, user }) => {
                   onClick={onClose}
                   fullWidth
                 >
-                  Skip for Now
+                  Bỏ qua lúc này
                 </Button>
                 <Button
                   type="submit"
@@ -191,7 +191,7 @@ const UpdateInformationModal = ({ isOpen, onClose, onSubmit, user }) => {
                   fullWidth
                   disabled={isLoading}
                 >
-                  {isLoading ? "Updating..." : "Submit"}
+                  {isLoading ? "Đang cập nhật..." : "Gửi"}
                 </Button>
               </div>
             </form>

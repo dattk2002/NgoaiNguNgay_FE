@@ -105,24 +105,24 @@ const Banner = () => {
       <div className="max-w-[1240px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-16 w-full">
         <div className="text-left">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-800 mb-6 leading-tight">
-            Become fluent in any language
+            Trở nên thành thạo bất kỳ ngôn ngữ nào
           </h1>
           <ul className="space-y-3 mb-8">
             <li className="flex items-center text-lg text-gray-700">
               <span className="w-3 h-3 bg-black rounded-full mr-3 flex-shrink-0"></span>
-              Take customizable 1-on-1 lessons trusted by millions of users
+              Tham gia các bài học 1 kèm 1 tùy chỉnh được hàng triệu người dùng tin tưởng
             </li>
             <li className="flex items-center text-lg text-gray-700">
               <span className="w-3 h-3 bg-black rounded-full mr-3 flex-shrink-0"></span>
-              Learn from certified teachers that fit your budget and schedule
+              Học từ các giáo viên được chứng nhận phù hợp với ngân sách và lịch trình của bạn
             </li>
             <li className="flex items-center text-lg text-gray-700">
               <span className="w-3 h-3 bg-black rounded-full mr-3 flex-shrink-0"></span>
-              Connect with a global community of language learners
+              Kết nối với cộng đồng người học ngôn ngữ toàn cầu
             </li>
           </ul>
           <button className="bg-[#333333] hover:bg-black text-white font-semibold py-3 px-8 rounded-lg transition duration-300 text-lg">
-            Start now
+            Bắt đầu ngay
           </button>
         </div>
         <div className="w-full">
@@ -155,7 +155,7 @@ const Banner = () => {
                   exit="exit"
                   className="text-xl text-gray-400"
                 >
-                  Try "{categories[placeholderIndex]?.name || 'a language'}"
+                  Thử "{categories[placeholderIndex]?.name || 'một ngôn ngữ'}"
                 </motion.span>
               </AnimatePresence>
             </div>

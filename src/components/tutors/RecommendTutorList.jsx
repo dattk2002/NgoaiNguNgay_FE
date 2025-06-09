@@ -6,6 +6,7 @@ import RecommendTutorCard from "./RecommendTutorCard";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 
 const RecommendTutorList = ({ user, onRequireLogin }) => {
+  console.log("User prop in RecommendTutorList:", user);
   const [tutors, setTutors] = useState([]);
   const [filteredTutors, setFilteredTutors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,13 +62,13 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
     setVisibleTutors((prev) => prev + 3);
   };
 
-  if (loading) return <p className="text-center text-gray-500">Loading...</p>;
-  if (error) return <p className="text-center text-red-500">Error: {error}</p>;
+  if (loading) return <p className="text-center text-gray-500">Đang tải...</p>;
+  if (error) return <p className="text-center text-red-500">Lỗi: {error}</p>;
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-        Find a Tutor
+      <h2 className="text-2xl font-semibold text-gray-800 mb-6 px-16">
+        Tìm gia sư
       </h2>
 
       {/* Language Filter */}
@@ -87,7 +88,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
             textTransform: "none",
           }}
         >
-          All
+          Tất cả
         </Button>
         {languages.map((language) => (
           <Button
@@ -118,7 +119,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
       {/* Tutor Grid */}
       {filteredTutors.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-16">
             {filteredTutors.slice(0, visibleTutors).map((tutor) => (
               <RecommendTutorCard
                 key={tutor.tutorId}
@@ -134,6 +135,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
                   price: 0, // price is not available in new data
                   imageUrl: tutor.profileImageUrl, // Mapped profileImageUrl to imageUrl
                   description: tutor.description, // Used description
+                  isProfessional: tutor.isProfessional,
                   address: "N/A", // address is not available in new data, defaulting to webcam
                 }}
                 user={user}
@@ -170,7 +172,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
         </>
       ) : (
         <p className="text-center text-gray-500">
-          No tutors found for the selected language.
+          Không tìm thấy gia sư nào cho ngôn ngữ đã chọn.
         </p>
       )}
     </div>

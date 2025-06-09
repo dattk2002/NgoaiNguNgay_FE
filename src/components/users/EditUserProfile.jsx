@@ -56,7 +56,7 @@ function EditUserProfile() {
         setError(null);
       } catch (err) {
         console.error('Error fetching user data:', err);
-        setError(`Failed to load user profile: ${err.message}`);
+        setError(`Không thể tải hồ sơ người dùng: ${err.message}`);
       } finally {
         setIsLoading(false);
       }
@@ -65,7 +65,7 @@ function EditUserProfile() {
     if (id) {
       fetchUserData();
     } else {
-      setError('User ID is missing. Please check the URL or login again.');
+      setError('Thiếu ID người dùng. Vui lòng kiểm tra URL hoặc đăng nhập lại.');
       setIsLoading(false);
     }
   }, [id]);
@@ -148,19 +148,19 @@ function EditUserProfile() {
 
   // Timezone options
   const timezoneOptions = [
-    { value: 'Pacific/Midway', label: '(UTC-11:00) Midway Island, Samoa' },
+    { value: 'Pacific/Midway', label: '(UTC-11:00) Đảo Midway, Samoa' },
     { value: 'Pacific/Honolulu', label: '(UTC-10:00) Hawaii' },
     { value: 'America/Anchorage', label: '(UTC-09:00) Alaska' },
-    { value: 'America/Los_Angeles', label: '(UTC-08:00) Pacific Time (US & Canada)' },
-    { value: 'America/Denver', label: '(UTC-07:00) Mountain Time (US & Canada)' },
-    { value: 'America/Chicago', label: '(UTC-06:00) Central Time (US & Canada)' },
-    { value: 'America/New_York', label: '(UTC-05:00) Eastern Time (US & Canada)' },
+    { value: 'America/Los_Angeles', label: '(UTC-08:00) Giờ Thái Bình Dương (Mỹ & Canada)' },
+    { value: 'America/Denver', label: '(UTC-07:00) Giờ Miền Núi (Mỹ & Canada)' },
+    { value: 'America/Chicago', label: '(UTC-06:00) Giờ Miền Trung (Mỹ & Canada)' },
+    { value: 'America/New_York', label: '(UTC-05:00) Giờ Miền Đông (Mỹ & Canada)' },
     { value: 'America/Caracas', label: '(UTC-04:30) Caracas' },
-    { value: 'America/Halifax', label: '(UTC-04:00) Atlantic Time (Canada)' },
+    { value: 'America/Halifax', label: '(UTC-04:00) Giờ Đại Tây Dương (Canada)' },
     { value: 'America/Sao_Paulo', label: '(UTC-03:00) Brasilia' },
-    { value: 'Atlantic/South_Georgia', label: '(UTC-02:00) Mid-Atlantic' },
+    { value: 'Atlantic/South_Georgia', label: '(UTC-02:00) Giữa Đại Tây Dương' },
     { value: 'Atlantic/Azores', label: '(UTC-01:00) Azores' },
-    { value: 'Europe/London', label: '(UTC±00:00) London, UTC' },
+    { value: 'Europe/London', label: '(UTC±00:00) Luân Đôn, UTC' },
     { value: 'Europe/Paris', label: '(UTC+01:00) Brussels, Copenhagen, Madrid, Paris' },
     { value: 'Europe/Helsinki', label: '(UTC+02:00) Helsinki, Kyiv, Riga, Sofia' },
     { value: 'Europe/Moscow', label: '(UTC+03:00) Moscow, St. Petersburg' },
@@ -168,32 +168,32 @@ function EditUserProfile() {
     { value: 'Asia/Karachi', label: '(UTC+05:00) Islamabad, Karachi' },
     { value: 'Asia/Dhaka', label: '(UTC+06:00) Dhaka' },
     { value: 'Asia/Jakarta', label: '(UTC+07:00) Jakarta' },
-    { value: 'Asia/Bangkok', label: '(UTC+07:00) Bangkok, Hanoi, Jakarta' },
-    { value: 'Asia/Hong_Kong', label: '(UTC+08:00) Beijing, Hong Kong, Singapore' },
+    { value: 'Asia/Bangkok', label: '(UTC+07:00) Bangkok, Hà Nội, Jakarta' },
+    { value: 'Asia/Hong_Kong', label: '(UTC+08:00) Bắc Kinh, Hồng Kông, Singapore' },
     { value: 'Asia/Tokyo', label: '(UTC+09:00) Osaka, Sapporo, Tokyo' },
     { value: 'Australia/Sydney', label: '(UTC+10:00) Canberra, Melbourne, Sydney' },
-    { value: 'Pacific/Noumea', label: '(UTC+11:00) Solomon Is., New Caledonia' },
+    { value: 'Pacific/Noumea', label: '(UTC+11:00) Quần đảo Solomon, New Caledonia' },
     { value: 'Pacific/Auckland', label: '(UTC+12:00) Auckland, Wellington' }
   ];
 
   // Proficiency level options
   const proficiencyOptions = [
-    { value: 0, label: 'Beginner' },
-    { value: 1, label: 'Elementary' },
-    { value: 2, label: 'Intermediate' },
-    { value: 3, label: 'Upper Intermediate' },
-    { value: 4, label: 'Advanced' },
-    { value: 5, label: 'Proficient' },
+    { value: 0, label: 'Sơ cấp' },
+    { value: 1, label: 'Tiểu học' },
+    { value: 2, label: 'Trung cấp' },
+    { value: 3, label: 'Trung cấp trên' },
+    { value: 4, label: 'Nâng cao' },
+    { value: 5, label: 'Thành thạo' },
   ];
 
   // Language options
   const languageOptions = [
-    { value: 'en', label: 'English' },
-    { value: 'vi', label: 'Vietnamese' },
-    { value: 'fr', label: 'French' },
-    { value: 'ja', label: 'Japanese' },
-    { value: 'ko', label: 'Korean' },
-    { value: 'zh', label: 'Chinese' },
+    { value: 'en', label: 'Tiếng Anh' },
+    { value: 'vi', label: 'Tiếng Việt' },
+    { value: 'fr', label: 'Tiếng Pháp' },
+    { value: 'ja', label: 'Tiếng Nhật' },
+    { value: 'ko', label: 'Tiếng Hàn' },
+    { value: 'zh', label: 'Tiếng Trung' },
   ];
 
   const handleInputChange = (e) => {
@@ -414,8 +414,8 @@ function EditUserProfile() {
     try {
       const token = getAccessToken();
       if (!token) {
-        toast.error('Authentication token not found. Please log in again.');
-        throw new Error('Authentication token not found. Please log in again.');
+        toast.error('Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.');
+        throw new Error('Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.');
       }
 
       // Create data object based on the field being saved
@@ -444,12 +444,12 @@ function EditUserProfile() {
             if (!isNaN(date.getTime())) {
               updateData = { dateOfBirth: date.toISOString() };
             } else {
-              toast.error('Invalid date format. Please use YYYY-MM-DD format.');
+              toast.error('Định dạng ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD.');
               setIsSaving(false);
               return;
             }
           } catch (err) {
-            toast.error('Error processing date. Please use YYYY-MM-DD format.');
+            toast.error('Lỗi xử lý ngày. Vui lòng sử dụng định dạng YYYY-MM-DD.');
             console.error('Date processing error:', err);
             setIsSaving(false);
             return;
@@ -465,7 +465,7 @@ function EditUserProfile() {
           updateData = { timezone: valueToSave };
           break;
         default:
-          toast.warning(`Saving field "${fieldName}" is not yet implemented with API.`);
+          toast.warning(`Việc lưu trường "${fieldName}" chưa được triển khai với API.`);
           setIsSaving(false);
           setEditingFields(prev => ({ ...prev, [fieldName]: false }));
           return;
@@ -485,7 +485,7 @@ function EditUserProfile() {
 
       // Update was successful
       setEditingFields(prev => ({ ...prev, [fieldName]: false }));
-      toast.success(`Field "${fieldName}" updated successfully!`);
+      toast.success(`Trường "${fieldName}" đã được cập nhật thành công!`);
     } catch (err) {
       console.error('Error updating profile:', err);
 
@@ -508,10 +508,10 @@ function EditUserProfile() {
         if (apiErrors[normalizedFieldName]) {
           toast.error(apiErrors[normalizedFieldName][0]);
         } else {
-          toast.error(`Failed to update ${fieldName}: ${err.message}`);
+          toast.error(`Cập nhật ${fieldName} thất bại: ${err.message}`);
         }
       } else {
-        toast.error(`Failed to update ${fieldName}: ${err.message}`);
+        toast.error(`Cập nhật ${fieldName} thất bại: ${err.message}`);
       }
     } finally {
       setIsSaving(false);
@@ -528,13 +528,13 @@ function EditUserProfile() {
 
   // Function to format date string from API to display format
   const formatDate = (dateString) => {
-    if (!dateString) return "Unfilled";
+    if (!dateString) return "Chưa điền";
 
     try {
       const date = new Date(dateString);
 
       // Check if date is valid
-      if (isNaN(date.getTime())) return "Invalid date";
+      if (isNaN(date.getTime())) return "Ngày không hợp lệ";
 
       // Format options for more readable display
       const options = {
@@ -579,19 +579,19 @@ function EditUserProfile() {
   // Find gender label by value
   const getGenderLabel = (value) => {
     const gender = genderOptions.find(g => g.value === parseInt(value));
-    return gender ? gender.label : 'Not given';
+    return gender ? gender.label : 'Chưa cung cấp';
   };
 
   // Find proficiency level label by value
   const getProficiencyLabel = (value) => {
-    if (value === null || value === undefined) return 'Not specified';
+    if (value === null || value === undefined) return 'Chưa chỉ định';
     const level = proficiencyOptions.find(p => p.value === parseInt(value));
-    return level ? level.label : 'Not specified';
+    return level ? level.label : 'Chưa chỉ định';
   };
 
   // Find language label by code
   const getLanguageLabel = (code) => {
-    if (!code) return "Not specified";
+    if (!code) return "Chưa chỉ định";
     const language = languageOptions.find(l => l.value === code);
     return language ? language.label : code;
   };
@@ -751,7 +751,7 @@ function EditUserProfile() {
                   className={`w-full border ${fieldErrors[fieldName] ? 'border-red-500' : 'border-gray-300'} rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
                   autoFocus
                 >
-                  <option value="">-- Select {label} --</option>
+                  <option value="">-- Chọn {label} --</option>
                   {fieldName === 'gender' || fieldName === 'learningProficiencyLevel' ? (
                     // For numeric values like gender and learningProficiencyLevel
                     options.map(option => (
@@ -796,7 +796,7 @@ function EditUserProfile() {
                 disabled={isSaving}
                 className={`${isSaving ? 'bg-gray-400' : 'bg-red-500 hover:bg-red-600'} text-white font-medium py-1 px-3 rounded text-sm`}
               >
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? 'Đang lưu...' : 'Lưu'}
               </button>
               <button
                 type="button"
@@ -804,7 +804,7 @@ function EditUserProfile() {
                 disabled={isSaving}
                 className="ml-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium py-1 px-3 rounded text-sm"
               >
-                Cancel
+                Hủy
               </button>
             </div>
           </div>
@@ -819,12 +819,12 @@ function EditUserProfile() {
                 type="button"
                 onClick={() => toggleEditField(fieldName)}
                 className="bg-gray-300 text-gray-800 px-3 py-1 rounded hover:bg-gray-400 transition-colors flex items-center gap-1"
-                aria-label={`Edit ${label}`}
+                aria-label={`Chỉnh sửa ${label}`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                <span>Edit</span>
+                <span>Chỉnh sửa</span>
               </button>
             </div>
           </div>
@@ -853,7 +853,7 @@ function EditUserProfile() {
           <div className="px-6 md:px-16 py-10">
             {/* Profile Photo Section */}
             <div className="mb-12 border-b border-gray-200 pb-8">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Profile Photo</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">Ảnh hồ sơ</h2>
 
               <div className="flex flex-col items-center sm:flex-row sm:items-start">
                 <div className="mb-4 sm:mb-0 sm:mr-6">
@@ -861,7 +861,7 @@ function EditUserProfile() {
                     {formData.profileImageUrl ? (
                       <img
                         src={formData.profileImageUrl}
-                        alt="Profile"
+                        alt="Ảnh hồ sơ"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           console.error('Error loading profile image:', e);
@@ -876,8 +876,8 @@ function EditUserProfile() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">This will be displayed to other users when they view your profile or posts.</p>
-                  <p className="text-sm text-gray-600 mb-4">Max size: 2MB</p>
+                  <p className="text-sm text-gray-600 mb-1">Ảnh này sẽ hiển thị cho người dùng khác khi họ xem hồ sơ hoặc bài đăng của bạn.</p>
+                  <p className="text-sm text-gray-600 mb-4">Kích thước tối đa: 2MB</p>
                   <button
                     className={`${isUploadingImage
                       ? 'bg-gray-400 cursor-not-allowed'
@@ -886,7 +886,7 @@ function EditUserProfile() {
                     onClick={() => document.getElementById('profileImage').click()}
                     disabled={isUploadingImage}
                   >
-                    {isUploadingImage ? 'UPLOADING...' : 'UPLOAD'}
+                    {isUploadingImage ? 'ĐANG TẢI LÊN...' : 'TẢI LÊN'}
                   </button>
                   <input
                     type="file"
@@ -903,25 +903,25 @@ function EditUserProfile() {
 
             {/* Basic Information Section */}
             <div className="mb-12 border-b border-gray-200 pb-8">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Basic Information</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">Thông tin cơ bản</h2>
 
               <div className="space-y-2">
                 <EditableField
                   fieldName="fullName"
-                  label="Display Name"
-                  value={formData.fullName || "Not specified"}
+                  label="Tên hiển thị"
+                  value={formData.fullName || "Chưa chỉ định"}
                 />
 
                 <EditableField
                   fieldName="dateOfBirth"
-                  label="Date of Birth"
+                  label="Ngày sinh"
                   value={formatDate(formData.dateOfBirth)}
                   inputType="date"
                 />
 
                 <EditableField
                   fieldName="gender"
-                  label="Gender"
+                  label="Giới tính"
                   value={getGenderLabel(formData.gender)}
                   inputType="select"
                   options={genderOptions}
@@ -929,8 +929,8 @@ function EditUserProfile() {
 
                 <EditableField
                   fieldName="timezone"
-                  label="Timezone"
-                  value={formData.timezone || "Not specified"}
+                  label="Múi giờ"
+                  value={formData.timezone || "Chưa chỉ định"}
                   inputType="select"
                   options={timezoneOptions}
                 />
@@ -949,8 +949,8 @@ function EditUserProfile() {
 
                 <EditableField
                   fieldName="phoneNumber"
-                  label="Phone Number"
-                  value={formData.phoneNumber || "Not specified"}
+                  label="Số điện thoại"
+                  value={formData.phoneNumber || "Chưa chỉ định"}
                   inputType="tel"
                 />
               </div>

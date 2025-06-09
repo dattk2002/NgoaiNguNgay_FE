@@ -12,7 +12,7 @@ const NotFoundPage = () => {
       {/* Left Section: Illustration */}
       <div className="hidden md:flex flex-1 items-center justify-center relative">
         <div className="w-full max-w-2xl bg-gray-100 flex items-center justify-center">
-          <img src={notFoundImg} alt='Not found illustration' className="max-h-96 md:max-h-full" /> {/* Added max-height for better scaling */}
+          <img src={notFoundImg} alt='Hình minh họa không tìm thấy' className="max-h-96 md:max-h-full" /> {/* Translated */}
         </div>
       </div>
 
@@ -32,7 +32,7 @@ const NotFoundPage = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-xl sm:text-2xl text-gray-600 mb-8"
         >
-          Oops! The page you requested could not be found.
+          Rất tiếc! Trang bạn yêu cầu không tìm thấy. {/* Translated */}
         </motion.p>
 
         <motion.p // Animate the prompt text on initial load (optional)
@@ -41,7 +41,7 @@ const NotFoundPage = () => {
            transition={{ duration: 0.5, delay: 0.4 }}
           className="text-lg font-semibold text-gray-700 mb-4"
         >
-          Check out the links below instead:
+          Thay vào đó hãy xem các liên kết dưới đây: {/* Translated */}
         </motion.p>
         <nav className="mb-8"> {/* Added bottom margin to nav */}
           <ul className="space-y-2">
@@ -53,7 +53,7 @@ const NotFoundPage = () => {
                 whileHover={{ scale: 1.05, color: '#000' }} // Scale up slightly and change color on hover
                 transition={{ duration: 0.2 }}
               >
-                View Dashboard
+                Xem bảng điều khiển {/* Translated */}
               </MotionLink>
             </li>
             <li>
@@ -64,7 +64,7 @@ const NotFoundPage = () => {
                 whileHover={{ scale: 1.05, color: '#000' }} // Scale up slightly and change color on hover
                 transition={{ duration: 0.2 }}
               >
-                Find a teacher
+                Tìm giáo viên {/* Translated */}
               </MotionLink>
             </li>
             <li>
@@ -75,7 +75,7 @@ const NotFoundPage = () => {
                 whileHover={{ scale: 1.05, color: '#000' }} // Scale up slightly and change color on hover
                 transition={{ duration: 0.2 }}
               >
-                Become a teacher
+                Trở thành giáo viên {/* Translated */}
               </MotionLink>
             </li>
             <li>
@@ -86,7 +86,7 @@ const NotFoundPage = () => {
                 whileHover={{ scale: 1.05, color: '#000' }} // Scale up slightly and change color on hover
                 transition={{ duration: 0.2 }}
               >
-                Download our App
+                Tải ứng dụng của chúng tôi {/* Translated */}
               </MotionLink>
             </li>
           </ul>
@@ -99,7 +99,7 @@ const NotFoundPage = () => {
           whileHover={{ scale: 1.1, backgroundColor: '#000' }} // Scale up and change background color on hover
           transition={{ duration: 0.2 }}
         >
-          Go to Homepage
+          Đi tới Trang chủ {/* Translated */}
         </MotionLink>
 
       </div>

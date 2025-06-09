@@ -4,16 +4,10 @@ import { useParams, useNavigate } from "react-router-dom"; // useNavigate is alr
 // Assuming fetchTutorsBySubject returns data structured similarly to what's needed
 // Import fetchAllTutor instead
 import { fetchAllTutor } from "../api/auth";
-import LanguageImage from "../../assets/language_banner.png"
-import { formatLanguageCode } from '../../utils/formatLanguageCode';
+import LanguageImage from "../../assets/language_banner.png";
+import { formatLanguageCode } from "../../utils/formatLanguageCode";
 
-import {
-  FaCheckCircle,
-  FaHeart,
-  FaAngleDown,
-  FaStar,
-  FaRegStar,
-} from "react-icons/fa";
+import { FaAngleDown } from "react-icons/fa";
 
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -23,44 +17,8 @@ import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import { IoSearch } from "react-icons/io5";
 
-import TutorCard from "./TutorCard"; // Import the new component
-
-// --- Helper Function for Rendering Stars ---
-const renderStars = (rating) => {
-  const fullStars = Math.floor(rating);
-  // Adjust if you have half-star ratings, currently assumes whole stars for half logic
-  const halfStar = rating % 1 >= 0.5;
-  const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-
-  return (
-    <div className="flex text-yellow-500">
-      {[...Array(fullStars)].map((_, i) => (
-        <FaStar key={`full-${i}`} />
-      ))}
-      {/* Add half star logic if needed: {halfStar && <FaStarHalfAlt key="half" />} */}
-      {[...Array(emptyStars)].map((_, i) => (
-        <FaRegStar key={`empty-${i}`} />
-      ))}
-    </div>
-  );
-};
-
-// --- Mock Availability Data Structure (Not needed if using real API) ---
-// const generateMockAvailability = () => {
-//   const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-//   const times = ["00-04", "04-08", "08-12", "12-16", "16-20", "20-24"];
-//   const availability = [];
-//   days.forEach((day) => {
-//     times.forEach((time) => {
-//       availability.push({
-//         day: day,
-//         time: time,
-//         available: Math.random() > 0.7,
-//       });
-//     });
-//   });
-//   return availability;
-// };
+import TutorCard from "./TutorCard";
+import notFoundImg from "../../assets/not_found.gif";
 
 const TutorSubjectList = () => {
   const { subject: initialSubject } = useParams();
@@ -105,26 +63,31 @@ const TutorSubjectList = () => {
         // Map the fetched array data to the structure expected by TutorCard
         const processedTeachers = fetchedTeachersData.map((t) => {
           const primaryLanguage = t.languages?.find((lang) => lang.isPrimary);
-          const otherLanguagesCount = (t.languages?.length || 0) - (primaryLanguage ? 1 : 0);
+          const otherLanguagesCount =
+            (t.languages?.length || 0) - (primaryLanguage ? 1 : 0);
 
-          return {
+          const processedTeacher = {
             id: t.tutorId,
             name: t.fullName,
-            imageUrl: t.profileImageUrl || "https://avatar.iran.liara.run/public",
+            imageUrl:
+              t.profileImageUrl || "https://avatar.iran.liara.run/public",
             rating: t.rating || 0,
-            nativeLanguage: formatLanguageCode(primaryLanguage?.languageCode) || "N/A",
+            nativeLanguage:
+              formatLanguageCode(primaryLanguage?.languageCode) || "N/A",
             otherLanguagesCount: otherLanguagesCount,
-            tag: t.isProfessional ? "Professional Teacher" : "Community Tutor",
+            tag: t.isProfessional ? "Professional Teacher" : "",
+            isProfessional: t.isProfessional || false,
 
-            // Fields NOT available in the new API response - using placeholders
-            lessons: 0,
-            description: "No description available.",
-            price: "N/A",
-            availabilityText: "Availability not specified",
-            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-            availabilityGrid: [],
-            badges: [],
+            // Fields populated from the API response
+            lessons: 0, // No direct 'lessons' field in the provided JSON, keeping placeholder
+            description: t.description || "No description available.",
+            price: "N/A", // No direct 'price' field in the provided JSON, keeping placeholder
+            availabilityText: "Availability not specified", // No direct 'availabilityText' field in the provided JSON, keeping placeholder
+            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // No direct 'videoUrl' field in the provided JSON, keeping placeholder
+            availabilityGrid: [], // No direct 'availabilityGrid' field in the provided JSON, keeping placeholder
+            badges: [], // No direct 'badges' field in the provided JSON, keeping placeholder
           };
+          return processedTeacher;
         });
 
         // Filter by subject AFTER fetching all tutors
@@ -137,23 +100,23 @@ const TutorSubjectList = () => {
           : processedTeachers;
 
         if (filteredBySubject.length === 0) {
-          setError(`No tutors found for ${initialSubject || "selected criteria"}`);
           setTeachers([]);
         } else {
           setTeachers(filteredBySubject);
         }
-
       } catch (error) {
         console.error("Error fetching all tutors in component:", error);
         // The error thrown by fetchAllTutor will be caught here
-        setError(error.message || "Failed to load tutors. Please try again later.");
+        setError(
+          error.message || "Failed to load tutors. Please try again later."
+        );
       } finally {
         setLoading(false);
       }
     };
 
     getTutors();
-  }, [initialSubject]);
+  }, [initialSubject, navigate]);
 
   // --- Hover Handlers ---
   const handleMouseEnter = (teacher) => {
@@ -300,9 +263,25 @@ const TutorSubjectList = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <svg className="animate-spin h-8 w-8 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"></path>
+        <svg
+          className="animate-spin h-8 w-8 text-black"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"
+          ></path>
         </svg>
       </div>
     );
@@ -325,23 +304,24 @@ const TutorSubjectList = () => {
           {/* Left Text */}
           <div className="md:w-2/3 text-center md:text-left mb-6 md:mb-0">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-              Find your best{" "}
+              Tìm gia sư{" "}
               <strong className="text-[#333333]">
                 {formatLanguageCode(subject).toUpperCase()}
               </strong>{" "}
-              tutor online
+              tốt nhất trực tuyến
             </h1>
             <p className="text-gray-600 text-base md:text-lg">
-              Learn {subject} online with italki's professional tutors. Our
-              platform connects you with native {subject} speakers from around
-              the world, offering personalized lessons and courses that cater to
-              your needs and goals.
+              Học {subject} trực tuyến với các gia sư chuyên nghiệp của
+              NgoaiNguNgay. Nền tảng của chúng tôi kết nối bạn với những người
+              bản xứ nói tiếng {subject} từ khắp nơi trên thế giới, cung cấp các
+              bài học và khóa học cá nhân hóa phục vụ nhu cầu và mục tiêu của
+              bạn.
             </p>
           </div>
           {/* Right Illustration (Placeholder) */}
           <div className="md:w-1/3 flex justify-center md:justify-end">
             {/* Replace with your actual illustration SVG or Image */}
-            <img src={LanguageImage} alt="language_banner"/>
+            <img src={LanguageImage} alt="language_banner" />
           </div>
         </div>
 
@@ -355,26 +335,28 @@ const TutorSubjectList = () => {
             size="small"
             renderValue={() => {
               return (
-                <em className="not-italic">{subject.charAt(0).toUpperCase() + subject.slice(1)}</em>
+                <em className="not-italic">
+                  {subject.charAt(0).toUpperCase() + subject.slice(1)}
+                </em>
               );
             }}
             sx={{ minWidth: 150, backgroundColor: "white" }}
           >
-            <MenuItem value="Vietnamese">Vietnamese</MenuItem>
-            <MenuItem value="Chinese">Chinese</MenuItem>
-            <MenuItem value="French">French</MenuItem>
-            <MenuItem value="English">English</MenuItem>
-            <MenuItem value="Italian">Italian</MenuItem>
-            <MenuItem value="Japanese">Japanese</MenuItem>
-            <MenuItem value="Spanish">Spanish</MenuItem>
-            <MenuItem value="Korean">Korean</MenuItem>
-            <MenuItem value="Russian">Russian</MenuItem>
-            <MenuItem value="Portuguese">Portuguese</MenuItem>
+            <MenuItem value="Vietnamese">Tiếng Việt</MenuItem>
+            <MenuItem value="Chinese">Tiếng Trung</MenuItem>
+            <MenuItem value="French">Tiếng Pháp</MenuItem>
+            <MenuItem value="English">Tiếng Anh</MenuItem>
+            <MenuItem value="Italian">Tiếng Ý</MenuItem>
+            <MenuItem value="Japanese">Tiếng Nhật</MenuItem>
+            <MenuItem value="Spanish">Tiếng Tây Ban Nha</MenuItem>
+            <MenuItem value="Korean">Tiếng Hàn</MenuItem>
+            <MenuItem value="Russian">Tiếng Nga</MenuItem>
+            <MenuItem value="Portuguese">Tiếng Bồ Đào Nha</MenuItem>
             {/* Add other subjects */}
           </Select>
           <TextField
             name="searchTerm"
-            placeholder="Name/Course/Interests"
+            placeholder="Tên/Khóa học/Sở thích"
             variant="outlined"
             size="small"
             value={filters.searchTerm}
@@ -407,7 +389,7 @@ const TutorSubjectList = () => {
               borderColor: "grey.400",
             }}
           >
-            Lesson Category
+            Danh mục bài học
           </Button>
           <Button
             variant="outlined"
@@ -419,7 +401,7 @@ const TutorSubjectList = () => {
               borderColor: "grey.400",
             }}
           >
-            Price
+            Giá cả
           </Button>
           <Button
             variant="outlined"
@@ -431,7 +413,7 @@ const TutorSubjectList = () => {
               borderColor: "grey.400",
             }}
           >
-            Lesson time
+            Thời gian học
           </Button>
           <Button
             variant="outlined"
@@ -443,7 +425,7 @@ const TutorSubjectList = () => {
               borderColor: "grey.400",
             }}
           >
-            Speaks
+            Nói ngôn ngữ
           </Button>
           <Button
             variant="outlined"
@@ -455,7 +437,7 @@ const TutorSubjectList = () => {
               borderColor: "grey.400",
             }}
           >
-            Teachers from
+            Giáo viên đến từ
           </Button>
           <Button
             variant="outlined"
@@ -467,7 +449,7 @@ const TutorSubjectList = () => {
               borderColor: "grey.400",
             }}
           >
-            More
+            Thêm
           </Button>
         </div>
 
@@ -477,13 +459,13 @@ const TutorSubjectList = () => {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                Improve your {subject} language skills with personalized online
-                classes
+                Cải thiện kỹ năng tiếng {subject} của bạn với các lớp học trực
+                tuyến cá nhân hóa
               </h3>
               <p className="text-gray-600 text-sm">
-                Our team of experienced {subject} teachers provides one-on-one
-                online classes and courses designed to help you learn the
-                language in a fun and interactive way.
+                Đội ngũ giáo viên tiếng {subject} giàu kinh nghiệm của chúng tôi
+                cung cấp các lớp học và khóa học trực tuyến một kèm một được
+                thiết kế để giúp bạn học ngôn ngữ một cách thú vị và tương tác.
               </p>
             </div>
             <div className="flex flex-col gap-2 pl-4 flex-shrink-0">
@@ -495,7 +477,7 @@ const TutorSubjectList = () => {
                   onChange={handleFilterChange}
                   className="form-checkbox h-4 w-4 text-blue-600"
                 />
-                Instant Lesson
+                Bài học tức thì
               </label>
               <label className="flex items-center gap-2 text-sm text-black whitespace-nowrap">
                 <input
@@ -505,28 +487,40 @@ const TutorSubjectList = () => {
                   onChange={handleFilterChange}
                   className="form-checkbox h-4 w-4 text-blue-600"
                 />
-                Within 72 hours
+                Trong vòng 72 giờ
               </label>
             </div>
           </div>
 
           {/* Tutor List */}
           <div className="flex flex-col gap-6">
-            {filteredTeachers.map((teacher) => (
-              <TutorCard
-                key={teacher.id}
-                teacher={teacher}
-                hoveredTutor={hoveredTutor}
-                handleMouseEnter={handleMouseEnter}
-                handleMouseLeave={handleMouseLeave}
-                handleCardClick={handleCardClick}
-                hoverBoxTop={hoverBoxTop}
-                tutorCardRef={(el) => (tutorCardRefs.current[teacher.id] = el)} // Pass the ref setter
-                hoverBoxRef={hoverBoxRef} // Pass the hover box ref
-                handleHoverBoxEnter={handleHoverBoxEnter}
-                handleHoverBoxLeave={handleHoverBoxLeave}
-              />
-            ))}
+            {filteredTeachers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10">
+                <img src={notFoundImg} alt="No tutors found" className="max-h-64 mb-4" />
+                <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+                  Rất tiếc! Không tìm thấy gia sư nào cho ngôn ngữ này.
+                </h3>
+                <p className="text-gray-600 text-base">
+                  Hãy thử tìm kiếm với các tiêu chí khác hoặc kiểm tra lại sau.
+                </p>
+              </div>
+            ) : (
+              filteredTeachers.map((teacher) => (
+                <TutorCard
+                  key={teacher.id}
+                  teacher={teacher}
+                  hoveredTutor={hoveredTutor}
+                  handleMouseEnter={handleMouseEnter}
+                  handleMouseLeave={handleMouseLeave}
+                  handleCardClick={handleCardClick}
+                  hoverBoxTop={hoverBoxTop}
+                  tutorCardRef={(el) => (tutorCardRefs.current[teacher.id] = el)} // Pass the ref setter
+                  hoverBoxRef={hoverBoxRef} // Pass the hover box ref
+                  handleHoverBoxEnter={handleHoverBoxEnter}
+                  handleHoverBoxLeave={handleHoverBoxLeave}
+                />
+              ))
+            )}
             {/* End Tutor List */}
           </div>
           {/* End Content Layout */}
