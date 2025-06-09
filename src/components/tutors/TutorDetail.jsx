@@ -49,12 +49,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [availabilityDates, setAvailabilityDates] = useState([]);
 
   useEffect(() => {
-    if (!user) {
-      // Trigger login modal immediately for unauthenticated users
-      onRequireLogin("Please log in to contact this tutor.");
-      // Don't redirect; allow viewing the profile
-    }
-
     const loadData = async () => {
       try {
         setLoading(true);
