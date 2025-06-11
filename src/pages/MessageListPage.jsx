@@ -1,14 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   FaSearch,
   FaCalendarAlt,
   FaLightbulb,
   FaPaperclip,
   FaArrowUp,
+  FaPaperPlane,
+  FaArrowCircleUp,
+  FaArrowLeft,
 } from "react-icons/fa";
-import { CgMoreVerticalO } from "react-icons/cg";
 import { fetchTutors } from "../components/api/auth";
+import { fetchChatConversations } from "../components/api/auth";
+import { sendMessage } from "../components/api/auth";
+import { fetchConversationMessages } from "../components/api/auth";
+import { fetchTutorById } from "../components/api/auth";
+import Tooltip from '@mui/material/Tooltip';
 
 const MessagePage = ({ user }) => {
   const { id: tutorId } = useParams();
@@ -18,9 +26,12 @@ const MessagePage = ({ user }) => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isSelectingConversation, setIsSelectingConversation] = useState(false); // New state variable
+  const [isSelectingConversation, setIsSelectingConversation] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [messagesPerPage] = useState(20);
 
   const messagesEndRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -28,142 +39,81 @@ const MessagePage = ({ user }) => {
         setLoading(true);
         setError(null);
 
-        const tutorsData = await fetchTutors();
-
-        const tutorConversations = tutorsData.map((tutor) => ({
-          id: tutor.id,
-          participantId: tutor.id,
-          participantName: tutor.name,
-          participantAvatar: tutor.imageUrl,
-          lastMessage: tutor.description || "Chưa có tin nhắn nào",
-          timestamp: "Gần đây",
-          unreadCount: 0,
-          type: "tutor",
-        }));
-
-        const systemConversations = [
-          {
-            id: "tips-promotions",
-            participantName: "Mẹo & Khuyến mãi",
-            title: "Mẹo & Khuyến mãi",
-            lastMessage: "Chưa quyết định...",
-            timestamp: "Hôm qua",
-            unreadCount: 0,
-            type: "system",
-            icon: <FaLightbulb className="text-yellow-500" />,
-          },
-          {
-            id: "service-notification",
-            participantName: "Thông báo dịch vụ",
-            title: "Thông báo dịch vụ",
-            lastMessage: "Chúng tôi muốn nghe ý kiến từ...",
-            timestamp: "Ngày 1 tháng 5",
-            unreadCount: 0,
-            type: "system",
-            icon: "📣",
-          },
-        ];
-
-        const allConversations = [
-          ...tutorConversations,
-          ...systemConversations,
-        ];
-        if (!allConversations.find((c) => c.participantName === "Guy")) {
-          allConversations.unshift({
-            id: "guy",
-            participantId: "guy",
-            participantName: "Guy",
-            participantAvatar: "https://randomuser.me/api/portraits/men/32.jpg",
-            lastMessage: "Chào bạn! Tôi nhận thấy bạn gần đây đã ghé thăm hồ sơ của tôi, và tôi muốn dành chút thời gian để liên hệ và giới thiệu bản thân. Tên tôi là Guy, và tôi là một giáo viên tiếng Anh chuyên nghiệp đến từ Vương quốc Anh. Tôi rất muốn giúp bạn với tiếng Anh của bạn. Nếu bạn vẫn đang tìm kiếm một giáo viên, thì tôi rất vui được thực hiện một buổi học thử với bạn. Buổi này sẽ cho bạn cơ hội làm quen với phong cách giảng dạy của tôi, thảo luận mục tiêu của bạn, và phác thảo một kế hoạch cá nhân hóa. Hoặc bạn có thể gửi tin nhắn cho tôi nếu bạn thích :) Trân trọng, Guy",
-            timestamp: "Hôm qua",
-            unreadCount: 0,
-            type: "system",
-            icon: <FaLightbulb className="text-yellow-500" />,
-          });
+        if (!user) {
+          setError("User not logged in or user ID not available.");
+        setLoading(false);
+          return;
         }
 
-        if (
-          !allConversations.find((c) => c.participantName === "KyongSup Song")
-        ) {
-          allConversations.unshift({
-            id: "kyongsup-song",
-            participantId: "kyongsup-song",
-            participantName: "KyongSup Song",
-            participantAvatar: "https://randomuser.me/api/portraits/men/40.jpg",
-            lastMessage: "Cảm ơn bạn! Tôi rất vui khi nghe bạn nói vậy, nhưng hiện tại tôi không hứng thú với tiếng Hàn, có lẽ sau này tôi sẽ quan tâm, cảm ơn bạn đã liên hệ với tôi. Chúc bạn một ngày tốt lành!",
-            timestamp: "11:14",
-            unreadCount: 0,
-            type: "system",
-            icon: <FaLightbulb className="text-yellow-500" />,
-          });
-        }
+        const fetchedConversations = await fetchChatConversations(user.id);
 
-        const sortedConversations = allConversations.sort((a, b) => {
-          if (a.participantName === "KyongSup Song") return -1;
-          if (b.participantName === "KyongSup Song") return 1;
-          if (a.participantName === "Guy") return -1;
-          if (b.participantName === "Guy") return 1;
-          return 0;
-        });
-
-        setConversations(sortedConversations);
+        let allConversations = [...fetchedConversations];
+        let conversationToSelect = null;
 
         if (tutorId) {
-          const conversationToSelect = sortedConversations.find(
+          const foundExistingConv = allConversations.find(
             (conv) => conv.participantId === tutorId && conv.type === "tutor"
           );
-          if (conversationToSelect) {
-            // Set flag before selecting conversation
-            setIsSelectingConversation(true);
-            setSelectedConversation(conversationToSelect);
-            if (conversationToSelect.participantName === "KyongSup Song") {
-              setMessages([
-                {
-                  id: 1,
-                  sender: "tutor",
-                  text: "Rất vui được gặp bạn, tôi là giáo viên tiếng Hàn, KyongSup.\nBạn có hứng thú học tiếng Hàn không?\nBạn đang ở đúng nơi rồi.\nTôi muốn tặng bạn một buổi học miễn phí (50 phút) sau buổi học thử. Chúng ta có thể nói chi tiết hơn trong buổi học thử.\nTôi hy vọng sẽ gặp bạn trong buổi thử.\n수업에서 뵙겠습니다. 😊",
-                  timestamp: "11:14",
-                  senderAvatar: conversationToSelect.participantAvatar,
-                },
-              ]);
-            } else if (conversationToSelect.participantName === "Guy") {
-              setMessages([
-                {
-                  id: 1,
-                  sender: "tutor",
-                  text: "Chào bạn! Tôi nhận thấy bạn gần đây đã ghé thăm hồ sơ của tôi, và tôi muốn dành chút thời gian để liên hệ và giới thiệu bản thân. Tên tôi là Guy, và tôi là một giáo viên tiếng Anh chuyên nghiệp đến từ Vương quốc Anh. Tôi rất muốn giúp bạn với tiếng Anh của bạn. Nếu bạn vẫn đang tìm kiếm một giáo viên, thì tôi rất vui được thực hiện một buổi học thử với bạn. Buổi này sẽ cho bạn cơ hội làm quen với phong cách giảng dạy của tôi, thảo luận mục tiêu của bạn, và phác thảo một kế hoạch cá nhân hóa. Hoặc bạn có thể gửi tin nhắn cho tôi nếu bạn thích :) Trân trọng, Guy",
-                  timestamp: "11:14",
-                  senderAvatar: conversationToSelect.participantAvatar,
-                },
-              ]);
+
+          if (foundExistingConv) {
+            conversationToSelect = foundExistingConv;
+            sessionStorage.removeItem("currentTempTutorId");
+            console.log("Selected existing conversation via URL tutorId:", tutorId);
+          } else {
+            console.log("Creating temporary conversation for tutorId:", tutorId);
+            try {
+              const tutorDetails = await fetchTutorById(tutorId);
+              const tempConversation = {
+                id: `temp-${tutorId}`,
+                participantId: tutorId,
+                participantName: tutorDetails.fullName || tutorDetails.nickName || "Gia sư mới",
+                participantAvatar: tutorDetails.profilePictureUrl || "https://via.placeholder.com/40?text=Ảnh đại diện",
+                lastMessage: "Bắt đầu cuộc trò chuyện mới!",
+                timestamp: "Vừa xong",
+                actualTimestamp: Date.now(),
+                unreadCount: 0,
+                type: "tutor",
+                messages: [],
+              };
+              allConversations = [tempConversation, ...fetchedConversations];
+              conversationToSelect = tempConversation;
+              sessionStorage.setItem("currentTempTutorId", tutorId);
+            } catch (tutorError) {
+              console.error("Failed to fetch tutor details for temporary chat:", tutorError);
             }
           }
-        } else if (sortedConversations.length > 0) {
-          const conversationToSelect = sortedConversations.find(
-            (conv) => conv.participantId === tutorId && conv.type === "tutor"
-          );
-          if (conversationToSelect) {
-            // Set flag before selecting conversation
-            setIsSelectingConversation(true);
-            setSelectedConversation(conversationToSelect);
-            if (conversationToSelect.participantName === "KyongSup Song") {
-              setMessages([
-                {
-                  id: 1,
-                  sender: "tutor",
-                  text: "Rất vui được gặp bạn, tôi là giáo viên tiếng Hàn, KyongSup.\nBạn có hứng thú học tiếng Hàn không?\nBạn đang ở đúng nơi rồi.\nTôi muốn tặng bạn một buổi học miễn phí (50 phút) sau buổi học thử. Chúng ta có thể nói chi tiết hơn trong buổi học thử.\nTôi hy vọng sẽ gặp bạn trong buổi thử.\n수업에서 뵙겠습니다. 😊",
-                  timestamp: "11:14",
-                  senderAvatar: conversationToSelect.participantAvatar,
-                },
-              ]);
-            }
+        } else {
+          const storedTempTutorId = sessionStorage.getItem("currentTempTutorId");
+          if (storedTempTutorId) {
+            console.log("Clearing previous temporary chat flag as no tutorId in URL.");
+            sessionStorage.removeItem("currentTempTutorId");
+          }
+
+          if (allConversations.length > 0) {
+            const sortedAvailableConversations = allConversations.sort((a,b) => b.actualTimestamp - a.actualTimestamp);
+            conversationToSelect = sortedAvailableConversations[0];
           }
         }
+
+        const finalSortedConversations = allConversations.sort((a, b) => {
+          return b.actualTimestamp - a.actualTimestamp;
+        });
+
+        setConversations(finalSortedConversations);
+
+        if (conversationToSelect) {
+          setIsSelectingConversation(true);
+          setSelectedConversation(conversationToSelect);
+        } else {
+          setSelectedConversation(null);
+        }
+
       } catch (err) {
         console.error("Failed to load conversations:", err);
         setError(err.message || "Không thể tải cuộc trò chuyện.");
       } finally {
         setLoading(false);
+        setIsSelectingConversation(false);
       }
     };
 
@@ -171,120 +121,162 @@ const MessagePage = ({ user }) => {
   }, [tutorId, user]);
 
   useEffect(() => {
-    // Only scroll to bottom if we are NOT in the process of selecting a conversation
+    const loadMessagesForSelectedConversation = async () => {
+      if (selectedConversation) {
+        if (selectedConversation.type === "tutor" && !selectedConversation.id.startsWith("temp-")) {
+          try {
+            const fetchedMessages = await fetchConversationMessages(
+              selectedConversation.id,
+              currentPage,
+              messagesPerPage
+            );
+            if (fetchedMessages && Array.isArray(fetchedMessages)) {
+              const sortedMessages = fetchedMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+              setMessages(sortedMessages);
+            } else {
+              console.warn("API response for messages is not in expected format or messages array is missing:", fetchedMessages);
+              setMessages([]);
+            }
+          } catch (err) {
+            console.error("Failed to load messages for selected conversation:", err);
+            setError(err.message || "Không thể tải tin nhắn.");
+          }
+        } else if (selectedConversation.id.startsWith("temp-")) {
+            const sortedMessages = (selectedConversation.messages || []).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            setMessages(sortedMessages);
+        }
+      }
+    };
+
+    loadMessagesForSelectedConversation();
+  }, [selectedConversation, currentPage, messagesPerPage]);
+
+  useEffect(() => {
     if (messagesEndRef.current && !isSelectingConversation) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isSelectingConversation]); // Add isSelectingConversation to dependency array
+  }, [messages, isSelectingConversation]);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (
-      newMessage.trim() &&
-      selectedConversation &&
-      user &&
-      selectedConversation.type === "tutor"
+      !newMessage.trim() ||
+      !selectedConversation ||
+      !user 
     ) {
-      console.log(
-        "Sending message:",
-        newMessage,
-        "to conversation:",
-        selectedConversation.id
+      return;
+    }
+
+    const sentMessage = {
+      id: `temp-${Date.now()}`,
+      sender: user.id,
+      text: newMessage,
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      createdAt: new Date().toISOString(),
+      senderAvatar: user.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn",
+    };
+    setMessages((prevMessages) => [...prevMessages, sentMessage]);
+    setNewMessage("");
+
+    try {
+      const response = await sendMessage(
+        user.id,
+        selectedConversation.participantId,
+        newMessage
       );
-      const sentMessage = {
-        id: messages.length + 1,
-        sender: "user",
-        text: newMessage,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        senderAvatar:
-          user.avatarUrl || "https://via.placeholder.com/30?text=Bạn",
-      };
-      // No need to set isSelectingConversation here, as sending a message
-      // should trigger scrolling to the latest message.
-      setMessages([...messages, sentMessage]);
-      setNewMessage("");
+      console.log("Message sent via API:", response);
+
+      if (selectedConversation.id.startsWith("temp-")) {
+        // If it was a temporary chat, it's now real. Re-fetch conversations.
+        const updatedConversationsList = await fetchChatConversations(user.id);
+        const newRealConversation = updatedConversationsList.find(conv =>
+          conv.participantId === selectedConversation.participantId && conv.type === "tutor"
+        );
+
+        if (newRealConversation) {
+          const updatedAllConversations = [
+            ...updatedConversationsList,
+          ].sort((a,b) => b.actualTimestamp - a.actualTimestamp);
+          setConversations(updatedAllConversations);
+
+          setSelectedConversation(newRealConversation);
+          navigate(`/message/${newRealConversation.participantId}`);
+          sessionStorage.removeItem("currentTempTutorId");
+        } else {
+          console.warn("Could not find newly created conversation after sending first message. Displaying current messages.");
+        }
+      } else {
+        // For existing conversations, just refresh messages for the current conversation ID
+        if (selectedConversation.id) {
+          const updatedMessages = await fetchConversationMessages(selectedConversation.id, currentPage, messagesPerPage);
+          if (updatedMessages && Array.isArray(updatedMessages)) {
+            console.log("Fetched messages from API:", updatedMessages);
+
+            const sortedMessages = updatedMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            setMessages(sortedMessages);
+          } else {
+            console.warn("API response for updated messages is not in expected format or messages array is missing:", updatedMessages);
+          }
+        }
+      }
+    } catch (apiError) {
+      console.error("Failed to send message via API:", apiError);
+      setError("Không thể gửi tin nhắn. Vui lòng thử lại.");
+      setMessages((prevMessages) =>
+          prevMessages.filter((msg) => msg.id !== sentMessage.id)
+      );
     }
   };
 
   const handleSelectConversation = (conversation) => {
     console.log("Selected conversation:", conversation);
-    // Set flag to prevent auto-scroll when updating messages
     setIsSelectingConversation(true);
     setSelectedConversation(conversation);
     setNewMessage("");
-
-    let convMessages = [];
-    if (conversation.type === "tutor") {
-      if (conversation.participantName === "KyongSup Song") {
-        convMessages = [
-          {
-            id: 1,
-            sender: "tutor",
-            text: "Rất vui được gặp bạn, tôi là giáo viên tiếng Hàn, KyongSup.\nBạn có hứng thú học tiếng Hàn không?\nBạn đang ở đúng nơi rồi.\nTôi muốn tặng bạn một buổi học miễn phí (50 phút) sau buổi học thử. Chúng ta có thể nói chi tiết hơn trong buổi học thử.\nTôi hy vọng sẽ gặp bạn trong buổi thử.\n수업에서 뵙겠습니다. 😊",
-            timestamp: "11:14",
-            senderAvatar: conversation.participantAvatar,
-          },
-        ];
-      } else if (conversation.participantName === "Guy") {
-        convMessages = [
-          {
-            id: 1,
-            sender: "tutor",
-            text: "Chào bạn! Tôi nhận thấy bạn gần đây đã ghé thăm hồ sơ của tôi, và tôi muốn dành chút thời gian để liên hệ và giới thiệu bản thân. Tên tôi là Guy, và tôi là một giáo viên tiếng Anh chuyên nghiệp đến từ Vương quốc Anh. Tôi rất muốn giúp bạn với tiếng Anh của bạn. Nếu bạn vẫn đang tìm kiếm một giáo viên, thì tôi rất vui được thực hiện một buổi học thử với bạn. Buổi này sẽ cho bạn cơ hội làm quen với phong cách giảng dạy của tôi, thảo luận mục tiêu của bạn, và phác thảo một kế hoạch cá nhân hóa. Hoặc bạn có thể gửi tin nhắn cho tôi nếu bạn thích :) Trân trọng, Guy",
-            timestamp: "Hôm qua",
-            senderAvatar: conversation.participantAvatar,
-          },
-        ];
-      }
-    } else {
-      convMessages = [
-        {
-          id: 1,
-          sender: "system",
-          text: `Đây là kênh thông báo hệ thống. Không có tin nhắn tương tác ở đây.`,
-          timestamp: "Vừa xong",
-          senderAvatar: null,
-        },
-        {
-          id: 2,
-          sender: "system",
-          text: conversation.lastMessage,
-          timestamp: conversation.timestamp,
-          senderAvatar: null,
-        },
-      ];
-    }
-
-    setMessages(convMessages);
-    // Reset flag after messages are set, allowing subsequent message additions to scroll
+    setCurrentPage(1);
+    setMessages([]);
     setIsSelectingConversation(false);
+
+    if (conversation.type === "tutor" && !conversation.id.startsWith("temp-")) {
+      console.log("Selected an existing real tutor conversation, clearing temp chat flag.");
+      sessionStorage.removeItem("currentTempTutorId");
+      navigate(`/message/${conversation.participantId}`);
+    } else if (conversation.type === "tutor" && conversation.id.startsWith("temp-")) {
+        console.log("Selected a temporary tutor conversation, setting temp chat flag.");
+        sessionStorage.setItem("currentTempTutorId", conversation.participantId);
+        navigate(`/message/${conversation.participantId}`);
+    } else {
+        navigate(`/messages`); // Fallback
+    }
   };
 
   if (loading)
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
         Đang tải cuộc trò chuyện...
       </div>
     );
   if (error)
     return (
-      <div className="flex justify-center items-center h-screen text-red-500">
+      <div className="flex justify-center items-center h-[calc(100vh-8rem)] text-red-500">
         Lỗi: {error}
       </div>
     );
   if (!user)
     return (
-      <div className="flex justify-center items-center h-screen text-red-500">
+      <div className="flex justify-center items-center h-[calc(100vh-8rem)] text-red-500">
         Vui lòng đăng nhập để xem tin nhắn của bạn.
       </div>
     );
 
+  let lastMessageDate = null;
+
   return (
-    <div className="container mx-auto flex h-[calc(100vh-8rem)] border my-4 border-gray-300 rounded-lg overflow-hidden shadow-lg max-w-6xl">
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full">
+    <div className="container mx-auto flex flex-col md:flex-row h-full md:h-[calc(100vh-8rem)] border border-gray-300 rounded-lg overflow-hidden shadow-lg max-w-6xl ">
+      <div className={`w-full md:w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-gray-200">
           <div className="relative">
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -296,7 +288,6 @@ const MessagePage = ({ user }) => {
           </div>
         </div>
 
-        {/* Optional: Add max-height: 480px (8 * 60px) if you want to enforce scrolling after 8 rows */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {conversations.length > 0 ? (
             conversations.map((conv) => (
@@ -311,7 +302,7 @@ const MessagePage = ({ user }) => {
                   <img
                     src={
                       conv.participantAvatar ||
-                      "https://via.placeholder.com/40?text=Ảnh đại diện"
+                      "https://avatar.iran.liara.run/public"
                     }
                     alt={conv.participantName}
                     className="w-10 h-10 rounded-full object-cover mr-3"
@@ -357,12 +348,26 @@ const MessagePage = ({ user }) => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-gray-50 h-full">
+      <div className={`flex-1 flex flex-col bg-gray-50 h-full ${selectedConversation ? 'flẽx' : 'hidden md:flex'}`}>
         <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
-          <div className="text-lg font-semibold text-gray-800">
-            {selectedConversation?.participantName ||
-              selectedConversation?.title ||
-              "Chọn một cuộc trò chuyện"}
+          <div className="flex items-center">
+            {selectedConversation && (
+              <button
+                onClick={() => {
+                  setSelectedConversation(null);
+                  navigate(`/messages`);
+                }}
+                className="md:hidden mr-3 p-2 rounded-full hover:bg-gray-100"
+                title="Quay lại cuộc trò chuyện"
+              >
+                <FaArrowLeft className="text-gray-600 text-lg" />
+              </button>
+            )}
+            <div className="text-lg font-semibold text-gray-800">
+              {selectedConversation?.participantName ||
+                selectedConversation?.title ||
+                "Chọn một cuộc trò chuyện"}
+            </div>
           </div>
           <div className="flex items-center">
             {selectedConversation?.type === "tutor" && (
@@ -392,82 +397,144 @@ const MessagePage = ({ user }) => {
               </div>
             )}
 
-          {messages.map((message) =>
-            message.sender === "system" ? (
-              <div
-                key={message.id}
-                className="flex items-center justify-center"
-              >
-                <div className="p-3 rounded-lg bg-gray-200 text-gray-800 max-w-md text-sm break-words text-center">
-                  <p>{message.text}</p>
-                  <div className="text-xs mt-1 text-gray-500">
-                    {message.timestamp}
+          {messages.map((message, index) => {
+            const currentMessageDate = new Date(message.createdAt);
+            let showTimestamp = false;
+
+            if (lastMessageDate) {
+              const diffMinutes = (currentMessageDate.getTime() - lastMessageDate.getTime()) / (1000 * 60);
+              if (diffMinutes > 1) {
+                showTimestamp = true;
+              }
+            }
+
+            lastMessageDate = currentMessageDate;
+
+            const formattedTimestamp = currentMessageDate.toLocaleString('en-US', {
+                weekday: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            console.log("Timestamp: ",formattedTimestamp);
+            
+
+            return (
+              <React.Fragment key={message.id}>
+                {showTimestamp && (
+                  <div className="flex justify-center my-4">
+                    <span className="text-xs text-gray-500 px-3 py-1 rounded-full bg-gray-100">
+                      {formattedTimestamp}
+                    </span>
                   </div>
-                </div>
-              </div>
-            ) : (
-              <div
-                key={message.id}
-                className={`flex items-start gap-3 ${
-                  message.sender === "user" ? "flex-row-reverse" : ""
-                }`}
-              >
-                <img
-                  src={
-                    message.senderAvatar ||
-                    (message.sender === "user"
-                      ? user?.avatarUrl ||
-                        "https://via.placeholder.com/30?text=Bạn"
-                      : selectedConversation?.participantAvatar ||
-                        "https://via.placeholder.com/30?text=?")
-                  }
-                  alt={
-                    message.sender === "user"
-                      ? "Bạn"
-                      : selectedConversation?.participantName || "Người tham gia"
-                  }
-                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                />
-                <div
-                  className={`p-3 rounded-lg ${
-                    message.sender === "user"
-                      ? "bg-blue-500 text-white rounded-br-none"
-                      : "bg-gray-200 text-gray-800 rounded-bl-none"
-                  } max-w-[70%] break-words shadow`}
-                >
-                  {message.sender !== "user" &&
-                    selectedConversation?.type === "tutor" && (
-                      <div className="font-semibold text-xs mb-1">
-                        {selectedConversation.participantName}
-                      </div>
-                    )}
-                  {message.text.split("\n").map((line, index) => (
-                    <p key={index}>{line}</p>
-                  ))}
+                )}
+                {message.sender === "system" ? (
                   <div
-                    className={`text-xs mt-1 ${
-                      message.sender === "user"
-                        ? "text-blue-200 text-right"
-                        : "text-gray-500 text-left"
+                    key={message.id}
+                    className="flex items-center justify-center"
+                  >
+                    <Tooltip title={formattedTimestamp} placement="left">
+                      <div className="p-3 rounded-lg bg-gray-200 text-gray-800 max-w-md text-sm break-words text-center">
+                        <p>{message.text}</p>
+                      </div>
+                    </Tooltip>
+                  </div>
+                ) : (
+                  <div
+                    key={message.id}
+                    className={`flex items-start gap-3 ${
+                      message.sender === user?.id ? "flex-row-reverse" : ""
                     }`}
                   >
-                    {message.timestamp}
+                    <img
+                      src={
+                        message.sender === user?.id
+                          ? user?.profileImageUrl ||
+                            "https://via.placeholder.com/30?text=Bạn"
+                          : message.senderAvatar ||
+                            "https://via.placeholder.com/30?text=?"
+                      }
+                      alt={
+                        message.sender === user?.id
+                          ? "Bạn"
+                          : selectedConversation?.participantName || "Người tham gia"
+                      }
+                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                    />
+                    <Tooltip title={formattedTimestamp} placement={message.sender === user?.id ? "left" : "right"}>
+                      <div
+                        className={`p-3 rounded-lg ${
+                          message.sender === user?.id
+                            ? "bg-[#333333] text-white rounded-br-none"
+                            : "bg-gray-200 text-gray-800 rounded-bl-none"
+                        } max-w-[70%] break-words shadow`}
+                      >
+                        {/* {message.sender !== user?.id &&
+                          selectedConversation?.type === "tutor" && (
+                            <div className="font-semibold text-xs mb-1">
+                              {selectedConversation.participantName}
+                            </div>
+                          )} */}
+                        {message.text.split("\n").map((line, index) => (
+                          <p key={index}>{line}</p>
+                        ))}
+                        <div
+                          className={`text-xs mt-1 ${
+                            message.sender === user?.id
+                              ? "text-blue-200 text-right"
+                              : "text-gray-500 text-left"
+                          }`}
+                        >
+                          
+                        </div>
+                      </div>
+                    </Tooltip>
                   </div>
-                </div>
-              </div>
-            )
-          )}
+                )}
+              </React.Fragment>
+            );
+          })}
 
           <div ref={messagesEndRef} />
 
-          {selectedConversation &&
+          {/* {selectedConversation &&
             messages.length > 0 &&
             selectedConversation.type === "tutor" && (
               <div className="text-center text-sm text-gray-500 mt-4">
                 Lịch sử tin nhắn được giới hạn trong 6 tháng gần nhất.
               </div>
-            )}
+            )} */}
         </div>
+
+        {selectedConversation && (
+          <form
+            onSubmit={handleSendMessage}
+            className="p-4 bg-white border-t border-gray-200 flex items-center shadow-inner"
+          >
+            <FaPaperclip className="text-gray-500 text-lg mr-3 cursor-pointer" title="Đính kèm" />
+            <FaLightbulb className="text-gray-500 text-lg mr-3 cursor-pointer" title="Gợi ý" />
+
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Nhập tin nhắn của bạn..."
+              className="flex-1 p-3 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-[#333333] focus:border-[#333333] text-sm text-black mr-3 shadow-sm"
+            />
+            <button
+              type="submit"
+              className={`rounded-full h-full w-10 md:w-[7%] flex items-center justify-center transition-colors duration-200 ${
+                newMessage.trim()
+                  ? "bg-[#333333] text-white hover:bg-[#5d5d5d]"
+                  : `bg-[#333333] text-white opacity-50 cursor-not-allowed`
+              }`}
+              disabled={!newMessage.trim()}
+            >
+              <FaArrowCircleUp className="text-lg text-white" />
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
