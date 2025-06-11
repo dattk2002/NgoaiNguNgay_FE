@@ -298,7 +298,7 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
-      <div className="min-h-screen flex flex-col bg-gray-100 overflow-x-hidden overflow-y-hidden">
+      <div className="min-h-screen flex flex-col bg-gray-100">
         <Header
           user={user}
           onLogout={handleLogout}
@@ -359,6 +359,13 @@ function App() {
             {/* NEW ROUTE for Messaging */}
             <Route
               path="/message/:id"
+              element={
+                user ? <MessagePage user={user} /> : <Navigate to="/" replace />
+              }
+            />
+            {/* NEW ROUTE for general messages list */}
+            <Route
+              path="/messages"
               element={
                 user ? <MessagePage user={user} /> : <Navigate to="/" replace />
               }

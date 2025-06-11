@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FaCommentDots } from "react-icons/fa";
 import logo from "../assets/logo.png";
 
 function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
@@ -266,9 +267,16 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
           <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
               <>
-                <div className="text-black font-semibold">{`Chào mừng, ${
-                  user.name || user.fullName
-                }`}</div>
+                <Link
+                  to="/messages"
+                  className="relative group p-0.5 focus:outline-none z-10 cursor-pointer"
+                >
+                  <div className="absolute inset-0 rounded-full -z-10"></div>
+                  <span className="p-1">
+                    <FaCommentDots className="w-6 h-6 text-gray-700" />
+                  </span>
+                </Link>
+
                 <div className="relative" ref={dropdownRef}>
                   <div
                     onClick={toggleDropdown}
@@ -325,6 +333,9 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         exit="exit"
                         variants={dropdownVariants}
                       >
+                        <div className="block px-4 py-2 text-sm text-gray-700 font-bold">{`${
+                          user.name || user.fullName
+                        }`}</div>
                         <Link
                           to="/dashboard"
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"

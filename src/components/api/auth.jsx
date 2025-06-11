@@ -614,3 +614,185 @@ export async function fetchRecommendTutor() {
     throw error; // Re-throw the error for error handling in components
   }
 }
+
+/**
+ * Sends a chat message between a sender and a receiver.
+ * @param {string} senderUserId - The ID of the user sending the message.
+ * @param {string} receiverUserId - The ID of the user receiving the message.
+ * @param {string} textMessage - The content of the message.
+ * @returns {Promise<Object>} - The API response containing the sent message details.
+ */
+export async function sendMessage(senderUserId, receiverUserId, textMessage) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required to send messages.");
+    }
+
+    const body = {
+      senderUserId,
+      receiverUserId,
+      textMessage,
+    };
+
+    const response = await callApi("/api/chat/message", "POST", body, token);
+
+    if (response && response.data) {
+      console.log("Message sent successfully:", response.data);
+      return response.data; // Return the data object containing the sent message details
+    } else {
+      console.error("Invalid API response format for sendMessage:", response);
+      throw new Error("API response did not contain expected message data.");
+    }
+  } catch (error) {
+    console.error("Failed to send message:", error.message);
+    throw error; // Re-throw the error for handling in the component
+  }
+}
+
+/**
+ * Fetches chat conversations for a given user.
+ * @param {string} userId - The ID of the current logged-in user.
+ * @param {number} page - The page number for pagination.
+ * @param {number} size - The number of conversations per page.
+ * @returns {Promise<Array>} - A list of formatted conversation objects.
+ */
+export async function fetchChatConversations(userId, page = 1, size = 20) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required to fetch conversations.");
+    }
+
+    const response = await callApi(
+      `/api/chat/conversations?userId=${userId}&page=${page}&size=${size}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && Array.isArray(response.data)) {
+      console.log("Chat conversations fetched successfully:", response.data);
+
+      // Map the API response to the format expected by MessageListPage.jsx
+      const formattedConversations = response.data.map((conv) => {
+        // Find the other participant (not the current user)
+        const otherParticipant = conv.participants.find(
+          (p) => p.id !== userId
+        );
+
+        // Determine last message and timestamp
+        const lastMessageObj =
+          conv.messages.length > 0
+            ? conv.messages[conv.messages.length - 1]
+            : null;
+
+        const lastMessageText = lastMessageObj
+          ? lastMessageObj.textMessage
+          : "Chưa có tin nhắn nào";
+
+        const timestamp = lastMessageObj
+          ? new Date(lastMessageObj.createdTime).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }) // Or format as desired
+          : "Gần đây";
+
+        const actualTimestamp = lastMessageObj
+          ? new Date(lastMessageObj.createdTime).getTime() // Store actual timestamp for sorting
+          : 0; // Default or handle no messages case
+
+        return {
+          id: conv.id, // conversation ID
+          participantId: otherParticipant?.id || null, // ID of the other participant
+          participantName: otherParticipant?.fullName || "Người dùng không xác định",
+          participantAvatar: otherParticipant?.profilePictureUrl || "https://via.placeholder.com/40?text=Ảnh đại diện",
+          lastMessage: lastMessageText,
+          timestamp: timestamp,
+          actualTimestamp: actualTimestamp, // New field for sorting
+          unreadCount: 0, // Assuming API doesn't provide this, or can be added later
+          type: "tutor", // Assuming all chat conversations are with tutors for now
+          messages: conv.messages.map(msg => ({
+            id: msg.id,
+            sender: msg.userId === userId ? "user" : "tutor",
+            text: msg.textMessage,
+            timestamp: new Date(msg.createdTime).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            createdAt: msg.createdTime, // Keep this for message rendering if needed
+            senderAvatar: msg.userId === userId ? (otherParticipant?.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn") : (otherParticipant?.profilePictureUrl || "https://via.placeholder.com/30?text=?"),
+          })),
+        };
+      });
+
+      return formattedConversations;
+    } else {
+      console.error("Invalid API response format for fetchChatConversations:", response);
+      throw new Error("API response did not contain expected conversation data array.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch chat conversations:", error.message);
+    throw error;
+  }
+}
+
+// New function to fetch messages for a specific conversation
+/**
+ * Fetches messages for a specific chat conversation.
+ * @param {string} conversationId - The ID of the chat conversation.
+ * @param {number} page - The page number for pagination.
+ * @param {number} size - The number of messages per page.
+ * @returns {Promise<Array>} - A list of formatted message objects for the conversation.
+ */
+export async function fetchConversationMessages(conversationId, page = 1, size = 20) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required to fetch conversation messages.");
+    }
+
+    const response = await callApi(
+      `/api/chat/conversation/${conversationId}?page=${page}&size=${size}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data && Array.isArray(response.data.messages)) {
+      console.log(`Messages for conversation ${conversationId} fetched successfully:`, response.data.messages);
+
+      // Extract participants for easy lookup
+      const participants = response.data.participants;
+      const getParticipantInfo = (userId) => {
+        return participants.find(p => p.id === userId);
+      };
+
+      // Map the API response to the format expected by MessageListPage.jsx
+      const formattedMessages = response.data.messages.map(msg => {
+        const senderInfo = getParticipantInfo(msg.userId);
+        const currentUser = getStoredUser(); // Assuming this gets the current user's data
+
+        return {
+          id: msg.id,
+          sender: msg.userId, // Directly use userId as sender
+          text: msg.textMessage,
+          timestamp: new Date(msg.createdTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          createdAt: msg.createdTime,
+          senderAvatar: senderInfo?.profilePictureUrl || "https://via.placeholder.com/30?text=?",
+        };
+      });
+
+      return formattedMessages;
+    } else {
+      console.error("Invalid API response format for fetchConversationMessages:", response);
+      throw new Error("API response did not contain expected message data array.");
+    }
+  } catch (error) {
+    console.error(`Failed to fetch messages for conversation ${conversationId}:`, error.message);
+    throw error;
+  }
+}
