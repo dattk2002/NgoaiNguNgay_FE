@@ -42,21 +42,18 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
 
   // New function for 'Contact Now' button click
   const handleContactClick = (event) => {
-    // Stop the click event from propagating to the parent card div
     event.stopPropagation();
-    // This function will only be called if the button is not disabled (i.e., user is logged in)
-    if (!user) { // If user is NOT logged in
+    if (!user) {
       onRequireLogin(
-        "Bạn cần đăng nhập để liên hệ với gia sư này.", // Prompt message for login modal
-        () => { // onLoginSuccess callback: navigate to message page
+        "Bạn cần đăng nhập để liên hệ với gia sư này.",
+        () => {
           navigate(`/message/${tutor.id}`);
         },
-        () => { // onCloseWithoutLogin callback: navigate to tutor detail page
+        () => {
           navigate(`/teacher/${tutor.id}`);
         }
       );
-    } else if (tutor.id) { // If user IS logged in
-      // If logged in, navigate to the message page for this tutor
+    } else if (tutor.id) {
       navigate(`/message/${tutor.id}`);
     } else {
       console.error("Tutor ID is missing:", tutor);
