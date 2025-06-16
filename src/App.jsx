@@ -17,6 +17,7 @@ import SignUpModal from "./components/modals/SignUpModal";
 import TutorSubjectList from "./components/tutors/TutorSubjectList";
 import MessagePage from "./pages/MessageListPage";
 import BecomeATutorPage from "./pages/BecomeATutorPage";
+import BecomeATutorLandingPage from "./pages/BecomeATutorLandingPage";
 import ConfirmEmail from "./components/modals/ConfirmEmail";
 import TutorProfile from "./components/tutors/TutorProfile";
 // import { fetchUsers } from "./components/api/auth";
@@ -343,6 +344,10 @@ function App() {
             />
             <Route
               path="/become-tutor"
+              element={<BecomeATutorLandingPage />}
+            />
+            <Route
+              path="/become-tutor/register"
               element={
                 <BecomeATutorPage
                   user={user}
