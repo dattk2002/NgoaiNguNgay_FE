@@ -8,9 +8,10 @@ const FooterHandler = () => {
 
   // Determine if the current route is the message route
   const isMessageRoute = location.pathname.startsWith('/message/');
+  const isMessageRouteUserId = location.pathname.startsWith('/messages')
 
   // Render Footer only if it's NOT the message route
-  if (isMessageRoute) {
+  if (isMessageRoute || isMessageRouteUserId) {
     return null; // Don't render anything
   }
 

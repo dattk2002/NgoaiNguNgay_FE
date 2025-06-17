@@ -33,6 +33,20 @@ const timeRanges = [
   "20:00 - 24:00",
 ];
 
+// Add this helper function at the top level
+const getTimeRangeFromSlotIndex = (slotIndex) => {
+  // Each slot is 30 minutes, so we have 48 slots per day
+  const hour = Math.floor(slotIndex / 2);
+  
+  if (hour >= 0 && hour < 4) return "00:00 - 04:00";
+  else if (hour >= 4 && hour < 8) return "04:00 - 08:00";
+  else if (hour >= 8 && hour < 12) return "08:00 - 12:00";
+  else if (hour >= 12 && hour < 16) return "12:00 - 16:00";
+  else if (hour >= 16 && hour < 20) return "16:00 - 20:00";
+  else if (hour >= 20 && hour < 24) return "20:00 - 24:00";
+  return null;
+};
+
 const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -184,9 +198,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         setAvailabilityDates(next7Dates);
 
         // Keep fetching recommended tutors from the mock source for now
-        const tutorsData = await fetchTutors();
-        const filteredTutors = tutorsData.filter((tutor) => tutor.id !== id);
-        setTutors(filteredTutors);
         const recommendedTutorsData = await fetchRecommendTutor();
         const filteredRecommendedTutors = recommendedTutorsData.filter(
           (tutor) => tutor.userId !== id
@@ -671,8 +682,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                       key={`${timeRange}-${day}`}
                       className={`h-12 border border-gray-200 last:border-b-0 ${
                         isAvailable
-                          ? "bg-gray-100"
-                          : "bg-green-400 cursor-pointer hover:bg-green-500"
+                          ? "bg-green-400 cursor-pointer hover:bg-green-500"
+                          : "bg-gray-100"
                       } ${
                         day === availabilityDays[availabilityDays.length - 1]
                           ? "border-r border-gray-200"

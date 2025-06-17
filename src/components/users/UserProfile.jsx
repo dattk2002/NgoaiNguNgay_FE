@@ -14,10 +14,7 @@ function UserProfile({ loggedInUser, getUserById }) {
   // Listen for avatar updates through custom event
   useEffect(() => {
     const handleAvatarUpdate = (event) => {
-      console.log("Avatar update event received in UserProfile:", event.detail);
       if (event.detail && event.detail.profileImageUrl && profileUser) {
-        console.log("Updating avatar in UserProfile:", event.detail.profileImageUrl);
-
         // Ensure URL has a timestamp
         let newUrl = event.detail.profileImageUrl;
         if (!newUrl.includes('?')) {
@@ -44,7 +41,6 @@ function UserProfile({ loggedInUser, getUserById }) {
         preloadImg.crossOrigin = "anonymous";
         preloadImg.src = newUrl;
         preloadImg.onload = () => {
-          console.log("Avatar preloaded in UserProfile component");
           // Force re-render with a new key
           setAvatarKey(Date.now() + 1);
         };
@@ -61,12 +57,10 @@ function UserProfile({ loggedInUser, getUserById }) {
   // Listen for storage events (for cross-tab updates)
   useEffect(() => {
     const handleStorageChange = () => {
-      console.log("Storage change detected in UserProfile");
       if (profileUser) {
         try {
           const storedUser = JSON.parse(localStorage.getItem('user'));
           if (storedUser && storedUser.id === profileUser.id && storedUser.profileImageUrl) {
-            console.log("Updating avatar from storage in UserProfile:", storedUser.profileImageUrl);
             // Add timestamp if needed
             let newUrl = storedUser.profileImageUrl;
             if (!newUrl.includes('?')) {

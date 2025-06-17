@@ -98,6 +98,7 @@ const LoginModal = ({
   });
   const [isLoading, setIsLoading] = useState(false);
   const modalRef = useRef(null);
+  const googleDivRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -129,6 +130,30 @@ const LoginModal = ({
       };
     }
     return undefined;
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (window.google && googleDivRef.current) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (response) => {
+          // Handle credential here!
+          console.log("Google credential:", response.credential);
+          localStorage.setItem("google_credential", response.credential);
+          // ...continue login flow
+        },
+        ux_mode: "popup", // Use popup
+        // Remove login_uri!
+      });
+
+      window.google.accounts.id.renderButton(googleDivRef.current, {
+        theme: "outline",
+        size: "large",
+        text: "signin_with",
+        shape: "rectangular",
+        logo_alignment: "left",
+      });
+    }
   }, [isOpen]);
 
   const handleLogin = async (e) => {
@@ -234,30 +259,26 @@ const LoginModal = ({
   };
 
   const googleLogin = () => {
-    const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        if (result.user) {
-          const { uid, displayName, email, photoURL } = result.user;
-
-          onLogin({
-            id: uid,
-            name: displayName,
-            email: email,
-            profileImageUrl: photoURL,
-          });
-
-          toast.success("Đăng nhập người dùng thành công!", {
-            position: "top-center",
-          });
-          onClose();
+    // Initialize Google Sign-In
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'email profile',
+      callback: async (response) => {
+        if (response.access_token) {
+          try {
+            // Store the access token temporarily
+            localStorage.setItem("google_access_token", response.access_token);
+            // Redirect to callback URL
+            window.location.href = GOOGLE_LOGIN_URI;
+          } catch (error) {
+            console.error("Google Sign-In Error:", error);
+            toast.error("Đăng nhập Google thất bại. Vui lòng thử lại.");
+          }
         }
-      })
-      .catch((error) => {
-        console.error("Google Sign-In Error:", error);
-        setGeneralError("Đăng nhập Google thất bại. Vui lòng thử lại.");
-        toast.error("Đăng nhập Google thất bại. Vui lòng thử lại.");
-      });
+      },
+    });
+
+    client.requestAccessToken();
   };
 
   const facebookLogin = () => {
@@ -376,15 +397,17 @@ const LoginModal = ({
             )}
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <button className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-              onClick={facebookLogin}
+              <button
+                className="flex justify-center items-center p-3 border border-gray-200 rounded-full hover:bg-gray-50"
+                onClick={facebookLogin}
+                aria-label="Đăng nhập bằng Facebook"
               >
                 <FaFacebook className="w-6 h-6 text-blue-800" />
               </button>
-
               <button
+                className="flex justify-center items-center p-3 border border-gray-200 rounded-full hover:bg-gray-50"
                 onClick={googleLogin}
-                className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                aria-label="Đăng nhập bằng Google"
               >
                 <FcGoogle className="w-6 h-6" />
               </button>
