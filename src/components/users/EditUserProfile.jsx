@@ -39,7 +39,7 @@ function EditUserProfile() {
       try {
         setIsLoading(true);
         const userData = await fetchUserById(id);
-        console.log('User data loaded successfully:', userData);
+        // Remove console.log('User data loaded successfully:', userData);
 
         // Đảm bảo tất cả các trường đều có giá trị phù hợp để tránh lỗi uncontrolled/controlled input
         setFormData({
@@ -71,7 +71,7 @@ function EditUserProfile() {
   }, [id]);
 
   useEffect(() => {
-    console.log('Current form data:', formData);
+    // Remove console.log('Current form data:', formData);
   }, [formData]);
 
   // Validate specific field value
@@ -251,8 +251,8 @@ function EditUserProfile() {
           const uniqueTimestamp = Date.now();
           const timestampedImageUrl = `${baseUrl}?t=${uniqueTimestamp}`;
 
-          console.log("Original image URL:", imageUrl);
-          console.log("Timestamped image URL for UI:", timestampedImageUrl);
+          // Remove console.log("Original image URL:", imageUrl);
+          // Remove console.log("Timestamped image URL for UI:", timestampedImageUrl);
 
           // Update component state
           setFormData(prev => ({
@@ -420,7 +420,7 @@ function EditUserProfile() {
 
       // Create data object based on the field being saved
       const valueToSave = directValue !== null ? directValue : formData[fieldName];
-      console.log(`Saving field ${fieldName} with value:`, valueToSave);
+      // Remove console.log(`Saving field ${fieldName} with value:`, valueToSave);
 
       // Validate field before saving
       const validationErrors = validateField(fieldName, valueToSave);

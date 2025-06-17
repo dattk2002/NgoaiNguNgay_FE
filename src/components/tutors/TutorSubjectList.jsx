@@ -36,8 +36,6 @@ const TutorSubjectList = () => {
     // Add other filter states here as needed
   });
 
-  console.log();
-
   const [hoveredTutor, setHoveredTutor] = useState(null);
   // State to control the hover box top position
   const [hoverBoxTop, setHoverBoxTop] = useState(0);
