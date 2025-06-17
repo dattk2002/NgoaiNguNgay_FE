@@ -33,8 +33,6 @@ const MessagePage = ({ user }) => {
   const navigate = useNavigate();
   const accessToken = getAccessToken();
 
-  // console.log("Access Token: ", accessToken);
-
   const refetchConversationData = async () => {
     try {
       // Refetch conversations list
@@ -86,21 +84,23 @@ const MessagePage = ({ user }) => {
         console.log("SignalR Connected! Current state:", newConnection.state);
 
         // Handle OnConnected event
-        newConnection.on("OnConnected", (message) => {
+        newConnection.on("OnConnected", async (message) => {
           console.log("Connected to ChatHub:", message);
+          // Fetch messages when connected
+          await refetchConversationData();
         });
 
         // Update ReceiveMessage handler
-        newConnection.on("ReceiveMessage", async (statusCode, message) => {
-          console.log("Message received from SignalR:", { statusCode, message });
+        newConnection.on("ReceiveMessage", async (statusCode) => {
+          console.log("Message received from SignalR:", { statusCode });
 
           // Convert the received message to match your UI format
           const formattedMessage = {
-            id: message.id,
-            sender: message.userId,
-            text: message.textMessage,
-            createdAt: message.createdTime,
-            senderAvatar: user.profilePictureUrl || "https://picsum.photos/300/200?random=1",
+            id: statusCode.id,
+            sender: statusCode.userId,
+            text: statusCode.textMessage,
+            createdAt: statusCode.createdTime,
+            senderAvatar: user.profileImageUrl || "https://picsum.photos/300/200?random=1",
           };
 
           // Update messages list immediately
@@ -115,15 +115,15 @@ const MessagePage = ({ user }) => {
           setConversations((prevConversations) => {
             return prevConversations.map((conv) => {
               // Check if this message belongs to this conversation
-              if (conv.participantId === message.userId || conv.participantId === user.id) {
+              if (conv.id === statusCode.chatConversationId) {
                 return {
                   ...conv,
-                  lastMessage: message.textMessage,
-                  timestamp: new Date(message.createdTime).toLocaleTimeString([], {
+                  lastMessage: statusCode.textMessage,
+                  timestamp: new Date(statusCode.createdTime).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   }),
-                  actualTimestamp: new Date(message.createdTime).getTime(),
+                  actualTimestamp: new Date(statusCode.createdTime).getTime(),
                 };
               }
               return conv;
@@ -238,8 +238,8 @@ const MessagePage = ({ user }) => {
                   tutorDetails.nickName ||
                   "Gia sư mới",
                 participantAvatar:
-                  tutorDetails.profilePictureUrl ||
-                  "https://via.placeholder.com/40?text=Ảnh đại diện",
+                  tutorDetails.profileImageUrl ||
+                  "https://picsum.photos/300/200?random=1",
                 lastMessage: "Bắt đầu cuộc trò chuyện mới!",
                 timestamp: "Vừa xong",
                 actualTimestamp: Date.now(),

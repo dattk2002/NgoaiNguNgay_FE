@@ -591,7 +591,7 @@ export async function fetchChatConversationsByUserId(userId, page = 1, size = 20
           id: conv.id,
           participantId: otherParticipant?.id || null,
           participantName: otherParticipant?.fullName || "Người dùng không xác định",
-          participantAvatar: otherParticipant?.profilePictureUrl || "https://via.placeholder.com/40?text=Ảnh đại diện",
+          participantAvatar: otherParticipant?.profilePictureUrl || "https://picsum.photos/300/200?random=1",
           lastMessage: lastMessageText,
           timestamp: timestamp,
           actualTimestamp: actualTimestamp,
