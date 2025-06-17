@@ -148,8 +148,6 @@ const BecomeATutorPage = ({
             }
 
             const response = await fetchProfileDataApi();
-            console.log("Profile data:", response);
-
             if (response && response.data) {
                 setFormData(prev => ({
                     ...prev,
@@ -171,8 +169,6 @@ const BecomeATutorPage = ({
             if (!token) return;
 
             const response = await fetchHashtagsApi();
-            console.log("Hashtags:", response);
-
             if (response && response.data) {
                 setHashtags(response.data);
             }
@@ -184,11 +180,8 @@ const BecomeATutorPage = ({
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
-        console.log(`Field ${name} changed to: ${value}`);
-
         setFormData(prevState => {
             const newState = { ...prevState, [name]: value };
-            console.log('New form state:', newState);
             return newState;
         });
     };
@@ -226,8 +219,6 @@ const BecomeATutorPage = ({
     const uploadProfileImage = async (file) => {
         try {
             const response = await uploadProfileImageApi(file);
-            console.log("Profile image uploaded:", response);
-
             if (response && response.data && response.data.profileImageUrl) {
                 // Update profile preview with the server URL
                 setFormData(prev => ({
@@ -534,11 +525,7 @@ const BecomeATutorPage = ({
                 }))
             };
 
-            console.log("Submitting tutor registration:", payload);
-
             const response = await registerAsTutorApi(payload);
-            console.log("Registration successful:", response);
-
             toast.success("Đăng ký gia sư của bạn đã thành công! Hồ sơ của bạn hiện đang được xem xét.");
 
             // Redirect to home page after 2 seconds

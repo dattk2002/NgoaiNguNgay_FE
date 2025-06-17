@@ -6,17 +6,15 @@ import {
   FaCalendarAlt,
   FaLightbulb,
   FaPaperclip,
-  FaArrowUp,
-  FaPaperPlane,
   FaArrowCircleUp,
   FaArrowLeft,
 } from "react-icons/fa";
-import { fetchTutors } from "../components/api/auth";
-import { fetchChatConversations } from "../components/api/auth";
-import { sendMessage } from "../components/api/auth";
-import { fetchConversationMessages } from "../components/api/auth";
+import { fetchChatConversationsByUserId } from "../components/api/auth";
+import { fetchConversationList } from "../components/api/auth";
 import { fetchTutorById } from "../components/api/auth";
-import Tooltip from '@mui/material/Tooltip';
+import Tooltip from "@mui/material/Tooltip";
+import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
+import { getAccessToken } from "../components/api/auth";
 
 const MessagePage = ({ user }) => {
   const { id: tutorId } = useParams();
@@ -29,9 +27,172 @@ const MessagePage = ({ user }) => {
   const [isSelectingConversation, setIsSelectingConversation] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [messagesPerPage] = useState(20);
+  const [hubConnection, setHubConnection] = useState(null);
 
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
+  const accessToken = getAccessToken();
+
+  // console.log("Access Token: ", accessToken);
+
+  const refetchConversationData = async () => {
+    try {
+      // Refetch conversations list
+      const updatedConversationsList = await fetchChatConversationsByUserId(user.id);
+      if (updatedConversationsList && Array.isArray(updatedConversationsList)) {
+        const sortedConversations = [...updatedConversationsList].sort(
+          (a, b) => b.actualTimestamp - a.actualTimestamp
+        );
+        setConversations(sortedConversations);
+      }
+
+      // If there's a selected conversation, refetch its messages
+      if (selectedConversation?.id) {
+        const updatedMessages = await fetchConversationList(
+          selectedConversation.id,
+          currentPage,
+          messagesPerPage
+        );
+        if (updatedMessages && Array.isArray(updatedMessages)) {
+          const sortedMessages = updatedMessages.sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          setMessages(sortedMessages);
+        }
+      }
+    } catch (error) {
+      console.error("Error refetching conversation data:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (!user || !accessToken) {
+      console.warn("User or access token not available for SignalR connection.");
+      return;
+    }
+
+    const newConnection = new HubConnectionBuilder()
+      .withUrl("https://tutorbooking-dev-065fe6ad4a6a.herokuapp.com/chathub", {
+        accessTokenFactory: () => accessToken,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    setHubConnection(newConnection);
+
+    newConnection
+      .start()
+      .then(() => {
+        console.log("SignalR Connected! Current state:", newConnection.state);
+
+        // Handle OnConnected event
+        newConnection.on("OnConnected", (message) => {
+          console.log("Connected to ChatHub:", message);
+        });
+
+        // Update ReceiveMessage handler
+        newConnection.on("ReceiveMessage", async (statusCode, message) => {
+          console.log("Message received from SignalR:", { statusCode, message });
+
+          // Convert the received message to match your UI format
+          const formattedMessage = {
+            id: message.id,
+            sender: message.userId,
+            text: message.textMessage,
+            createdAt: message.createdTime,
+            senderAvatar: user.profilePictureUrl || "https://picsum.photos/300/200?random=1",
+          };
+
+          // Update messages list immediately
+          setMessages((prevMessages) => {
+            if (prevMessages.some((msg) => msg.id === formattedMessage.id)) {
+              return prevMessages;
+            }
+            return [...prevMessages, formattedMessage];
+          });
+
+          // Update the conversation's last message in real-time
+          setConversations((prevConversations) => {
+            return prevConversations.map((conv) => {
+              // Check if this message belongs to this conversation
+              if (conv.participantId === message.userId || conv.participantId === user.id) {
+                return {
+                  ...conv,
+                  lastMessage: message.textMessage,
+                  timestamp: new Date(message.createdTime).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  actualTimestamp: new Date(message.createdTime).getTime(),
+                };
+              }
+              return conv;
+            });
+          });
+
+          // Refetch conversation data
+          await refetchConversationData();
+        });
+
+        // Update SendMessageResult handler
+        newConnection.on("SendMessageResult", async (statusCode, message) => {
+          console.log("SendMessageResult received:", { statusCode, message });
+
+          if (statusCode === 200) {
+            // Message was sent successfully
+            const formattedMessage = {
+              id: message.id,
+              sender: message.userId,
+              text: message.textMessage,
+              createdAt: message.createdTime,
+              senderAvatar: user.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn",
+            };
+
+            // Update messages list
+            setMessages((prevMessages) => {
+              if (prevMessages.some((msg) => msg.id === formattedMessage.id)) {
+                return prevMessages;
+              }
+              return [...prevMessages, formattedMessage];
+            });
+
+            // Update the conversation's last message in real-time
+            setConversations((prevConversations) => {
+              return prevConversations.map((conv) => {
+                if (conv.participantId === message.userId || conv.participantId === user.id) {
+                  return {
+                    ...conv,
+                    lastMessage: message.textMessage,
+                    timestamp: new Date(message.createdTime).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                    actualTimestamp: new Date(message.createdTime).getTime(),
+                  };
+                }
+                return conv;
+              });
+            });
+
+            // Refetch conversation data
+            await refetchConversationData();
+          } else {
+            console.error("Failed to send message:", statusCode, message);
+            setError("Không thể gửi tin nhắn. Vui lòng thử lại.");
+          }
+        });
+      })
+      .catch((err) => console.error("SignalR Connection Error: ", err));
+
+    return () => {
+      if (newConnection) {
+        newConnection
+          .stop()
+          .then(() => console.log("SignalR Disconnected."))
+          .catch((err) => console.error("SignalR Disconnection Error: ", err));
+      }
+    };
+  }, [user, selectedConversation, currentPage, messagesPerPage]);
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -41,11 +202,11 @@ const MessagePage = ({ user }) => {
 
         if (!user) {
           setError("User not logged in or user ID not available.");
-        setLoading(false);
+          setLoading(false);
           return;
         }
 
-        const fetchedConversations = await fetchChatConversations(user.id);
+        const fetchedConversations = await fetchChatConversationsByUserId(user.id);
 
         let allConversations = [...fetchedConversations];
         let conversationToSelect = null;
@@ -58,16 +219,27 @@ const MessagePage = ({ user }) => {
           if (foundExistingConv) {
             conversationToSelect = foundExistingConv;
             sessionStorage.removeItem("currentTempTutorId");
-            console.log("Selected existing conversation via URL tutorId:", tutorId);
+            console.log(
+              "Selected existing conversation via URL tutorId:",
+              tutorId
+            );
           } else {
-            console.log("Creating temporary conversation for tutorId:", tutorId);
+            console.log(
+              "Creating temporary conversation for tutorId:",
+              tutorId
+            );
             try {
               const tutorDetails = await fetchTutorById(tutorId);
               const tempConversation = {
                 id: `temp-${tutorId}`,
                 participantId: tutorId,
-                participantName: tutorDetails.fullName || tutorDetails.nickName || "Gia sư mới",
-                participantAvatar: tutorDetails.profilePictureUrl || "https://via.placeholder.com/40?text=Ảnh đại diện",
+                participantName:
+                  tutorDetails.fullName ||
+                  tutorDetails.nickName ||
+                  "Gia sư mới",
+                participantAvatar:
+                  tutorDetails.profilePictureUrl ||
+                  "https://via.placeholder.com/40?text=Ảnh đại diện",
                 lastMessage: "Bắt đầu cuộc trò chuyện mới!",
                 timestamp: "Vừa xong",
                 actualTimestamp: Date.now(),
@@ -79,18 +251,26 @@ const MessagePage = ({ user }) => {
               conversationToSelect = tempConversation;
               sessionStorage.setItem("currentTempTutorId", tutorId);
             } catch (tutorError) {
-              console.error("Failed to fetch tutor details for temporary chat:", tutorError);
+              console.error(
+                "Failed to fetch tutor details for temporary chat:",
+                tutorError
+              );
             }
           }
         } else {
-          const storedTempTutorId = sessionStorage.getItem("currentTempTutorId");
+          const storedTempTutorId =
+            sessionStorage.getItem("currentTempTutorId");
           if (storedTempTutorId) {
-            console.log("Clearing previous temporary chat flag as no tutorId in URL.");
+            console.log(
+              "Clearing previous temporary chat flag as no tutorId in URL."
+            );
             sessionStorage.removeItem("currentTempTutorId");
           }
 
           if (allConversations.length > 0) {
-            const sortedAvailableConversations = allConversations.sort((a,b) => b.actualTimestamp - a.actualTimestamp);
+            const sortedAvailableConversations = allConversations.sort(
+              (a, b) => b.actualTimestamp - a.actualTimestamp
+            );
             conversationToSelect = sortedAvailableConversations[0];
           }
         }
@@ -107,7 +287,6 @@ const MessagePage = ({ user }) => {
         } else {
           setSelectedConversation(null);
         }
-
       } catch (err) {
         console.error("Failed to load conversations:", err);
         setError(err.message || "Không thể tải cuộc trò chuyện.");
@@ -123,27 +302,43 @@ const MessagePage = ({ user }) => {
   useEffect(() => {
     const loadMessagesForSelectedConversation = async () => {
       if (selectedConversation) {
-        if (selectedConversation.type === "tutor" && !selectedConversation.id.startsWith("temp-")) {
+        if (
+          selectedConversation.type === "tutor" &&
+          !selectedConversation.id.startsWith("temp-")
+        ) {
           try {
-            const fetchedMessages = await fetchConversationMessages(
+            const fetchedMessages = await fetchConversationList(
               selectedConversation.id,
               currentPage,
               messagesPerPage
             );
             if (fetchedMessages && Array.isArray(fetchedMessages)) {
-              const sortedMessages = fetchedMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+              const sortedMessages = fetchedMessages.sort(
+                (a, b) =>
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime()
+              );
               setMessages(sortedMessages);
             } else {
-              console.warn("API response for messages is not in expected format or messages array is missing:", fetchedMessages);
+              console.warn(
+                "API response for messages is not in expected format or messages array is missing:",
+                fetchedMessages
+              );
               setMessages([]);
             }
           } catch (err) {
-            console.error("Failed to load messages for selected conversation:", err);
+            console.error(
+              "Failed to load messages for selected conversation:",
+              err
+            );
             setError(err.message || "Không thể tải tin nhắn.");
           }
         } else if (selectedConversation.id.startsWith("temp-")) {
-            const sortedMessages = (selectedConversation.messages || []).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-            setMessages(sortedMessages);
+          const sortedMessages = (selectedConversation.messages || []).sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          setMessages(sortedMessages);
         }
       }
     };
@@ -162,71 +357,65 @@ const MessagePage = ({ user }) => {
     if (
       !newMessage.trim() ||
       !selectedConversation ||
-      !user 
+      !user ||
+      !hubConnection ||
+      hubConnection.state !== HubConnectionState.Connected
     ) {
+      console.warn(
+        "Attempted to send message while SignalR connection is not connected. Current state:",
+        hubConnection?.state
+      );
       return;
     }
 
-    const sentMessage = {
-      id: `temp-${Date.now()}`,
-      sender: user.id,
+    const messagePayload = {
+      senderId: user.id,
+      recipientId: selectedConversation.participantId,
       text: newMessage,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      id: `temp-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      senderAvatar: user.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn",
+      senderAvatar:
+        user.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn",
     };
-    setMessages((prevMessages) => [...prevMessages, sentMessage]);
+
+    // Optimistically add message to UI
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      {
+        ...messagePayload,
+        sender: user.id,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      },
+    ]);
     setNewMessage("");
 
     try {
-      const response = await sendMessage(
-        user.id,
-        selectedConversation.participantId,
-        newMessage
-      );
-      console.log("Message sent via API:", response);
+      // Log the message payload
+      console.log("Sending message with payload:", {
+        senderUserId: messagePayload.senderId,
+        receiverUserId: messagePayload.recipientId,
+        textMessage: messagePayload.text,
+        fullMessagePayload: messagePayload,
+      });
 
-      if (selectedConversation.id.startsWith("temp-")) {
-        // If it was a temporary chat, it's now real. Re-fetch conversations.
-        const updatedConversationsList = await fetchChatConversations(user.id);
-        const newRealConversation = updatedConversationsList.find(conv =>
-          conv.participantId === selectedConversation.participantId && conv.type === "tutor"
-        );
+      // Send message via SignalR with the correct format
+      await hubConnection.invoke("SendMessage", {
+        senderUserId: messagePayload.senderId,
+        receiverUserId: messagePayload.recipientId,
+        textMessage: messagePayload.text,
+      });
 
-        if (newRealConversation) {
-          const updatedAllConversations = [
-            ...updatedConversationsList,
-          ].sort((a,b) => b.actualTimestamp - a.actualTimestamp);
-          setConversations(updatedAllConversations);
+      // Refetch conversation data
+      await refetchConversationData();
 
-          setSelectedConversation(newRealConversation);
-          navigate(`/message/${newRealConversation.participantId}`);
-          sessionStorage.removeItem("currentTempTutorId");
-        } else {
-          console.warn("Could not find newly created conversation after sending first message. Displaying current messages.");
-        }
-      } else {
-        // For existing conversations, just refresh messages for the current conversation ID
-        if (selectedConversation.id) {
-          const updatedMessages = await fetchConversationMessages(selectedConversation.id, currentPage, messagesPerPage);
-          if (updatedMessages && Array.isArray(updatedMessages)) {
-            console.log("Fetched messages from API:", updatedMessages);
-
-            const sortedMessages = updatedMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-            setMessages(sortedMessages);
-          } else {
-            console.warn("API response for updated messages is not in expected format or messages array is missing:", updatedMessages);
-          }
-        }
-      }
     } catch (apiError) {
-      console.error("Failed to send message via API:", apiError);
+      console.error("Failed to send message via SignalR or API:", apiError);
       setError("Không thể gửi tin nhắn. Vui lòng thử lại.");
       setMessages((prevMessages) =>
-          prevMessages.filter((msg) => msg.id !== sentMessage.id)
+        prevMessages.filter((msg) => msg.id !== messagePayload.id)
       );
     }
   };
@@ -241,15 +430,18 @@ const MessagePage = ({ user }) => {
     setIsSelectingConversation(false);
 
     if (conversation.type === "tutor" && !conversation.id.startsWith("temp-")) {
-      console.log("Selected an existing real tutor conversation, clearing temp chat flag.");
+      console.log(
+        "Selected an existing real tutor conversation, clearing temp chat flag."
+      );
       sessionStorage.removeItem("currentTempTutorId");
-      navigate(`/message/${conversation.participantId}`);
-    } else if (conversation.type === "tutor" && conversation.id.startsWith("temp-")) {
-        console.log("Selected a temporary tutor conversation, setting temp chat flag.");
-        sessionStorage.setItem("currentTempTutorId", conversation.participantId);
-        navigate(`/message/${conversation.participantId}`);
-    } else {
-        navigate(`/messages`); // Fallback
+    } else if (
+      conversation.type === "tutor" &&
+      conversation.id.startsWith("temp-")
+    ) {
+      console.log(
+        "Selected a temporary tutor conversation, setting temp chat flag."
+      );
+      sessionStorage.setItem("currentTempTutorId", conversation.participantId);
     }
   };
 
@@ -276,7 +468,11 @@ const MessagePage = ({ user }) => {
 
   return (
     <div className="container mx-auto flex flex-col md:flex-row h-full md:h-[calc(100vh-8rem)] border border-gray-300 rounded-lg overflow-hidden shadow-lg max-w-6xl ">
-      <div className={`w-full md:w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+      <div
+        className={`w-full md:w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full ${
+          selectedConversation ? "hidden md:flex" : "flex"
+        }`}
+      >
         <div className="p-4 border-b border-gray-200">
           <div className="relative">
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -296,7 +492,16 @@ const MessagePage = ({ user }) => {
                 className={`flex items-center p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition ${
                   selectedConversation?.id === conv.id ? "bg-gray-100" : ""
                 }`}
-                onClick={() => handleSelectConversation(conv)}
+                onClick={() => {
+                  // Prevent default navigation behavior
+                  handleSelectConversation(conv);
+                  // Update URL without page reload using history API
+                  window.history.pushState(
+                    {},
+                    "",
+                    `/message/${conv.participantId}`
+                  );
+                }}
               >
                 {conv.type === "tutor" ? (
                   <img
@@ -330,7 +535,9 @@ const MessagePage = ({ user }) => {
                     </div>
                   </div>
                   <div className="text-sm text-gray-600 truncate">
-                    {conv.lastMessage || "Chưa có tin nhắn nào"}
+                    {conv.messages && conv.messages.length > 0 
+                      ? conv.messages[conv.messages.length - 1].text 
+                      : conv.lastMessage || "Chưa có tin nhắn nào"}
                   </div>
                 </div>
                 {conv.unreadCount > 0 && (
@@ -348,7 +555,11 @@ const MessagePage = ({ user }) => {
         </div>
       </div>
 
-      <div className={`flex-1 flex flex-col bg-gray-50 h-full ${selectedConversation ? 'flẽx' : 'hidden md:flex'}`}>
+      <div
+        className={`flex-1 flex flex-col bg-gray-50 h-full ${
+          selectedConversation ? "flẽx" : "hidden md:flex"
+        }`}
+      >
         <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center">
             {selectedConversation && (
@@ -392,8 +603,8 @@ const MessagePage = ({ user }) => {
             messages.length === 0 &&
             !loading &&
             selectedConversation.type === "tutor" && (
-              <div className="flex justify-center items-center h-full text-gray-500 text-center">
-                <p>Chưa có tin nhắn nào. Bắt đầu cuộc trò chuyện!</p>
+              <div className="flex justify-center items-center h-full">
+                <div className="w-8 h-8 border-4 border-[#333333] border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
 
@@ -402,7 +613,9 @@ const MessagePage = ({ user }) => {
             let showTimestamp = false;
 
             if (lastMessageDate) {
-              const diffMinutes = (currentMessageDate.getTime() - lastMessageDate.getTime()) / (1000 * 60);
+              const diffMinutes =
+                (currentMessageDate.getTime() - lastMessageDate.getTime()) /
+                (1000 * 60);
               if (diffMinutes > 1) {
                 showTimestamp = true;
               }
@@ -410,15 +623,15 @@ const MessagePage = ({ user }) => {
 
             lastMessageDate = currentMessageDate;
 
-            const formattedTimestamp = currentMessageDate.toLocaleString('en-US', {
-                weekday: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            });
-
-            console.log("Timestamp: ",formattedTimestamp);
-            
+            const formattedTimestamp = currentMessageDate.toLocaleString(
+              "en-US",
+              {
+                weekday: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              }
+            );
 
             return (
               <React.Fragment key={message.id}>
@@ -458,11 +671,15 @@ const MessagePage = ({ user }) => {
                       alt={
                         message.sender === user?.id
                           ? "Bạn"
-                          : selectedConversation?.participantName || "Người tham gia"
+                          : selectedConversation?.participantName ||
+                            "Người tham gia"
                       }
                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                     />
-                    <Tooltip title={formattedTimestamp} placement={message.sender === user?.id ? "left" : "right"}>
+                    <Tooltip
+                      title={formattedTimestamp}
+                      placement={message.sender === user?.id ? "left" : "right"}
+                    >
                       <div
                         className={`p-3 rounded-lg ${
                           message.sender === user?.id
@@ -485,9 +702,7 @@ const MessagePage = ({ user }) => {
                               ? "text-blue-200 text-right"
                               : "text-gray-500 text-left"
                           }`}
-                        >
-                          
-                        </div>
+                        ></div>
                       </div>
                     </Tooltip>
                   </div>
@@ -512,8 +727,14 @@ const MessagePage = ({ user }) => {
             onSubmit={handleSendMessage}
             className="p-4 bg-white border-t border-gray-200 flex items-center shadow-inner"
           >
-            <FaPaperclip className="text-gray-500 text-lg mr-3 cursor-pointer" title="Đính kèm" />
-            <FaLightbulb className="text-gray-500 text-lg mr-3 cursor-pointer" title="Gợi ý" />
+            <FaPaperclip
+              className="text-gray-500 text-lg mr-3 cursor-pointer"
+              title="Đính kèm"
+            />
+            <FaLightbulb
+              className="text-gray-500 text-lg mr-3 cursor-pointer"
+              title="Gợi ý"
+            />
 
             <input
               type="text"

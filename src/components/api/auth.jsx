@@ -28,31 +28,24 @@ async function callApi(endpoint, method, body, token) {
   console.log(`Calling API: ${method} ${fullUrl}`);
 
   try {
-    // Use fetch instead of axios
     const response = await fetch(fullUrl, {
       method: method,
       headers: headers,
-      body: body ? JSON.stringify(body) : null, // fetch uses 'body' for the request body, must be stringified for JSON
-      credentials: 'include', // corresponds to axios's withCredentials: true
+      body: body ? JSON.stringify(body) : null,
+      credentials: 'include',
     });
 
     console.log("Response status:", response.status, response.statusText);
 
     if (!response.ok) {
       let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
-      let originalErrorData = null; // To potentially store the full error body
+      let originalErrorData = null;
 
       try {
-        // Try to parse the error response body as JSON
         const errorData = await response.json();
-        originalErrorData = errorData; // Store the parsed data
+        originalErrorData = errorData;
+        console.error("API Error Details Received:", errorData);
 
-        console.error("API Error Details Received:", errorData); // Log raw error data
-
-        // *** Enhanced Error Message Formatting (Still useful for general error display) ***
-        // This section formats the message for the 'error.message' property of the thrown Error
-        // The component's catch block will primarily use error.details for structured errors,
-        // but error.message is a fallback for general errors or logging.
         if (errorData) {
           if (typeof errorData.errorMessage === 'string') {
             formattedErrorMessage = errorData.errorMessage;
@@ -65,51 +58,34 @@ async function callApi(endpoint, method, body, token) {
                 return `${field}: ${messages}`;
               })
               .join('; ');
-            formattedErrorMessage = `Validation Error: ${fieldErrors}`; // This is the string the user saw
+            formattedErrorMessage = `Validation Error: ${fieldErrors}`;
           } else if (typeof errorData.message === 'string') {
             formattedErrorMessage = errorData.message;
-          } else {
-            console.warn("Error response body did not contain recognized 'errorMessage' or 'message' format.", errorData);
           }
-          if (errorData.errorCode && !formattedErrorMessage.includes(`(${errorData.errorCode})`)) {
-            // Optionally add error code to the formatted message if not already included
-            // formattedErrorMessage = `${formattedErrorMessage} (${errorData.errorCode})`;
-          }
-
-        } else {
-          console.warn("Error response body was empty or not JSON.");
         }
-        // *** End Enhanced Error Message Formatting ***
-
       } catch (jsonError) {
         console.warn("Failed to parse error response as JSON.", jsonError);
-        // If JSON parsing fails, the original response status/text is used for the message
       }
 
-      // Throw an error with the formatted message and potentially attach details
-      const error = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage); // Use specific message from details if available, otherwise fallback to formatted message
+      const error = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage);
       error.status = response.status;
-      error.details = originalErrorData; // This is where the component gets the original structured data
+      error.details = originalErrorData;
       throw error;
     }
 
-    // Check content type and parse JSON response
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const jsonData = await response.json();
       console.log("API JSON Response:", jsonData);
-      return jsonData; // fetch returns the JSON body after parsing
+      return jsonData;
     } else {
       console.warn(
         `API response for ${fullUrl} was not JSON, content-type: ${contentType}`
       );
-      // Return a structure indicating success but non-JSON response
       return { success: true, status: response.status, rawResponse: response };
     }
   } catch (error) {
-    // Handle network errors or errors thrown during processing
     console.error("API Call Failed:", error.message);
-    // Re-throw the original error, which might have details attached by the !response.ok block
     throw error;
   }
 }
@@ -122,7 +98,6 @@ export async function login(username, password) {
     });
 
     if (!response?.data?.token) {
-      // This checks if the core expected structure is missing even if status was OK (unlikely for login errors)
       throw new Error("Invalid login response format received.");
     }
 
@@ -136,7 +111,6 @@ export async function login(username, password) {
     return response;
   } catch (error) {
     console.error("Login Failed:", error.message);
-    // The important part is that the original error object (with .details) is re-thrown
     throw error;
   }
 }
@@ -215,7 +189,6 @@ export async function refreshToken(refreshTokenValue) {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");
-      // Use error.message from the thrown error for the toast if details are missing
       throw new Error(
         response?.message ||
         response?.errorMessage ||
@@ -347,13 +320,10 @@ export async function fetchTutorsBySubject(subject) {
 
 export async function fetchTutorList(subject) {
   try {
-    // The API URL for fetching the tutor list
     const response = await callApi("/api/tutor/list-card", "GET");
-    // Assuming the actual tutor data is in response.data
     if (response && response.data) {
-      let tutors = response.data; // Get the list of tutors
+      let tutors = response.data;
 
-      // Implement filtering logic if subject is provided
       if (subject) {
         console.log(`Filtering tutor list by subject: ${subject}`);
         const normalizedSubject =
@@ -374,15 +344,13 @@ export async function fetchTutorList(subject) {
 
 
       console.log("Fetched and potentially filtered tutor list:", tutors);
-      return tutors; // Return the full or filtered list
+      return tutors;
     } else {
       console.error("Invalid API response format for tutor list:", response);
-      // Throw an error if the expected data structure isn't found
       throw new Error("Invalid response format or missing data for tutor list.");
     }
   } catch (error) {
     console.error("Failed to fetch tutor list:", error.message);
-    // Re-throw the error so it can be caught by the component
     throw error;
   }
 }
@@ -414,16 +382,12 @@ export async function fetchUserById() {
     console.log("User profile API response:", response);
 
     if (response && response.data) {
-      // Normalize data for component use
       const userData = response.data;
 
-      // Handle response format differences if needed
-      // For example, ensure gender is a number
       if (userData.gender !== undefined && typeof userData.gender === 'string') {
         userData.gender = parseInt(userData.gender, 10);
       }
 
-      // Ensure proficiency level is a number
       if (userData.learningProficiencyLevel !== undefined &&
         typeof userData.learningProficiencyLevel === 'string') {
         userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
@@ -441,11 +405,6 @@ export async function fetchUserById() {
   }
 }
 
-/**
- * Upload a profile image for the user
- * @param {File} file - The image file to upload
- * @returns {Promise<Object>} - The API response with the profile image URL
- */
 export async function uploadProfileImage(file) {
   try {
     const token = getAccessToken();
@@ -477,10 +436,6 @@ export async function uploadProfileImage(file) {
   }
 }
 
-/**
- * Delete the user's profile image
- * @returns {Promise<Object>} - The API response
- */
 export async function deleteProfileImage() {
   try {
     const token = getAccessToken();
@@ -496,10 +451,6 @@ export async function deleteProfileImage() {
   }
 }
 
-/**
- * Fetch the tutor registration profile data
- * @returns {Promise<Object>} - The API response with the profile data
- */
 export async function fetchTutorRegisterProfile() {
   try {
     const token = getAccessToken();
@@ -515,10 +466,6 @@ export async function fetchTutorRegisterProfile() {
   }
 }
 
-/**
- * Fetch all available hashtags
- * @returns {Promise<Array>} - The list of hashtags
- */
 export async function fetchAllHashtags() {
   try {
     const token = getAccessToken();
@@ -534,11 +481,6 @@ export async function fetchAllHashtags() {
   }
 }
 
-/**
- * Register as a tutor
- * @param {Object} tutorData - The tutor registration data
- * @returns {Promise<Object>} - The API response
- */
 export async function registerAsTutor(tutorData) {
   try {
     const token = getAccessToken();
@@ -554,11 +496,6 @@ export async function registerAsTutor(tutorData) {
   }
 }
 
-/**
- * Fetch tutor details by ID
- * @param {string} tutorId - The ID of the tutor to fetch
- * @returns {Promise<Object>} - The API response with the tutor data
- */
 export async function fetchTutorDetail(tutorId) {
   try {
     const token = getAccessToken();
@@ -576,88 +513,39 @@ export async function fetchTutorDetail(tutorId) {
 
 export async function fetchAllTutor(page = 1, size = 20) {
   try {
-    // Use the existing callApi helper to fetch from the specified endpoint
     const response = await callApi(`/api/tutor/all?page=${page}&size=${size}`, "GET");
 
-    // Check if the response contains the 'data' property which should be an array
-    // callApi returns the entire JSON response object directly
     if (response && Array.isArray(response.data)) {
       console.log(`Fetched tutor list for page ${page}, size ${size}:`, response.data);
-      return response.data; // Return only the array of tutors
+      return response.data;
     } else {
       console.error("Invalid API response format for fetchAllTutor:", response);
-      // Throw a more specific error if the data array is missing or not an array
       throw new Error("API response did not contain expected tutor data array.");
     }
   } catch (error) {
     console.error("Failed to fetch all tutors:", error.message);
-    throw error; // Re-throw the error so it can be handled by the calling component
+    throw error;
   }
 }
 
-// New function to fetch recommended tutors
 export async function fetchRecommendTutor() {
   try {
     const response = await callApi("/api/tutor/recommended-tutors", "GET");
 
-    // The response body has a 'data' field containing the list of recommended tutors
-    if (response && Array.isArray(response.data)) {
+    if (response && response.data && Array.isArray(response.data)) {
       console.log("[API] Recommended tutors fetched successfully:", response.data);
-      return response.data; // Return the array of recommended tutors
+      return response.data;
     } else {
-       console.error("Invalid API response format for fetchRecommendTutor:", response);
-       // Throw an error if the 'data' field is missing or not an array
-       throw new Error("API response did not contain expected recommended tutor data array.");
+      console.error("Invalid API response format for fetchRecommendTutor:", response);
+      throw new Error("API response did not contain expected recommended tutor data array.");
     }
   } catch (error) {
     console.error("Failed to fetch recommended tutors:", error.message);
-    throw error; // Re-throw the error for error handling in components
+    throw error;
   }
 }
 
-/**
- * Sends a chat message between a sender and a receiver.
- * @param {string} senderUserId - The ID of the user sending the message.
- * @param {string} receiverUserId - The ID of the user receiving the message.
- * @param {string} textMessage - The content of the message.
- * @returns {Promise<Object>} - The API response containing the sent message details.
- */
-export async function sendMessage(senderUserId, receiverUserId, textMessage) {
-  try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required to send messages.");
-    }
-
-    const body = {
-      senderUserId,
-      receiverUserId,
-      textMessage,
-    };
-
-    const response = await callApi("/api/chat/message", "POST", body, token);
-
-    if (response && response.data) {
-      console.log("Message sent successfully:", response.data);
-      return response.data; // Return the data object containing the sent message details
-    } else {
-      console.error("Invalid API response format for sendMessage:", response);
-      throw new Error("API response did not contain expected message data.");
-    }
-  } catch (error) {
-    console.error("Failed to send message:", error.message);
-    throw error; // Re-throw the error for handling in the component
-  }
-}
-
-/**
- * Fetches chat conversations for a given user.
- * @param {string} userId - The ID of the current logged-in user.
- * @param {number} page - The page number for pagination.
- * @param {number} size - The number of conversations per page.
- * @returns {Promise<Array>} - A list of formatted conversation objects.
- */
-export async function fetchChatConversations(userId, page = 1, size = 20) {
+export async function fetchChatConversationsByUserId(userId, page = 1, size = 20) {
   try {
     const token = getAccessToken();
     if (!token) {
@@ -674,14 +562,11 @@ export async function fetchChatConversations(userId, page = 1, size = 20) {
     if (response && Array.isArray(response.data)) {
       console.log("Chat conversations fetched successfully:", response.data);
 
-      // Map the API response to the format expected by MessageListPage.jsx
       const formattedConversations = response.data.map((conv) => {
-        // Find the other participant (not the current user)
         const otherParticipant = conv.participants.find(
           (p) => p.id !== userId
         );
 
-        // Determine last message and timestamp
         const lastMessageObj =
           conv.messages.length > 0
             ? conv.messages[conv.messages.length - 1]
@@ -695,23 +580,23 @@ export async function fetchChatConversations(userId, page = 1, size = 20) {
           ? new Date(lastMessageObj.createdTime).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
-            }) // Or format as desired
+            })
           : "Gần đây";
 
         const actualTimestamp = lastMessageObj
-          ? new Date(lastMessageObj.createdTime).getTime() // Store actual timestamp for sorting
-          : 0; // Default or handle no messages case
+          ? new Date(lastMessageObj.createdTime).getTime()
+          : 0;
 
         return {
-          id: conv.id, // conversation ID
-          participantId: otherParticipant?.id || null, // ID of the other participant
+          id: conv.id,
+          participantId: otherParticipant?.id || null,
           participantName: otherParticipant?.fullName || "Người dùng không xác định",
           participantAvatar: otherParticipant?.profilePictureUrl || "https://via.placeholder.com/40?text=Ảnh đại diện",
           lastMessage: lastMessageText,
           timestamp: timestamp,
-          actualTimestamp: actualTimestamp, // New field for sorting
-          unreadCount: 0, // Assuming API doesn't provide this, or can be added later
-          type: "tutor", // Assuming all chat conversations are with tutors for now
+          actualTimestamp: actualTimestamp,
+          unreadCount: 0,
+          type: "tutor",
           messages: conv.messages.map(msg => ({
             id: msg.id,
             sender: msg.userId === userId ? "user" : "tutor",
@@ -720,7 +605,7 @@ export async function fetchChatConversations(userId, page = 1, size = 20) {
               hour: "2-digit",
               minute: "2-digit",
             }),
-            createdAt: msg.createdTime, // Keep this for message rendering if needed
+            createdAt: msg.createdTime,
             senderAvatar: msg.userId === userId ? (otherParticipant?.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn") : (otherParticipant?.profilePictureUrl || "https://via.placeholder.com/30?text=?"),
           })),
         };
@@ -728,7 +613,7 @@ export async function fetchChatConversations(userId, page = 1, size = 20) {
 
       return formattedConversations;
     } else {
-      console.error("Invalid API response format for fetchChatConversations:", response);
+      console.error("Invalid API response format for fetchChatMessageByUserId:", response);
       throw new Error("API response did not contain expected conversation data array.");
     }
   } catch (error) {
@@ -737,15 +622,7 @@ export async function fetchChatConversations(userId, page = 1, size = 20) {
   }
 }
 
-// New function to fetch messages for a specific conversation
-/**
- * Fetches messages for a specific chat conversation.
- * @param {string} conversationId - The ID of the chat conversation.
- * @param {number} page - The page number for pagination.
- * @param {number} size - The number of messages per page.
- * @returns {Promise<Array>} - A list of formatted message objects for the conversation.
- */
-export async function fetchConversationMessages(conversationId, page = 1, size = 20) {
+export async function fetchConversationList(conversationId, page = 1, size = 20) {
   try {
     const token = getAccessToken();
     if (!token) {
@@ -762,20 +639,18 @@ export async function fetchConversationMessages(conversationId, page = 1, size =
     if (response && response.data && Array.isArray(response.data.messages)) {
       console.log(`Messages for conversation ${conversationId} fetched successfully:`, response.data.messages);
 
-      // Extract participants for easy lookup
       const participants = response.data.participants;
       const getParticipantInfo = (userId) => {
         return participants.find(p => p.id === userId);
       };
 
-      // Map the API response to the format expected by MessageListPage.jsx
       const formattedMessages = response.data.messages.map(msg => {
         const senderInfo = getParticipantInfo(msg.userId);
-        const currentUser = getStoredUser(); // Assuming this gets the current user's data
+        const currentUser = getStoredUser();
 
         return {
           id: msg.id,
-          sender: msg.userId, // Directly use userId as sender
+          sender: msg.userId,
           text: msg.textMessage,
           timestamp: new Date(msg.createdTime).toLocaleTimeString([], {
             hour: "2-digit",
