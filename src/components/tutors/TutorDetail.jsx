@@ -33,20 +33,6 @@ const timeRanges = [
   "20:00 - 24:00",
 ];
 
-// Add this helper function at the top level
-const getTimeRangeFromSlotIndex = (slotIndex) => {
-  // Each slot is 30 minutes, so we have 48 slots per day
-  const hour = Math.floor(slotIndex / 2);
-  
-  if (hour >= 0 && hour < 4) return "00:00 - 04:00";
-  else if (hour >= 4 && hour < 8) return "04:00 - 08:00";
-  else if (hour >= 8 && hour < 12) return "08:00 - 12:00";
-  else if (hour >= 12 && hour < 16) return "12:00 - 16:00";
-  else if (hour >= 16 && hour < 20) return "16:00 - 20:00";
-  else if (hour >= 20 && hour < 24) return "20:00 - 24:00";
-  return null;
-};
-
 const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -209,8 +195,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
             name: tutor.fullName || tutor.nickName,
             subjects: tutor.languages
               ? tutor.languages
-                  .map((language) => language.languageCode)
-                  .join(", ")
+                .map((language) => language.languageCode)
+                .join(", ")
               : "N/A", // Assuming hashtags are subjects
             rating: tutor.rating || 0, // Use actual rating if available, otherwise 0
             reviews: tutor.ratingCount || 0, // Use actual review count, otherwise 0
@@ -398,11 +384,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                               {[...Array(5)].map((_, i) => (
                                 <div
                                   key={i}
-                                  className={`w-1 h-4 rounded-full ${
-                                    i < subject.level
-                                      ? "bg-blue-600"
-                                      : "bg-gray-200"
-                                  }`}
+                                  className={`w-1 h-4 rounded-full ${i < subject.level
+                                    ? "bg-blue-600"
+                                    : "bg-gray-200"
+                                    }`}
                                 />
                               ))}
                             </div>
@@ -426,11 +411,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   {tabLabels.map((label, index) => (
                     <button
                       key={index}
-                      className={`py-2 px-4 text-sm font-medium focus:outline-none ${
-                        activeTab === index
-                          ? "border-b-2 border-red-500 text-red-600"
-                          : "text-gray-600 hover:text-gray-800"
-                      }`}
+                      className={`py-2 px-4 text-sm font-medium focus:outline-none ${activeTab === index
+                        ? "border-b-2 border-red-500 text-red-600"
+                        : "text-gray-600 hover:text-gray-800"
+                        }`}
                       onClick={() => handleTabChange(null, index)} // Pass null for event, index for newValue
                       role="tab"
                       aria-selected={activeTab === index}
@@ -504,7 +488,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                       <div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {teacher.certifications &&
-                          teacher.certifications.length > 0 ? (
+                            teacher.certifications.length > 0 ? (
                             teacher.certifications.map((cert, index) => (
                               <span
                                 key={index}
@@ -651,16 +635,16 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                 {day === "Mon"
                   ? "T2"
                   : day === "Tue"
-                  ? "T3"
-                  : day === "Wed"
-                  ? "T4"
-                  : day === "Thu"
-                  ? "T5"
-                  : day === "Fri"
-                  ? "T6"
-                  : day === "Sat"
-                  ? "T7"
-                  : "CN"}
+                    ? "T3"
+                    : day === "Wed"
+                      ? "T4"
+                      : day === "Thu"
+                        ? "T5"
+                        : day === "Fri"
+                          ? "T6"
+                          : day === "Sat"
+                            ? "T7"
+                            : "CN"}
                 <br />
                 <span className="text-xs text-gray-600">
                   {availabilityDates[index]}
@@ -680,15 +664,13 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   return (
                     <div
                       key={`${timeRange}-${day}`}
-                      className={`h-12 border border-gray-200 last:border-b-0 ${
-                        isAvailable
-                          ? "bg-green-400 cursor-pointer hover:bg-green-500"
-                          : "bg-gray-100"
-                      } ${
-                        day === availabilityDays[availabilityDays.length - 1]
+                      className={`h-12 border border-gray-200 last:border-b-0 ${isAvailable
+                        ? "bg-gray-100"
+                        : "bg-green-400 cursor-pointer hover:bg-green-500"
+                        } ${day === availabilityDays[availabilityDays.length - 1]
                           ? "border-r border-gray-200"
                           : ""
-                      }`}
+                        }`}
                     ></div>
                   );
                 })}
@@ -726,8 +708,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                     subjects:
                       Array.isArray(tutor.subjects) && tutor.subjects.length > 0
                         ? tutor.subjects
-                            .map((subject) => subject.name)
-                            .join(", ")
+                          .map((subject) => subject.name)
+                          .join(", ")
                         : "N/A",
                     rating: tutor.rating,
                     reviews: tutor.reviews,

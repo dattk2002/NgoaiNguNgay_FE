@@ -38,6 +38,9 @@ import {
 // Import the NotFoundPage component
 import NotFoundPage from "./pages/NotFoundPage"; // Adjust the path if necessary
 import NotGrantedPermissionPage from "./pages/NotGrantedPermissionPage";
+import StaffDashboardPage from "./pages/StaffDashboardPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import ManagerDashboardPage from "./pages/ManagerDashboardPage";
 
 // New component to handle scrolling to top on route change
 function ScrollToTop() {
@@ -58,6 +61,181 @@ function ScrollToTop() {
 const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
 const ACCOUNTS_STORAGE_KEY = "accounts";
+
+// Component to handle conditional layout
+function AppContent({
+  user,
+  isLoginModalOpen,
+  isSignUpModalOpen,
+  isConfirmEmailModalOpen,
+  confirmEmail,
+  isUpdateInfoModalOpen,
+  loginPromptMessage,
+  handleLogout,
+  openLoginModal,
+  openSignUpModal,
+  closeLoginModal,
+  closeSignUpModal,
+  handleLogin,
+  switchToSignup,
+  switchToLogin,
+  handleSignUpSuccess,
+  handleConfirmEmailSuccess,
+  handleUpdateInfoSubmit,
+  getUserById
+}) {
+  const location = useLocation();
+  const isStaffRoute = location.pathname.startsWith('/staff');
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isManagerRoute = location.pathname.startsWith('/manager');
+
+  return (
+    <div className={(isStaffRoute || isAdminRoute || isManagerRoute) ? "" : "min-h-screen flex flex-col bg-gray-100"}>
+      {!(isStaffRoute || isAdminRoute || isManagerRoute) && (
+        <Header
+          user={user}
+          onLogout={handleLogout}
+          onLoginClick={() => openLoginModal()}
+          onSignUpClick={openSignUpModal}
+        />
+      )}
+
+      <main className={(isStaffRoute || isAdminRoute || isManagerRoute) ? "" : "flex-1 py-8"}>
+        <Routes>
+          <Route
+            path="/forgot-password"
+            element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
+          />
+          <Route path="/" element={<HomePage user={user} onRequireLogin={openLoginModal} />} />
+          <Route
+            path="/languages"
+            element={
+              <RecommendTutorList user={user} onRequireLogin={openLoginModal} />
+            }
+          />
+          <Route
+            path="/teacher/:id"
+            element={
+              <TutorDetail
+                user={user}
+                onRequireLogin={openLoginModal}
+              />
+            }
+          />
+          <Route
+            path="/tutorprofile/:id"
+            element={
+              <TutorProfile
+                user={user}
+                onRequireLogin={openLoginModal}
+                fetchTutorDetail={fetchTutorDetail}
+              />
+            }
+          />
+          <Route
+            path="/tutor/:subject"
+            element={<TutorSubjectList />}
+          />
+          <Route
+            path="/become-tutor"
+            element={<BecomeATutorLandingPage />}
+          />
+          <Route
+            path="/become-tutor/register"
+            element={
+              <BecomeATutorPage
+                user={user}
+                onRequireLogin={openLoginModal}
+                fetchProfileData={fetchTutorRegisterProfile}
+                fetchHashtags={fetchAllHashtags}
+                uploadProfileImage={uploadProfileImage}
+                deleteProfileImage={deleteProfileImage}
+                registerAsTutor={registerAsTutor}
+              />
+            }
+          />
+
+          {/* NEW ROUTE for Messaging */}
+          <Route
+            path="/message/:id"
+            element={
+              user ? <MessagePage user={user} /> : <Navigate to="/" replace />
+            }
+          />
+          {/* NEW ROUTE for general messages list */}
+          <Route
+            path="/messages"
+            element={
+              user ? <MessagePage user={user} /> : <Navigate to="/" replace />
+            }
+          />
+          {/* Route for viewing a user profile */}
+          <Route
+            path="/user/:id"
+            element={user ? <UserProfile loggedInUser={user} getUserById={getUserById} /> : <Navigate to="/" replace />}
+          />
+          {/* NEW ROUTE for editing a user profile */}
+          <Route
+            path="/user/edit/:id"
+            // Pass loggedInUser to EditUserProfile for authorization and initial data
+            element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/" replace />}
+          />
+
+          {/* Staff Dashboard Route */}
+          <Route
+            path="/staff"
+            element={<StaffDashboardPage />}
+          />
+
+          {/* Admin Dashboard Route */}
+          <Route
+            path="/admin"
+            element={<AdminDashboardPage />}
+          />
+
+          {/* Manager Dashboard Route */}
+          <Route
+            path="/manager"
+            element={<ManagerDashboardPage />}
+          />
+
+          {/* This route catches all other paths and renders the NotFoundPage */}
+          <Route path="*" element={<NotFoundPage />} />
+          {/* <Route path="*" element={<NotGrantedPermissionPage />} /> */}
+
+        </Routes>
+      </main>
+
+      {!(isStaffRoute || isAdminRoute || isManagerRoute) && <FooterHandler />}
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={closeLoginModal}
+        onLogin={handleLogin}
+        onSwitchToSignup={switchToSignup}
+        promptMessage={loginPromptMessage}
+      />
+      <SignUpModal
+        isOpen={isSignUpModalOpen}
+        onClose={closeSignUpModal}
+        onSignUpSuccess={handleSignUpSuccess}
+        onSwitchToLogin={switchToLogin}
+      />
+      <ConfirmEmail
+        isOpen={isConfirmEmailModalOpen}
+        onClose={() => setIsConfirmEmailModalOpen(false)}
+        email={confirmEmail}
+        onConfirmSuccess={handleConfirmEmailSuccess}
+      />
+      <UpdateInformationModal
+        isOpen={isUpdateInfoModalOpen}
+        onClose={() => setIsUpdateInfoModalOpen(false)}
+        onSubmit={handleUpdateInfoSubmit}
+        user={user}
+      />
+    </div>
+  );
+}
 
 function App() {
   const [user, setUser] = useState(null);
@@ -205,11 +383,12 @@ function App() {
   const closeSignUpModal = () => setIsSignUpModalOpen(false);
 
   const handleLogin = async (userData) => {
-    console.log("handleLogin called with userData:", userData);
-    // Ensure all relevant user data is included upon login
     const fullUserData = {
-      ...userData,
-      profileImageUrl: userData.profileImageUrl || "",
+      id: userData.id || Date.now().toString(),
+      name: userData.name,
+      phone: userData.phone,
+      avatarUrl: userData.avatarUrl || "",
+      // Include all other relevant user data here
       fullName: userData.fullName || '',
       dateOfBirth: userData.dateOfBirth || '',
       gender: userData.gender || '',
@@ -218,8 +397,9 @@ function App() {
       interestsType: userData.interestsType || '',
       languageSkills: userData.languageSkills || [],
       interests: userData.interests || [],
-      // Include other fields here
+      profileImageUrl: userData.profileImageUrl || '',
     };
+
     setUser(fullUserData);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData));
 
@@ -299,127 +479,27 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
-      <div className="min-h-screen flex flex-col bg-gray-100">
-        <Header
-          user={user}
-          onLogout={handleLogout}
-          onLoginClick={() => openLoginModal()}
-          onSignUpClick={openSignUpModal}
-        />
-        <main className="flex-1 py-8">
-          <Routes>
-            <Route
-              path="/forgot-password"
-              element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
-            />
-            <Route path="/" element={<HomePage user={user} onRequireLogin={openLoginModal} />} />
-            <Route
-              path="/languages"
-              element={
-                <RecommendTutorList user={user} onRequireLogin={openLoginModal} />
-              }
-            />
-            <Route
-              path="/teacher/:id"
-              element={
-                <TutorDetail
-                  user={user}
-                  onRequireLogin={openLoginModal}
-                />
-              }
-            />
-            <Route
-              path="/tutorprofile/:id"
-              element={
-                <TutorProfile
-                  user={user}
-                  onRequireLogin={openLoginModal}
-                  fetchTutorDetail={fetchTutorDetail}
-                />
-              }
-            />
-            <Route
-              path="/tutor/:subject"
-              element={<TutorSubjectList />}
-            />
-            <Route
-              path="/become-tutor"
-              element={<BecomeATutorLandingPage />}
-            />
-            <Route
-              path="/become-tutor/register"
-              element={
-                <BecomeATutorPage
-                  user={user}
-                  onRequireLogin={openLoginModal}
-                  fetchProfileData={fetchTutorRegisterProfile}
-                  fetchHashtags={fetchAllHashtags}
-                  uploadProfileImage={uploadProfileImage}
-                  deleteProfileImage={deleteProfileImage}
-                  registerAsTutor={registerAsTutor}
-                />
-              }
-            />
-
-            {/* NEW ROUTE for Messaging */}
-            <Route
-              path="/message/:id"
-              element={
-                user ? <MessagePage user={user} /> : <Navigate to="/" replace />
-              }
-            />
-            {/* NEW ROUTE for general messages list */}
-            <Route
-              path="/messages"
-              element={
-                user ? <MessagePage user={user} /> : <Navigate to="/" replace />
-              }
-            />
-            {/* Route for viewing a user profile */}
-            <Route
-              path="/user/:id"
-              element={user ? <UserProfile loggedInUser={user} getUserById={getUserById} /> : <Navigate to="/" replace />}
-            />
-            {/* NEW ROUTE for editing a user profile */}
-            <Route
-              path="/user/edit/:id"
-              // Pass loggedInUser to EditUserProfile for authorization and initial data
-              element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/" replace />}
-            />
-
-            {/* This route catches all other paths and renders the NotFoundPage */}
-            <Route path="*" element={<NotFoundPage />} />
-            {/* <Route path="*" element={<NotGrantedPermissionPage />} /> */}
-
-          </Routes>
-        </main>
-        <FooterHandler />
-        <LoginModal
-          isOpen={isLoginModalOpen}
-          onClose={closeLoginModal}
-          onLogin={handleLogin}
-          onSwitchToSignup={switchToSignup}
-          promptMessage={loginPromptMessage}
-        />
-        <SignUpModal
-          isOpen={isSignUpModalOpen}
-          onClose={closeSignUpModal}
-          onSignUpSuccess={handleSignUpSuccess}
-          onSwitchToLogin={switchToLogin}
-        />
-        <ConfirmEmail
-          isOpen={isConfirmEmailModalOpen}
-          onClose={() => setIsConfirmEmailModalOpen(false)}
-          email={confirmEmail}
-          onConfirmSuccess={handleConfirmEmailSuccess}
-        />
-        <UpdateInformationModal
-          isOpen={isUpdateInfoModalOpen}
-          onClose={() => setIsUpdateInfoModalOpen(false)}
-          onSubmit={handleUpdateInfoSubmit}
-          user={user}
-        />
-      </div>
+      <AppContent
+        user={user}
+        isLoginModalOpen={isLoginModalOpen}
+        isSignUpModalOpen={isSignUpModalOpen}
+        isConfirmEmailModalOpen={isConfirmEmailModalOpen}
+        confirmEmail={confirmEmail}
+        isUpdateInfoModalOpen={isUpdateInfoModalOpen}
+        loginPromptMessage={loginPromptMessage}
+        handleLogout={handleLogout}
+        openLoginModal={openLoginModal}
+        openSignUpModal={openSignUpModal}
+        closeLoginModal={closeLoginModal}
+        closeSignUpModal={closeSignUpModal}
+        handleLogin={handleLogin}
+        switchToSignup={switchToSignup}
+        switchToLogin={switchToLogin}
+        handleSignUpSuccess={handleSignUpSuccess}
+        handleConfirmEmailSuccess={handleConfirmEmailSuccess}
+        handleUpdateInfoSubmit={handleUpdateInfoSubmit}
+        getUserById={getUserById}
+      />
     </Router>
   );
 }
