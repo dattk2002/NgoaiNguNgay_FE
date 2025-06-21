@@ -572,9 +572,18 @@ export async function fetchChatConversationsByUserId(userId, page = 1, size = 20
             ? conv.messages[conv.messages.length - 1]
             : null;
 
-        const lastMessageText = lastMessageObj
-          ? lastMessageObj.textMessage
-          : "Chưa có tin nhắn nào";
+        let lastMessageText = "Chưa có tin nhắn nào";
+        if (lastMessageObj) {
+          if (lastMessageObj.textMessage === null) {
+            if (lastMessageObj.userId === userId) {
+              lastMessageText = "Bạn đã thu hồi 1 tin nhắn";
+            } else {
+              lastMessageText = `${otherParticipant?.fullName || "Người dùng"} đã thu hồi 1 tin nhắn`;
+            }
+          } else {
+            lastMessageText = lastMessageObj.textMessage;
+          }
+        }
 
         const timestamp = lastMessageObj
           ? new Date(lastMessageObj.createdTime).toLocaleTimeString([], {
@@ -651,7 +660,7 @@ export async function fetchConversationList(conversationId, page = 1, size = 20)
         return {
           id: msg.id,
           sender: msg.userId,
-          text: msg.textMessage,
+          text: msg.textMessage === null ? "Tin nhắn đã được thu hồi" : msg.textMessage,
           timestamp: new Date(msg.createdTime).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
