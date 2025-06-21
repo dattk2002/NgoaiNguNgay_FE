@@ -8,6 +8,9 @@ import {
   FaPaperclip,
   FaArrowCircleUp,
   FaArrowLeft,
+  FaEllipsisV,
+  FaEdit,
+  FaTrash,
 } from "react-icons/fa";
 import { fetchChatConversationsByUserId } from "../components/api/auth";
 import { fetchConversationList } from "../components/api/auth";
@@ -28,15 +31,37 @@ const MessagePage = ({ user }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [messagesPerPage] = useState(20);
   const [hubConnection, setHubConnection] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingMessageText, setEditingMessageText] = useState("");
+  const [hoveredMessageId, setHoveredMessageId] = useState(null);
+  const [showMessageMenu, setShowMessageMenu] = useState(null);
+  const [showConvMenu, setShowConvMenu] = useState(null);
+  const [connectionBadge, setConnectionBadge] = useState(null);
 
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
   const accessToken = getAccessToken();
 
+  // Add useEffect to handle clicking outside the message menu
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMessageMenu && !event.target.closest(".message-menu-container")) {
+        setShowMessageMenu(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showMessageMenu]);
+
   const refetchConversationData = async () => {
     try {
       // Refetch conversations list
-      const updatedConversationsList = await fetchChatConversationsByUserId(user.id);
+      const updatedConversationsList = await fetchChatConversationsByUserId(
+        user.id
+      );
       if (updatedConversationsList && Array.isArray(updatedConversationsList)) {
         const sortedConversations = [...updatedConversationsList].sort(
           (a, b) => b.actualTimestamp - a.actualTimestamp
@@ -53,7 +78,8 @@ const MessagePage = ({ user }) => {
         );
         if (updatedMessages && Array.isArray(updatedMessages)) {
           const sortedMessages = updatedMessages.sort(
-            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
           setMessages(sortedMessages);
         }
@@ -65,7 +91,9 @@ const MessagePage = ({ user }) => {
 
   useEffect(() => {
     if (!user || !accessToken) {
-      console.warn("User or access token not available for SignalR connection.");
+      console.warn(
+        "User or access token not available for SignalR connection."
+      );
       return;
     }
 
@@ -83,6 +111,19 @@ const MessagePage = ({ user }) => {
       .then(() => {
         console.log("SignalR Connected! Current state:", newConnection.state);
 
+        // Add connection state logging
+        newConnection.onreconnecting((error) => {
+          console.log("SignalR Reconnecting:", error);
+        });
+
+        newConnection.onreconnected((connectionId) => {
+          console.log("SignalR Reconnected. ConnectionId:", connectionId);
+        });
+
+        newConnection.onclose((error) => {
+          console.log("SignalR Connection Closed:", error);
+        });
+
         // Handle OnConnected event
         newConnection.on("OnConnected", async (message) => {
           console.log("Connected to ChatHub:", message);
@@ -90,9 +131,15 @@ const MessagePage = ({ user }) => {
           await refetchConversationData();
         });
 
+        // Add a catch-all handler to see what methods are being called
+        newConnection.on("*", (methodName, ...args) => {
+          console.log("SignalR method called:", methodName, "with args:", args);
+        });
+
         // Update ReceiveMessage handler
         newConnection.on("ReceiveMessage", async (statusCode) => {
           console.log("Message received from SignalR:", { statusCode });
+          console.log("ReceiveMessage handler triggered with data:", statusCode);
 
           // Convert the received message to match your UI format
           const formattedMessage = {
@@ -100,7 +147,8 @@ const MessagePage = ({ user }) => {
             sender: statusCode.userId,
             text: statusCode.textMessage,
             createdAt: statusCode.createdTime,
-            senderAvatar: user.profileImageUrl || "https://picsum.photos/300/200?random=1",
+            senderAvatar:
+              user.profileImageUrl || "https://picsum.photos/300/200?random=1",
           };
 
           // Update messages list immediately
@@ -116,6 +164,7 @@ const MessagePage = ({ user }) => {
             return prevConversations.map((conv) => {
               // Check if this message belongs to this conversation
               if (conv.id === statusCode.chatConversationId) {
+                const isCurrentConv = selectedConversation && conv.id === selectedConversation.id;
                 return {
                   ...conv,
                   lastMessage: statusCode.textMessage,
@@ -124,6 +173,7 @@ const MessagePage = ({ user }) => {
                     minute: "2-digit",
                   }),
                   actualTimestamp: new Date(statusCode.createdTime).getTime(),
+                  unreadCount: isCurrentConv ? 0 : (conv.unreadCount || 0) + 1, // <--- This is correct!
                 };
               }
               return conv;
@@ -132,6 +182,9 @@ const MessagePage = ({ user }) => {
 
           // Refetch conversation data
           await refetchConversationData();
+          if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+          }
         });
 
         // Update SendMessageResult handler
@@ -145,7 +198,9 @@ const MessagePage = ({ user }) => {
               sender: message.userId,
               text: message.textMessage,
               createdAt: message.createdTime,
-              senderAvatar: user.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn",
+              senderAvatar:
+                user.profilePictureUrl ||
+                "https://via.placeholder.com/30?text=Bạn",
             };
 
             // Update messages list
@@ -159,14 +214,20 @@ const MessagePage = ({ user }) => {
             // Update the conversation's last message in real-time
             setConversations((prevConversations) => {
               return prevConversations.map((conv) => {
-                if (conv.participantId === message.userId || conv.participantId === user.id) {
+                if (
+                  conv.participantId === message.userId ||
+                  conv.participantId === user.id
+                ) {
                   return {
                     ...conv,
                     lastMessage: message.textMessage,
-                    timestamp: new Date(message.createdTime).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }),
+                    timestamp: new Date(message.createdTime).toLocaleTimeString(
+                      [],
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    ),
                     actualTimestamp: new Date(message.createdTime).getTime(),
                   };
                 }
@@ -176,10 +237,180 @@ const MessagePage = ({ user }) => {
 
             // Refetch conversation data
             await refetchConversationData();
+            if (messagesEndRef.current) {
+              messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+            }
           } else {
             console.error("Failed to send message:", statusCode, message);
             setError("Không thể gửi tin nhắn. Vui lòng thử lại.");
           }
+        });
+
+        // Add UpdateMessageResult handler
+        newConnection.on("UpdateMessageResult", async (statusCode, message) => {
+          console.log("UpdateMessageResult received:", { statusCode, message });
+
+          if (statusCode === 200) {
+            // Message was updated successfully
+            const formattedMessage = {
+              id: message.id,
+              sender: message.userId,
+              text: message.textMessage,
+              createdAt: message.createdTime,
+              senderAvatar:
+                user.profilePictureUrl ||
+                "https://via.placeholder.com/30?text=Bạn",
+            };
+
+            // Update messages list
+            setMessages((prevMessages) => {
+              return prevMessages.map((msg) => {
+                if (msg.id === formattedMessage.id) {
+                  return formattedMessage;
+                }
+                return msg;
+              });
+            });
+
+            // Update the conversation's last message if this was the last message
+            setConversations((prevConversations) => {
+              return prevConversations.map((conv) => {
+                if (conv.id === message.chatConversationId) {
+                  const lastMessage = messages[messages.length - 1];
+                  if (lastMessage && lastMessage.id === message.id) {
+                    return {
+                      ...conv,
+                      lastMessage: message.textMessage,
+                      timestamp: new Date(
+                        message.createdTime
+                      ).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }),
+                      actualTimestamp: new Date(message.createdTime).getTime(),
+                    };
+                  }
+                }
+                return conv;
+              });
+            });
+
+            // Clear editing state
+            setEditingMessageId(null);
+            setEditingMessageText("");
+            setShowMessageMenu(null);
+
+            // Refetch conversation data
+            await refetchConversationData();
+          } else {
+            console.error("Failed to update message:", statusCode, message);
+            setError("Không thể cập nhật tin nhắn. Vui lòng thử lại.");
+          }
+        });
+
+        // Add DeleteMessageResult handler
+        newConnection.on("DeleteMessageResult", async (statusCode, message) => {
+          console.log("DeleteMessageResult received:", { statusCode, message });
+
+          if (statusCode === 200) {
+            // Mark the message as deleted in the UI
+            setMessages((prevMessages) =>
+              prevMessages.map((msg) =>
+                msg.id === message.id
+                  ? { ...msg, isDeleted: true }
+                  : msg
+              )
+            );
+            // Optionally, update conversations as well if needed
+            // await refetchConversationData(); // You can keep this if you want to refresh everything
+          } else {
+            console.error("Failed to delete message:", statusCode, message);
+            setError(message || "Không thể xóa tin nhắn. Vui lòng thử lại.");
+          }
+        });
+
+        // Add OnMessageDeleted handler for real-time updates
+        newConnection.on("OnMessageDeleted", async (response) => {
+          console.log("OnMessageDeleted received:", response);
+          const { messageId } = response;
+
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) => {
+              if (msg.id === messageId) {
+                return {
+                  ...msg,
+                  isDeleted: true,
+                };
+              }
+              return msg;
+            })
+          );
+          await refetchConversationData();
+        });
+
+        // Add OnMessageUpdated handler for real-time updates
+        newConnection.on("OnMessageUpdated", async (message) => {
+          console.log("OnMessageUpdated received:", message);
+
+          const formattedMessage = {
+            id: message.id,
+            sender: message.userId,
+            text: message.textMessage,
+            createdAt: message.createdTime,
+            senderAvatar:
+              user.profileImageUrl || "https://picsum.photos/300/200?random=1",
+          };
+
+          // Update messages list
+          setMessages((prevMessages) => {
+            return prevMessages.map((msg) => {
+              if (msg.id === formattedMessage.id) {
+                return formattedMessage;
+              }
+              return msg;
+            });
+          });
+
+          // Update conversation if this was the last message
+          setConversations((prevConversations) => {
+            return prevConversations.map((conv) => {
+              if (conv.id === message.chatConversationId) {
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage && lastMessage.id === message.id) {
+                  return {
+                    ...conv,
+                    lastMessage: message.textMessage,
+                    timestamp: new Date(message.createdTime).toLocaleTimeString(
+                      [],
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    ),
+                    actualTimestamp: new Date(message.createdTime).getTime(),
+                  };
+                }
+              }
+              return conv;
+            });
+          });
+        });
+
+        // Add MarkAsReadResult handler
+        newConnection.on("MarkAsReadResult", (statusCode, message) => {
+          console.log("MarkAsReadResult:", statusCode, message);
+          // Optionally show a toast or update UI
+        });
+
+        // Add OnMessageRead handler
+        newConnection.on("OnMessageRead", (messageId) => {
+          console.log("OnMessageRead:", messageId);
+          // Optionally update message state to mark as read
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === messageId ? { ...msg, isRead: true } : msg
+            )
+          );
         });
       })
       .catch((err) => console.error("SignalR Connection Error: ", err));
@@ -206,10 +437,18 @@ const MessagePage = ({ user }) => {
           return;
         }
 
-        const fetchedConversations = await fetchChatConversationsByUserId(user.id);
+        const fetchedConversations = await fetchChatConversationsByUserId(
+          user.id
+        );
 
         let allConversations = [...fetchedConversations];
         let conversationToSelect = null;
+
+        const tempConvStr = sessionStorage.getItem("currentTempConversation");
+        let tempConversation = null;
+        if (tempConvStr) {
+          tempConversation = JSON.parse(tempConvStr);
+        }
 
         if (tutorId) {
           const foundExistingConv = allConversations.find(
@@ -218,11 +457,7 @@ const MessagePage = ({ user }) => {
 
           if (foundExistingConv) {
             conversationToSelect = foundExistingConv;
-            sessionStorage.removeItem("currentTempTutorId");
-            console.log(
-              "Selected existing conversation via URL tutorId:",
-              tutorId
-            );
+            sessionStorage.removeItem("currentTempConversation");
           } else {
             console.log(
               "Creating temporary conversation for tutorId:",
@@ -230,6 +465,12 @@ const MessagePage = ({ user }) => {
             );
             try {
               const tutorDetails = await fetchTutorById(tutorId);
+              const now = new Date();
+              const formattedTime = now.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+
               const tempConversation = {
                 id: `temp-${tutorId}`,
                 participantId: tutorId,
@@ -240,16 +481,27 @@ const MessagePage = ({ user }) => {
                 participantAvatar:
                   tutorDetails.profileImageUrl ||
                   "https://picsum.photos/300/200?random=1",
-                lastMessage: "Bắt đầu cuộc trò chuyện mới!",
-                timestamp: "Vừa xong",
-                actualTimestamp: Date.now(),
+                lastMessage: "Bắt đầu cuộc trò chuyện",
+                timestamp: formattedTime,
+                actualTimestamp: now.getTime(),
                 unreadCount: 0,
                 type: "tutor",
                 messages: [],
               };
-              allConversations = [tempConversation, ...fetchedConversations];
               conversationToSelect = tempConversation;
-              sessionStorage.setItem("currentTempTutorId", tutorId);
+              
+              // Set connection badge for new conversation
+              setConnectionBadge({
+                text: `Bạn và ${
+                  tutorDetails.fullName || tutorDetails.nickName || "gia sư"
+                } vừa được kết nối trên NgoaiNguNgay`,
+                tutorName: tutorDetails.fullName || tutorDetails.nickName || "gia sư"
+              });
+              
+              sessionStorage.setItem(
+                "currentTempConversation",
+                JSON.stringify(tempConversation)
+              );
             } catch (tutorError) {
               console.error(
                 "Failed to fetch tutor details for temporary chat:",
@@ -347,10 +599,10 @@ const MessagePage = ({ user }) => {
   }, [selectedConversation, currentPage, messagesPerPage]);
 
   useEffect(() => {
-    if (messagesEndRef.current && !isSelectingConversation) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (selectedConversation && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "auto" });
     }
-  }, [messages, isSelectingConversation]);
+  }, [selectedConversation]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -391,6 +643,9 @@ const MessagePage = ({ user }) => {
       },
     ]);
     setNewMessage("");
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+    }
 
     try {
       // Log the message payload
@@ -410,7 +665,6 @@ const MessagePage = ({ user }) => {
 
       // Refetch conversation data
       await refetchConversationData();
-
     } catch (apiError) {
       console.error("Failed to send message via SignalR or API:", apiError);
       setError("Không thể gửi tin nhắn. Vui lòng thử lại.");
@@ -428,6 +682,24 @@ const MessagePage = ({ user }) => {
     setCurrentPage(1);
     setMessages([]);
     setIsSelectingConversation(false);
+    
+    // Clear connection badge when selecting a different conversation
+    if (!conversation.id.startsWith("temp-")) {
+      setConnectionBadge(null);
+    }
+
+    // Find unread message IDs (for example, all messages not sent by the user and not marked as read)
+    const unreadMessageIds = (conversation.messages || [])
+      .filter(
+        (msg) =>
+          msg.sender !== user.id &&
+          !msg.isRead // or whatever property indicates read status
+      )
+      .map((msg) => msg.id);
+
+    if (unreadMessageIds.length > 0) {
+      handleMarkAsRead(unreadMessageIds, conversation.participantId);
+    }
 
     if (conversation.type === "tutor" && !conversation.id.startsWith("temp-")) {
       console.log(
@@ -443,6 +715,205 @@ const MessagePage = ({ user }) => {
       );
       sessionStorage.setItem("currentTempTutorId", conversation.participantId);
     }
+
+    setConversations((prevConversations) =>
+      prevConversations.map((conv) =>
+        conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
+      )
+    );
+  };
+
+  function formatMessageTimestamp(date) {
+    const now = new Date();
+    const messageDate = new Date(date);
+
+    const isToday = now.toDateString() === messageDate.toDateString();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = yesterday.toDateString() === messageDate.toDateString();
+
+    const daysAgo = Math.floor((now - messageDate) / (1000 * 60 * 60 * 24));
+
+    if (isToday) {
+      return messageDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } else if (isYesterday) {
+      return (
+        "Yesterday " +
+        messageDate.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      );
+    } else if (daysAgo < 7) {
+      return (
+        messageDate.toLocaleDateString([], {
+          weekday: "long",
+        }) +
+        " " +
+        messageDate.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      );
+    } else {
+      return messageDate.toLocaleDateString([], {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+  }
+
+  const handleUpdateMessage = async (e) => {
+    e.preventDefault();
+    if (
+      !editingMessageText.trim() ||
+      !editingMessageId ||
+      !selectedConversation ||
+      !user ||
+      !hubConnection ||
+      hubConnection.state !== HubConnectionState.Connected
+    ) {
+      console.warn(
+        "Attempted to update message while SignalR connection is not connected. Current state:",
+        hubConnection?.state
+      );
+      return;
+    }
+
+    try {
+      // Find the message to update
+      const messageToUpdate = messages.find(
+        (msg) => msg.id === editingMessageId
+      );
+      if (!messageToUpdate) {
+        setError("Không tìm thấy tin nhắn cần cập nhật.");
+        return;
+      }
+
+      console.log("Updating message with payload:", {
+        id: editingMessageId,
+        receiverUserId: selectedConversation.participantId,
+        textMessage: editingMessageText,
+      });
+
+      // Send update message via SignalR
+      await hubConnection.invoke("UpdateMessage", {
+        id: editingMessageId,
+        receiverUserId: selectedConversation.participantId,
+        textMessage: editingMessageText,
+      });
+
+      // Clear editing state
+      setEditingMessageId(null);
+      setEditingMessageText("");
+      setShowMessageMenu(null);
+      setNewMessage("");
+    } catch (apiError) {
+      console.error("Failed to update message via SignalR:", apiError);
+      setError("Không thể cập nhật tin nhắn. Vui lòng thử lại.");
+    }
+  };
+
+  const handleEditMessage = (message) => {
+    setEditingMessageId(message.id);
+    setEditingMessageText(message.text);
+    setShowMessageMenu(null);
+    // Focus on the input field
+    setTimeout(() => {
+      const input = document.querySelector(
+        'input[placeholder="Chỉnh sửa tin nhắn..."]'
+      );
+      if (input) {
+        input.focus();
+      }
+    }, 100);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingMessageText("");
+    setShowMessageMenu(null);
+    setNewMessage("");
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (
+      !messageId ||
+      !selectedConversation ||
+      !user ||
+      !hubConnection ||
+      hubConnection.state !== HubConnectionState.Connected
+    ) {
+      console.warn(
+        "Attempted to delete message with conditions not met:",
+        {
+          messageId,
+          selectedConversation: !!selectedConversation,
+          user: !!user,
+          hubConnectionState: hubConnection?.state,
+        }
+      );
+      setError(
+        "Không thể xóa tin nhắn lúc này. Vui lòng kiểm tra kết nối và thử lại."
+      );
+      return;
+    }
+
+    try {
+      console.log("Attempting to delete message via SignalR:", {
+        id: messageId,
+        receiverUserId: selectedConversation.participantId,
+      });
+
+      await hubConnection.invoke("DeleteMessage", {
+        id: messageId,
+        receiverUserId: selectedConversation.participantId,
+      });
+
+      setShowMessageMenu(null);
+    } catch (apiError) {
+      console.error("Failed to invoke DeleteMessage on SignalR hub:", apiError);
+      setError("Không thể gửi yêu cầu xóa tin nhắn. Vui lòng thử lại.");
+    }
+  };
+
+  const handleMarkAsRead = async (messageIds, receiverUserId) => {
+    if (
+      !hubConnection ||
+      hubConnection.state !== HubConnectionState.Connected ||
+      !messageIds.length ||
+      !receiverUserId
+    ) {
+      return;
+    }
+    try {
+      // SignalR expects the first argument as an array of message IDs, and the second as receiverUserId
+      await hubConnection.invoke("MarkAsRead", messageIds, receiverUserId);
+    } catch (err) {
+      console.error("Failed to mark messages as read:", err);
+    }
+  };
+
+  const handleMarkAsUnread = (conversationId) => {
+    setConversations((prevConversations) =>
+      prevConversations.map((conv) =>
+        conv.id === conversationId
+          ? { ...conv, unreadCount: 1 }
+          : conv
+      )
+    );
+    setShowConvMenu(null);
   };
 
   if (loading)
@@ -519,7 +990,7 @@ const MessagePage = ({ user }) => {
                 )}
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
+                  <div className="flex gap-2 items-center">
                     {conv.type === "tutor" ? (
                       <div className="font-semibold text-gray-800 text-sm truncate">
                         {conv.participantName}
@@ -533,18 +1004,18 @@ const MessagePage = ({ user }) => {
                     <div className="text-xs text-gray-500 flex-shrink-0 ml-2">
                       {conv.timestamp}
                     </div>
+                    {conv.unreadCount > 0 && (
+                      <span className="ml-2 w-2 h-2 bg-red-500 rounded-full inline-block"></span>
+                    )}
                   </div>
-                  <div className="text-sm text-gray-600 truncate">
-                    {conv.messages && conv.messages.length > 0 
-                      ? conv.messages[conv.messages.length - 1].text 
-                      : conv.lastMessage || "Chưa có tin nhắn nào"}
+                  <div
+                    className={`text-sm truncate ${
+                      conv.unreadCount > 0 ? "font-bold text-black" : "text-gray-600"
+                    }`}
+                  >
+                    {conv.lastMessage || "Chưa có tin nhắn nào"}
                   </div>
                 </div>
-                {conv.unreadCount > 0 && (
-                  <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
-                    {conv.unreadCount}
-                  </span>
-                )}
               </div>
             ))
           ) : (
@@ -592,6 +1063,18 @@ const MessagePage = ({ user }) => {
           </div>
         </div>
 
+        {/* Connection Badge */}
+        {connectionBadge && selectedConversation?.id.startsWith("temp-") && (
+          <div className="flex justify-center py-3">
+            <div className="text-[#333333] px-4 py-2 rounded-full text-sm font-medium shadow-sm">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                {connectionBadge.text}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
           {!selectedConversation && (
             <div className="flex justify-center items-center h-full text-gray-500 text-center">
@@ -602,9 +1085,33 @@ const MessagePage = ({ user }) => {
           {selectedConversation &&
             messages.length === 0 &&
             !loading &&
-            selectedConversation.type === "tutor" && (
-              <div className="flex justify-center items-center h-full">
-                <div className="w-8 h-8 border-4 border-[#333333] border-t-transparent rounded-full animate-spin"></div>
+            selectedConversation.type === "tutor" &&
+            !selectedConversation.id.startsWith("temp-") && ( // <-- Only show for real tutor conversations
+              <div className="flex justify-center items-center h-full text-gray-500 text-center">
+                {messages[0]?.text ? (
+                  <p>{messages[0].text}</p>
+                ) : (
+                  <svg
+                    className="animate-spin h-8 w-8 text-[#333333]"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"
+                    ></path>
+                  </svg>
+                )}
               </div>
             )}
 
@@ -612,7 +1119,9 @@ const MessagePage = ({ user }) => {
             const currentMessageDate = new Date(message.createdAt);
             let showTimestamp = false;
 
-            if (lastMessageDate) {
+            if (index === 0) {
+              showTimestamp = true;
+            } else if (lastMessageDate) {
               const diffMinutes =
                 (currentMessageDate.getTime() - lastMessageDate.getTime()) /
                 (1000 * 60);
@@ -623,14 +1132,8 @@ const MessagePage = ({ user }) => {
 
             lastMessageDate = currentMessageDate;
 
-            const formattedTimestamp = currentMessageDate.toLocaleString(
-              "en-US",
-              {
-                weekday: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              }
+            const formattedTimestamp = formatMessageTimestamp(
+              message.createdAt
             );
 
             return (
@@ -642,16 +1145,64 @@ const MessagePage = ({ user }) => {
                     </span>
                   </div>
                 )}
-                {message.sender === "system" ? (
+                {message.text === "Tin nhắn đã được thu hồi" ? (
                   <div
                     key={message.id}
-                    className="flex items-center justify-center"
+                    className={`flex items-start gap-3 ${message.sender === user?.id ? "flex-row-reverse" : ""}`}
                   >
-                    <Tooltip title={formattedTimestamp} placement="left">
-                      <div className="p-3 rounded-lg bg-gray-200 text-gray-800 max-w-md text-sm break-words text-center">
-                        <p>{message.text}</p>
-                      </div>
-                    </Tooltip>
+                    <img
+                      src={
+                        message.sender === user?.id
+                          ? user?.profileImageUrl || "https://via.placeholder.com/30?text=Bạn"
+                          : message.senderAvatar || "https://via.placeholder.com/30?text=?"
+                      }
+                      alt={
+                        message.sender === user?.id
+                          ? "Bạn"
+                          : selectedConversation?.participantName || "Người tham gia"
+                      }
+                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div
+                      className={`p-3 italic border ${
+                        message.sender === user?.id
+                          ? "bg-transparent text-gray-700 border-gray-400 rounded-full"
+                          : "bg-transparent text-gray-700 border-gray-400 rounded-full"
+                      } max-w-[70%] break-words`}
+                      style={{
+                        fontStyle: "italic",
+                        backgroundColor: "transparent",
+                      }}
+                    >
+                      <p>Tin nhắn đã được thu hồi</p>
+                    </div>
+                  </div>
+                ) : message.isDeleted ? (
+                  <div
+                    key={message.id}
+                    className={`flex items-start gap-3 ${
+                      message.sender === user?.id ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    <div
+                      className={`p-3 rounded-lg border italic ${
+                        message.sender === user?.id
+                          ? "bg-[#00FF66] bg-opacity-80 text-black border-[#00FF66] rounded-br-none"
+                          : "bg-gray-100 text-gray-500 border-gray-200 rounded-bl-none"
+                      } max-w-[70%] break-words`}
+                      style={{
+                        fontStyle: "italic",
+                        color: message.sender === user?.id ? "#222" : undefined,
+                        backgroundColor: message.sender === user?.id ? "#00FF66" : undefined,
+                        opacity: message.sender === user?.id ? 0.8 : undefined,
+                      }}
+                    >
+                      <p>
+                        {message.sender === user?.id
+                          ? "Bạn đã thu hồi tin nhắn này"
+                          : "Tin nhắn đã được thu hồi"}
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div
@@ -659,6 +1210,8 @@ const MessagePage = ({ user }) => {
                     className={`flex items-start gap-3 ${
                       message.sender === user?.id ? "flex-row-reverse" : ""
                     }`}
+                    onMouseEnter={() => setHoveredMessageId(message.id)}
+                    onMouseLeave={() => setHoveredMessageId(null)}
                   >
                     <img
                       src={
@@ -676,6 +1229,7 @@ const MessagePage = ({ user }) => {
                       }
                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                     />
+
                     <Tooltip
                       title={formattedTimestamp}
                       placement={message.sender === user?.id ? "left" : "right"}
@@ -687,13 +1241,7 @@ const MessagePage = ({ user }) => {
                             : "bg-gray-200 text-gray-800 rounded-bl-none"
                         } max-w-[70%] break-words shadow`}
                       >
-                        {/* {message.sender !== user?.id &&
-                          selectedConversation?.type === "tutor" && (
-                            <div className="font-semibold text-xs mb-1">
-                              {selectedConversation.participantName}
-                            </div>
-                          )} */}
-                        {message.text.split("\n").map((line, index) => (
+                        {(message.text || "").split("\n").map((line, index) => (
                           <p key={index}>{line}</p>
                         ))}
                         <div
@@ -705,6 +1253,43 @@ const MessagePage = ({ user }) => {
                         ></div>
                       </div>
                     </Tooltip>
+
+                    {/* Message Actions Menu - Only show for user's own messages */}
+                    {message.sender === user?.id &&
+                      hoveredMessageId === message.id && (
+                        <div className="relative message-menu-container self-center">
+                          <div
+                            onClick={() =>
+                              setShowMessageMenu(
+                                showMessageMenu === message.id
+                                  ? null
+                                  : message.id
+                              )
+                            }
+                            className="p-1 rounded-full cursor-pointer"
+                            title="Tùy chọn tin nhắn"
+                          >
+                            <FaEllipsisV className="text-gray-500 text-sm" />
+                          </div>
+
+                          {showMessageMenu === message.id && (
+                            <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                              <button
+                                onClick={() => handleEditMessage(message)}
+                                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                Chỉnh sửa
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMessage(message.id)}
+                                className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </div>
                 )}
               </React.Fragment>
@@ -712,21 +1297,21 @@ const MessagePage = ({ user }) => {
           })}
 
           <div ref={messagesEndRef} />
-
-          {/* {selectedConversation &&
-            messages.length > 0 &&
-            selectedConversation.type === "tutor" && (
-              <div className="text-center text-sm text-gray-500 mt-4">
-                Lịch sử tin nhắn được giới hạn trong 6 tháng gần nhất.
-              </div>
-            )} */}
         </div>
 
         {selectedConversation && (
           <form
-            onSubmit={handleSendMessage}
+            onSubmit={
+              editingMessageId ? handleUpdateMessage : handleSendMessage
+            }
             className="p-4 bg-white border-t border-gray-200 flex items-center shadow-inner"
           >
+            {editingMessageId && (
+              <div className="mr-3 px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                Đang chỉnh sửa tin nhắn
+              </div>
+            )}
+
             <FaPaperclip
               className="text-gray-500 text-lg mr-3 cursor-pointer"
               title="Đính kèm"
@@ -738,19 +1323,46 @@ const MessagePage = ({ user }) => {
 
             <input
               type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Nhập tin nhắn của bạn..."
+              value={editingMessageId ? editingMessageText : newMessage}
+              onChange={(e) =>
+                editingMessageId
+                  ? setEditingMessageText(e.target.value)
+                  : setNewMessage(e.target.value)
+              }
+              placeholder={
+                editingMessageId
+                  ? "Chỉnh sửa tin nhắn..."
+                  : "Nhập tin nhắn của bạn..."
+              }
               className="flex-1 p-3 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-[#333333] focus:border-[#333333] text-sm text-black mr-3 shadow-sm"
             />
+
+            {editingMessageId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="mr-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Hủy
+              </button>
+            )}
+
             <button
               type="submit"
               className={`rounded-full h-full w-10 md:w-[7%] flex items-center justify-center transition-colors duration-200 ${
-                newMessage.trim()
+                (
+                  editingMessageId
+                    ? editingMessageText.trim()
+                    : newMessage.trim()
+                )
                   ? "bg-[#333333] text-white hover:bg-[#5d5d5d]"
                   : `bg-[#333333] text-white opacity-50 cursor-not-allowed`
               }`}
-              disabled={!newMessage.trim()}
+              disabled={
+                editingMessageId
+                  ? !editingMessageText.trim()
+                  : !newMessage.trim()
+              }
             >
               <FaArrowCircleUp className="text-lg text-white" />
             </button>
