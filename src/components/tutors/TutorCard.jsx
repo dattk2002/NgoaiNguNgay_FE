@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import {
   FaCheckCircle,
   FaHeart,
@@ -9,38 +9,33 @@ import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import StarIconRender from "../../utils/starIconRender";
 
-const TutorCard = ({
+const TutorCard = memo(({
   teacher,
   hoveredTutor,
   handleMouseEnter,
   handleMouseLeave,
   handleCardClick,
   hoverBoxTop,
-  tutorCardRef, // Renamed from tutorCardRefs for a single card
+  tutorCardRef,
   hoverBoxRef,
   handleHoverBoxEnter,
   handleHoverBoxLeave,
 }) => {
   const isHovered = hoveredTutor && hoveredTutor.id === teacher.id;
 
-  console.log(teacher.isProfessional);
-  console.log(teacher);
-  
-  
-  
   return (
     <div
       key={teacher.id}
-      className="relative flex cursor-pointer"
+      className="relative flex flex-col md:flex-row cursor-pointer"
       onMouseEnter={() => handleMouseEnter(teacher)}
       onMouseLeave={handleMouseLeave}
       onClick={() => handleCardClick(teacher.id)}
-      ref={tutorCardRef} // Use the individual ref passed as prop
+      ref={tutorCardRef}
     >
       {/* Tutor Card */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex gap-4 w-[70%] hover:shadow-md transition-shadow duration-200 z-10">
+      <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 w-full md:w-[70%] hover:shadow-md transition-shadow duration-200 z-10">
         {/* Left Part: Avatar & Rating */}
-        <div className="flex flex-col items-center w-20 flex-shrink-0">
+        <div className="flex flex-row md:flex-col items-center w-full md:w-20 flex-shrink-0">
           <img
             src={teacher.imageUrl}
             alt={teacher.name}
@@ -98,8 +93,7 @@ const TutorCard = ({
             )}
           </div>
           {/* Description */}
-          <p className="text-gray-700 text-sm mb-3 line-clamp-2">
-            {/* Limit description lines */}
+          <p className="text-gray-700 text-sm mb-3 text-overflow">
             {teacher.description}
           </p>
           {/* Price, Availability & Actions */}
@@ -151,7 +145,7 @@ const TutorCard = ({
       {isHovered && (
         <div
           ref={hoverBoxRef}
-          className="absolute left-[70%] ml-4 w-[400px] bg-white shadow-xl rounded-2xl border border-gray-200 z-20"
+          className="absolute left-0 md:left-[70%] ml-0 md:ml-4 w-full md:w-[400px] bg-white shadow-xl rounded-2xl border border-gray-200 z-20"
           style={{ top: hoverBoxTop }}
           onMouseEnter={handleHoverBoxEnter}
           onMouseLeave={handleHoverBoxLeave}
@@ -196,6 +190,6 @@ const TutorCard = ({
       {/* End Hover Box */}
     </div>
   );
-};
+});
 
 export default TutorCard;
