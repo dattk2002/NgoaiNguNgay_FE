@@ -4,6 +4,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaCommentDots } from "react-icons/fa";
 import logo from "../assets/logo.png";
 
+// Utility functions for role checking
+const hasRole = (user, roleName) => {
+  if (!user || !user.roles) return false;
+
+  // Handle both string and array formats
+  const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+
+  // Handle case variations and string matching
+  return roles.some(role => {
+    if (typeof role === 'string') {
+      return role.toLowerCase() === roleName.toLowerCase();
+    }
+    // Handle object format if roles are objects with name property
+    if (role && role.name) {
+      return role.name.toLowerCase() === roleName.toLowerCase();
+    }
+    return false;
+  });
+};
+
+const isTutor = (user) => hasRole(user, "Tutor");
+const isLearner = (user) => hasRole(user, "Learner");
+
 function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -203,7 +226,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
     },
   };
 
-  console.log("User in Header:", user); // Debug: Log the user object
+
 
   return (
     <>
@@ -251,16 +274,6 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
               >
                 Giá cả
               </Link>
-              {user?.roles?.length === 1 &&
-                (user?.roles || []).includes("Learner") && (
-                  <Link
-                    to="/bookings"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsDropdownOpen(false)}
-                  >
-                    Booking của tôi
-                  </Link>
-                )}
             </div>
           </div>
 
@@ -333,9 +346,8 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         exit="exit"
                         variants={dropdownVariants}
                       >
-                        <div className="block px-4 py-2 text-sm text-gray-700 font-bold">{`${
-                          user.name || user.fullName
-                        }`}</div>
+                        <div className="block px-4 py-2 text-sm text-gray-700 font-bold">{`${user.name || user.fullName
+                          }`}</div>
                         <Link
                           to="/dashboard"
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
@@ -350,7 +362,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         >
                           Tin nhắn & Buổi học
                         </Link>
-                        {(user?.roles || []).includes("Tutor") && (
+                        {isTutor(user) && (
                           <Link
                             to="/create-ad"
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
@@ -367,17 +379,16 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         >
                           Hồ sơ của tôi
                         </Link>
-                        {user?.roles?.length === 1 &&
-                          (user?.roles || []).includes("Learner") && (
-                            <Link
-                              to="/bookings"
-                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={() => setIsDropdownOpen(false)}
-                            >
-                              Booking của tôi
-                            </Link>
-                          )}
-                        {(user?.roles || []).includes("Tutor") && (
+                        {isLearner(user) && (
+                          <Link
+                            to="/bookings"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            Booking của tôi
+                          </Link>
+                        )}
+                        {user?.id && (
                           <Link
                             to={`/tutorprofile/${user?.id}`}
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -454,38 +465,34 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
               <div className="flex flex-col px-4 py-2 space-y-2">
-                {(user?.roles || []).includes("Learner") && (
-                  <>
-                    <Link
-                      to="/become-tutor"
-                      className="text-gray-700 hover:text-black text-sm py-2"
-                      onClick={toggleMenu}
-                    >
-                      Trở thành gia sư
-                    </Link>
-                    <Link
-                      to="/languages"
-                      className="text-gray-700 hover:text-black text-sm py-2"
-                      onClick={toggleMenu}
-                    >
-                      Ngôn ngữ
-                    </Link>
-                    <Link
-                      to="/how-it-works"
-                      className="text-gray-700 hover:text-black text-sm py-2"
-                      onClick={toggleMenu}
-                    >
-                      Cách hoạt động
-                    </Link>
-                    <Link
-                      to="/pricing"
-                      className="text-gray-700 hover:text-black text-sm py-2"
-                      onClick={toggleMenu}
-                    >
-                      Giá cả
-                    </Link>
-                  </>
-                )}
+                <Link
+                  to="/become-tutor"
+                  className="text-gray-700 hover:text-black text-sm py-2"
+                  onClick={toggleMenu}
+                >
+                  Trở thành gia sư
+                </Link>
+                <Link
+                  to="/languages"
+                  className="text-gray-700 hover:text-black text-sm py-2"
+                  onClick={toggleMenu}
+                >
+                  Ngôn ngữ
+                </Link>
+                <Link
+                  to="/how-it-works"
+                  className="text-gray-700 hover:text-black text-sm py-2"
+                  onClick={toggleMenu}
+                >
+                  Cách hoạt động
+                </Link>
+                <Link
+                  to="/pricing"
+                  className="text-gray-700 hover:text-black text-sm py-2"
+                  onClick={toggleMenu}
+                >
+                  Giá cả
+                </Link>
               </div>
             </motion.div>
           )}

@@ -587,9 +587,9 @@ export async function fetchChatConversationsByUserId(userId, page = 1, size = 20
 
         const timestamp = lastMessageObj
           ? new Date(lastMessageObj.createdTime).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+            hour: "2-digit",
+            minute: "2-digit",
+          })
           : "Gần đây";
 
         const actualTimestamp = lastMessageObj
