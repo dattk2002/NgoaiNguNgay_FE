@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchTutorById, fetchTutors, fetchRecommendTutor } from "../api/auth";
+import { fetchTutorById, fetchRecommendTutor } from "../api/auth";
 import { formatTutorDate } from "../../utils/formatTutorDate";
 import {
   FaStar,
-  FaUser,
-  FaComment,
   FaBook,
   FaUsers,
   FaClock,
-  FaCheckCircle,
   FaHeart,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import ReviewsSection from "../ReviewSection";
-import TutorCard from "./TutorCard";
 import { FaArrowRight } from "react-icons/fa6";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -342,7 +338,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   return (
     <div className="container mx-auto px-4 py-12 bg-white min-h-screen rounded-3xl max-w-7xl">
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row md:items-start gap-8">
+        {/* LEFT COLUMN */}
         <div className="flex-1">
           <div className="flex items-start gap-4">
             <img
@@ -350,60 +347,64 @@ const TutorDetail = ({ user, onRequireLogin }) => {
               alt={teacher.name}
               className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
             />
-            <div className="flex-1">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 pb-3">
-                    {teacher.name}
-                  </h1>
-                  <p className="text-green-600 font-medium text-sm">
-                    {teacher.tag || "Giáo viên chuyên nghiệp"}
-                  </p>
-                  <div className="flex items-center gap-7 text-gray-600 text-sm mt-1">
-                    <span>Truy cập 11 giờ trước</span>
+            <div className="flex flex-col w-[90%]">
+              <div className="flex justify-between items-start w-full">
+                <div className="w-full">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <span>Ngôn ngữ: </span>
-                      <span className="text-gray-800 font-medium">
-                        {formatLanguageCode(teacher.nativeLanguage) ||
-                          "Tiếng Anh"}
-                        <span className="ml-1 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                          Bản xứ
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="mt-5 text-gray-600 text-sm">
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {teacher.subjects && teacher.subjects.length > 0 ? (
-                        teacher.subjects.map((subject, index) => (
-                          <div key={index} className="flex items-center gap-1">
-                            <span className="text-blue-600 font-medium">
-                              {formatLanguageCode(subject.name)}
+                      <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 pb-3">
+                        {teacher.name}
+                      </h1>
+                      <p className="text-green-600 font-medium text-sm">
+                        {teacher.tag || "Giáo viên chuyên nghiệp"}
+                      </p>
+                      <div className="flex items-center gap-7 text-gray-600 text-sm mt-1">
+                        <span>Truy cập 11 giờ trước</span>
+                        <div>
+                          <span>Ngôn ngữ: </span>
+                          <span className="text-gray-800 font-medium">
+                            {formatLanguageCode(teacher.nativeLanguage) ||
+                              "Tiếng Anh"}
+                            <span className="ml-1 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                              Bản xứ
                             </span>
-                            <div className="flex gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <div
-                                  key={i}
-                                  className={`w-1 h-4 rounded-full ${i < subject.level
-                                    ? "bg-blue-600"
-                                    : "bg-gray-200"
-                                    }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-gray-600">
-                          Không có ngôn ngữ bổ sung nào
-                        </span>
-                      )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-5 text-gray-600 text-sm">
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {teacher.subjects && teacher.subjects.length > 0 ? (
+                            teacher.subjects.map((subject, index) => (
+                              <div key={index} className="flex items-center gap-1">
+                                <span className="text-blue-600 font-medium">
+                                  {formatLanguageCode(subject.name)}
+                                </span>
+                                <div className="flex gap-0.5">
+                                  {[...Array(5)].map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className={`w-1 h-4 rounded-full ${i < subject.level
+                                        ? "bg-blue-600"
+                                        : "bg-gray-200"
+                                        }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-gray-600">
+                              Không có ngôn ngữ bổ sung nào
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                    <button className="text-gray-600 hover:text-red-500">
+                      <FaHeart className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-                <button className="text-gray-600 hover:text-red-500">
-                  <FaHeart className="w-5 h-5" />
-                </button>
               </div>
 
               <div className="mt-6 border-b border-gray-200">
@@ -464,7 +465,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                           ))}
                         </p>
                         <Collapse in={showFullAboutMe} collapsedSize={80}>
-                          <p className="text-gray-700 text-sm mt-4 leading-relaxed">
+                          <p className="text-gray-700 text-sm mt-4 leading-relaxed line-clamp-3 break-words">
                             {tutorDescription}
                           </p>
                         </Collapse>
@@ -511,36 +512,38 @@ const TutorDetail = ({ user, onRequireLogin }) => {
             </div>
           </div>
         </div>
-
-        <div className="md:w-100">
-          <div className="relative rounded-lg overflow-hidden shadow-md">
-            <iframe
-              src={
-                teacher.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ"
-              }
-              title={`Video giới thiệu của ${teacher.name}`}
-              className="w-full h-48"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </div>
-          <div className="mt-4 space-y-3">
-            <p className="text-gray-800 font-semibold text-sm">Buổi học thử</p>
-            <p className="text-red-500 font-bold text-lg">
-              USD {(parseFloat(teacher.price) * 0.5).toFixed(2)}
-            </p>
-            <button
-              onClick={handleBookLesson}
-              className="w-full bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition"
-            >
-              Đặt buổi học
-            </button>
-            <button
-              onClick={handleContactTeacher}
-              className="w-full bg-gray-100 text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-200 transition"
-            >
-              Liên hệ giáo viên
-            </button>
+        {/* RIGHT COLUMN */}
+        <div className="w-full md:w-[350px] flex-shrink-0 md:ml-0 mt-8 md:mt-0">
+          <div className="md:sticky md:top-8">
+            <div className="bg-white rounded-2xl shadow-lg p-4">
+              <div className="relative rounded-lg overflow-hidden">
+                <iframe
+                  src={teacher.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ"}
+                  title={`Video giới thiệu của ${teacher.name}`}
+                  className="w-full aspect-video rounded-lg"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+              <div className="mt-4">
+                <p className="text-gray-800 font-semibold text-sm">Buổi học thử</p>
+                <p className="text-red-500 font-bold text-lg">
+                  USD {(parseFloat(teacher.price) * 0.5).toFixed(2)}
+                </p>
+                <button
+                  onClick={handleBookLesson}
+                  className="w-full bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition mt-3"
+                >
+                  Đặt buổi học
+                </button>
+                <button
+                  onClick={handleContactTeacher}
+                  className="w-full bg-gray-100 text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-200 transition mt-2"
+                >
+                  Liên hệ giáo viên
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

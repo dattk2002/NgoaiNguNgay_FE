@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom"; // useNavigate is already imported
 
 // Assuming fetchTutorsBySubject returns data structured similarly to what's needed
@@ -117,7 +117,7 @@ const TutorSubjectList = () => {
   }, [initialSubject, navigate]);
 
   // --- Hover Handlers ---
-  const handleMouseEnter = (teacher) => {
+  const handleMouseEnter = useCallback((teacher) => {
     clearTimeout(hoverTimeout.current);
     setHoveredTutor(teacher);
 
@@ -152,25 +152,25 @@ const TutorSubjectList = () => {
         }
       }
     });
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     hoverTimeout.current = setTimeout(() => {
       setHoveredTutor(null);
       setHoverBoxTop(0); // Reset top position when hidden
     }, 300); // Slightly longer delay to allow moving cursor to hover box
-  };
+  }, []);
 
-  const handleHoverBoxEnter = () => {
+  const handleHoverBoxEnter = useCallback(() => {
     clearTimeout(hoverTimeout.current);
-  };
+  }, []);
 
-  const handleHoverBoxLeave = () => {
+  const handleHoverBoxLeave = useCallback(() => {
     hoverTimeout.current = setTimeout(() => {
       setHoveredTutor(null);
       setHoverBoxTop(0); // Reset top position when hidden
     }, 200);
-  };
+  }, []);
 
   // Recalculate position if window resizes or scrolled
   useEffect(() => {
@@ -253,10 +253,9 @@ const TutorSubjectList = () => {
   });
 
   // --- Loading and Error States ---
-  const handleCardClick = (id) => {
-    // Open in a new tab - consider using React Router Link or navigate for internal app navigation
+  const handleCardClick = useCallback((id) => {
     window.open(`/teacher/${id}`, "_blank");
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -295,7 +294,7 @@ const TutorSubjectList = () => {
 
   // --- Main Render ---
   return (
-    <div className="w-full pt-12 pb-40 px-4 md:px-8 lg:px-16 bg-gray-100 min-h-screen">
+    <div className="w-full pt-12 pb-40 px-2 md:px-4 lg:px-16 bg-gray-100 min-h-screen">
       {/* === Header Section === */}
       <div className="max-w-7xl mx-auto mb-10">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
@@ -512,8 +511,8 @@ const TutorSubjectList = () => {
                   handleMouseLeave={handleMouseLeave}
                   handleCardClick={handleCardClick}
                   hoverBoxTop={hoverBoxTop}
-                  tutorCardRef={(el) => (tutorCardRefs.current[teacher.id] = el)} // Pass the ref setter
-                  hoverBoxRef={hoverBoxRef} // Pass the hover box ref
+                  tutorCardRef={(el) => (tutorCardRefs.current[teacher.id] = el)}
+                  hoverBoxRef={hoverBoxRef}
                   handleHoverBoxEnter={handleHoverBoxEnter}
                   handleHoverBoxLeave={handleHoverBoxLeave}
                 />
