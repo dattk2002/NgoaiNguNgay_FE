@@ -88,7 +88,7 @@ function AppContent({
   const isStaffRoute = location.pathname.startsWith('/staff');
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isManagerRoute = location.pathname.startsWith('/manager');
-
+  console.log("user: ", user);
   return (
     <div className={(isStaffRoute || isAdminRoute || isManagerRoute) ? "" : "min-h-screen flex flex-col bg-gray-100"}>
       {!(isStaffRoute || isAdminRoute || isManagerRoute) && (
@@ -255,9 +255,11 @@ function App() {
 
   useEffect(() => {
     setIsLoadingAuth(true);
-    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+    // Try to get user from both keys for backward compatibility
+    let storedUser = localStorage.getItem(USER_STORAGE_KEY) || localStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
       setIsLoadingAuth(false);
       const hasUpdatedProfile = localStorage.getItem("hasUpdatedProfile");
       if (!hasUpdatedProfile) {
@@ -398,10 +400,13 @@ function App() {
       languageSkills: userData.languageSkills || [],
       interests: userData.interests || [],
       profileImageUrl: userData.profileImageUrl || '',
+      roles: userData.roles || [], // Make sure roles are included
     };
 
     setUser(fullUserData);
+    // Store in both keys to ensure consistency
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData));
+    localStorage.setItem("user", JSON.stringify(fullUserData));
 
     // Execute the success callback BEFORE closing the modal and clearing callbacks
     if (loginModalCallbacks.onLoginSuccess) {

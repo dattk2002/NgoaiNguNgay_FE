@@ -390,36 +390,7 @@ const BecomeATutorPage = ({
     const validateCurrentStep = () => {
         switch (activeStep) {
             case 1: // Basic Information
-                if (!formData.fullName) {
-                    toast.error("Vui lòng nhập họ và tên của bạn");
-                    return false;
-                }
-                if (!formData.dateOfBirth) {
-                    toast.error("Vui lòng chọn ngày sinh của bạn");
-                    return false;
-                }
-                if (!formData.profilePhotoPreview) {
-                    toast.error("Vui lòng tải lên ảnh hồ sơ");
-                    return false;
-                }
-
-                // Validate minimum age (18 years)
-                if (formData.dateOfBirth) {
-                    const birthDate = new Date(formData.dateOfBirth);
-                    const today = new Date();
-                    let age = today.getFullYear() - birthDate.getFullYear();
-                    const monthDifference = today.getMonth() - birthDate.getMonth();
-
-                    // Adjust age if birthday hasn't occurred yet this year
-                    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
-                        age--;
-                    }
-
-                    if (age < 16) {
-                        toast.error("Bạn phải đủ 16 tuổi trở lên để đăng ký làm gia sư");
-                        return false;
-                    }
-                }
+                // Ảnh hồ sơ và múi giờ đã thành read-only, không cần validate
                 return true;
 
             case 2: // Tutor Information
@@ -437,27 +408,7 @@ const BecomeATutorPage = ({
                 }
                 return true;
 
-            case 3:
-                // Make sure hashtagIds array exists
-                if (!formData.hashtagIds || !Array.isArray(formData.hashtagIds) || formData.hashtagIds.length === 0) {
-                    toast.error("Vui lòng chọn ít nhất một hashtag");
-                    return false;
-                }
-
-                // Additional validation to ensure selected hashtags exist in the hashtags list
-                const invalidHashtags = formData.hashtagIds.filter(id =>
-                    !Array.isArray(hashtags) || !hashtags.some(tag => tag.id === id)
-                );
-
-                if (invalidHashtags.length > 0) {
-                    console.error("Invalid hashtag IDs detected:", invalidHashtags);
-                    toast.error("Một số hashtag đã chọn không hợp lệ. Vui lòng làm mới trang và thử lại.");
-                    return false;
-                }
-
-                return true;
-
-            case 4: // Languages
+            case 3: // Languages
                 if (formData.languages.length === 0) {
                     toast.error("Vui lòng thêm ít nhất một ngôn ngữ");
                     return false;
@@ -474,6 +425,26 @@ const BecomeATutorPage = ({
                 // Ensure at least one language is marked as primary
                 if (!formData.languages.some(lang => lang.isPrimary)) {
                     toast.error("Vui lòng đánh dấu ít nhất một ngôn ngữ là ngôn ngữ chính");
+                    return false;
+                }
+
+                return true;
+
+            case 4:
+                // Make sure hashtagIds array exists
+                if (!formData.hashtagIds || !Array.isArray(formData.hashtagIds) || formData.hashtagIds.length === 0) {
+                    toast.error("Vui lòng chọn ít nhất một hashtag");
+                    return false;
+                }
+
+                // Additional validation to ensure selected hashtags exist in the hashtags list
+                const invalidHashtags = formData.hashtagIds.filter(id =>
+                    !Array.isArray(hashtags) || !hashtags.some(tag => tag.id === id)
+                );
+
+                if (invalidHashtags.length > 0) {
+                    console.error("Invalid hashtag IDs detected:", invalidHashtags);
+                    toast.error("Một số hashtag đã chọn không hợp lệ. Vui lòng làm mới trang và thử lại.");
                     return false;
                 }
 
@@ -561,8 +532,8 @@ const BecomeATutorPage = ({
         const steps = [
             "Thông tin cơ bản",
             "Thông tin gia sư",
-            "Hashtag",
-            "Ngôn ngữ"
+            "Ngôn ngữ",
+            "Hashtag"
         ];
 
         return (
@@ -652,28 +623,16 @@ const BecomeATutorPage = ({
                         <div className="space-y-5">
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Ảnh hồ sơ <span className="text-red-500">*</span>
+                                    Ảnh hồ sơ
                                 </label>
                                 <div className="flex flex-col md:flex-row items-center gap-5">
                                     {formData.profilePhotoPreview ? (
-                                        <div className="relative">
-                                            <div className="w-32 h-32 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                                                <img
-                                                    src={formData.profilePhotoPreview}
-                                                    alt="Profile Preview"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={deleteProfileImage}
-                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                                                title="Gỡ ảnh"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                </svg>
-                                            </button>
+                                        <div className="w-32 h-32 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                            <img
+                                                src={formData.profilePhotoPreview}
+                                                alt="Profile Preview"
+                                                className="w-full h-full object-cover"
+                                            />
                                         </div>
                                     ) : (
                                         <div className="w-32 h-32 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
@@ -682,125 +641,64 @@ const BecomeATutorPage = ({
                                             </svg>
                                         </div>
                                     )}
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-center w-full">
-                                            <label className="flex flex-col w-full h-32 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <svg className="w-10 h-10 text-blue-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                                    </svg>
-                                                    <p className="mb-2 text-sm text-blue-500"><span className="font-semibold">Nhấp để tải lên</span> hoặc kéo và thả</p>
-                                                    <p className="text-xs text-gray-500">JPG, PNG (Tối đa 2MB)</p>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    name="profilePhoto"
-                                                    className="hidden"
-                                                    accept="image/*"
-                                                    onChange={handleFileChange}
-                                                    required
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    Đây là ảnh sẽ được hiển thị cho học viên.
+                                    Thông tin này được lấy từ hồ sơ của bạn và không thể chỉnh sửa
                                 </p>
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Họ và tên đầy đủ <span className="text-red-500">*</span>
+                                    Họ và tên đầy đủ
                                 </label>
-                                <input
-                                    type="text"
-                                    name="fullName"
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
-                                    style={formControlStyle}
-                                    placeholder="Nhập họ và tên đầy đủ của bạn"
-                                    required
-                                />
+                                <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                                    {formData.fullName || "Chưa có thông tin"}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Thông tin này được lấy từ hồ sơ của bạn và không thể chỉnh sửa
+                                </p>
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Ngày sinh <span className="text-red-500">*</span>
+                                    Ngày sinh
                                 </label>
-                                <input
-                                    type="date"
-                                    name="dateOfBirth"
-                                    value={formData.dateOfBirth}
-                                    onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
-                                    style={formControlStyle}
-                                    max={(() => {
-                                        const date = new Date();
-                                        date.setFullYear(date.getFullYear() - 18);
-                                        return date.toISOString().split('T')[0];
-                                    })()}
-                                    required
-                                />
+                                <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                                    {formData.dateOfBirth ?
+                                        new Date(formData.dateOfBirth).toLocaleDateString('vi-VN') :
+                                        "Chưa có thông tin"
+                                    }
+                                </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    Bạn phải đủ 18 tuổi trở lên để đăng ký làm gia sư
+                                    Thông tin này được lấy từ hồ sơ của bạn và không thể chỉnh sửa
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Giới tính <span className="text-red-500">*</span>
+                                        Giới tính
                                     </label>
-                                    <div className="relative">
-                                        <select
-                                            name="gender"
-                                            value={formData.gender}
-                                            onChange={handleChange}
-                                            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all bg-white text-black"
-                                            required
-                                            style={formSelectStyle}
-                                        >
-                                            <option value={0}>Khác</option>
-                                            <option value={1}>Nam</option>
-                                            <option value={2}>Nữ</option>
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                                            <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            </svg>
-                                        </div>
+                                    <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                                        {formData.gender === 0 ? "Khác" :
+                                            formData.gender === 1 ? "Nam" :
+                                                formData.gender === 2 ? "Nữ" : "Chưa có thông tin"}
                                     </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Thông tin này được lấy từ hồ sơ của bạn
+                                    </p>
                                 </div>
 
                                 <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Múi giờ <span className="text-red-500">*</span>
+                                        Múi giờ
                                     </label>
-                                    <div className="relative">
-                                        <select
-                                            name="timezone"
-                                            value={formData.timezone}
-                                            onChange={handleChange}
-                                            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all bg-white text-black"
-                                            required
-                                            style={formSelectStyle}
-                                        >
-                                            {timezones.map((timezone) => (
-                                                <option
-                                                    key={timezone.value}
-                                                    value={timezone.value}
-                                                    className="py-2 text-black"
-                                                >
-                                                    {timezone.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                                            <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            </svg>
-                                        </div>
+                                    <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                                        {timezones.find(tz => tz.value === formData.timezone)?.label || formData.timezone || "Chưa có thông tin"}
                                     </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Thông tin này được lấy từ hồ sơ của bạn và không thể chỉnh sửa
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -905,92 +803,6 @@ const BecomeATutorPage = ({
             case 3:
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Hashtag</h2>
-                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm text-yellow-800">
-                                        Chọn các hashtag liên quan để học viên có thể tìm thấy bạn. Chọn các hashtag đại diện cho chuyên môn giảng dạy, chứng chỉ hoặc nhóm học viên mục tiêu của bạn.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-medium text-gray-800 mb-4">Chọn Hashtag</h3>
-                            <p className="text-sm text-gray-600 mb-4">Chọn ít nhất một hashtag đại diện cho chuyên môn giảng dạy của bạn.</p>
-
-                            <div className="flex flex-wrap gap-3 mt-4">
-                                {isLoading ? (
-                                    <div className="w-full flex justify-center py-8">
-                                        <svg className="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                    </div>
-                                ) : !Array.isArray(hashtags) ? (
-                                    <p className="text-gray-500 text-center w-full py-8">Không có hashtag nào. Liên hệ hỗ trợ nếu bạn cho rằng đây là lỗi.</p>
-                                ) : hashtags.length === 0 ? (
-                                    <p className="text-gray-500 text-center w-full py-8">Không có hashtag nào. Liên hệ hỗ trợ nếu bạn cho rằng đây là lỗi.</p>
-                                ) : (
-                                    hashtags.map((hashtag) => (
-                                        <div
-                                            key={hashtag.id}
-                                            onClick={() => handleHashtagChange(hashtag.id)}
-                                            className={`
-                                                px-4 py-2 rounded-full text-sm cursor-pointer transition-colors
-                                                ${formData.hashtagIds.includes(hashtag.id)
-                                                    ? 'bg-blue-100 border-blue-300 text-blue-800 border'
-                                                    : 'bg-gray-100 border-gray-200 text-gray-800 border hover:bg-gray-200'
-                                                }
-                                            `}
-                                        >
-                                            #{hashtag.name}
-                                            {formData.hashtagIds.includes(hashtag.id) && (
-                                                <span className="ml-1 text-blue-600">✓</span>
-                                            )}
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-
-                            <div className="mt-4">
-                                <p className="text-sm text-gray-700">
-                                    Các hashtag đã chọn ({formData.hashtagIds.length}):
-                                </p>
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                    {formData.hashtagIds.length === 0 ? (
-                                        <span className="text-sm text-gray-500 italic">Chưa có hashtag nào được chọn</span>
-                                    ) : (
-                                        formData.hashtagIds.map(id => {
-                                            const tag = Array.isArray(hashtags) ? hashtags.find(h => h.id === id) : null;
-                                            return (
-                                                <span key={id} className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm flex items-center">
-                                                    #{tag ? tag.name : id}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleHashtagChange(id)}
-                                                        className="ml-2 text-blue-200 hover:text-white"
-                                                    >
-                                                        ×
-                                                    </button>
-                                                </span>
-                                            )
-                                        })
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            case 4:
-                return (
-                    <div className="space-y-6">
                         <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Ngôn ngữ</h2>
                         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md">
                             <div className="flex">
@@ -1019,7 +831,7 @@ const BecomeATutorPage = ({
                                         <h3 className="font-medium text-gray-800">
                                             Ngôn ngữ {index + 1}: {formatLanguageCode(lang.languageCode)}
                                             {lang.isPrimary && (
-                                                 <span className="ml-2 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                                                <span className="ml-2 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
                                                     Chính
                                                 </span>
                                             )}
@@ -1122,6 +934,92 @@ const BecomeATutorPage = ({
                         </div>
                     </div>
                 );
+            case 4:
+                return (
+                    <div className="space-y-6">
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Hashtag</h2>
+                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-md">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-yellow-800">
+                                        Chọn các hashtag liên quan để học viên có thể tìm thấy bạn. Chọn các hashtag đại diện cho chuyên môn giảng dạy, chứng chỉ hoặc nhóm học viên mục tiêu của bạn.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                            <h3 className="text-lg font-medium text-gray-800 mb-4">Chọn Hashtag</h3>
+                            <p className="text-sm text-gray-600 mb-4">Chọn ít nhất một hashtag đại diện cho chuyên môn giảng dạy của bạn.</p>
+
+                            <div className="flex flex-wrap gap-3 mt-4">
+                                {isLoading ? (
+                                    <div className="w-full flex justify-center py-8">
+                                        <svg className="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
+                                ) : !Array.isArray(hashtags) ? (
+                                    <p className="text-gray-500 text-center w-full py-8">Không có hashtag nào. Liên hệ hỗ trợ nếu bạn cho rằng đây là lỗi.</p>
+                                ) : hashtags.length === 0 ? (
+                                    <p className="text-gray-500 text-center w-full py-8">Không có hashtag nào. Liên hệ hỗ trợ nếu bạn cho rằng đây là lỗi.</p>
+                                ) : (
+                                    hashtags.map((hashtag) => (
+                                        <div
+                                            key={hashtag.id}
+                                            onClick={() => handleHashtagChange(hashtag.id)}
+                                            className={`
+                                                px-4 py-2 rounded-full text-sm cursor-pointer transition-colors
+                                                ${formData.hashtagIds.includes(hashtag.id)
+                                                    ? 'bg-blue-100 border-blue-300 text-blue-800 border'
+                                                    : 'bg-gray-100 border-gray-200 text-gray-800 border hover:bg-gray-200'
+                                                }
+                                            `}
+                                        >
+                                            #{hashtag.name}
+                                            {formData.hashtagIds.includes(hashtag.id) && (
+                                                <span className="ml-1 text-blue-600">✓</span>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <div className="mt-4">
+                                <p className="text-sm text-gray-700">
+                                    Các hashtag đã chọn ({formData.hashtagIds.length}):
+                                </p>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {formData.hashtagIds.length === 0 ? (
+                                        <span className="text-sm text-gray-500 italic">Chưa có hashtag nào được chọn</span>
+                                    ) : (
+                                        formData.hashtagIds.map(id => {
+                                            const tag = Array.isArray(hashtags) ? hashtags.find(h => h.id === id) : null;
+                                            return (
+                                                <span key={id} className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm flex items-center">
+                                                    #{tag ? tag.name : id}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHashtagChange(id)}
+                                                        className="ml-2 text-blue-200 hover:text-white"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </span>
+                                            )
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
             default:
                 return null;
         }
@@ -1166,10 +1064,10 @@ const BecomeATutorPage = ({
                     <div className="p-6">
                         {renderStepIndicator()}
                         <form onSubmit={activeStep === 4 ? handleSubmit : (e) => e.preventDefault()}>
-                            {/* Error message for video validation that only appears when submit is clicked, not during navigation */}
-                            {activeStep === 4 && !formData.languages.some(lang => lang.languageCode) && (
+                            {/* Error message for validation that only appears when submit is clicked, not during navigation */}
+                            {activeStep === 4 && formData.hashtagIds.length === 0 && (
                                 <div className="mb-4 bg-red-50 border border-red-500 text-red-600 p-3 rounded text-sm text-center">
-                                    Vui lòng thêm ít nhất một ngôn ngữ
+                                    Vui lòng chọn ít nhất một hashtag
                                 </div>
                             )}
 
@@ -1202,7 +1100,7 @@ const BecomeATutorPage = ({
                                 ) : (
                                     <button
                                         type="submit"
-                                        disabled={isSubmitting || (activeStep === 4 && !formData.languages.some(lang => lang.languageCode))}
+                                        disabled={isSubmitting || (activeStep === 4 && formData.hashtagIds.length === 0)}
                                         className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? (
