@@ -1,9 +1,14 @@
 // src/components/users/EditUserProfile.jsx
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { fetchUserById, editUserProfile, getAccessToken, uploadProfileImage } from '../api/auth';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  fetchUserById,
+  editUserProfile,
+  getAccessToken,
+  uploadProfileImage,
+} from "../api/auth";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function EditUserProfile() {
   const { id } = useParams(); // Get the user ID from the URL
@@ -17,15 +22,15 @@ function EditUserProfile() {
 
   // Initialize with empty data that will be filled from API
   const [formData, setFormData] = useState({
-    id: '',
-    fullName: '',
+    id: "",
+    fullName: "",
     dateOfBirth: null,
     gender: 0,
-    profileImageUrl: '',
-    address: '',
-    email: '',
-    phoneNumber: '',
-    timezone: '',
+    profileImageUrl: "",
+    address: "",
+    email: "",
+    phoneNumber: "",
+    timezone: "",
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -43,19 +48,19 @@ function EditUserProfile() {
 
         // Đảm bảo tất cả các trường đều có giá trị phù hợp để tránh lỗi uncontrolled/controlled input
         setFormData({
-          id: userData.id || '',
-          fullName: userData.fullName || '',
+          id: userData.id || "",
+          fullName: userData.fullName || "",
           dateOfBirth: userData.dateOfBirth || null,
           gender: userData.gender !== undefined ? userData.gender : 0,
-          profileImageUrl: userData.profileImageUrl || '',
-          address: userData.address || '',
-          email: userData.email || '',
-          phoneNumber: userData.phoneNumber || '',
-          timezone: userData.timezone || '',
+          profileImageUrl: userData.profileImageUrl || "",
+          address: userData.address || "",
+          email: userData.email || "",
+          phoneNumber: userData.phoneNumber || "",
+          timezone: userData.timezone || "",
         });
         setError(null);
       } catch (err) {
-        console.error('Error fetching user data:', err);
+        console.error("Error fetching user data:", err);
         setError(`Không thể tải hồ sơ người dùng: ${err.message}`);
       } finally {
         setIsLoading(false);
@@ -65,7 +70,9 @@ function EditUserProfile() {
     if (id) {
       fetchUserData();
     } else {
-      setError('Thiếu ID người dùng. Vui lòng kiểm tra URL hoặc đăng nhập lại.');
+      setError(
+        "Thiếu ID người dùng. Vui lòng kiểm tra URL hoặc đăng nhập lại."
+      );
       setIsLoading(false);
     }
   }, [id]);
@@ -79,16 +86,16 @@ function EditUserProfile() {
     let errors = {};
 
     switch (fieldName) {
-      case 'fullName':
-        if (!value || value.trim() === '') {
-          errors[fieldName] = 'Tên không được để trống.';
+      case "fullName":
+        if (!value || value.trim() === "") {
+          errors[fieldName] = "Tên không được để trống.";
         } else if (value.length < 2 || value.length > 50) {
-          errors[fieldName] = 'Tên phải từ 2 đến 50 ký tự.';
+          errors[fieldName] = "Tên phải từ 2 đến 50 ký tự.";
         } else if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(value)) {
-          errors[fieldName] = 'Tên chỉ được chứa chữ cái và khoảng trắng.';
+          errors[fieldName] = "Tên chỉ được chứa chữ cái và khoảng trắng.";
         }
         break;
-      case 'dateOfBirth':
+      case "dateOfBirth":
         if (value) {
           const date = new Date(value);
           const today = new Date();
@@ -96,31 +103,33 @@ function EditUserProfile() {
           minDate.setFullYear(today.getFullYear() - 100); // Không cho phép người dùng trên 100 tuổi
 
           if (isNaN(date.getTime())) {
-            errors[fieldName] = 'Ngày sinh không hợp lệ.';
+            errors[fieldName] = "Ngày sinh không hợp lệ.";
           } else if (date > today) {
-            errors[fieldName] = 'Ngày sinh không thể lớn hơn ngày hiện tại.';
+            errors[fieldName] = "Ngày sinh không thể lớn hơn ngày hiện tại.";
           } else if (date < minDate) {
-            errors[fieldName] = 'Ngày sinh không hợp lệ (người dùng không thể trên 100 tuổi).';
+            errors[fieldName] =
+              "Ngày sinh không hợp lệ (người dùng không thể trên 100 tuổi).";
           }
         }
         break;
-      case 'gender':
+      case "gender":
         const genderVal = parseInt(value);
         if (![0, 1, 2].includes(genderVal)) {
-          errors[fieldName] = 'Giới tính không hợp lệ (0 - Khác, 1 - Nam, 2 - Nữ).';
+          errors[fieldName] =
+            "Giới tính không hợp lệ (0 - Khác, 1 - Nam, 2 - Nữ).";
         }
         break;
-      case 'phoneNumber':
+      case "phoneNumber":
         if (value) {
           const phoneRegex = /^[0-9]{10,11}$/;
-          if (!phoneRegex.test(value.replace(/\s+/g, ''))) {
-            errors[fieldName] = 'Số điện thoại phải có 10-11 chữ số.';
+          if (!phoneRegex.test(value.replace(/\s+/g, ""))) {
+            errors[fieldName] = "Số điện thoại phải có 10-11 chữ số.";
           }
         }
         break;
-      case 'timezone':
+      case "timezone":
         if (!value) {
-          errors[fieldName] = 'Vui lòng chọn múi giờ.';
+          errors[fieldName] = "Vui lòng chọn múi giờ.";
         }
         break;
     }
@@ -131,7 +140,7 @@ function EditUserProfile() {
   // Clear errors for a specific field
   const clearFieldError = (fieldName) => {
     if (fieldErrors[fieldName]) {
-      setFieldErrors(prev => {
+      setFieldErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[fieldName];
         return newErrors;
@@ -141,59 +150,102 @@ function EditUserProfile() {
 
   // Gender options
   const genderOptions = [
-    { value: 0, label: 'Khác' },
-    { value: 1, label: 'Nam' },
-    { value: 2, label: 'Nữ' }
+    { value: 0, label: "Khác" },
+    { value: 1, label: "Nam" },
+    { value: 2, label: "Nữ" },
   ];
 
   // Timezone options
   const timezoneOptions = [
-    { value: 'Pacific/Midway', label: '(UTC-11:00) Đảo Midway, Samoa' },
-    { value: 'Pacific/Honolulu', label: '(UTC-10:00) Hawaii' },
-    { value: 'America/Anchorage', label: '(UTC-09:00) Alaska' },
-    { value: 'America/Los_Angeles', label: '(UTC-08:00) Giờ Thái Bình Dương (Mỹ & Canada)' },
-    { value: 'America/Denver', label: '(UTC-07:00) Giờ Miền Núi (Mỹ & Canada)' },
-    { value: 'America/Chicago', label: '(UTC-06:00) Giờ Miền Trung (Mỹ & Canada)' },
-    { value: 'America/New_York', label: '(UTC-05:00) Giờ Miền Đông (Mỹ & Canada)' },
-    { value: 'America/Caracas', label: '(UTC-04:30) Caracas' },
-    { value: 'America/Halifax', label: '(UTC-04:00) Giờ Đại Tây Dương (Canada)' },
-    { value: 'America/Sao_Paulo', label: '(UTC-03:00) Brasilia' },
-    { value: 'Atlantic/South_Georgia', label: '(UTC-02:00) Giữa Đại Tây Dương' },
-    { value: 'Atlantic/Azores', label: '(UTC-01:00) Azores' },
-    { value: 'Europe/London', label: '(UTC±00:00) Luân Đôn, UTC' },
-    { value: 'Europe/Paris', label: '(UTC+01:00) Brussels, Copenhagen, Madrid, Paris' },
-    { value: 'Europe/Helsinki', label: '(UTC+02:00) Helsinki, Kyiv, Riga, Sofia' },
-    { value: 'Europe/Moscow', label: '(UTC+03:00) Moscow, St. Petersburg' },
-    { value: 'Asia/Dubai', label: '(UTC+04:00) Abu Dhabi, Muscat' },
-    { value: 'Asia/Karachi', label: '(UTC+05:00) Islamabad, Karachi' },
-    { value: 'Asia/Dhaka', label: '(UTC+06:00) Dhaka' },
-    { value: 'Asia/Jakarta', label: '(UTC+07:00) Jakarta' },
-    { value: 'Asia/Bangkok', label: '(UTC+07:00) Bangkok, Hà Nội, Jakarta' },
-    { value: 'Asia/Hong_Kong', label: '(UTC+08:00) Bắc Kinh, Hồng Kông, Singapore' },
-    { value: 'Asia/Tokyo', label: '(UTC+09:00) Osaka, Sapporo, Tokyo' },
-    { value: 'Australia/Sydney', label: '(UTC+10:00) Canberra, Melbourne, Sydney' },
-    { value: 'Pacific/Noumea', label: '(UTC+11:00) Quần đảo Solomon, New Caledonia' },
-    { value: 'Pacific/Auckland', label: '(UTC+12:00) Auckland, Wellington' }
+    { value: "Pacific/Midway", label: "(UTC-11:00) Đảo Midway, Samoa" },
+    { value: "Pacific/Honolulu", label: "(UTC-10:00) Hawaii" },
+    { value: "America/Anchorage", label: "(UTC-09:00) Alaska" },
+    {
+      value: "America/Los_Angeles",
+      label: "(UTC-08:00) Giờ Thái Bình Dương (Mỹ & Canada)",
+    },
+    {
+      value: "America/Denver",
+      label: "(UTC-07:00) Giờ Miền Núi (Mỹ & Canada)",
+    },
+    {
+      value: "America/Chicago",
+      label: "(UTC-06:00) Giờ Miền Trung (Mỹ & Canada)",
+    },
+    {
+      value: "America/New_York",
+      label: "(UTC-05:00) Giờ Miền Đông (Mỹ & Canada)",
+    },
+    { value: "America/Caracas", label: "(UTC-04:30) Caracas" },
+    {
+      value: "America/Halifax",
+      label: "(UTC-04:00) Giờ Đại Tây Dương (Canada)",
+    },
+    { value: "America/Sao_Paulo", label: "(UTC-03:00) Brasilia" },
+    {
+      value: "Atlantic/South_Georgia",
+      label: "(UTC-02:00) Giữa Đại Tây Dương",
+    },
+    { value: "Atlantic/Azores", label: "(UTC-01:00) Azores" },
+    { value: "Europe/London", label: "(UTC±00:00) Luân Đôn, UTC" },
+    {
+      value: "Europe/Paris",
+      label: "(UTC+01:00) Brussels, Copenhagen, Madrid, Paris",
+    },
+    {
+      value: "Europe/Helsinki",
+      label: "(UTC+02:00) Helsinki, Kyiv, Riga, Sofia",
+    },
+    { value: "Europe/Moscow", label: "(UTC+03:00) Moscow, St. Petersburg" },
+    { value: "Asia/Dubai", label: "(UTC+04:00) Abu Dhabi, Muscat" },
+    { value: "Asia/Karachi", label: "(UTC+05:00) Islamabad, Karachi" },
+    { value: "Asia/Dhaka", label: "(UTC+06:00) Dhaka" },
+    { value: "Asia/Jakarta", label: "(UTC+07:00) Jakarta" },
+    { value: "Asia/Bangkok", label: "(UTC+07:00) Bangkok, Hà Nội, Jakarta" },
+    {
+      value: "Asia/Hong_Kong",
+      label: "(UTC+08:00) Bắc Kinh, Hồng Kông, Singapore",
+    },
+    { value: "Asia/Tokyo", label: "(UTC+09:00) Osaka, Sapporo, Tokyo" },
+    {
+      value: "Australia/Sydney",
+      label: "(UTC+10:00) Canberra, Melbourne, Sydney",
+    },
+    {
+      value: "Pacific/Noumea",
+      label: "(UTC+11:00) Quần đảo Solomon, New Caledonia",
+    },
+    { value: "Pacific/Auckland", label: "(UTC+12:00) Auckland, Wellington" },
   ];
 
   // Proficiency level options
   const proficiencyOptions = [
-    { value: 0, label: 'Sơ cấp' },
-    { value: 1, label: 'Tiểu học' },
-    { value: 2, label: 'Trung cấp' },
-    { value: 3, label: 'Trung cấp trên' },
-    { value: 4, label: 'Nâng cao' },
-    { value: 5, label: 'Thành thạo' },
+    { value: 0, label: "Sơ cấp" },
+    { value: 1, label: "Tiểu học" },
+    { value: 2, label: "Trung cấp" },
+    { value: 3, label: "Trung cấp trên" },
+    { value: 4, label: "Nâng cao" },
+    { value: 5, label: "Thành thạo" },
   ];
 
   // Language options
   const languageOptions = [
-    { value: 'en', label: 'Tiếng Anh' },
-    { value: 'vi', label: 'Tiếng Việt' },
-    { value: 'fr', label: 'Tiếng Pháp' },
-    { value: 'ja', label: 'Tiếng Nhật' },
-    { value: 'ko', label: 'Tiếng Hàn' },
-    { value: 'zh', label: 'Tiếng Trung' },
+    { value: "en", label: "Tiếng Anh" },
+    { value: "vi", label: "Tiếng Việt" },
+    { value: "fr", label: "Tiếng Pháp" },
+    { value: "ja", label: "Tiếng Nhật" },
+    { value: "ko", label: "Tiếng Hàn" },
+    { value: "zh", label: "Tiếng Trung" },
+    { value: "es", label: "Tiếng Tây Ban Nha" },
+    { value: "de", label: "Tiếng Đức" },
+    { value: "it", label: "Tiếng Ý" },
+    { value: "ru", label: "Tiếng Nga" },
+    { value: "pt", label: "Tiếng Bồ Đào Nha" },
+    { value: "ar", label: "Tiếng Ả Rập" },
+    { value: "hi", label: "Tiếng Hindi" },
+    { value: "th", label: "Tiếng Thái" },
+    { value: "id", label: "Tiếng Indonesia" },
+    { value: "nl", label: "Tiếng Hà Lan" },
   ];
 
   const handleInputChange = (e) => {
@@ -214,13 +266,13 @@ function EditUserProfile() {
 
       // Validate file size (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Kích thước ảnh phải nhỏ hơn 2MB');
+        toast.error("Kích thước ảnh phải nhỏ hơn 2MB");
         return;
       }
 
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Chỉ chấp nhận file hình ảnh');
+      if (!file.type.startsWith("image/")) {
+        toast.error("Chỉ chấp nhận file hình ảnh");
         return;
       }
 
@@ -228,7 +280,7 @@ function EditUserProfile() {
       const previewUrl = URL.createObjectURL(file);
 
       // Show preview immediately
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         profileImageUrl: previewUrl,
       }));
@@ -241,11 +293,15 @@ function EditUserProfile() {
         const result = await uploadProfileImage(file);
 
         // After successful upload, update the image URL from the API response
-        if (result.data && (result.data.profileImageUrl || result.data.profilePictureUrl)) {
-          const imageUrl = result.data.profileImageUrl || result.data.profilePictureUrl;
+        if (
+          result.data &&
+          (result.data.profileImageUrl || result.data.profilePictureUrl)
+        ) {
+          const imageUrl =
+            result.data.profileImageUrl || result.data.profilePictureUrl;
 
           // Get base URL without any query parameters
-          const baseUrl = imageUrl.split('?')[0];
+          const baseUrl = imageUrl.split("?")[0];
 
           // Add unique timestamp to URL for cache busting
           const uniqueTimestamp = Date.now();
@@ -255,9 +311,9 @@ function EditUserProfile() {
           // Remove console.log("Timestamped image URL for UI:", timestampedImageUrl);
 
           // Update component state
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            profileImageUrl: timestampedImageUrl
+            profileImageUrl: timestampedImageUrl,
           }));
 
           // Preload the image to ensure it's in browser cache
@@ -270,10 +326,10 @@ function EditUserProfile() {
 
             // Update user in localStorage directly too
             try {
-              const user = JSON.parse(localStorage.getItem('user'));
+              const user = JSON.parse(localStorage.getItem("user"));
               if (user) {
                 user.profileImageUrl = timestampedImageUrl;
-                localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem("user", JSON.stringify(user));
                 console.log("Updated user in localStorage with new avatar URL");
               }
             } catch (error) {
@@ -282,37 +338,43 @@ function EditUserProfile() {
 
             // Dispatch multiple avatar-updated events with slight delays
             // to make sure the message is received by all components
-            window.dispatchEvent(new CustomEvent('avatar-updated', {
-              detail: {
-                profileImageUrl: timestampedImageUrl,
-                timestamp: uniqueTimestamp
-              }
-            }));
+            window.dispatchEvent(
+              new CustomEvent("avatar-updated", {
+                detail: {
+                  profileImageUrl: timestampedImageUrl,
+                  timestamp: uniqueTimestamp,
+                },
+              })
+            );
 
             // Dispatch again after a delay
             setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('avatar-updated', {
-                detail: {
-                  profileImageUrl: timestampedImageUrl,
-                  timestamp: uniqueTimestamp + 1
-                }
-              }));
+              window.dispatchEvent(
+                new CustomEvent("avatar-updated", {
+                  detail: {
+                    profileImageUrl: timestampedImageUrl,
+                    timestamp: uniqueTimestamp + 1,
+                  },
+                })
+              );
 
               // Notify all tabs by triggering storage event
-              window.dispatchEvent(new Event('storage'));
+              window.dispatchEvent(new Event("storage"));
 
               // Force DOM updates for any avatar images
-              const avatarImages = document.querySelectorAll('img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]');
-              avatarImages.forEach(img => {
+              const avatarImages = document.querySelectorAll(
+                'img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]'
+              );
+              avatarImages.forEach((img) => {
                 if (img) {
-                  img.src = timestampedImageUrl + '&reload=' + uniqueTimestamp;
+                  img.src = timestampedImageUrl + "&reload=" + uniqueTimestamp;
                 }
               });
             }, 300);
           };
 
           // Notify user of success
-          toast.success('Cập nhật ảnh đại diện thành công');
+          toast.success("Cập nhật ảnh đại diện thành công");
 
           // Release object URL to avoid memory leaks
           URL.revokeObjectURL(previewUrl);
@@ -321,67 +383,71 @@ function EditUserProfile() {
           const userData = await fetchUserById(id);
           if (userData && userData.profileImageUrl) {
             // Make sure we clean the URL before adding a timestamp
-            const baseUrl = userData.profileImageUrl.split('?')[0];
+            const baseUrl = userData.profileImageUrl.split("?")[0];
             const uniqueTimestamp = Date.now();
             const freshImageUrl = `${baseUrl}?t=${uniqueTimestamp}`;
 
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
               ...userData,
-              profileImageUrl: freshImageUrl
+              profileImageUrl: freshImageUrl,
             }));
 
             // Update localStorage too
             try {
-              const user = JSON.parse(localStorage.getItem('user'));
+              const user = JSON.parse(localStorage.getItem("user"));
               if (user) {
                 user.profileImageUrl = freshImageUrl;
-                localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem("user", JSON.stringify(user));
               }
             } catch (error) {
               console.error("Error updating localStorage:", error);
             }
 
-            toast.success('Cập nhật ảnh đại diện thành công');
+            toast.success("Cập nhật ảnh đại diện thành công");
 
             // Dispatch avatar update event
-            window.dispatchEvent(new CustomEvent('avatar-updated', {
-              detail: {
-                profileImageUrl: freshImageUrl,
-                timestamp: uniqueTimestamp
-              }
-            }));
+            window.dispatchEvent(
+              new CustomEvent("avatar-updated", {
+                detail: {
+                  profileImageUrl: freshImageUrl,
+                  timestamp: uniqueTimestamp,
+                },
+              })
+            );
 
             // Force DOM updates
-            const avatarImages = document.querySelectorAll('img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]');
-            avatarImages.forEach(img => {
+            const avatarImages = document.querySelectorAll(
+              'img[alt="User avatar"], img[alt="Profile Avatar"], img[alt="Profile"]'
+            );
+            avatarImages.forEach((img) => {
               if (img) {
-                img.src = freshImageUrl + '&reload=' + uniqueTimestamp;
+                img.src = freshImageUrl + "&reload=" + uniqueTimestamp;
               }
             });
 
             // Release object URL
             URL.revokeObjectURL(previewUrl);
           } else {
-            throw new Error('Không thể cập nhật ảnh đại diện');
+            throw new Error("Không thể cập nhật ảnh đại diện");
           }
         }
       } catch (error) {
-        console.error('Error uploading profile image:', error);
-        toast.error(error.message || 'Cập nhật ảnh đại diện thất bại');
+        console.error("Error uploading profile image:", error);
+        toast.error(error.message || "Cập nhật ảnh đại diện thất bại");
 
         // Revert to previous state if there was an error
         try {
           const userData = await fetchUserById(id);
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            profileImageUrl: userData.profileImageUrl || ''
+            profileImageUrl: userData.profileImageUrl || "",
           }));
 
           // Release object URL
           URL.revokeObjectURL(previewUrl);
         } catch (fetchError) {
-          console.error('Lỗi khi lấy dữ liệu người dùng:', fetchError);
+          console.error("Lỗi khi lấy dữ liệu người dùng:", fetchError);
         }
       } finally {
         setIsUploadingImage(false);
@@ -393,7 +459,7 @@ function EditUserProfile() {
     // Clear any previous errors for this field
     clearFieldError(fieldName);
 
-    setEditingFields(prev => {
+    setEditingFields((prev) => {
       // Create a copy of the previous state instead of an empty object
       const newState = { ...prev };
 
@@ -414,18 +480,19 @@ function EditUserProfile() {
     try {
       const token = getAccessToken();
       if (!token) {
-        toast.error('Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.');
-        throw new Error('Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.');
+        toast.error("Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.");
+        throw new Error("Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.");
       }
 
       // Create data object based on the field being saved
-      const valueToSave = directValue !== null ? directValue : formData[fieldName];
+      const valueToSave =
+        directValue !== null ? directValue : formData[fieldName];
       // Remove console.log(`Saving field ${fieldName} with value:`, valueToSave);
 
       // Validate field before saving
       const validationErrors = validateField(fieldName, valueToSave);
       if (Object.keys(validationErrors).length > 0) {
-        setFieldErrors(prev => ({ ...prev, ...validationErrors }));
+        setFieldErrors((prev) => ({ ...prev, ...validationErrors }));
         toast.error(validationErrors[fieldName]);
         setIsSaving(false);
         return;
@@ -434,40 +501,46 @@ function EditUserProfile() {
       // Prepare the update data based on field name
       let updateData = {};
       switch (fieldName) {
-        case 'fullName':
+        case "fullName":
           updateData = { fullName: valueToSave };
           break;
-        case 'dateOfBirth':
+        case "dateOfBirth":
           // Handle date format
           try {
             const date = new Date(valueToSave);
             if (!isNaN(date.getTime())) {
               updateData = { dateOfBirth: date.toISOString() };
             } else {
-              toast.error('Định dạng ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD.');
+              toast.error(
+                "Định dạng ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD."
+              );
               setIsSaving(false);
               return;
             }
           } catch (err) {
-            toast.error('Lỗi xử lý ngày. Vui lòng sử dụng định dạng YYYY-MM-DD.');
-            console.error('Date processing error:', err);
+            toast.error(
+              "Lỗi xử lý ngày. Vui lòng sử dụng định dạng YYYY-MM-DD."
+            );
+            console.error("Date processing error:", err);
             setIsSaving(false);
             return;
           }
           break;
-        case 'gender':
+        case "gender":
           updateData = { gender: parseInt(valueToSave) };
           break;
-        case 'phoneNumber':
+        case "phoneNumber":
           updateData = { phoneNumber: valueToSave };
           break;
-        case 'timezone':
+        case "timezone":
           updateData = { timezone: valueToSave };
           break;
         default:
-          toast.warning(`Việc lưu trường "${fieldName}" chưa được triển khai với API.`);
+          toast.warning(
+            `Việc lưu trường "${fieldName}" chưa được triển khai với API.`
+          );
           setIsSaving(false);
-          setEditingFields(prev => ({ ...prev, [fieldName]: false }));
+          setEditingFields((prev) => ({ ...prev, [fieldName]: false }));
           return;
       }
 
@@ -484,18 +557,22 @@ function EditUserProfile() {
       setFormData(updatedUserData);
 
       // Update was successful
-      setEditingFields(prev => ({ ...prev, [fieldName]: false }));
+      setEditingFields((prev) => ({ ...prev, [fieldName]: false }));
       toast.success(`Trường "${fieldName}" đã được cập nhật thành công!`);
     } catch (err) {
-      console.error('Error updating profile:', err);
+      console.error("Error updating profile:", err);
 
       // Handle the API validation error format
-      if (err.response && err.response.data && err.response.data.errorCode === 'validation_error') {
+      if (
+        err.response &&
+        err.response.data &&
+        err.response.data.errorCode === "validation_error"
+      ) {
         const apiErrors = err.response.data.errorMessage;
 
         // Convert API error format to our fieldErrors format
         const newFieldErrors = {};
-        Object.keys(apiErrors).forEach(key => {
+        Object.keys(apiErrors).forEach((key) => {
           // Convert API field name format to our format (e.g. "FullName" to "fullName")
           const fieldName = key.charAt(0).toLowerCase() + key.slice(1);
           newFieldErrors[fieldName] = apiErrors[key][0]; // Take first error message
@@ -504,7 +581,8 @@ function EditUserProfile() {
         setFieldErrors(newFieldErrors);
 
         // Show relevant error for the current field
-        const normalizedFieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+        const normalizedFieldName =
+          fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
         if (apiErrors[normalizedFieldName]) {
           toast.error(apiErrors[normalizedFieldName][0]);
         } else {
@@ -523,7 +601,7 @@ function EditUserProfile() {
     clearFieldError(fieldName);
 
     // Reset the specific editing field
-    setEditingFields(prev => ({ ...prev, [fieldName]: false }));
+    setEditingFields((prev) => ({ ...prev, [fieldName]: false }));
   };
 
   // Function to format date string from API to display format
@@ -538,14 +616,14 @@ function EditUserProfile() {
 
       // Format options for more readable display
       const options = {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       };
 
       return date.toLocaleDateString(undefined, options);
     } catch (error) {
-      console.error('Error formatting display date:', error);
+      console.error("Error formatting display date:", error);
       return dateString; // Return original string if parsing fails
     }
   };
@@ -560,39 +638,39 @@ function EditUserProfile() {
 
       // Check if the date is valid
       if (isNaN(date.getTime())) {
-        console.warn('Invalid date format:', dateString);
+        console.warn("Invalid date format:", dateString);
         return "";
       }
 
       // Format as YYYY-MM-DD for input type="date"
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
 
       return `${year}-${month}-${day}`;
     } catch (error) {
-      console.error('Error formatting date:', error);
+      console.error("Error formatting date:", error);
       return "";
     }
   };
 
   // Find gender label by value
   const getGenderLabel = (value) => {
-    const gender = genderOptions.find(g => g.value === parseInt(value));
-    return gender ? gender.label : 'Chưa cung cấp';
+    const gender = genderOptions.find((g) => g.value === parseInt(value));
+    return gender ? gender.label : "Chưa cung cấp";
   };
 
   // Find proficiency level label by value
   const getProficiencyLabel = (value) => {
-    if (value === null || value === undefined) return 'Chưa chỉ định';
-    const level = proficiencyOptions.find(p => p.value === parseInt(value));
-    return level ? level.label : 'Chưa chỉ định';
+    if (value === null || value === undefined) return "Chưa chỉ định";
+    const level = proficiencyOptions.find((p) => p.value === parseInt(value));
+    return level ? level.label : "Chưa chỉ định";
   };
 
   // Find language label by code
   const getLanguageLabel = (code) => {
     if (!code) return "Chưa chỉ định";
-    const language = languageOptions.find(l => l.value === code);
+    const language = languageOptions.find((l) => l.value === code);
     return language ? language.label : code;
   };
 
@@ -601,21 +679,21 @@ function EditUserProfile() {
     fieldName,
     label,
     value,
-    inputType = 'text',
+    inputType = "text",
     options = null,
-    placeholder = ''
+    placeholder = "",
   }) => {
     // Determine the initial local value based on field type
     const getInitialValue = () => {
-      if (inputType === 'select') {
+      if (inputType === "select") {
         // For select inputs, we need the raw value, not the formatted label
-        if (fieldName === 'gender') {
+        if (fieldName === "gender") {
           return formData.gender;
-        } else if (fieldName === 'learningProficiencyLevel') {
+        } else if (fieldName === "learningProficiencyLevel") {
           return formData.learningProficiencyLevel;
-        } else if (fieldName === 'learningLanguageCode') {
+        } else if (fieldName === "learningLanguageCode") {
           return formData.learningLanguageCode;
-        } else if (fieldName === 'timezone') {
+        } else if (fieldName === "timezone") {
           return formData.timezone;
         }
       }
@@ -627,15 +705,15 @@ function EditUserProfile() {
 
     // Update local value when the prop value changes (e.g., after API call)
     useEffect(() => {
-      if (inputType === 'select') {
+      if (inputType === "select") {
         // For select inputs, use the raw value from formData
-        if (fieldName === 'gender') {
+        if (fieldName === "gender") {
           setLocalValue(formData.gender);
-        } else if (fieldName === 'learningProficiencyLevel') {
+        } else if (fieldName === "learningProficiencyLevel") {
           setLocalValue(formData.learningProficiencyLevel);
-        } else if (fieldName === 'learningLanguageCode') {
+        } else if (fieldName === "learningLanguageCode") {
           setLocalValue(formData.learningLanguageCode);
-        } else if (fieldName === 'timezone') {
+        } else if (fieldName === "timezone") {
           setLocalValue(formData.timezone);
         }
       } else {
@@ -651,7 +729,7 @@ function EditUserProfile() {
       clearFieldError(fieldName);
 
       // Xử lý đặc biệt cho trường dateOfBirth
-      if (fieldName === 'dateOfBirth') {
+      if (fieldName === "dateOfBirth") {
         try {
           // Kiểm tra nếu đây là ngày hợp lệ
           const inputDate = new Date(value);
@@ -663,7 +741,7 @@ function EditUserProfile() {
             setLocalValue(value);
           }
         } catch (error) {
-          console.error('Error parsing date:', error);
+          console.error("Error parsing date:", error);
           setLocalValue(value);
         }
       } else {
@@ -675,14 +753,14 @@ function EditUserProfile() {
     // Reset local value and close edit mode
     const cancelEdit = () => {
       // Reset back to the original value based on field type
-      if (inputType === 'select') {
-        if (fieldName === 'gender') {
+      if (inputType === "select") {
+        if (fieldName === "gender") {
           setLocalValue(formData.gender);
-        } else if (fieldName === 'learningProficiencyLevel') {
+        } else if (fieldName === "learningProficiencyLevel") {
           setLocalValue(formData.learningProficiencyLevel);
-        } else if (fieldName === 'learningLanguageCode') {
+        } else if (fieldName === "learningLanguageCode") {
           setLocalValue(formData.learningLanguageCode);
-        } else if (fieldName === 'timezone') {
+        } else if (fieldName === "timezone") {
           setLocalValue(formData.timezone);
         }
       } else {
@@ -699,9 +777,9 @@ function EditUserProfile() {
       console.log(`Saving ${fieldName} with value:`, localValue);
 
       // Cập nhật formData trực tiếp từ localValue
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [fieldName]: localValue
+        [fieldName]: localValue,
       }));
 
       // Gọi handleSave với giá trị localValue
@@ -722,54 +800,69 @@ function EditUserProfile() {
         {editingFields[fieldName] ? (
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="text-gray-700 font-bold">{titleCaseLabel}</label>
+              <label className="text-gray-700 font-bold">
+                {titleCaseLabel}
+              </label>
             </div>
-            {inputType === 'date' ? (
+            {inputType === "date" ? (
               <div>
                 <input
                   type="date"
                   id={fieldName}
                   name={fieldName}
-                  value={localValue ? formatDateForInput(localValue) : ''}
+                  value={localValue ? formatDateForInput(localValue) : ""}
                   onChange={handleLocalInputChange}
                   placeholder={placeholder}
-                  className={`w-full border ${fieldErrors[fieldName] ? 'border-red-500' : 'border-gray-300'} rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
+                  className={`w-full border ${
+                    fieldErrors[fieldName]
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  } rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
                   autoFocus
                 />
-                <p className="text-sm text-gray-500 mt-1">Chọn từ lịch hoặc nhập trực tiếp định dạng YYYY-MM-DD</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Chọn từ lịch hoặc nhập trực tiếp định dạng YYYY-MM-DD
+                </p>
                 {fieldErrors[fieldName] && (
-                  <p className="text-red-500 text-sm mt-1">{fieldErrors[fieldName]}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {fieldErrors[fieldName]}
+                  </p>
                 )}
               </div>
-            ) : inputType === 'select' && options ? (
+            ) : inputType === "select" && options ? (
               <div>
                 <select
                   id={fieldName}
                   name={fieldName}
                   value={localValue}
                   onChange={handleLocalInputChange}
-                  className={`w-full border ${fieldErrors[fieldName] ? 'border-red-500' : 'border-gray-300'} rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
+                  className={`w-full border ${
+                    fieldErrors[fieldName]
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  } rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
                   autoFocus
                 >
                   <option value="">-- Chọn {label} --</option>
-                  {fieldName === 'gender' || fieldName === 'learningProficiencyLevel' ? (
-                    // For numeric values like gender and learningProficiencyLevel
-                    options.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))
-                  ) : (
-                    // For string values like language codes and timezone
-                    options.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))
-                  )}
+                  {fieldName === "gender" ||
+                  fieldName === "learningProficiencyLevel"
+                    ? // For numeric values like gender and learningProficiencyLevel
+                      options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))
+                    : // For string values like language codes and timezone
+                      options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                 </select>
                 {fieldErrors[fieldName] && (
-                  <p className="text-red-500 text-sm mt-1">{fieldErrors[fieldName]}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {fieldErrors[fieldName]}
+                  </p>
                 )}
               </div>
             ) : (
@@ -778,14 +871,24 @@ function EditUserProfile() {
                   type={inputType}
                   id={fieldName}
                   name={fieldName}
-                  value={inputType === 'date' && localValue ? formatDateForInput(localValue) : localValue}
+                  value={
+                    inputType === "date" && localValue
+                      ? formatDateForInput(localValue)
+                      : localValue
+                  }
                   onChange={handleLocalInputChange}
                   placeholder={placeholder}
-                  className={`w-full border ${fieldErrors[fieldName] ? 'border-red-500' : 'border-gray-300'} rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
+                  className={`w-full border ${
+                    fieldErrors[fieldName]
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  } rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
                   autoFocus
                 />
                 {fieldErrors[fieldName] && (
-                  <p className="text-red-500 text-sm mt-1">{fieldErrors[fieldName]}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {fieldErrors[fieldName]}
+                  </p>
                 )}
               </div>
             )}
@@ -794,9 +897,11 @@ function EditUserProfile() {
                 type="button"
                 onClick={saveWithLocalValue}
                 disabled={isSaving}
-                className={`${isSaving ? 'bg-gray-400' : 'bg-red-500 hover:bg-red-600'} text-white font-medium py-1 px-3 rounded text-sm`}
+                className={`${
+                  isSaving ? "bg-gray-400" : "bg-red-500 hover:bg-red-600"
+                } text-white font-medium py-1 px-3 rounded text-sm`}
               >
-                {isSaving ? 'Đang lưu...' : 'Lưu'}
+                {isSaving ? "Đang lưu..." : "Lưu"}
               </button>
               <button
                 type="button"
@@ -811,7 +916,9 @@ function EditUserProfile() {
         ) : (
           <div className="flex items-center py-1">
             <div className="w-1/3 sm:w-1/4">
-              <label className="text-gray-700 font-bold">{titleCaseLabel}</label>
+              <label className="text-gray-700 font-bold">
+                {titleCaseLabel}
+              </label>
             </div>
             <div className="w-2/3 sm:w-3/4 flex justify-between items-center">
               <span className="text-gray-700">{value}</span>
@@ -821,8 +928,19 @@ function EditUserProfile() {
                 className="bg-gray-300 text-gray-800 px-3 py-1 rounded hover:bg-gray-400 transition-colors flex items-center gap-1"
                 aria-label={`Chỉnh sửa ${label}`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
                 </svg>
                 <span>Chỉnh sửa</span>
               </button>
@@ -840,9 +958,25 @@ function EditUserProfile() {
         {isLoading ? (
           <div className="flex justify-center items-center h-60">
             {/* Black Loading Spinner */}
-            <svg className="animate-spin h-8 w-8 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"></path>
+            <svg
+              className="animate-spin h-8 w-8 text-black"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"
+              ></path>
             </svg>
           </div>
         ) : error ? (
@@ -853,7 +987,9 @@ function EditUserProfile() {
           <div className="px-6 md:px-16 py-10">
             {/* Profile Photo Section */}
             <div className="mb-12 border-b border-gray-200 pb-8">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Ảnh hồ sơ</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Ảnh hồ sơ
+              </h2>
 
               <div className="flex flex-col items-center sm:flex-row sm:items-start">
                 <div className="mb-4 sm:mb-0 sm:mr-6">
@@ -864,10 +1000,11 @@ function EditUserProfile() {
                         alt="Ảnh hồ sơ"
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          console.error('Error loading profile image:', e);
+                          console.error("Error loading profile image:", e);
                           e.target.onerror = null;
-                          e.target.src = ''; // Clear the src
-                          e.target.parentNode.innerHTML = '<span class="text-3xl text-gray-400">ii</span>';
+                          e.target.src = ""; // Clear the src
+                          e.target.parentNode.innerHTML =
+                            '<span class="text-3xl text-gray-400">ii</span>';
                         }}
                       />
                     ) : (
@@ -876,17 +1013,25 @@ function EditUserProfile() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Ảnh này sẽ hiển thị cho người dùng khác khi họ xem hồ sơ hoặc bài đăng của bạn.</p>
-                  <p className="text-sm text-gray-600 mb-4">Kích thước tối đa: 2MB</p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Ảnh này sẽ hiển thị cho người dùng khác khi họ xem hồ sơ
+                    hoặc bài đăng của bạn.
+                  </p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Kích thước tối đa: 2MB
+                  </p>
                   <button
-                    className={`${isUploadingImage
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                      } text-sm font-medium py-1 px-4 rounded transition-colors`}
-                    onClick={() => document.getElementById('profileImage').click()}
+                    className={`${
+                      isUploadingImage
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    } text-sm font-medium py-1 px-4 rounded transition-colors`}
+                    onClick={() =>
+                      document.getElementById("profileImage").click()
+                    }
                     disabled={isUploadingImage}
                   >
-                    {isUploadingImage ? 'ĐANG TẢI LÊN...' : 'TẢI LÊN'}
+                    {isUploadingImage ? "ĐANG TẢI LÊN..." : "TẢI LÊN"}
                   </button>
                   <input
                     type="file"
@@ -903,7 +1048,9 @@ function EditUserProfile() {
 
             {/* Basic Information Section */}
             <div className="mb-12 border-b border-gray-200 pb-8">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Thông tin cơ bản</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Thông tin cơ bản
+              </h2>
 
               <div className="space-y-2">
                 <EditableField
