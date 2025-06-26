@@ -32,7 +32,8 @@ import {
   uploadProfileImage,
   deleteProfileImage,
   registerAsTutor,
-  fetchTutorDetail
+  fetchTutorDetail,
+  fetchChatConversationsByUserId
 } from "./components/api/auth";
 
 // Import the NotFoundPage component
@@ -88,7 +89,31 @@ function AppContent({
   const isStaffRoute = location.pathname.startsWith('/staff');
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isManagerRoute = location.pathname.startsWith('/manager');
-  console.log("user: ", user);
+
+  const [firstTutorId, setFirstTutorId] = useState(null);
+
+  useEffect(() => {
+    const fetchMostRecentTutorId = async () => {
+      if (user && user.id) {
+        try {
+          const conversations = await fetchChatConversationsByUserId(user.id);
+          // Only consider tutor conversations, sort by most recent
+          const sorted = conversations
+            .filter(conv => conv.type === "tutor")
+            .sort((a, b) => b.actualTimestamp - a.actualTimestamp);
+          if (sorted.length > 0) {
+            setFirstTutorId(sorted[0].participantId);
+          } else {
+            setFirstTutorId(null);
+          }
+        } catch (err) {
+          setFirstTutorId(null);
+        }
+      }
+    };
+    fetchMostRecentTutorId();
+  }, [user]);
+
   return (
     <div className={(isStaffRoute || isAdminRoute || isManagerRoute) ? "" : "min-h-screen flex flex-col bg-gray-100"}>
       {!(isStaffRoute || isAdminRoute || isManagerRoute) && (
@@ -97,6 +122,7 @@ function AppContent({
           onLogout={handleLogout}
           onLoginClick={() => openLoginModal()}
           onSignUpClick={openSignUpModal}
+          firstTutorId={firstTutorId}
         />
       )}
 
@@ -123,7 +149,7 @@ function AppContent({
             }
           />
           <Route
-            path="/tutorprofile/:id"
+            path="/tutor-profile/:id"
             element={
               <TutorProfile
                 user={user}
@@ -158,13 +184,6 @@ function AppContent({
           {/* NEW ROUTE for Messaging */}
           <Route
             path="/message/:id"
-            element={
-              user ? <MessagePage user={user} /> : <Navigate to="/" replace />
-            }
-          />
-          {/* NEW ROUTE for general messages list */}
-          <Route
-            path="/messages"
             element={
               user ? <MessagePage user={user} /> : <Navigate to="/" replace />
             }
@@ -250,6 +269,7 @@ function App() {
     onLoginSuccess: null,
     onCloseWithoutLogin: null,
   });
+  const [firstTutorId, setFirstTutorId] = useState(null);
 
   console.log("User state in App.jsx:", user);
 
@@ -363,6 +383,28 @@ function App() {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [user]); // Dependency is user to re-attach when user changes
+
+  useEffect(() => {
+    const fetchMostRecentTutorId = async () => {
+      if (user && user.id) {
+        try {
+          const conversations = await fetchChatConversationsByUserId(user.id);
+          // Only consider tutor conversations, sort by most recent
+          const sorted = conversations
+            .filter(conv => conv.type === "tutor")
+            .sort((a, b) => b.actualTimestamp - a.actualTimestamp);
+          if (sorted.length > 0) {
+            setFirstTutorId(sorted[0].participantId);
+          } else {
+            setFirstTutorId(null);
+          }
+        } catch (err) {
+          setFirstTutorId(null);
+        }
+      }
+    };
+    fetchMostRecentTutorId();
+  }, [user]);
 
   const openLoginModal = (message = "", onLoginSuccess = null, onCloseWithoutLogin = null) => {
     setLoginPromptMessage(message);

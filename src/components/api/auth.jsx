@@ -680,3 +680,67 @@ export async function fetchConversationList(conversationId, page = 1, size = 20)
     throw error;
   }
 }
+
+export async function fetchTutorLesson(tutorId) {
+  try {
+    const response = await callApi(`/api/lesson/tutor/${tutorId}`, "GET");
+    if (response && response.data) {
+      return response.data;
+    } else {
+      throw new Error("No lesson data found for this tutor.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor lessons:", error.message);
+    throw error;
+  }
+}
+
+export async function fetchTutorLessonDetailById(lessonId) {
+  try {
+    const response = await callApi(`/api/lesson/${lessonId}`, "GET");
+    if (response && response.data) {
+      return response.data;
+    } else {
+      throw new Error("No lesson detail found for this lesson.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch lesson detail:", error.message);
+    throw error;
+  }
+}
+
+export async function createLesson(lessonData) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi("/api/lesson", "POST", lessonData, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to create lesson:", error.message);
+    throw error;
+  }
+}
+
+export async function updateLesson(lessonId, lessonData) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(`/api/lesson/${lessonId}`, "PUT", lessonData, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to update lesson:", error.message);
+    throw error;
+  }
+}
+
+export async function deleteLesson(lessonId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(`/api/lesson/${lessonId}`, "DELETE", null, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to delete lesson:", error.message);
+    throw error;
+  }
+}

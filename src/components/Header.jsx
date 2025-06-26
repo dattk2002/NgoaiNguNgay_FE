@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaCommentDots } from "react-icons/fa";
@@ -35,6 +35,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
   const [avatarKey, setAvatarKey] = useState(Date.now());
   const dropdownRef = useRef(null);
   const imgRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user?.profileImageUrl) {
@@ -281,8 +282,16 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
             {user ? (
               <>
                 <Link
-                  to="/messages"
+                  to="#"
                   className="relative group p-0.5 focus:outline-none z-10 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (firstTutorId) {
+                      navigate(`/message/${firstTutorId}`);
+                    } else {
+                      alert("Bạn chưa từng nhắn tin với gia sư nào.");
+                    }
+                  }}
                 >
                   <div className="absolute inset-0 rounded-full -z-10"></div>
                   <span className="p-1">
@@ -390,7 +399,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         )}
                         {user?.id && (
                           <Link
-                            to={`/tutorprofile/${user?.id}`}
+                            to={`/tutor-profile/${user?.id}`}
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             onClick={() => setIsDropdownOpen(false)}
                           >
