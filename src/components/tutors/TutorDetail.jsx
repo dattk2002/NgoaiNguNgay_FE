@@ -52,9 +52,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [loadingLessonDetail, setLoadingLessonDetail] = useState(false);
   const [lessonDetailError, setLessonDetailError] = useState(null);
 
-  console.log("Lét sần: ",lessons);
-  
-
   useEffect(() => {
     const loadData = async () => {
       try {
