@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { fetchTutorById, fetchRecommendTutor } from "../api/auth";
-import { formatTutorDate } from "../../utils/formatTutorDate";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
-  FaStar,
-  FaBook,
-  FaUsers,
-  FaClock,
-  FaHeart,
-} from "react-icons/fa";
+  fetchTutorById,
+  fetchRecommendTutor,
+  fetchTutorLesson,
+  fetchTutorLessonDetailById,
+} from "../api/auth";
+import { formatTutorDate } from "../../utils/formatTutorDate";
+import { FaStar, FaBook, FaUsers, FaClock, FaHeart } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import ReviewsSection from "../ReviewSection";
 import { FaArrowRight } from "react-icons/fa6";
@@ -18,6 +17,7 @@ import "slick-carousel/slick/slick-theme.css";
 import RecommendTutorCard from "./RecommendTutorCard";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import Collapse from "@mui/material/Collapse";
+import LessonDetailModal from "../modals/LessonDetailModal";
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -32,6 +32,7 @@ const timeRanges = [
 const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [teacher, setTeacher] = useState(null);
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,13 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [availabilityData, setAvailabilityData] = useState({});
   const [availabilityDays, setAvailabilityDays] = useState([]);
   const [availabilityDates, setAvailabilityDates] = useState([]);
+
+  const [lessons, setLessons] = useState([]);
+  const [selectedLesson, setSelectedLesson] = useState(null);
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+  const [lessonDetail, setLessonDetail] = useState(null);
+  const [loadingLessonDetail, setLoadingLessonDetail] = useState(false);
+  const [lessonDetailError, setLessonDetailError] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -191,8 +199,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
             name: tutor.fullName || tutor.nickName,
             subjects: tutor.languages
               ? tutor.languages
-                .map((language) => language.languageCode)
-                .join(", ")
+                  .map((language) => language.languageCode)
+                  .join(", ")
               : "N/A", // Assuming hashtags are subjects
             rating: tutor.rating || 0, // Use actual rating if available, otherwise 0
             reviews: tutor.ratingCount || 0, // Use actual review count, otherwise 0
@@ -203,6 +211,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           })
         );
         setTutors(mappedRecommendedTutors);
+
+        // Fetch lessons for this tutor
+        const lessonsData = await fetchTutorLesson(id);
+        setLessons(lessonsData);
       } catch (err) {
         console.error("Failed to fetch data:", err);
         setError(err.message || "Could not load data.");
@@ -237,6 +249,27 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   const handleClick = () => {
     navigate("/languages"); // Assuming this navigates to a list of subjects/languages
+  };
+
+  const handleLessonClick = async (lesson) => {
+    setIsLessonModalOpen(true);
+    setLoadingLessonDetail(true);
+    setLessonDetailError(null);
+    try {
+      const detail = await fetchTutorLessonDetailById(lesson.id);
+      setLessonDetail(detail);
+    } catch (err) {
+      setLessonDetailError("Failed to load lesson details.");
+      setLessonDetail(null);
+    } finally {
+      setLoadingLessonDetail(false);
+    }
+  };
+
+  const handleCloseLessonModal = () => {
+    setIsLessonModalOpen(false);
+    setLessonDetail(null);
+    setLessonDetailError(null);
   };
 
   if (loading)
@@ -375,7 +408,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                         <div className="flex flex-wrap gap-2 mt-1">
                           {teacher.subjects && teacher.subjects.length > 0 ? (
                             teacher.subjects.map((subject, index) => (
-                              <div key={index} className="flex items-center gap-1">
+                              <div
+                                key={index}
+                                className="flex items-center gap-1"
+                              >
                                 <span className="text-blue-600 font-medium">
                                   {formatLanguageCode(subject.name)}
                                 </span>
@@ -383,10 +419,11 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                                   {[...Array(5)].map((_, i) => (
                                     <div
                                       key={i}
-                                      className={`w-1 h-4 rounded-full ${i < subject.level
-                                        ? "bg-blue-600"
-                                        : "bg-gray-200"
-                                        }`}
+                                      className={`w-1 h-4 rounded-full ${
+                                        i < subject.level
+                                          ? "bg-blue-600"
+                                          : "bg-gray-200"
+                                      }`}
                                     />
                                   ))}
                                 </div>
@@ -412,10 +449,11 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   {tabLabels.map((label, index) => (
                     <button
                       key={index}
-                      className={`py-2 px-4 text-sm font-medium focus:outline-none ${activeTab === index
-                        ? "border-b-2 border-red-500 text-red-600"
-                        : "text-gray-600 hover:text-gray-800"
-                        }`}
+                      className={`py-2 px-4 text-sm font-medium focus:outline-none ${
+                        activeTab === index
+                          ? "border-b-2 border-red-500 text-red-600"
+                          : "text-gray-600 hover:text-gray-800"
+                      }`}
                       onClick={() => handleTabChange(null, index)} // Pass null for event, index for newValue
                       role="tab"
                       aria-selected={activeTab === index}
@@ -489,7 +527,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                       <div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {teacher.certifications &&
-                            teacher.certifications.length > 0 ? (
+                          teacher.certifications.length > 0 ? (
                             teacher.certifications.map((cert, index) => (
                               <span
                                 key={index}
@@ -518,7 +556,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
             <div className="bg-white rounded-2xl shadow-lg p-4">
               <div className="relative rounded-lg overflow-hidden">
                 <iframe
-                  src={teacher.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ"}
+                  src={
+                    teacher.videoUrl ||
+                    "https://www.youtube.com/embed/dQw4w9WgXcQ"
+                  }
                   title={`Video giới thiệu của ${teacher.name}`}
                   className="w-full aspect-video rounded-lg"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -526,7 +567,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                 ></iframe>
               </div>
               <div className="mt-4">
-                <p className="text-gray-800 font-semibold text-sm">Buổi học thử</p>
+                <p className="text-gray-800 font-semibold text-sm">
+                  Buổi học thử
+                </p>
                 <p className="text-red-500 font-bold text-lg">
                   USD {(parseFloat(teacher.price) * 0.5).toFixed(2)}
                 </p>
@@ -589,37 +632,51 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       </div>
 
       <div className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-800">Gói buổi học</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition">
-            <p className="text-lg font-semibold text-gray-800">Buổi học thử</p>
-            <p className="text-red-500 font-bold mt-2">
-              USD
-              {teacher.price
-                ? (parseFloat(teacher.price) * 0.5).toFixed(2)
-                : "N/A"}
+        <h2 className="text-2xl font-semibold text-gray-800">
+          Khóa học
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {lessons.length > 0 ? (
+            lessons.map((lesson, idx) => (
+              <div
+                key={lesson.id || idx}
+                className="flex justify-between items-center bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                onClick={() => handleLessonClick(lesson)}
+              >
+                <div>
+                  <p className="font-semibold text-gray-800 text-base">
+                    {lesson.name}
+                  </p>
+                  <p className="text-gray-500 text-sm mt-1">
+                    {lesson.levels ? lesson.levels.join(" - ") : "A1 - C2"}
+                    {lesson.category && <> | {lesson.category}</>}
+                    {lesson.completedCount && (
+                      <> | {lesson.completedCount} buổi đã hoàn thành</>
+                    )}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-red-500 font-bold text-lg">
+                    VND{" "}
+                    {lesson.price
+                      ? lesson.price.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                        })
+                      : "Không có"}
+                  </span>
+                  {lesson.discount && (
+                    <span className="text-xs text-gray-500 mt-1">
+                      Gói học giảm {lesson.discount}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">
+              Không có buổi học nào cho gia sư này.
             </p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition">
-            <p className="text-lg font-semibold text-gray-800">
-              Buổi học tiêu chuẩn
-            </p>
-            <p className="text-red-500 font-bold mt-2">
-              USD {teacher.price ? parseFloat(teacher.price).toFixed(2) : "N/A"}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition">
-            <p className="text-lg font-semibold text-gray-800">
-              Gói Cao cấp (5 Buổi học)
-            </p>
-            <p className="text-red-500 font-bold mt-2">
-              USD
-              {teacher.price
-                ? (parseFloat(teacher.price) * 5 * 0.9).toFixed(2)
-                : "N/A"}
-            </p>
-            <p className="text-gray-600 text-sm mt-1">Giảm giá 10%!</p>
-          </div>
+          )}
         </div>
       </div>
 
@@ -638,16 +695,16 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                 {day === "Mon"
                   ? "T2"
                   : day === "Tue"
-                    ? "T3"
-                    : day === "Wed"
-                      ? "T4"
-                      : day === "Thu"
-                        ? "T5"
-                        : day === "Fri"
-                          ? "T6"
-                          : day === "Sat"
-                            ? "T7"
-                            : "CN"}
+                  ? "T3"
+                  : day === "Wed"
+                  ? "T4"
+                  : day === "Thu"
+                  ? "T5"
+                  : day === "Fri"
+                  ? "T6"
+                  : day === "Sat"
+                  ? "T7"
+                  : "CN"}
                 <br />
                 <span className="text-xs text-gray-600">
                   {availabilityDates[index]}
@@ -667,13 +724,15 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   return (
                     <div
                       key={`${timeRange}-${day}`}
-                      className={`h-12 border border-gray-200 last:border-b-0 ${isAvailable
-                        ? "bg-gray-100"
-                        : "bg-green-400 cursor-pointer hover:bg-green-500"
-                        } ${day === availabilityDays[availabilityDays.length - 1]
+                      className={`h-12 border border-gray-200 last:border-b-0 ${
+                        isAvailable
+                          ? "bg-gray-100"
+                          : "bg-green-400 cursor-pointer hover:bg-green-500"
+                      } ${
+                        day === availabilityDays[availabilityDays.length - 1]
                           ? "border-r border-gray-200"
                           : ""
-                        }`}
+                      }`}
                     ></div>
                   );
                 })}
@@ -711,8 +770,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                     subjects:
                       Array.isArray(tutor.subjects) && tutor.subjects.length > 0
                         ? tutor.subjects
-                          .map((subject) => subject.name)
-                          .join(", ")
+                            .map((subject) => subject.name)
+                            .join(", ")
                         : "N/A",
                     rating: tutor.rating,
                     reviews: tutor.reviews,
@@ -744,6 +803,14 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           </button>
         </div>
       </div>
+
+      <LessonDetailModal
+        isOpen={isLessonModalOpen}
+        onClose={handleCloseLessonModal}
+        lesson={lessonDetail}
+        loading={loadingLessonDetail}
+        error={lessonDetailError}
+      />
     </div>
   );
 };
