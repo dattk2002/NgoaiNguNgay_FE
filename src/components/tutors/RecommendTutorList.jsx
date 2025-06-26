@@ -6,7 +6,6 @@ import RecommendTutorCard from "./RecommendTutorCard";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 
 const RecommendTutorList = ({ user, onRequireLogin }) => {
-  console.log("User prop in RecommendTutorList:", user);
   const [tutors, setTutors] = useState([]);
   const [filteredTutors, setFilteredTutors] = useState([]);
   const [loading, setLoading] = useState(true);

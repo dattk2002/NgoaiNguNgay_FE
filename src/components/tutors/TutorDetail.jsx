@@ -18,6 +18,7 @@ import RecommendTutorCard from "./RecommendTutorCard";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import Collapse from "@mui/material/Collapse";
 import LessonDetailModal from "../modals/LessonDetailModal";
+import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -32,7 +33,6 @@ const timeRanges = [
 const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [teacher, setTeacher] = useState(null);
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -571,7 +571,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   Buổi học thử
                 </p>
                 <p className="text-red-500 font-bold text-lg">
-                  USD {(parseFloat(teacher.price) * 0.5).toFixed(2)}
+                  {(parseFloat(teacher.price) * 0.5).toFixed(2)} VND
                 </p>
                 <button
                   onClick={handleBookLesson}
@@ -648,7 +648,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                     {lesson.name}
                   </p>
                   <p className="text-gray-500 text-sm mt-1">
-                    {lesson.levels ? lesson.levels.join(" - ") : "A1 - C2"}
+                    {formatLanguageCode(lesson.languageCode)}
                     {lesson.category && <> | {lesson.category}</>}
                     {lesson.completedCount && (
                       <> | {lesson.completedCount} buổi đã hoàn thành</>
@@ -657,12 +657,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-red-500 font-bold text-lg">
-                    VND{" "}
-                    {lesson.price
-                      ? lesson.price.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                        })
+                    {typeof lesson.price === "number" || typeof lesson.price === "string"
+                      ? formatPriceWithCommas(lesson.price)
                       : "Không có"}
+                    {" "}VND
                   </span>
                   {lesson.discount && (
                     <span className="text-xs text-gray-500 mt-1">

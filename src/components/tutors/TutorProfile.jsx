@@ -51,6 +51,8 @@ import {
 } from "../../components/api/auth";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import ConfirmDeleteLessonModal from "../modals/ConfirmDeleteLessonModal";
+import { languageList } from "../../utils/languageList";
+import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 
 // Global styles to remove focus borders and improve UI
 const globalStyles = (
@@ -322,6 +324,8 @@ const handleFileChange = (e) => {
   }
 };
 
+
+
 const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const { id } = useParams();
   const [tutorData, setTutorData] = useState(null);
@@ -346,6 +350,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const [lessonLoading, setLessonLoading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState(null);
+  const [showValidation, setShowValidation] = useState(false);
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
@@ -974,9 +979,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                               lessons.map((lesson) => (
                                 <TableRow key={lesson.id}>
                                   <TableCell>{lesson.name}</TableCell>
-                                  <TableCell>{lesson.languageCode}</TableCell>
+                                  <TableCell>{formatLanguageCode(lesson.languageCode)}</TableCell>
                                   <TableCell>
-                                    {lesson.price} {lesson.currency}
+                                    {formatPriceWithCommas(String(lesson.price))} VND
                                   </TableCell>
                                   <TableCell>{lesson.targetAudience}</TableCell>
                                   <TableCell
@@ -1573,6 +1578,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             onChange={(e) =>
               setLessonForm({ ...lessonForm, name: e.target.value })
             }
+            required
+            error={!lessonForm.name && showValidation}
+            helperText={!lessonForm.name && showValidation ? "Vui lòng nhập tên bài học" : ""}
           />
           <TextField
             label="Mô tả"
@@ -1582,6 +1590,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             onChange={(e) =>
               setLessonForm({ ...lessonForm, description: e.target.value })
             }
+            required
+            error={!lessonForm.description && showValidation}
+            helperText={!lessonForm.description && showValidation ? "Vui lòng nhập mô tả" : ""}
           />
           <TextField
             label="Ghi chú"
@@ -1600,6 +1611,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             onChange={(e) =>
               setLessonForm({ ...lessonForm, targetAudience: e.target.value })
             }
+            required
+            error={!lessonForm.targetAudience && showValidation}
+            helperText={!lessonForm.targetAudience && showValidation ? "Vui lòng nhập đối tượng" : ""}
           />
           <TextField
             label="Yêu cầu trước"
@@ -1609,16 +1623,30 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             onChange={(e) =>
               setLessonForm({ ...lessonForm, prerequisites: e.target.value })
             }
+            required
+            error={!lessonForm.prerequisites && showValidation}
+            helperText={!lessonForm.prerequisites && showValidation ? "Vui lòng nhập yêu cầu trước" : ""}
           />
-          <TextField
-            label="Ngôn ngữ"
-            fullWidth
-            margin="normal"
-            value={lessonForm.languageCode}
-            onChange={(e) =>
-              setLessonForm({ ...lessonForm, languageCode: e.target.value })
-            }
-          />
+          <FormControl fullWidth margin="normal" required error={!lessonForm.languageCode && showValidation}>
+            <InputLabel id="language-select-label">Ngôn ngữ</InputLabel>
+            <Select
+              labelId="language-select-label"
+              value={lessonForm.languageCode}
+              label="Ngôn ngữ"
+              onChange={(e) =>
+                setLessonForm({ ...lessonForm, languageCode: e.target.value })
+              }
+            >
+              {languageList.map((lang) => (
+                <MenuItem key={lang.code} value={lang.code}>
+                  {lang.name}
+                </MenuItem>
+              ))}
+            </Select>
+            {!lessonForm.languageCode && showValidation && (
+              <Typography color="error" variant="caption">Vui lòng chọn ngôn ngữ</Typography>
+            )}
+          </FormControl>
           <TextField
             label="Danh mục"
             fullWidth
@@ -1627,25 +1655,23 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             onChange={(e) =>
               setLessonForm({ ...lessonForm, category: e.target.value })
             }
+            required
+            error={!lessonForm.category && showValidation}
+            helperText={!lessonForm.category && showValidation ? "Vui lòng nhập danh mục" : ""}
           />
           <TextField
             label="Giá"
-            type="number"
+            type="text"
             fullWidth
             margin="normal"
             value={lessonForm.price}
-            onChange={(e) =>
-              setLessonForm({ ...lessonForm, price: e.target.value })
-            }
-          />
-          <TextField
-            label="Tiền tệ"
-            fullWidth
-            margin="normal"
-            value={lessonForm.currency}
-            onChange={(e) =>
-              setLessonForm({ ...lessonForm, currency: e.target.value })
-            }
+            onChange={(e) => {
+              const formatted = formatNumberWithCommas(e.target.value);
+              setLessonForm({ ...lessonForm, price: formatted });
+            }}
+            required
+            error={!lessonForm.price && showValidation}
+            helperText={!lessonForm.price && showValidation ? "Vui lòng nhập giá tiền" : ""}
           />
         </DialogContent>
         <DialogActions>
@@ -1653,6 +1679,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
           <Button
             variant="contained"
             onClick={async () => {
+              setShowValidation(true);
+              if (
+                !lessonForm.name ||
+                !lessonForm.description ||
+                !lessonForm.targetAudience ||
+                !lessonForm.prerequisites ||
+                !lessonForm.languageCode ||
+                !lessonForm.category ||
+                !lessonForm.price
+              ) {
+                return;
+              }
               setLessonLoading(true);
               try {
                 if (editLesson) {
@@ -1667,6 +1705,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                   setLessons([...lessons, res.data]);
                 }
                 setLessonDialogOpen(false);
+                setShowValidation(false);
               } catch (err) {
                 alert("Lưu bài học thất bại: " + err.message);
               } finally {
@@ -1675,7 +1714,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             }}
             disabled={lessonLoading}
           >
-            {editLesson ? "Lưu thay đổi" : "Tạo mới"}
+            {editLesson ? "Lưu bài học" : "Tạo bài học"}
           </Button>
         </DialogActions>
       </Dialog>
