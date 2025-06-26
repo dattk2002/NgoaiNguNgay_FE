@@ -20,8 +20,6 @@ const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
 const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
   const navigate = useNavigate();
 
-  console.log("User prop in RecommendTutorCard:", tutor);
-
   if (!tutor) {
     return null;
   }
@@ -32,7 +30,6 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
   const name = tutor.name || "Unnamed Tutor";
   const isProfessional = tutor.isProfessional;
   const tag = tutor.isProfessional ? "Professional Teacher" : "";
-  console.log("Is Pro: ", isProfessional);
 
   const location = tutor.address ? `${tutor.address}` : "";
   const description = tutor.description || "Empty";

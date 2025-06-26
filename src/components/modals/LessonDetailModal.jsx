@@ -105,7 +105,7 @@ const LessonDetailModal = ({ isOpen, onClose, lesson, loading, error }) => {
               <div className="mb-3 text-gray-900">
                 {lesson.levels?.join(" - ") ||
                   lesson.prerequisites ||
-                  "A1 - C2"}
+                  "N/A"}
               </div>
 
               {/* Category */}
