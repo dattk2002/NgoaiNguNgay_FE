@@ -149,7 +149,7 @@ function AppContent({
             }
           />
           <Route
-            path="/tutorprofile/:id"
+            path="/tutor-profile/:id"
             element={
               <TutorProfile
                 user={user}

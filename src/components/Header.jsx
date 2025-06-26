@@ -399,7 +399,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
                         )}
                         {user?.id && (
                           <Link
-                            to={`/tutorprofile/${user?.id}`}
+                            to={`/tutor-profile/${user?.id}`}
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             onClick={() => setIsDropdownOpen(false)}
                           >
