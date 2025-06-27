@@ -53,6 +53,7 @@ import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import ConfirmDeleteLessonModal from "../modals/ConfirmDeleteLessonModal";
 import { languageList } from "../../utils/languageList";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
+import formatPriceInputWithCommas from "../../utils/formatPriceInputWithCommas";
 
 // Global styles to remove focus borders and improve UI
 const globalStyles = (
@@ -323,8 +324,6 @@ const handleFileChange = (e) => {
     uploadProfileImage(file);
   }
 };
-
-
 
 const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const { id } = useParams();
@@ -1666,7 +1665,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             margin="normal"
             value={lessonForm.price}
             onChange={(e) => {
-              const formatted = formatNumberWithCommas(e.target.value);
+              const formatted = formatPriceInputWithCommas(e.target.value);
               setLessonForm({ ...lessonForm, price: formatted });
             }}
             required
@@ -1693,15 +1692,21 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
               }
               setLessonLoading(true);
               try {
+                // Prepare lesson data with price as a number
+                const lessonData = {
+                  ...lessonForm,
+                  price: Number(lessonForm.price.replace(/,/g, "")), // <-- convert to number
+                };
+
                 if (editLesson) {
-                  await updateLesson(editLesson.id, lessonForm);
+                  await updateLesson(editLesson.id, lessonData);
                   setLessons(
                     lessons.map((l) =>
-                      l.id === editLesson.id ? { ...l, ...lessonForm } : l
+                      l.id === editLesson.id ? { ...l, ...lessonData } : l
                     )
                   );
                 } else {
-                  const res = await createLesson(lessonForm);
+                  const res = await createLesson(lessonData);
                   setLessons([...lessons, res.data]);
                 }
                 setLessonDialogOpen(false);
