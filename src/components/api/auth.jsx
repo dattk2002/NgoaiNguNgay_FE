@@ -746,3 +746,59 @@ export async function deleteLesson(lessonId) {
     throw error;
   }
 }
+
+export async function fetchTutorWeeklyPattern(tutorId) {
+  try {
+    const response = await callApi(`/api/schedule/tutors/${tutorId}/weekly-patterns`, "GET");
+    
+    if (response && response.data) {
+      console.log("Weekly patterns fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("No weekly pattern data found for this tutor.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor weekly patterns:", error.message);
+    throw error;
+  }
+}
+
+export async function editTutorWeeklyPattern(patternData) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi("/api/schedule/weekly-pattern", "PUT", patternData, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to edit tutor weekly pattern:", error.message);
+    throw error;
+  }
+}
+
+export async function deleteTutorWeeklyPattern(patternId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(`/api/schedule/weekly-pattern/${patternId}`, "DELETE", null, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to delete weekly pattern:", error.message);
+    throw error;
+  }
+}
+
+export async function fetchTutorWeekSchedule(tutorId, startDate) {
+  try {
+    const response = await callApi(`/api/schedule/tutors/${tutorId}/week?startDate=${startDate}`, "GET");
+    
+    if (response && response.data) {
+      console.log("Weekly schedule fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("No weekly schedule data found for this tutor.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor weekly schedule:", error.message);
+    throw error;
+  }
+}
