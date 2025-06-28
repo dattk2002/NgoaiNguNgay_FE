@@ -88,6 +88,8 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordValidationError, setPasswordValidationError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [fullNameError, setFullNameError] = useState("");
 
   const modalRef = useRef(null);
 
@@ -129,9 +131,14 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
     setError(""); // Clear general error
     let localPasswordError = "";
     let localConfirmPasswordError = "";
+    let localFullNameError = "";
     let formIsValid = true;
 
     // 1. Validate presence of all required fields
+    if (!fullName) {
+      localFullNameError = "Họ và tên là bắt buộc";
+      formIsValid = false;
+    }
     if (!email) {
       // Assuming you might want an email error state too: setEmailError(FIELD_REQUIRED_MESSAGE("Email"));
       setError("Vui lòng điền đầy đủ thông tin.");
@@ -152,6 +159,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
         // Set errors even if we return early, so fields are highlighted
         setPasswordValidationError(localPasswordError);
         setConfirmPasswordError(localConfirmPasswordError);
+        setFullNameError(localFullNameError);
         setIsLoading(false);
         return;
     }
@@ -176,10 +184,11 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
 
     setPasswordValidationError(localPasswordError);
     setConfirmPasswordError(localConfirmPasswordError);
+    setFullNameError(localFullNameError);
 
     if (!formIsValid) {
       // If specific errors are set, and no general error from terms/emptiness, set a generic one.
-      if (!error && (localPasswordError || localConfirmPasswordError)) {
+      if (!error && (localPasswordError || localConfirmPasswordError || localFullNameError)) {
         setError("Vui lòng sửa các lỗi được đánh dấu.");
       }
       setIsLoading(false);
@@ -188,7 +197,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
 
     setIsLoading(true);
     try {
-      const response = await register(email, password, confirmPassword);
+      const response = await register(email, password, confirmPassword, fullName);
       console.log("Registration successful:", response);
       onSignUpSuccess(email);
       onClose();
@@ -300,19 +309,40 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
 
             <form onSubmit={handleSignUp} className="flex flex-col gap-4">
               <div className="relative">
-                <label htmlFor="email" className="sr-only">
-                  Email
+                <label htmlFor="fullName" className="sr-only">
+                  Họ và tên
                 </label>
                 <input
-                  type="email"
-                  id="email"
-                  placeholder="Địa chỉ Email"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                  className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                  type="text"
+                  id="fullName"
+                  placeholder="Họ và tên"
+                  value={fullName}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    setFullNameError("");
+                    setError("");
+                  }}
+                  className={`w-full px-4 py-3 border text-black rounded-lg focus:outline-none focus:ring-1 ${fullNameError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-black focus:border-black'}`}
                   required
                 />
               </div>
+
+                  <div className="relative">
+                    <div className="relative">
+                      <label htmlFor="email" className="sr-only">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        placeholder="Địa chỉ Email"
+                        value={email}
+                        onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                        className="w-full px-4 py-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                        required
+                      />
+                    </div>
+                  </div>
 
                   <div className="relative">
                     <div className="relative">
