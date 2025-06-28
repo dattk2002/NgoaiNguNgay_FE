@@ -5,6 +5,7 @@ import {
   fetchRecommendTutor,
   fetchTutorLesson,
   fetchTutorLessonDetailById,
+  fetchTutorWeekSchedule,
 } from "../api/auth";
 import { formatTutorDate } from "../../utils/formatTutorDate";
 import { FaStar, FaBook, FaUsers, FaClock, FaHeart } from "react-icons/fa";
@@ -51,6 +52,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [lessonDetail, setLessonDetail] = useState(null);
   const [loadingLessonDetail, setLoadingLessonDetail] = useState(false);
   const [lessonDetailError, setLessonDetailError] = useState(null);
+
+  const [weeklySchedule, setWeeklySchedule] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -172,14 +175,20 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         setTeacher(formattedTeacherData);
         setAvailabilityData(blockAvailability); // Set processed availability data
 
+        // Set up availability days and dates (start from next Monday)
         const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+        const daysUntilMonday = (dayOfWeek === 1) ? 0 : (dayOfWeek === 0 ? 1 : (8 - dayOfWeek));
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + daysUntilMonday);
+
         const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const next7Days = [];
         const next7Dates = [];
 
         for (let i = 0; i < 7; i++) {
-          const date = new Date(today);
-          date.setDate(today.getDate() + i);
+          const date = new Date(monday);
+          date.setDate(monday.getDate() + i);
           next7Days.push(daysOfWeek[date.getDay()]);
           next7Dates.push(date.getDate());
         }
@@ -215,6 +224,13 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         // Fetch lessons for this tutor
         const lessonsData = await fetchTutorLesson(id);
         setLessons(lessonsData);
+
+        // Fetch the weekly schedule
+        const startDate = "2025-06-28 00:00:00"; // Example start date
+        const scheduleData = await fetchTutorWeekSchedule(id, startDate);
+        setWeeklySchedule(scheduleData);
+
+        console.log("Weekly Schedule Data:", scheduleData);
       } catch (err) {
         console.error("Failed to fetch data:", err);
         setError(err.message || "Could not load data.");
@@ -270,6 +286,38 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     setIsLessonModalOpen(false);
     setLessonDetail(null);
     setLessonDetailError(null);
+  };
+
+  // Helper function to check if a time slot is available based on weekly schedule
+  const isTimeSlotAvailable = (timeRange, dayIndex) => {
+    if (!weeklySchedule || weeklySchedule.length === 0) return false;
+    
+    // Find the day data for the given day index
+    const dayData = weeklySchedule.find(day => {
+      const dayDate = new Date(day.date);
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + dayIndex);
+      return dayDate.getDate() === targetDate.getDate() && 
+             dayDate.getMonth() === targetDate.getMonth() && 
+             dayDate.getFullYear() === targetDate.getFullYear();
+    });
+
+    if (!dayData || !dayData.timeSlotIndex || dayData.timeSlotIndex.length === 0) {
+      return false;
+    }
+
+    // Convert time range to slot indices
+    const timeRangeToSlots = (range) => {
+      const [startTime] = range.split(' - ');
+      const [hours] = startTime.split(':');
+      const hour = parseInt(hours, 10);
+      return [hour * 2, hour * 2 + 1]; // Convert to 30-minute slot indices
+    };
+
+    const expectedSlots = timeRangeToSlots(timeRange);
+    
+    // Check if any of the expected slots are in the available slots
+    return expectedSlots.some(slot => dayData.timeSlotIndex.includes(slot));
   };
 
   if (loading)
@@ -354,8 +402,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       },
     ],
   };
-
-  // Helper function to format date
 
   // Define the labels for the tabs
   const tabLabels = [
@@ -714,18 +760,16 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                 <div className="text-sm text-gray-600 py-2 px-2 border-r border-b border-gray-200 last:border-b-0 flex items-center">
                   {timeRange}
                 </div>
-                {availabilityDays.map((day) => {
-                  const dayAbbrev = day.toLowerCase();
-                  const isAvailable =
-                    availabilityData[timeRange]?.[dayAbbrev] === true;
+                {availabilityDays.map((day, dayIndex) => {
+                  const isAvailable = isTimeSlotAvailable(timeRange, dayIndex);
 
                   return (
                     <div
                       key={`${timeRange}-${day}`}
                       className={`h-12 border border-gray-200 last:border-b-0 ${
                         isAvailable
-                          ? "bg-gray-100"
-                          : "bg-green-400 cursor-pointer hover:bg-green-500"
+                          ? "bg-[#98D45F] cursor-pointer hover:bg-[#7FC241]"
+                          : "bg-gray-100"
                       } ${
                         day === availabilityDays[availabilityDays.length - 1]
                           ? "border-r border-gray-200"

@@ -48,12 +48,17 @@ import {
   createLesson,
   updateLesson,
   deleteLesson,
+  fetchTutorWeeklyPattern,
+  editTutorWeeklyPattern,
+  deleteTutorWeeklyPattern,
 } from "../../components/api/auth";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import ConfirmDeleteLessonModal from "../modals/ConfirmDeleteLessonModal";
 import { languageList } from "../../utils/languageList";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 import formatPriceInputWithCommas from "../../utils/formatPriceInputWithCommas";
+import getWeekDates from "../../utils/getWeekDates";
+import ConfirmDeleteWeeklyPattern from "../modals/ConfirmDeleteWeeklyPattern";
 
 // Global styles to remove focus borders and improve UI
 const globalStyles = (
@@ -325,6 +330,26 @@ const handleFileChange = (e) => {
   }
 };
 
+function getNextMondayDateUTC() {
+  const today = new Date();
+  const day = today.getUTCDay();
+  const daysUntilMonday = (8 - day) % 7 || 7;
+  const nextMonday = new Date(Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate() + daysUntilMonday,
+    0, 0, 0, 0
+  ));
+  return nextMonday;
+}
+
+const RedStyledButton = styled(StyledButton)(({ theme }) => ({
+  backgroundColor: "#f44336", // Red color
+  "&:hover": {
+    backgroundColor: "#d32f2f", // Darker red on hover
+  },
+}));
+
 const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const { id } = useParams();
   const [tutorData, setTutorData] = useState(null);
@@ -350,6 +375,54 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState(null);
   const [showValidation, setShowValidation] = useState(false);
+  
+  // New state for weekly patterns
+  const [weeklyPatterns, setWeeklyPatterns] = useState([]);
+  const [availabilityData, setAvailabilityData] = useState({});
+  const [availabilityDays, setAvailabilityDays] = useState([]);
+  const [availabilityDates, setAvailabilityDates] = useState([]);
+
+  // Update the time ranges to be hourly instead of 4-hour blocks
+  const timeRanges = [
+    "00:00 - 01:00",
+    "01:00 - 02:00",
+    "02:00 - 03:00",
+    "03:00 - 04:00",
+    "04:00 - 05:00",
+    "05:00 - 06:00",
+    "06:00 - 07:00",
+    "07:00 - 08:00",
+    "08:00 - 09:00",
+    "09:00 - 10:00",
+    "10:00 - 11:00",
+    "11:00 - 12:00",
+    "12:00 - 13:00",
+    "13:00 - 14:00",
+    "14:00 - 15:00",
+    "15:00 - 16:00",
+    "16:00 - 17:00",
+    "17:00 - 18:00",
+    "18:00 - 19:00",
+    "19:00 - 20:00",
+    "20:00 - 21:00",
+    "21:00 - 22:00",
+    "22:00 - 23:00",
+    "23:00 - 24:00",
+  ];
+
+  const [editPatternDialogOpen, setEditPatternDialogOpen] = useState(false);
+  const [editPatternData, setEditPatternData] = useState({
+    appliedFrom: "",
+    slots: [],
+  });
+  const [patternLoading, setPatternLoading] = useState(false);
+  const [editPatternSlots, setEditPatternSlots] = useState({});
+
+  const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+  const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // API: 2=Mon, ..., 7=Sat, 1=Sun
+
+  const [deletePatternModalOpen, setDeletePatternModalOpen] = useState(false);
+  const [patternToDelete, setPatternToDelete] = useState(null);
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
@@ -376,9 +449,97 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
           ) {
             setTimeSlots(response.data.availabilityPatterns);
           }
+
+          // Fetch weekly patterns after fetching tutor data
+          const patterns = await fetchTutorWeeklyPattern(id);
+          setWeeklyPatterns(patterns); // Update the state with fetched patterns
+
+          // Process the patterns to create availability data
+          const blockAvailability = {};
+          timeRanges.forEach((range) => {
+            blockAvailability[range] = {
+              mon: false,
+              tue: false,
+              wed: false,
+              thu: false,
+              fri: false,
+              sat: false,
+              sun: false,
+            };
+          });
+
+          // Process slots from the API response
+          if (patterns && patterns.length > 0) {
+            // Sort patterns by AppliedFrom to get the most recent one
+            const sortedPatterns = patterns.sort((a, b) => 
+              new Date(b.appliedFrom) - new Date(a.appliedFrom)
+            );
+            
+            // Get the most recent pattern (first after sorting)
+            const latestPattern = sortedPatterns[0];
+            
+            if (latestPattern.slots && Array.isArray(latestPattern.slots)) {
+              latestPattern.slots.forEach((slot) => {
+                // Convert slotIndex to time range
+                const hour = Math.floor(slot.slotIndex / 2);
+                const minute = (slot.slotIndex % 2) * 30;
+                
+                let timeRangeKey = null;
+
+                // Map to hourly time ranges
+                const startHour = hour;
+                const endHour = hour + 1;
+                timeRangeKey = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
+
+                if (timeRangeKey && blockAvailability[timeRangeKey]) {
+                  const dayMap = {
+                    1: 'sun', // Sunday
+                    2: 'mon', // Monday
+                    3: 'tue', // Tuesday
+                    4: 'wed', // Wednesday
+                    5: 'thu', // Thursday
+                    6: 'fri', // Friday
+                    7: 'sat'  // Saturday
+                  };
+                  
+                  const dayKey = dayMap[slot.dayInWeek];
+                  if (dayKey) {
+                    if (slot.type === 0) {
+                      blockAvailability[timeRangeKey][dayKey] = true;
+                    }
+                  }
+                }
+              });
+            }
+          }
+
+          setAvailabilityData(blockAvailability);
+
+          // Set up availability days and dates (start from next Monday)
+          const today = new Date();
+          const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+          const daysUntilMonday = (dayOfWeek === 1) ? 0 : (dayOfWeek === 0 ? 1 : (8 - dayOfWeek));
+          const monday = new Date(today);
+          monday.setDate(today.getDate() + daysUntilMonday);
+
+          const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          const next7Days = [];
+          const next7Dates = [];
+
+          for (let i = 0; i < 7; i++) {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
+            next7Days.push(daysOfWeek[date.getDay()]);
+            next7Dates.push(date.getDate());
+          }
+
+          setAvailabilityDays(next7Days);
+          setAvailabilityDates(next7Dates);
+
         } else {
           throw new Error("Invalid data format received from server");
         }
+
       } catch (error) {
         console.error("Error fetching tutor data:", error);
         setError(error.message || "Failed to load tutor profile");
@@ -408,6 +569,151 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
     };
     fetchLessons();
   }, [id]);
+
+  // Update the useEffect for fetching weekly patterns
+  useEffect(() => {
+    if (!id) return;
+    
+    const fetchWeeklyPatterns = async () => {
+      try {
+        const patterns = await fetchTutorWeeklyPattern(id);
+        setWeeklyPatterns(patterns);
+        
+        // Process the patterns to create availability data
+        const blockAvailability = {};
+        timeRanges.forEach((range) => {
+          blockAvailability[range] = {
+            mon: false,
+            tue: false,
+            wed: false,
+            thu: false,
+            fri: false,
+            sat: false,
+            sun: false,
+          };
+        });
+
+        // Process slots from the API response
+        if (patterns && patterns.length > 0) {
+          // Sort patterns by AppliedFrom to get the most recent one
+          const sortedPatterns = patterns.sort((a, b) => 
+            new Date(b.appliedFrom) - new Date(a.appliedFrom)
+          );
+          
+          // Get the most recent pattern (first after sorting)
+          const latestPattern = sortedPatterns[0];
+          
+          if (latestPattern.slots && Array.isArray(latestPattern.slots)) {
+            latestPattern.slots.forEach((slot) => {
+              // Convert slotIndex to time range
+              // SlotIndex 0-47 represents 30-minute intervals from 00:00 to 23:30
+              const hour = Math.floor(slot.slotIndex / 2);
+              const minute = (slot.slotIndex % 2) * 30;
+              
+              let timeRangeKey = null;
+
+              // Map to hourly time ranges
+              // Each hour has 2 slots (0-1 and 1-2)
+              const startHour = hour;
+              const endHour = hour + 1;
+              
+              // Format as "HH:00 - HH:00"
+              timeRangeKey = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
+
+              if (timeRangeKey && blockAvailability[timeRangeKey]) {
+                // Map dayInWeek (1-7, Sunday=1 to Saturday=7) to day keys
+                const dayMap = {
+                  1: 'sun', // Sunday
+                  2: 'mon', // Monday
+                  3: 'tue', // Tuesday
+                  4: 'wed', // Wednesday
+                  5: 'thu', // Thursday
+                  6: 'fri', // Friday
+                  7: 'sat'  // Saturday
+                };
+                
+                const dayKey = dayMap[slot.dayInWeek];
+                if (dayKey) {
+                  // Only mark as available if type is 0 (Available)
+                  // Type 0 = Available, Type 2 = Unavailable, etc.
+                  if (slot.type === 0) {
+                    blockAvailability[timeRangeKey][dayKey] = true;
+                  }
+                }
+              }
+            });
+          }
+        }
+
+        setAvailabilityData(blockAvailability);
+
+        // Set up availability days and dates (start from next Monday)
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+        const daysUntilMonday = (dayOfWeek === 1) ? 0 : (dayOfWeek === 0 ? 1 : (8 - dayOfWeek));
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + daysUntilMonday);
+
+        const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const next7Days = [];
+        const next7Dates = [];
+
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(monday);
+          date.setDate(monday.getDate() + i);
+          next7Days.push(daysOfWeek[date.getDay()]);
+          next7Dates.push(date.getDate());
+        }
+
+        setAvailabilityDays(next7Days);
+        setAvailabilityDates(next7Dates);
+
+      } catch (err) {
+        console.error("Failed to fetch weekly patterns:", err);
+        // Don't set error state here as it's not critical for the main functionality
+      }
+    };
+
+    fetchWeeklyPatterns();
+  }, [id]);
+
+  const openEditPatternDialog = () => {
+    // Build a map: { [dayIndex]: Set(slotIndex) }
+    const latestPattern = weeklyPatterns.length > 0
+      ? weeklyPatterns.sort((a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom))[0]
+      : { slots: [] };
+
+    const slotMap = {};
+    latestPattern.slots.forEach(slot => {
+      if (slot.type === 0) {
+        if (!slotMap[slot.dayInWeek]) slotMap[slot.dayInWeek] = new Set();
+        slotMap[slot.dayInWeek].add(slot.slotIndex);
+      }
+    });
+
+    setEditPatternSlots(slotMap);
+    setEditPatternData({
+      appliedFrom: getNextMondayDateUTC().toISOString(),
+      slots: latestPattern.slots,
+    });
+    setEditPatternDialogOpen(true);
+  };
+
+  // Only define weekInfo if the dialog is open and appliedFrom is set
+  let weekInfo = [];
+  if (editPatternDialogOpen && editPatternData.appliedFrom) {
+    const appliedMonday = new Date(editPatternData.appliedFrom);
+    weekInfo = getWeekDates(appliedMonday);
+  }
+
+  // Function to open the delete confirmation dialog
+  const openDeletePatternDialog = (patternId) => {
+    setPatternToDelete(patternId);
+    setDeletePatternModalOpen(true);
+  };
+
+  // After creating a new pattern, fetch the latest patterns
+
 
   if (loading) {
     return (
@@ -809,7 +1115,24 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                         Lịch trình khả dụng
                       </SectionTitle>
 
-                      {timeSlots && timeSlots.length > 0 ? (
+                      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2, gap: 4 }}>
+                        {weeklyPatterns && weeklyPatterns.length > 0 ? (
+                          <>
+                            <StyledButton onClick={openEditPatternDialog}>
+                              Chỉnh sửa lịch trình
+                            </StyledButton>
+                            <RedStyledButton onClick={() => openDeletePatternDialog(weeklyPatterns[0]?.id)}>
+                              Xóa lịch trình
+                            </RedStyledButton>
+                          </>
+                        ) : (
+                          <StyledButton onClick={openEditPatternDialog}>
+                            Tạo lịch trình
+                          </StyledButton>
+                        )}
+                      </Box>
+
+                      {weeklyPatterns && weeklyPatterns.length > 0 ? (
                         <Box
                           sx={{
                             backgroundColor: "#ffffff",
@@ -822,102 +1145,215 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                             boxSizing: "border-box",
                           }}
                         >
-                          <TableContainer>
-                            <Table>
-                              <TableHead>
-                                <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-                                  <TableCell
+                          {/* Enhanced Weekly Schedule Grid */}
+                          <Box
+                            sx={{
+                              overflowX: "auto",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "8px",
+                              maxHeight: "600px", // Add max height for scrolling
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: "140px repeat(7, 1fr)", // Adjusted width for weekdays
+                                minWidth: "600px",
+                              }}
+                            >
+                              {/* Header row */}
+                              <Box
+                                sx={{
+                                  p: 1.5, // Reduced padding
+                                  backgroundColor: "#f8fafc",
+                                  borderBottom: "1px solid #e2e8f0",
+                                  borderRight: "1px solid #e2e8f0",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontWeight: 600,
+                                  color: "#1e293b",
+                                  fontSize: "0.875rem", // Smaller font
+                                  position: "sticky",
+                                  top: 0,
+                                  zIndex: 1,
+                                }}
+                              >
+                                Thời gian
+                              </Box>
+                              {availabilityDays.map((day, index) => (
+                                <Box
+                                  key={day}
+                                  sx={{
+                                    p: 1.5, // Reduced padding
+                                    backgroundColor: "#f8fafc",
+                                    borderBottom: "1px solid #e2e8f0",
+                                    borderRight: index === availabilityDays.length - 1 ? "none" : "1px solid #e2e8f0",
+                                    textAlign: "center",
+                                    fontWeight: 600,
+                                    color: "#1e293b",
+                                    fontSize: "0.875rem", // Smaller font
+                                    position: "sticky",
+                                    top: 0,
+                                    zIndex: 1,
+                                  }}
+                                >
+                                  <Box sx={{ fontSize: "0.75rem" }}>
+                                    {day === "Mon"
+                                      ? "T2"
+                                      : day === "Tue"
+                                      ? "T3"
+                                      : day === "Wed"
+                                      ? "T4"
+                                      : day === "Thu"
+                                      ? "T5"
+                                      : day === "Fri"
+                                      ? "T6"
+                                      : day === "Sat"
+                                      ? "T7"
+                                      : "CN"}
+                                  </Box>
+                                  <Box sx={{ fontSize: "0.625rem", color: "#64748b", mt: 0.25 }}>
+                                    {availabilityDates[index]}
+                                  </Box>
+                                </Box>
+                              ))}
+
+                              {/* Time slots */}
+                              {Array.from({ length: 24 }).map((_, hour) => (
+                                <React.Fragment key={hour}>
+                                  {/* Time label cell */}
+                                  <Box
                                     sx={{
-                                      fontWeight: 700,
-                                      color: "#1e293b",
-                                      fontSize: "1rem",
-                                      py: 2,
+                                      p: 1,
+                                      textAlign: "center",
+                                      display: "flex", alignItems: "center", justifyContent: "center"
                                     }}
                                   >
-                                    Ngày
-                                  </TableCell>
-                                  <TableCell
-                                    sx={{
-                                      fontWeight: 700,
-                                      color: "#1e293b",
-                                      fontSize: "1rem",
-                                      py: 2,
-                                    }}
-                                  >
-                                    Thời gian
-                                  </TableCell>
-                                  <TableCell
-                                    sx={{
-                                      fontWeight: 700,
-                                      color: "#1e293b",
-                                      fontSize: "1rem",
-                                      py: 2,
-                                    }}
-                                  >
-                                    Trạng thái
-                                  </TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {timeSlots.map((slot, index) => (
-                                  <TableRow
-                                    key={index}
-                                    sx={{
-                                      "&:hover": {
-                                        backgroundColor: "#f8fafc",
-                                      },
-                                    }}
-                                  >
-                                    <TableCell sx={{ py: 2.5 }}>
-                                      <Typography
-                                        variant="body1"
+                                    {`${hour.toString().padStart(2, "0")}:00 - ${(hour + 1).toString().padStart(2, "0")}:00`}
+                                  </Box>
+                                  {/* For each day, render a cell with two 30-min slots */}
+                                  {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                                    const slotIndex1 = hour * 2;     // :00 - :30
+                                    const slotIndex2 = hour * 2 + 1; // :30 - :00 next hour
+                                    const isActive1 = editPatternSlots[dayInWeek]?.has(slotIndex1);
+                                    const isActive2 = editPatternSlots[dayInWeek]?.has(slotIndex2);
+
+                                    return (
+                                      <Box
+                                        key={dayIdx}
                                         sx={{
-                                          fontWeight: 600,
-                                          color: "#334155",
+                                          height: 65,
+                                          display: "flex",
+                                          flexDirection: "column", // Stack vertically
+                                          border: "1px solid #e2e8f0",
+                                          backgroundColor: "#f1f5f9",
+                                          position: "relative",
+                                          minWidth: 30,
                                         }}
                                       >
-                                        {slot.dayOfWeek === "MONDAY"
-                                          ? "Thứ Hai"
-                                          : slot.dayOfWeek === "TUESDAY"
-                                          ? "Thứ Ba"
-                                          : slot.dayOfWeek === "WEDNESDAY"
-                                          ? "Thứ Tư"
-                                          : slot.dayOfWeek === "THURSDAY"
-                                          ? "Thứ Năm"
-                                          : slot.dayOfWeek === "FRIDAY"
-                                          ? "Thứ Sáu"
-                                          : slot.dayOfWeek === "SATURDAY"
-                                          ? "Thứ Bảy"
-                                          : slot.dayOfWeek === "SUNDAY"
-                                          ? "Chủ Nhật"
-                                          : slot.dayOfWeek}
-                                      </Typography>
-                                    </TableCell>
-                                    <TableCell sx={{ py: 2.5 }}>
-                                      <Typography
-                                        variant="body1"
-                                        sx={{ color: "#475569" }}
-                                      >
-                                        {`${slot.startTime} - ${slot.endTime}`}
-                                      </Typography>
-                                    </TableCell>
-                                    <TableCell sx={{ py: 2.5 }}>
-                                      <StyledChip
-                                        label={
-                                          slot.isAvailable
-                                            ? "Có sẵn"
-                                            : "Không có sẵn"
-                                        }
-                                        color={
-                                          slot.isAvailable ? "success" : "error"
-                                        }
-                                      />
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </TableContainer>
+                                        {/* Top 30-min slot */}
+                                        <Box
+                                          sx={{
+                                            flex: 1,
+                                            width: "100%",
+                                            backgroundColor: isActive1 ? "#98D45F" : "#f1f5f9",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            borderBottom: "1px solid #e2e8f0",
+                                            transition: "all 0.2s",
+                                          }}
+                                        >
+                                          {/* No dot here */}
+                                        </Box>
+                                        {/* Bottom 30-min slot */}
+                                        <Box
+                                          sx={{
+                                            flex: 1,
+                                            width: "100%",
+                                            backgroundColor: isActive2 ? "#98D45F" : "#f1f5f9",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            transition: "all 0.2s",
+                                          }}
+                                        >
+                                          {/* No dot here */}
+                                        </Box>
+                                      </Box>
+                                    );
+                                  })}
+                                </React.Fragment>
+                              ))}
+                            </Box>
+                          </Box>
+
+                          {/* Legend and additional info */}
+                          <Box
+                            sx={{
+                              p: 3,
+                              backgroundColor: "#f8fafc",
+                              borderTop: "1px solid #e2e8f0",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 3,
+                                mb: 2,
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    width: "6px", // Smaller indicator
+                                    height: "6px",
+                                    borderRadius: "50%",
+                                    backgroundColor: "#98D45F",
+                                  }}
+                                />
+                                <Typography variant="body2" sx={{ color: "#475569" }}>
+                                  Có sẵn
+                                </Typography>
+                              </Box>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    width: "6px", // Smaller indicator
+                                    height: "6px",
+                                    borderRadius: "50%",
+                                    backgroundColor: "#e2e8f0",
+                                  }}
+                                />
+                                <Typography variant="body2" sx={{ color: "#475569" }}>
+                                  Không có sẵn
+                                </Typography>
+                              </Box>
+                            </Box>
+                            
+                            <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
+                              Dựa trên múi giờ của bạn (UTC+07:00) • Cập nhật lần cuối: {weeklyPatterns.length > 0 ? new Date(weeklyPatterns.sort((a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom))[0].appliedFrom).toLocaleDateString('vi-VN') : 'Không xác định'}
+                            </Typography>
+                            
+                            {/* Show pattern count for debugging */}
+                            <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.75rem", mt: 1 }}>
+                              Số lượng mẫu lịch trình: {weeklyPatterns.length}
+                            </Typography>
+                          </Box>
                         </Box>
                       ) : (
                         <Alert
@@ -1738,6 +2174,192 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             alert("Xóa bài học thất bại: " + err.message);
           } finally {
             setLessonLoading(false);
+          }
+        }}
+      />
+
+      <Dialog
+        open={editPatternDialogOpen}
+        onClose={() => setEditPatternDialogOpen(false)}
+        maxWidth="xl"
+        fullWidth
+        PaperProps={{
+          sx: { minWidth: 1100 }
+        }}
+      >
+        <DialogTitle>
+          {weekInfo.length > 0
+            ? `Chỉnh sửa lịch trình khả dụng (${weekInfo[0].label} ${weekInfo[0].date} - ${weekInfo[6].label} ${weekInfo[6].date})`
+            : "Chỉnh sửa lịch trình khả dụng"}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle1" sx={{ mb: 2 }}>
+            Nhấp vào các ô để bật/tắt trạng thái khả dụng
+          </Typography>
+          <Box sx={{ overflowX: "auto" }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "140px repeat(7, 1fr)", // Adjusted width for weekdays
+                minWidth: "900px",
+              }}
+            >
+              {/* Header row */}
+              <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>Thời gian</Box>
+              {weekInfo.map((d, i) => (
+                <Box key={i} sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
+                  <div style={{ fontSize: 14 }}>{d.label}</div>
+                  <div style={{ fontSize: 13, color: "#64748b" }}>{d.date}</div>
+                </Box>
+              ))}
+              {/* Time slots */}
+              {Array.from({ length: 24 }).map((_, hour) => (
+                <React.Fragment key={hour}>
+                  {/* Time label cell */}
+                  <Box sx={{ p: 1, textAlign: "center", whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {`${hour.toString().padStart(2, "0")}:00 - ${(hour + 1).toString().padStart(2, "0")}:00`}
+                  </Box>
+                  {/* For each day, render a cell with two 30-min slots */}
+                  {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                    const slotIndex1 = hour * 2;     // :00 - :30
+                    const slotIndex2 = hour * 2 + 1; // :30 - :00 next hour
+                    const isActive1 = editPatternSlots[dayInWeek]?.has(slotIndex1);
+                    const isActive2 = editPatternSlots[dayInWeek]?.has(slotIndex2);
+
+                    return (
+                      <Box
+                        key={dayIdx}
+                        sx={{
+                          height: 65,
+                          display: "flex",
+                          flexDirection: "column", // Stack vertically
+                          border: "1px solid #e2e8f0",
+                          backgroundColor: "#f1f5f9",
+                          position: "relative",
+                          minWidth: 30,
+                        }}
+                      >
+                        {/* Top 30-min slot */}
+                        <Box
+                          sx={{
+                            flex: 1,
+                            width: "100%",
+                            cursor: "pointer",
+                            backgroundColor: isActive1 ? "#98D45F" : "#f1f5f9",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderBottom: "1px solid #e2e8f0",
+                            transition: "all 0.2s",
+                            "&:hover": { backgroundColor: isActive1 ? "#7fc241" : "#bbf7d0" },
+                          }}
+                          onClick={() => {
+                            setEditPatternSlots(prev => {
+                              const newMap = { ...prev };
+                              const prevSet = newMap[dayInWeek] ? new Set(newMap[dayInWeek]) : new Set();
+                              if (prevSet.has(slotIndex1)) {
+                                prevSet.delete(slotIndex1);
+                              } else {
+                                prevSet.add(slotIndex1);
+                              }
+                              newMap[dayInWeek] = prevSet;
+                              return { ...newMap };
+                            });
+                          }}
+                        >
+                          {/* No dot here */}
+                        </Box>
+                        {/* Bottom 30-min slot */}
+                        <Box
+                          sx={{
+                            flex: 1,
+                            width: "100%",
+                            cursor: "pointer",
+                            backgroundColor: isActive2 ? "#98D45F" : "#f1f5f9",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all 0.2s",
+                            "&:hover": { backgroundColor: isActive2 ? "#7fc241" : "#bbf7d0" },
+                          }}
+                          onClick={() => {
+                            setEditPatternSlots(prev => {
+                              const newMap = { ...prev };
+                              const prevSet = newMap[dayInWeek] ? new Set(newMap[dayInWeek]) : new Set();
+                              if (prevSet.has(slotIndex2)) {
+                                prevSet.delete(slotIndex2);
+                              } else {
+                                prevSet.add(slotIndex2);
+                              }
+                              newMap[dayInWeek] = prevSet;
+                              return { ...newMap };
+                            });
+                          }}
+                        >
+                          {/* No dot here */}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditPatternDialogOpen(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              setPatternLoading(true);
+              try {
+                // Convert slot map to array
+                const slots = [];
+                Object.entries(editPatternSlots).forEach(([dayInWeek, slotSet]) => {
+                  slotSet.forEach(slotIndex => {
+                    slots.push({
+                      type: 0,
+                      dayInWeek: Number(dayInWeek),
+                      slotIndex: Number(slotIndex),
+                    });
+                  });
+                });
+
+                await editTutorWeeklyPattern({
+                  appliedFrom: editPatternData.appliedFrom,
+                  slots,
+                });
+                setEditPatternDialogOpen(false);
+                // Refresh weekly patterns after update
+                const updatedPatterns = await fetchTutorWeeklyPattern(id);
+                setWeeklyPatterns(updatedPatterns);
+              } catch (err) {
+                alert("Cập nhật lịch trình thất bại: " + err.message);
+              } finally {
+                setPatternLoading(false);
+              }
+            }}
+            disabled={patternLoading}
+          >
+            Lưu thay đổi
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <ConfirmDeleteWeeklyPattern
+        open={deletePatternModalOpen}
+        onClose={() => setDeletePatternModalOpen(false)}
+        patternId={patternToDelete}
+        onConfirm={async () => {
+          try {
+            await deleteTutorWeeklyPattern(patternToDelete);
+            // Fetch the updated weekly patterns after deletion
+            const updatedPatterns = await fetchTutorWeeklyPattern(id);
+            setWeeklyPatterns(updatedPatterns); // Update the state with the new patterns
+          } catch (error) {
+            alert("Xóa lịch trình thất bại: " + error.message);
+          } finally {
+            setDeletePatternModalOpen(false);
           }
         }}
       />
