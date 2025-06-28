@@ -27,7 +27,7 @@ const hasRole = (user, roleName) => {
 const isTutor = (user) => hasRole(user, "Tutor");
 const isLearner = (user) => hasRole(user, "Learner");
 
-function Header({ user, onLogout, onLoginClick, onSignUpClick }) {
+function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
