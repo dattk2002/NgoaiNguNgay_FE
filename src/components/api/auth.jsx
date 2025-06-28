@@ -118,12 +118,14 @@ export async function login(username, password) {
 export async function register(
   email,
   password,
-  confirmPassword
+  confirmPassword,
+  fullName
 ) {
   const body = {
     email,
     password,
     confirmPassword,
+    fullName,
   };
 
   try {
