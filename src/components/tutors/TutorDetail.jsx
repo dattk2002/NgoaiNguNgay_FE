@@ -8,7 +8,15 @@ import {
   fetchTutorWeekSchedule,
 } from "../api/auth";
 import { formatTutorDate } from "../../utils/formatTutorDate";
-import { FaStar, FaBook, FaUsers, FaClock, FaHeart } from "react-icons/fa";
+import {
+  FaStar,
+  FaBook,
+  FaUsers,
+  FaClock,
+  FaHeart,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import ReviewsSection from "../ReviewSection";
 import { FaArrowRight } from "react-icons/fa6";
@@ -20,6 +28,7 @@ import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import Collapse from "@mui/material/Collapse";
 import LessonDetailModal from "../modals/LessonDetailModal";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
+import ReadOnlyWeeklyPatternModal from "../modals/ReadOnlyWeeklyPatternModal";
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -30,6 +39,15 @@ const timeRanges = [
   "16:00 - 20:00",
   "20:00 - 24:00",
 ];
+
+function formatDateRange(start, end) {
+  if (!start || !end) return "";
+  const options = { month: "short", day: "numeric", year: "numeric" };
+  return `${start.toLocaleDateString(
+    "en-US",
+    options
+  )} - ${end.toLocaleDateString("en-US", options)}`;
+}
 
 const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
@@ -54,6 +72,12 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [lessonDetailError, setLessonDetailError] = useState(null);
 
   const [weeklySchedule, setWeeklySchedule] = useState([]);
+  const [weekStartDate, setWeekStartDate] = useState(null);
+
+  const [currentWeekStart, setCurrentWeekStart] = useState(null);
+  const [currentWeekEnd, setCurrentWeekEnd] = useState(null);
+
+  const [isPatternDialogOpen, setIsPatternDialogOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -77,10 +101,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           level: language.proficiency,
         }));
 
-        // Process availabilityPatterns from API response
-        // The provided API response example has an empty availabilityPatterns array.
-        // You'll need to adjust this logic if the API starts returning availability data in a different format.
-        // For now, let's use the previous mock processing logic but expect potentially different input format.
+        // Process availability data from weekly schedule
         const blockAvailability = {};
         timeRanges.forEach((range) => {
           blockAvailability[range] = {
@@ -94,7 +115,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           };
         });
 
-        // *** IMPORTANT: If the API's availabilityPatterns structure is different,
         //    the following loop needs to be updated to parse it correctly.
         //    Based on the provided empty array, I'm keeping the old processing logic
         //    as a placeholder, but it might need significant changes. ***
@@ -175,26 +195,14 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         setTeacher(formattedTeacherData);
         setAvailabilityData(blockAvailability); // Set processed availability data
 
-        // Set up availability days and dates (start from next Monday)
+        // Add this block:
         const today = new Date();
         const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
-        const daysUntilMonday = (dayOfWeek === 1) ? 0 : (dayOfWeek === 0 ? 1 : (8 - dayOfWeek));
+        const daysUntilMonday = dayOfWeek === 1 ? 0 : dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
         const monday = new Date(today);
         monday.setDate(today.getDate() + daysUntilMonday);
 
-        const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const next7Days = [];
-        const next7Dates = [];
-
-        for (let i = 0; i < 7; i++) {
-          const date = new Date(monday);
-          date.setDate(monday.getDate() + i);
-          next7Days.push(daysOfWeek[date.getDay()]);
-          next7Dates.push(date.getDate());
-        }
-
-        setAvailabilityDays(next7Days);
-        setAvailabilityDates(next7Dates);
+        setWeekStartDate(monday);
 
         // Keep fetching recommended tutors from the mock source for now
         const recommendedTutorsData = await fetchRecommendTutor();
@@ -226,7 +234,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         setLessons(lessonsData);
 
         // Fetch the weekly schedule
-        const startDate = "2025-06-28 00:00:00"; // Example start date
+        const startDate = "2025-06-30 00:00:00"; // Example start date
         const scheduleData = await fetchTutorWeekSchedule(id, startDate);
         setWeeklySchedule(scheduleData);
 
@@ -241,6 +249,31 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
     loadData();
   }, [id, user, navigate, onRequireLogin]); // Added dependencies
+
+  useEffect(() => {
+    if (!weekStartDate) return;
+    const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const next7Days = [];
+    const next7Dates = [];
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStartDate);
+      date.setDate(weekStartDate.getDate() + i);
+      next7Days.push(daysOfWeek[i]);
+      next7Dates.push(date.getDate());
+    }
+
+    setAvailabilityDays(next7Days);
+    setAvailabilityDates(next7Dates);
+  }, [weekStartDate]);
+
+  useEffect(() => {
+    if (!weekStartDate) return;
+    setCurrentWeekStart(weekStartDate);
+    const end = new Date(weekStartDate);
+    end.setDate(weekStartDate.getDate() + 6);
+    setCurrentWeekEnd(end);
+  }, [weekStartDate]);
 
   const handleBookLesson = () => {
     if (!user) {
@@ -290,34 +323,69 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   // Helper function to check if a time slot is available based on weekly schedule
   const isTimeSlotAvailable = (timeRange, dayIndex) => {
-    if (!weeklySchedule || weeklySchedule.length === 0) return false;
-    
-    // Find the day data for the given day index
-    const dayData = weeklySchedule.find(day => {
+    if (!weeklySchedule || weeklySchedule.length === 0 || !weekStartDate)
+      return false;
+
+    // Calculate the correct date for this column
+    const targetDate = new Date(weekStartDate);
+    targetDate.setDate(weekStartDate.getDate() + dayIndex);
+
+    // Find the day data for the given date (compare year, month, day)
+    const dayData = weeklySchedule.find((day) => {
       const dayDate = new Date(day.date);
-      const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + dayIndex);
-      return dayDate.getDate() === targetDate.getDate() && 
-             dayDate.getMonth() === targetDate.getMonth() && 
-             dayDate.getFullYear() === targetDate.getFullYear();
+      return (
+        dayDate.getFullYear() === targetDate.getFullYear() &&
+        dayDate.getMonth() === targetDate.getMonth() &&
+        dayDate.getDate() === targetDate.getDate()
+      );
     });
 
-    if (!dayData || !dayData.timeSlotIndex || dayData.timeSlotIndex.length === 0) {
+    if (
+      !dayData ||
+      !dayData.timeSlotIndex ||
+      dayData.timeSlotIndex.length === 0
+    ) {
       return false;
     }
 
-    // Convert time range to slot indices
+    // Convert time range to slot indices - check all hours in 4-hour block
     const timeRangeToSlots = (range) => {
-      const [startTime] = range.split(' - ');
-      const [hours] = startTime.split(':');
-      const hour = parseInt(hours, 10);
-      return [hour * 2, hour * 2 + 1]; // Convert to 30-minute slot indices
+      const [startTime] = range.split(" - ");
+      const [hours] = startTime.split(":");
+      const startHour = parseInt(hours, 10);
+
+      // For 4-hour blocks, check all 4 hours (8 slots total)
+      const slots = [];
+      for (let hour = startHour; hour < startHour + 4; hour++) {
+        slots.push(hour * 2, hour * 2 + 1); // Each hour has 2 slots
+      }
+      return slots;
     };
 
     const expectedSlots = timeRangeToSlots(timeRange);
-    
+
     // Check if any of the expected slots are in the available slots
-    return expectedSlots.some(slot => dayData.timeSlotIndex.includes(slot));
+    return expectedSlots.some((slot) => dayData.timeSlotIndex.includes(slot));
+  };
+
+  const handlePrevWeek = () => {
+    const prevMonday = new Date(currentWeekStart);
+    prevMonday.setDate(prevMonday.getDate() - 7);
+    setWeekStartDate(prevMonday);
+    setCurrentWeekStart(prevMonday);
+    const prevSunday = new Date(prevMonday);
+    prevSunday.setDate(prevMonday.getDate() + 6);
+    setCurrentWeekEnd(prevSunday);
+  };
+
+  const handleNextWeek = () => {
+    const nextMonday = new Date(currentWeekStart);
+    nextMonday.setDate(nextMonday.getDate() + 7);
+    setWeekStartDate(nextMonday);
+    setCurrentWeekStart(nextMonday);
+    const nextSunday = new Date(nextMonday);
+    nextSunday.setDate(nextMonday.getDate() + 6);
+    setCurrentWeekEnd(nextSunday);
   };
 
   if (loading)
@@ -678,9 +746,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       </div>
 
       <div className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-800">
-          Khóa học
-        </h2>
+        <h2 className="text-2xl font-semibold text-gray-800">Khóa học</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           {lessons.length > 0 ? (
             lessons.map((lesson, idx) => (
@@ -703,10 +769,11 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-red-500 font-bold text-lg">
-                    {typeof lesson.price === "number" || typeof lesson.price === "string"
+                    {typeof lesson.price === "number" ||
+                    typeof lesson.price === "string"
                       ? formatPriceWithCommas(lesson.price)
-                      : "Không có"}
-                    {" "}VND
+                      : "Không có"}{" "}
+                    VND
                   </span>
                   {lesson.discount && (
                     <span className="text-xs text-gray-500 mt-1">
@@ -725,9 +792,11 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       </div>
 
       <div className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-800">
-          Lịch trình khả dụng
-        </h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-semibold text-gray-800">
+            Lịch trình khả dụng
+          </h2>
+        </div>
         <div className="mt-4 overflow-x-auto border border-gray-200 rounded-lg">
           <div className="grid grid-cols-8 min-w-[600px]">
             <div className="text-sm font-medium text-gray-600 border-b border-r border-gray-200"></div>
@@ -787,10 +856,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
             Dựa trên múi giờ của bạn (UTC+07:00)
           </div>
           <button
-            onClick={handleBookLesson}
+            onClick={() => setIsPatternDialogOpen(true)}
             className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
           >
-            Lên lịch buổi học
+            Chi tiết lịch trình
           </button>
         </div>
       </div>
@@ -852,6 +921,13 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         lesson={lessonDetail}
         loading={loadingLessonDetail}
         error={lessonDetailError}
+      />
+
+      <ReadOnlyWeeklyPatternModal
+        open={isPatternDialogOpen}
+        onClose={() => setIsPatternDialogOpen(false)}
+        tutorId={teacher.id}
+        initialWeekStart={currentWeekStart}
       />
     </div>
   );

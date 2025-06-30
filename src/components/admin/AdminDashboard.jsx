@@ -9,9 +9,20 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
+        // Clear all authentication tokens and user data
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
-        navigate('/');
+        localStorage.removeItem('loggedInUser');
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+
+        // Add a small delay to ensure localStorage is fully cleared before navigation
+        setTimeout(() => {
+            navigate('/', { replace: true });
+            // Force page reload to ensure all components re-render with cleared state
+            window.location.reload();
+        }, 100);
     };
 
     const menuItems = [
