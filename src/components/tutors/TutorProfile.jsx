@@ -37,9 +37,11 @@ import {
   Tabs,
   Tab,
   GlobalStyles,
+  Skeleton, // Add Skeleton import
 } from "@mui/material";
 import { FiPlusCircle, FiEdit, FiTrash2 } from "react-icons/fi";
 import { MdOutlineEditCalendar } from "react-icons/md";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 import { styled } from "@mui/material/styles";
 import {
@@ -350,6 +352,290 @@ const RedStyledButton = styled(StyledButton)(({ theme }) => ({
   },
 }));
 
+// Helper to get the start (Monday) and end (Sunday) of the current week
+function getWeekRange(date = new Date()) {
+  const monday = new Date(date);
+  const day = monday.getDay();
+  
+  // Adjust to get Monday (1) as the first day
+  // If today is Sunday (0), we need to go back 6 days
+  // For any other day, we go back (day - 1) days
+  const diff = day === 0 ? -6 : (1 - day);
+  
+  monday.setDate(monday.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  return { monday, sunday };
+}
+
+function formatDateRange(start, end) {
+  const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+  return `${start.toLocaleDateString("vi-VN", options)} - ${end.toLocaleDateString("vi-VN", options)}`;
+}
+
+// Replace the existing getPatternForWeek function with this one
+function getPatternForWeek(weeklyPatterns, weekStart) {
+  if (!weeklyPatterns || weeklyPatterns.length === 0) return null;
+  
+  // Create a date object for the start of the week
+  const weekMonday = new Date(weekStart);
+  weekMonday.setHours(0, 0, 0, 0);
+
+  // Sort patterns descending by appliedFrom
+  const sorted = [...weeklyPatterns].sort(
+    (a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom)
+  );
+
+  // Find the pattern that starts on or before this week's Monday
+  // We need to compare the dates without the time component
+  return sorted.find(pattern => {
+    const patternDate = new Date(pattern.appliedFrom);
+    patternDate.setHours(0, 0, 0, 0);
+    
+    // Compare dates without time
+    return patternDate.getTime() <= weekMonday.getTime();
+  }) || sorted[sorted.length - 1];
+}
+
+function buildAvailabilityData(pattern, timeRanges) {
+  const blockAvailability = {};
+  timeRanges.forEach((range) => {
+    blockAvailability[range] = {
+      mon: false, tue: false, wed: false, thu: false, fri: false, sat: false, sun: false,
+    };
+  });
+  if (pattern && pattern.slots && Array.isArray(pattern.slots)) {
+    pattern.slots.forEach((slot) => {
+      const hour = Math.floor(slot.slotIndex / 2);
+      const startHour = hour;
+      const endHour = hour + 1;
+      const timeRangeKey = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
+      const dayMap = { 1: 'sun', 2: 'mon', 3: 'tue', 4: 'wed', 5: 'thu', 6: 'fri', 7: 'sat' };
+      const dayKey = dayMap[slot.dayInWeek];
+      if (timeRangeKey && blockAvailability[timeRangeKey] && dayKey && slot.type === 0) {
+        blockAvailability[timeRangeKey][dayKey] = true;
+      }
+    });
+  }
+  return blockAvailability;
+}
+
+// Add this skeleton component after the existing styled components
+const WeeklyScheduleSkeleton = () => (
+  <Box
+    sx={{
+      backgroundColor: "#ffffff",
+      borderRadius: "12px",
+      border: "1px solid #e2e8f0",
+      overflow: "hidden",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+      width: "100%",
+      maxWidth: "100%",
+      boxSizing: "border-box",
+    }}
+  >
+    {/* Header skeleton */}
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "140px repeat(7, 1fr)",
+        minWidth: "600px",
+      }}
+    >
+      {/* Time column header */}
+      <Box
+        sx={{
+          p: 1.5,
+          backgroundColor: "#f8fafc",
+          borderBottom: "1px solid #e2e8f0",
+          borderRight: "1px solid #e2e8f0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Skeleton variant="text" width={60} height={20} />
+      </Box>
+      
+      {/* Day headers */}
+      {Array.from({ length: 7 }).map((_, index) => (
+        <Box
+          key={index}
+          sx={{
+            p: 1.5,
+            backgroundColor: "#f8fafc",
+            borderBottom: "1px solid #e2e8f0",
+            borderRight: index === 6 ? "none" : "1px solid #e2e8f0",
+            textAlign: "center",
+          }}
+        >
+          <Skeleton variant="text" width={20} height={16} sx={{ mx: "auto", mb: 0.5 }} />
+          <Skeleton variant="text" width={16} height={12} sx={{ mx: "auto" }} />
+        </Box>
+      ))}
+    </Box>
+
+    {/* Time slots skeleton */}
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "140px repeat(7, 1fr)",
+        minWidth: "600px",
+      }}
+    >
+      {Array.from({ length: 24 }).map((_, hour) => (
+        <React.Fragment key={hour}>
+          {/* Time label skeleton */}
+          <Box
+            sx={{
+              p: 1,
+              textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderBottom: "1px solid #e2e8f0",
+              borderRight: "1px solid #e2e8f0",
+            }}
+          >
+            <Skeleton variant="text" width={80} height={16} />
+          </Box>
+          
+          {/* Day cells skeleton */}
+          {Array.from({ length: 7 }).map((_, dayIdx) => (
+            <Box
+              key={dayIdx}
+              sx={{
+                height: 65,
+                display: "flex",
+                flexDirection: "column",
+                border: "1px solid #e2e8f0",
+                borderRight: dayIdx === 6 ? "none" : "1px solid #e2e8f0",
+                borderTop: "none",
+                borderLeft: dayIdx === 0 ? "none" : "1px solid #e2e8f0",
+              }}
+            >
+              {/* Top 30-min slot skeleton */}
+              <Box
+                sx={{
+                  flex: 1,
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderBottom: "1px solid #e2e8f0",
+                }}
+              >
+                <Skeleton 
+                  variant="rectangular" 
+                  width="90%" 
+                  height="80%" 
+                  sx={{ borderRadius: 1 }}
+                />
+              </Box>
+              {/* Bottom 30-min slot skeleton */}
+              <Box
+                sx={{
+                  flex: 1,
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Skeleton 
+                  variant="rectangular" 
+                  width="90%" 
+                  height="80%" 
+                  sx={{ borderRadius: 1 }}
+                />
+              </Box>
+            </Box>
+          ))}
+        </React.Fragment>
+      ))}
+    </Box>
+
+    {/* Legend skeleton */}
+    <Box
+      sx={{
+        p: 3,
+        backgroundColor: "#f8fafc",
+        borderTop: "1px solid #e2e8f0",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
+          mb: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Skeleton variant="circular" width={6} height={6} />
+          <Skeleton variant="text" width={60} height={16} />
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Skeleton variant="circular" width={6} height={6} />
+          <Skeleton variant="text" width={80} height={16} />
+        </Box>
+      </Box>
+      <Skeleton variant="text" width="70%" height={16} />
+      <Skeleton variant="text" width="40%" height={14} sx={{ mt: 1 }} />
+    </Box>
+  </Box>
+);
+
+// Add this helper function above TutorProfile
+function buildEditPatternSlotsFromPattern(pattern) {
+  // pattern: { slots: [...] }
+  const slotMap = {};
+  if (pattern && pattern.slots && Array.isArray(pattern.slots)) {
+    pattern.slots.forEach(slot => {
+      if (slot.type === 0) {
+        if (!slotMap[slot.dayInWeek]) slotMap[slot.dayInWeek] = new Set();
+        slotMap[slot.dayInWeek].add(slot.slotIndex);
+      }
+    });
+  }
+  return slotMap;
+}
+
+// Add this helper function near the top of your file (above TutorProfile)
+function ensureMondayUTC(date) {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  d.setUTCDate(d.getUTCDate() + diff);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+function setToMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function getMondayUTC(date) {
+  // Get the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  // Calculate how many days to subtract to get to Monday
+  const diff = (day === 0 ? -6 : 1 - day);
+  d.setUTCDate(d.getUTCDate() + diff);
+  // Set to 00:00:00 UTC
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
 const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const { id } = useParams();
   const [tutorData, setTutorData] = useState(null);
@@ -381,6 +667,14 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const [availabilityData, setAvailabilityData] = useState({});
   const [availabilityDays, setAvailabilityDays] = useState([]);
   const [availabilityDates, setAvailabilityDates] = useState([]);
+  const [weeklyPatternLoading, setWeeklyPatternLoading] = useState(false);
+
+  // Add new state for dialog table data - move this up
+  const [dialogAvailabilityData, setDialogAvailabilityData] = useState({});
+  const [dialogPatternLoading, setDialogPatternLoading] = useState(false);
+
+  // Move editWeekMonday state declaration up here
+  const [editWeekMonday, setEditWeekMonday] = useState(getWeekRange().monday);
 
   // Update the time ranges to be hourly instead of 4-hour blocks
   const timeRanges = [
@@ -423,6 +717,49 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
 
   const [deletePatternModalOpen, setDeletePatternModalOpen] = useState(false);
   const [patternToDelete, setPatternToDelete] = useState(null);
+
+  // Inside TutorProfile component, after useState declarations
+  const [currentWeekStart, setCurrentWeekStart] = useState(getWeekRange().monday);
+
+  const [currentPattern, setCurrentPattern] = useState(null);
+
+  const handlePrevWeek = () => {
+    setCurrentWeekStart(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() - 7);
+      newDate.setHours(0, 0, 0, 0);
+      return newDate;
+    });
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeekStart(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + 7);
+      newDate.setHours(0, 0, 0, 0);
+      return newDate;
+    });
+  };
+
+  const handleEditPrevWeek = () => {
+    setCurrentWeekStart(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() - 7);
+      newDate.setHours(0, 0, 0, 0);
+      return newDate;
+    });
+  };
+
+  const handleEditNextWeek = () => {
+    setCurrentWeekStart(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + 7);
+      newDate.setHours(0, 0, 0, 0);
+      return newDate;
+    });
+  };
+
+  const { monday, sunday } = getWeekRange(currentWeekStart);
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
@@ -570,141 +907,55 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
     fetchLessons();
   }, [id]);
 
-  // Update the useEffect for fetching weekly patterns
+  // Update the useEffect for fetching weekly patterns to also update dialog data
   useEffect(() => {
-    if (!id) return;
-    
-    const fetchWeeklyPatterns = async () => {
+    if (!id || !currentWeekStart) return;
+    const fetchAndSetWeeklyPatterns = async () => {
+      setWeeklyPatternLoading(true);
       try {
         const patterns = await fetchTutorWeeklyPattern(id);
         setWeeklyPatterns(patterns);
-        
-        // Process the patterns to create availability data
-        const blockAvailability = {};
-        timeRanges.forEach((range) => {
-          blockAvailability[range] = {
-            mon: false,
-            tue: false,
-            wed: false,
-            thu: false,
-            fri: false,
-            sat: false,
-            sun: false,
-          };
-        });
-
-        // Process slots from the API response
-        if (patterns && patterns.length > 0) {
-          // Sort patterns by AppliedFrom to get the most recent one
-          const sortedPatterns = patterns.sort((a, b) => 
-            new Date(b.appliedFrom) - new Date(a.appliedFrom)
-          );
-          
-          // Get the most recent pattern (first after sorting)
-          const latestPattern = sortedPatterns[0];
-          
-          if (latestPattern.slots && Array.isArray(latestPattern.slots)) {
-            latestPattern.slots.forEach((slot) => {
-              // Convert slotIndex to time range
-              // SlotIndex 0-47 represents 30-minute intervals from 00:00 to 23:30
-              const hour = Math.floor(slot.slotIndex / 2);
-              const minute = (slot.slotIndex % 2) * 30;
-              
-              let timeRangeKey = null;
-
-              // Map to hourly time ranges
-              // Each hour has 2 slots (0-1 and 1-2)
-              const startHour = hour;
-              const endHour = hour + 1;
-              
-              // Format as "HH:00 - HH:00"
-              timeRangeKey = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
-
-              if (timeRangeKey && blockAvailability[timeRangeKey]) {
-                // Map dayInWeek (1-7, Sunday=1 to Saturday=7) to day keys
-                const dayMap = {
-                  1: 'sun', // Sunday
-                  2: 'mon', // Monday
-                  3: 'tue', // Tuesday
-                  4: 'wed', // Wednesday
-                  5: 'thu', // Thursday
-                  6: 'fri', // Friday
-                  7: 'sat'  // Saturday
-                };
-                
-                const dayKey = dayMap[slot.dayInWeek];
-                if (dayKey) {
-                  // Only mark as available if type is 0 (Available)
-                  // Type 0 = Available, Type 2 = Unavailable, etc.
-                  if (slot.type === 0) {
-                    blockAvailability[timeRangeKey][dayKey] = true;
-                  }
-                }
-              }
-            });
-          }
-        }
-
-        setAvailabilityData(blockAvailability);
-
-        // Set up availability days and dates (start from next Monday)
-        const today = new Date();
-        const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
-        const daysUntilMonday = (dayOfWeek === 1) ? 0 : (dayOfWeek === 0 ? 1 : (8 - dayOfWeek));
-        const monday = new Date(today);
-        monday.setDate(today.getDate() + daysUntilMonday);
-
-        const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const next7Days = [];
-        const next7Dates = [];
-
-        for (let i = 0; i < 7; i++) {
-          const date = new Date(monday);
-          date.setDate(monday.getDate() + i);
-          next7Days.push(daysOfWeek[date.getDay()]);
-          next7Dates.push(date.getDate());
-        }
-
-        setAvailabilityDays(next7Days);
-        setAvailabilityDates(next7Dates);
-
       } catch (err) {
         console.error("Failed to fetch weekly patterns:", err);
-        // Don't set error state here as it's not critical for the main functionality
+      } finally {
+        setWeeklyPatternLoading(false);
       }
     };
+    fetchAndSetWeeklyPatterns();
+  }, [id, currentWeekStart]);
 
-    fetchWeeklyPatterns();
-  }, [id]);
+  // Add new useEffect for dialog table data
+  useEffect(() => {
+    if (!currentWeekStart || !weeklyPatterns) return;
+    const pattern = getPatternForWeek(weeklyPatterns, currentWeekStart);
+    console.log('Main table pattern for week', currentWeekStart, pattern);
+    setCurrentPattern(pattern);
+    setAvailabilityData(buildAvailabilityData(pattern, timeRanges));
+  }, [currentWeekStart, weeklyPatterns]);
 
+  // Add this useEffect to sync editPatternSlots when week changes in dialog
+  useEffect(() => {
+    if (!editPatternDialogOpen || !currentWeekStart || !weeklyPatterns) return;
+    const pattern = getPatternForWeek(weeklyPatterns, currentWeekStart);
+    setEditPatternSlots(buildEditPatternSlotsFromPattern(pattern));
+  }, [editPatternDialogOpen, currentWeekStart, weeklyPatterns]);
+
+  // When opening the edit dialog, set the week to the current main table week
   const openEditPatternDialog = () => {
-    // Build a map: { [dayIndex]: Set(slotIndex) }
-    const latestPattern = weeklyPatterns.length > 0
-      ? weeklyPatterns.sort((a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom))[0]
-      : { slots: [] };
-
-    const slotMap = {};
-    latestPattern.slots.forEach(slot => {
-      if (slot.type === 0) {
-        if (!slotMap[slot.dayInWeek]) slotMap[slot.dayInWeek] = new Set();
-        slotMap[slot.dayInWeek].add(slot.slotIndex);
-      }
-    });
+    // Use the pattern for the current week, not always the latest
+    const patternForWeek = getPatternForWeek(weeklyPatterns, currentWeekStart) || { slots: [] };
+    const slotMap = buildEditPatternSlotsFromPattern(patternForWeek);
 
     setEditPatternSlots(slotMap);
     setEditPatternData({
-      appliedFrom: getNextMondayDateUTC().toISOString(),
-      slots: latestPattern.slots,
+      appliedFrom: currentWeekStart.toISOString(),
+      slots: patternForWeek.slots,
     });
     setEditPatternDialogOpen(true);
   };
 
-  // Only define weekInfo if the dialog is open and appliedFrom is set
-  let weekInfo = [];
-  if (editPatternDialogOpen && editPatternData.appliedFrom) {
-    const appliedMonday = new Date(editPatternData.appliedFrom);
-    weekInfo = getWeekDates(appliedMonday);
-  }
+  // Helper to get week info for the edit week
+  const weekInfo = getWeekDates(currentWeekStart);
 
   // Function to open the delete confirmation dialog
   const openDeletePatternDialog = (patternId) => {
@@ -1115,24 +1366,61 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                         Lịch trình khả dụng
                       </SectionTitle>
 
-                      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2, gap: 4 }}>
-                        {weeklyPatterns && weeklyPatterns.length > 0 ? (
-                          <>
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, gap: 4 }}>
+                        {/* Week range and navigation */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <IconButton
+                            onClick={handlePrevWeek}
+                            sx={{
+                              p: 1,
+                              borderRadius: "50%",
+                              backgroundColor: "#f3f4f6",
+                              "&:hover": { backgroundColor: "#e5e7eb" },
+                              boxShadow: "none",
+                            }}
+                            aria-label="Previous week"
+                          >
+                            <FaChevronLeft size={20} color="#333" />
+                          </IconButton>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            {formatDateRange(monday, sunday)}
+                          </Typography>
+                          <IconButton
+                            onClick={handleNextWeek}
+                            sx={{
+                              p: 1,
+                              borderRadius: "50%",
+                              backgroundColor: "#f3f4f6",
+                              "&:hover": { backgroundColor: "#e5e7eb" },
+                              boxShadow: "none",
+                            }}
+                            aria-label="Next week"
+                          >
+                            <FaChevronRight size={20} color="#333" />
+                          </IconButton>
+                        </Box>
+                        {/* Buttons */}
+                        <Box sx={{ display: "flex", gap: 2 }}>
+                          {weeklyPatterns && weeklyPatterns.length > 0 ? (
+                            <>
+                              <StyledButton onClick={openEditPatternDialog}>
+                                Chỉnh sửa lịch trình
+                              </StyledButton>
+                              <RedStyledButton onClick={() => openDeletePatternDialog(weeklyPatterns[0]?.id)}>
+                                Xóa lịch trình
+                              </RedStyledButton>
+                            </>
+                          ) : (
                             <StyledButton onClick={openEditPatternDialog}>
-                              Chỉnh sửa lịch trình
+                              Tạo lịch trình
                             </StyledButton>
-                            <RedStyledButton onClick={() => openDeletePatternDialog(weeklyPatterns[0]?.id)}>
-                              Xóa lịch trình
-                            </RedStyledButton>
-                          </>
-                        ) : (
-                          <StyledButton onClick={openEditPatternDialog}>
-                            Tạo lịch trình
-                          </StyledButton>
-                        )}
+                          )}
+                        </Box>
                       </Box>
 
-                      {weeklyPatterns && weeklyPatterns.length > 0 ? (
+                      {weeklyPatternLoading ? (
+                        <WeeklyScheduleSkeleton />
+                      ) : (
                         <Box
                           sx={{
                             backgroundColor: "#ffffff",
@@ -1181,111 +1469,72 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                               >
                                 Thời gian
                               </Box>
-                              {availabilityDays.map((day, index) => (
+                              {weekInfo.map((d, i) => (
                                 <Box
-                                  key={day}
+                                  key={i}
                                   sx={{
-                                    p: 1.5, // Reduced padding
+                                    p: 1.5,
                                     backgroundColor: "#f8fafc",
                                     borderBottom: "1px solid #e2e8f0",
-                                    borderRight: index === availabilityDays.length - 1 ? "none" : "1px solid #e2e8f0",
+                                    borderRight: i === weekInfo.length - 1 ? "none" : "1px solid #e2e8f0",
                                     textAlign: "center",
                                     fontWeight: 600,
                                     color: "#1e293b",
-                                    fontSize: "0.875rem", // Smaller font
+                                    fontSize: "0.875rem",
                                     position: "sticky",
                                     top: 0,
                                     zIndex: 1,
                                   }}
                                 >
-                                  <Box sx={{ fontSize: "0.75rem" }}>
-                                    {day === "Mon"
-                                      ? "T2"
-                                      : day === "Tue"
-                                      ? "T3"
-                                      : day === "Wed"
-                                      ? "T4"
-                                      : day === "Thu"
-                                      ? "T5"
-                                      : day === "Fri"
-                                      ? "T6"
-                                      : day === "Sat"
-                                      ? "T7"
-                                      : "CN"}
-                                  </Box>
-                                  <Box sx={{ fontSize: "0.625rem", color: "#64748b", mt: 0.25 }}>
-                                    {availabilityDates[index]}
-                                  </Box>
+                                  <Box sx={{ fontSize: "0.75rem" }}>{d.label}</Box>
+                                  <Box sx={{ fontSize: "0.625rem", color: "#64748b", mt: 0.25 }}>{d.date}</Box>
                                 </Box>
                               ))}
 
                               {/* Time slots */}
-                              {Array.from({ length: 24 }).map((_, hour) => (
-                                <React.Fragment key={hour}>
-                                  {/* Time label cell */}
-                                  <Box
-                                    sx={{
-                                      p: 1,
-                                      textAlign: "center",
-                                      display: "flex", alignItems: "center", justifyContent: "center"
-                                    }}
-                                  >
-                                    {`${hour.toString().padStart(2, "0")}:00 - ${(hour + 1).toString().padStart(2, "0")}:00`}
-                                  </Box>
-                                  {/* For each day, render a cell with two 30-min slots */}
-                                  {dayInWeekOrder.map((dayInWeek, dayIdx) => {
-                                    const slotIndex1 = hour * 2;     // :00 - :30
-                                    const slotIndex2 = hour * 2 + 1; // :30 - :00 next hour
-                                    const isActive1 = editPatternSlots[dayInWeek]?.has(slotIndex1);
-                                    const isActive2 = editPatternSlots[dayInWeek]?.has(slotIndex2);
+                              {Array.from({ length: 48 }).map((_, slotIdx) => {
+                                const hour = Math.floor(slotIdx / 2);
+                                const minute = slotIdx % 2 === 0 ? "00" : "30";
+                                const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
+                                const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
+                                const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
 
-                                    return (
-                                      <Box
-                                        key={dayIdx}
-                                        sx={{
-                                          height: 65,
-                                          display: "flex",
-                                          flexDirection: "column", // Stack vertically
-                                          border: "1px solid #e2e8f0",
-                                          backgroundColor: "#f1f5f9",
-                                          position: "relative",
-                                          minWidth: 30,
-                                        }}
-                                      >
-                                        {/* Top 30-min slot */}
+                                return (
+                                  <React.Fragment key={slotIdx}>
+                                    {/* Time label cell */}
+                                    <Box
+                                      sx={{
+                                        p: 1,
+                                        textAlign: "center",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderBottom: "1px solid #e2e8f0",
+                                        borderRight: "1px solid #e2e8f0",
+                                        minHeight: 32,
+                                      }}
+                                    >
+                                      {timeLabel}
+                                    </Box>
+                                    {/* For each day, render a cell for this 30-min slot */}
+                                    {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                                      const isActive = !!(currentPattern?.slots || []).find(
+                                        slot => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
+                                      );
+                                      return (
                                         <Box
+                                          key={dayIdx}
                                           sx={{
-                                            flex: 1,
-                                            width: "100%",
-                                            backgroundColor: isActive1 ? "#98D45F" : "#f1f5f9",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            borderBottom: "1px solid #e2e8f0",
-                                            transition: "all 0.2s",
+                                            backgroundColor: isActive ? "#98D45F" : "#f1f5f9",
+                                            border: "1px solid #e2e8f0",
+                                            minHeight: 32,
                                           }}
-                                        >
-                                          {/* No dot here */}
-                                        </Box>
-                                        {/* Bottom 30-min slot */}
-                                        <Box
-                                          sx={{
-                                            flex: 1,
-                                            width: "100%",
-                                            backgroundColor: isActive2 ? "#98D45F" : "#f1f5f9",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            transition: "all 0.2s",
-                                          }}
-                                        >
-                                          {/* No dot here */}
-                                        </Box>
-                                      </Box>
-                                    );
-                                  })}
-                                </React.Fragment>
-                              ))}
+                                        />
+                                      );
+                                    })}
+                                  </React.Fragment>
+                                );
+                              })}
                             </Box>
                           </Box>
 
@@ -1355,18 +1604,6 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                             </Typography>
                           </Box>
                         </Box>
-                      ) : (
-                        <Alert
-                          severity="info"
-                          sx={{
-                            mt: 2,
-                            borderRadius: "12px",
-                            backgroundColor: "#f0f9ff",
-                            border: "1px solid #bae6fd",
-                          }}
-                        >
-                          Gia sư này chưa đặt lịch trình khả dụng của họ.
-                        </Alert>
                       )}
                     </Box>
 
@@ -2187,10 +2424,12 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
           sx: { minWidth: 1100 }
         }}
       >
-        <DialogTitle>
-          {weekInfo.length > 0
-            ? `Chỉnh sửa lịch trình khả dụng (${weekInfo[0].label} ${weekInfo[0].date} - ${weekInfo[6].label} ${weekInfo[6].date})`
-            : "Chỉnh sửa lịch trình khả dụng"}
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>
+            {weekInfo.length > 0
+              ? `Chỉnh sửa lịch trình khả dụng (${weekInfo[0].label} ${weekInfo[0].date} - ${weekInfo[6].label} ${weekInfo[6].date})`
+              : "Chỉnh sửa lịch trình khả dụng"}
+          </span>
         </DialogTitle>
         <DialogContent>
           <Typography variant="subtitle1" sx={{ mb: 2 }}>
@@ -2200,7 +2439,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: "140px repeat(7, 1fr)", // Adjusted width for weekdays
+                gridTemplateColumns: "140px repeat(7, 1fr)",
                 minWidth: "900px",
               }}
             >
@@ -2213,96 +2452,70 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                 </Box>
               ))}
               {/* Time slots */}
-              {Array.from({ length: 24 }).map((_, hour) => (
-                <React.Fragment key={hour}>
-                  {/* Time label cell */}
-                  <Box sx={{ p: 1, textAlign: "center", whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {`${hour.toString().padStart(2, "0")}:00 - ${(hour + 1).toString().padStart(2, "0")}:00`}
-                  </Box>
-                  {/* For each day, render a cell with two 30-min slots */}
-                  {dayInWeekOrder.map((dayInWeek, dayIdx) => {
-                    const slotIndex1 = hour * 2;     // :00 - :30
-                    const slotIndex2 = hour * 2 + 1; // :30 - :00 next hour
-                    const isActive1 = editPatternSlots[dayInWeek]?.has(slotIndex1);
-                    const isActive2 = editPatternSlots[dayInWeek]?.has(slotIndex2);
+              {Array.from({ length: 48 }).map((_, slotIdx) => {
+                const hour = Math.floor(slotIdx / 2);
+                const minute = slotIdx % 2 === 0 ? "00" : "30";
+                const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
+                const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
+                const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
 
-                    return (
-                      <Box
-                        key={dayIdx}
-                        sx={{
-                          height: 65,
-                          display: "flex",
-                          flexDirection: "column", // Stack vertically
-                          border: "1px solid #e2e8f0",
-                          backgroundColor: "#f1f5f9",
-                          position: "relative",
-                          minWidth: 30,
-                        }}
-                      >
-                        {/* Top 30-min slot */}
+                return (
+                  <React.Fragment key={slotIdx}>
+                    {/* Time label cell */}
+                    <Box
+                      sx={{
+                        p: 1,
+                        textAlign: "center",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderBottom: "1px solid #e2e8f0",
+                        borderRight: "1px solid #e2e8f0",
+                        minHeight: 32,
+                      }}
+                    >
+                      {timeLabel}
+                    </Box>
+                    {/* For each day, render a cell for this 30-min slot */}
+                    {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                      // Check if this slot is selected in editPatternSlots
+                      const isSelected =
+                        editPatternSlots[dayInWeek] &&
+                        editPatternSlots[dayInWeek].has(slotIdx);
+
+                      return (
                         <Box
+                          key={dayIdx}
                           sx={{
-                            flex: 1,
-                            width: "100%",
+                            backgroundColor: isSelected ? "#98D45F" : "#f1f5f9",
+                            border: "1px solid #e2e8f0",
+                            minHeight: 32,
                             cursor: "pointer",
-                            backgroundColor: isActive1 ? "#98D45F" : "#f1f5f9",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            borderBottom: "1px solid #e2e8f0",
-                            transition: "all 0.2s",
-                            "&:hover": { backgroundColor: isActive1 ? "#7fc241" : "#bbf7d0" },
+                            transition: "background 0.2s",
+                            "&:hover": {
+                              backgroundColor: isSelected ? "#7bbf3f" : "#e0e7ef",
+                            },
                           }}
                           onClick={() => {
-                            setEditPatternSlots(prev => {
-                              const newMap = { ...prev };
-                              const prevSet = newMap[dayInWeek] ? new Set(newMap[dayInWeek]) : new Set();
-                              if (prevSet.has(slotIndex1)) {
-                                prevSet.delete(slotIndex1);
+                            setEditPatternSlots((prev) => {
+                              const newSlots = { ...prev };
+                              if (!newSlots[dayInWeek]) newSlots[dayInWeek] = new Set();
+                              const slotSet = new Set(newSlots[dayInWeek]);
+                              if (slotSet.has(slotIdx)) {
+                                slotSet.delete(slotIdx);
                               } else {
-                                prevSet.add(slotIndex1);
+                                slotSet.add(slotIdx);
                               }
-                              newMap[dayInWeek] = prevSet;
-                              return { ...newMap };
+                              newSlots[dayInWeek] = slotSet;
+                              return { ...newSlots };
                             });
                           }}
-                        >
-                          {/* No dot here */}
-                        </Box>
-                        {/* Bottom 30-min slot */}
-                        <Box
-                          sx={{
-                            flex: 1,
-                            width: "100%",
-                            cursor: "pointer",
-                            backgroundColor: isActive2 ? "#98D45F" : "#f1f5f9",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            transition: "all 0.2s",
-                            "&:hover": { backgroundColor: isActive2 ? "#7fc241" : "#bbf7d0" },
-                          }}
-                          onClick={() => {
-                            setEditPatternSlots(prev => {
-                              const newMap = { ...prev };
-                              const prevSet = newMap[dayInWeek] ? new Set(newMap[dayInWeek]) : new Set();
-                              if (prevSet.has(slotIndex2)) {
-                                prevSet.delete(slotIndex2);
-                              } else {
-                                prevSet.add(slotIndex2);
-                              }
-                              newMap[dayInWeek] = prevSet;
-                              return { ...newMap };
-                            });
-                          }}
-                        >
-                          {/* No dot here */}
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
+                        />
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })}
             </Box>
           </Box>
         </DialogContent>
@@ -2325,8 +2538,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                   });
                 });
 
+                // Always use Monday 00:00:00 UTC
+                const localMonday = currentWeekStart; // e.g., 2025-07-07T00:00:00+07:00
+                const appliedFromUTC = new Date(Date.UTC(
+                  localMonday.getFullYear(),
+                  localMonday.getMonth(),
+                  localMonday.getDate(),
+                  0, 0, 0, 0
+                )); // This is 2025-07-07T00:00:00.000Z
+
+                console.log('appliedFrom (UTC):', appliedFromUTC.toISOString());
                 await editTutorWeeklyPattern({
-                  appliedFrom: editPatternData.appliedFrom,
+                  appliedFrom: appliedFromUTC.toISOString(),
                   slots,
                 });
                 setEditPatternDialogOpen(false);
