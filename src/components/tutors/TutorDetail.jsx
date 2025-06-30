@@ -28,7 +28,7 @@ import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import Collapse from "@mui/material/Collapse";
 import LessonDetailModal from "../modals/LessonDetailModal";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
-import ReadOnlyWeeklyPatternModal from "../modals/ReadOnlyWeeklyPatternModal";
+import TutorWeeklyPatternDetailModal from "../modals/TutorWeeklyPatternDetailModal";
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -198,9 +198,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         // Add this block:
         const today = new Date();
         const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
-        const daysUntilMonday = dayOfWeek === 1 ? 0 : dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+        const diffToMonday = (dayOfWeek + 6) % 7; // 0 for Monday, 1 for Tuesday, ..., 6 for Sunday
         const monday = new Date(today);
-        monday.setDate(today.getDate() + daysUntilMonday);
+        monday.setDate(today.getDate() - diffToMonday);
 
         setWeekStartDate(monday);
 
@@ -923,7 +923,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         error={lessonDetailError}
       />
 
-      <ReadOnlyWeeklyPatternModal
+      <TutorWeeklyPatternDetailModal
         open={isPatternDialogOpen}
         onClose={() => setIsPatternDialogOpen(false)}
         tutorId={teacher.id}

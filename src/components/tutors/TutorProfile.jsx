@@ -487,76 +487,52 @@ const WeeklyScheduleSkeleton = () => (
         minWidth: "600px",
       }}
     >
-      {Array.from({ length: 24 }).map((_, hour) => (
-        <React.Fragment key={hour}>
-          {/* Time label skeleton */}
-          <Box
-            sx={{
-              p: 1,
-              textAlign: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderBottom: "1px solid #e2e8f0",
-              borderRight: "1px solid #e2e8f0",
-            }}
-          >
-            <Skeleton variant="text" width={80} height={16} />
-          </Box>
-          
-          {/* Day cells skeleton */}
-          {Array.from({ length: 7 }).map((_, dayIdx) => (
+      {Array.from({ length: 17 }).map((_, slotIdx) => {
+        // Show 14 time labels, e.g. 00:00 - 01:00, 01:00 - 02:00, ...
+        const hour = slotIdx;
+        const nextHour = hour + 1;
+        const timeLabel = `${hour.toString().padStart(2, "0")}:00 - ${nextHour.toString().padStart(2, "0")}:00`;
+        return (
+          <React.Fragment key={slotIdx}>
+            {/* Time label skeleton */}
             <Box
-              key={dayIdx}
               sx={{
-                height: 65,
+                p: 1,
+                textAlign: "center",
                 display: "flex",
-                flexDirection: "column",
-                border: "1px solid #e2e8f0",
-                borderRight: dayIdx === 6 ? "none" : "1px solid #e2e8f0",
-                borderTop: "none",
-                borderLeft: dayIdx === 0 ? "none" : "1px solid #e2e8f0",
+                alignItems: "center",
+                justifyContent: "center",
+                borderBottom: "1px solid #e2e8f0",
+                borderRight: "1px solid #e2e8f0",
               }}
             >
-              {/* Top 30-min slot skeleton */}
-              <Box
-                sx={{
-                  flex: 1,
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderBottom: "1px solid #e2e8f0",
-                }}
-              >
-                <Skeleton 
-                  variant="rectangular" 
-                  width="90%" 
-                  height="80%" 
-                  sx={{ borderRadius: 1 }}
-                />
-              </Box>
-              {/* Bottom 30-min slot skeleton */}
-              <Box
-                sx={{
-                  flex: 1,
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Skeleton 
-                  variant="rectangular" 
-                  width="90%" 
-                  height="80%" 
-                  sx={{ borderRadius: 1 }}
-                />
-              </Box>
+              <Skeleton variant="text" width={80} height={16} />
             </Box>
-          ))}
-        </React.Fragment>
-      ))}
+            {/* Day cells skeleton */}
+            {Array.from({ length: 7 }).map((_, dayIdx) => (
+              <Box
+                key={dayIdx}
+                sx={{
+                  height: 32,
+                  display: "flex",
+                  flexDirection: "column",
+                  border: "1px solid #e2e8f0",
+                  borderRight: dayIdx === 6 ? "none" : "1px solid #e2e8f0",
+                  borderTop: "none",
+                  borderLeft: dayIdx === 0 ? "none" : "1px solid #e2e8f0",
+                }}
+              >
+                <Skeleton 
+                  variant="rectangular" 
+                  width="90%" 
+                  height="80%" 
+                  sx={{ borderRadius: 1, margin: "auto" }}
+                />
+              </Box>
+            ))}
+          </React.Fragment>
+        );
+      })}
     </Box>
 
     {/* Legend skeleton */}
