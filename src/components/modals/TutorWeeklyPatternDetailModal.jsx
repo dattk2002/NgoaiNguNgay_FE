@@ -17,11 +17,13 @@ function getPatternForWeek(patterns, weekStart) {
   if (!patterns || patterns.length === 0 || !weekStart) return null;
   // Sort patterns descending by appliedFrom
   const sorted = [...patterns].sort((a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom));
-  // Find the pattern that starts on or before this week's Monday
-  return sorted.find(pattern => new Date(pattern.appliedFrom) <= weekStart) || sorted[sorted.length - 1];
+  // Find the pattern that starts before next week's Monday (so it applies to this week)
+  const nextMonday = new Date(weekStart);
+  nextMonday.setDate(weekStart.getDate() + 7);
+  return sorted.find(pattern => new Date(pattern.appliedFrom) < nextMonday) || sorted[sorted.length - 1];
 }
 
-const ReadOnlyWeeklyPatternModal = ({ open, onClose, tutorId, initialWeekStart }) => {
+const TutorWeeklyPatternDetailModal = ({ open, onClose, tutorId, initialWeekStart }) => {
   const [loading, setLoading] = useState(true);
   const [patterns, setPatterns] = useState([]);
   const [weekStart, setWeekStart] = useState(initialWeekStart);
@@ -314,4 +316,4 @@ const ReadOnlyWeeklyPatternModal = ({ open, onClose, tutorId, initialWeekStart }
   );
 };
 
-export default ReadOnlyWeeklyPatternModal;
+export default TutorWeeklyPatternDetailModal;
