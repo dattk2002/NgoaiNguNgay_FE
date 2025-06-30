@@ -38,10 +38,12 @@ import {
 
 // Import the NotFoundPage component
 import NotFoundPage from "./pages/NotFoundPage"; // Adjust the path if necessary
-import NotGrantedPermissionPage from "./pages/NotGrantedPermissionPage";
 import StaffDashboardPage from "./pages/StaffDashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ManagerDashboardPage from "./pages/ManagerDashboardPage";
+import ProtectedRoute, { AdminRoute, StaffRoute, ManagerRoute, BlockedRoute } from "./components/rbac/ProtectedRoute";
+import RoleBasedRedirect from "./components/rbac/RoleBasedRedirect";
+import RoleBasedRouteGuard from "./components/rbac/RoleBasedRouteGuard";
 
 // New component to handle scrolling to top on route change
 function ScrollToTop() {
@@ -83,7 +85,9 @@ function AppContent({
   handleSignUpSuccess,
   handleConfirmEmailSuccess,
   handleUpdateInfoSubmit,
-  getUserById
+  getUserById,
+  triggerRoleRedirect,
+  setTriggerRoleRedirect
 }) {
   const location = useLocation();
   const isStaffRoute = location.pathname.startsWith('/staff');
@@ -127,57 +131,83 @@ function AppContent({
       )}
 
       <main className={(isStaffRoute || isAdminRoute || isManagerRoute) ? "" : "flex-1 py-8"}>
+        <RoleBasedRedirect
+          user={user}
+          triggerRedirect={triggerRoleRedirect}
+          onRedirectComplete={() => setTriggerRoleRedirect(false)}
+        />
+        <RoleBasedRouteGuard user={user} />
         <Routes>
           <Route
             path="/forgot-password"
             element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
           />
-          <Route path="/" element={<HomePage user={user} onRequireLogin={openLoginModal} />} />
+          <Route path="/" element={
+            <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+              <HomePage user={user} onRequireLogin={openLoginModal} />
+            </BlockedRoute>
+          } />
           <Route
             path="/languages"
             element={
-              <RecommendTutorList user={user} onRequireLogin={openLoginModal} />
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <RecommendTutorList user={user} onRequireLogin={openLoginModal} />
+              </BlockedRoute>
             }
           />
           <Route
             path="/teacher/:id"
             element={
-              <TutorDetail
-                user={user}
-                onRequireLogin={openLoginModal}
-              />
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <TutorDetail
+                  user={user}
+                  onRequireLogin={openLoginModal}
+                />
+              </BlockedRoute>
             }
           />
           <Route
             path="/tutor-profile/:id"
             element={
-              <TutorProfile
-                user={user}
-                onRequireLogin={openLoginModal}
-                fetchTutorDetail={fetchTutorDetail}
-              />
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <TutorProfile
+                  user={user}
+                  onRequireLogin={openLoginModal}
+                  fetchTutorDetail={fetchTutorDetail}
+                />
+              </BlockedRoute>
             }
           />
           <Route
             path="/tutor/:subject"
-            element={<TutorSubjectList />}
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <TutorSubjectList />
+              </BlockedRoute>
+            }
           />
           <Route
             path="/become-tutor"
-            element={<BecomeATutorLandingPage />}
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <BecomeATutorLandingPage />
+              </BlockedRoute>
+            }
           />
           <Route
             path="/become-tutor/register"
             element={
-              <BecomeATutorPage
-                user={user}
-                onRequireLogin={openLoginModal}
-                fetchProfileData={fetchTutorRegisterProfile}
-                fetchHashtags={fetchAllHashtags}
-                uploadProfileImage={uploadProfileImage}
-                deleteProfileImage={deleteProfileImage}
-                registerAsTutor={registerAsTutor}
-              />
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <BecomeATutorPage
+                  user={user}
+                  onRequireLogin={openLoginModal}
+                  fetchProfileData={fetchTutorRegisterProfile}
+                  fetchHashtags={fetchAllHashtags}
+                  uploadProfileImage={uploadProfileImage}
+                  deleteProfileImage={deleteProfileImage}
+                  registerAsTutor={registerAsTutor}
+                />
+              </BlockedRoute>
             }
           />
 
@@ -185,42 +215,68 @@ function AppContent({
           <Route
             path="/message/:id"
             element={
-              user ? <MessagePage user={user} /> : <Navigate to="/" replace />
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                  <MessagePage user={user} />
+                </ProtectedRoute>
+              </BlockedRoute>
             }
           />
           {/* Route for viewing a user profile */}
           <Route
             path="/user/:id"
-            element={user ? <UserProfile loggedInUser={user} getUserById={getUserById} /> : <Navigate to="/" replace />}
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                  <UserProfile loggedInUser={user} getUserById={getUserById} />
+                </ProtectedRoute>
+              </BlockedRoute>
+            }
           />
           {/* NEW ROUTE for editing a user profile */}
           <Route
             path="/user/edit/:id"
-            // Pass loggedInUser to EditUserProfile for authorization and initial data
-            element={user ? <EditUserProfile loggedInUser={user} /> : <Navigate to="/" replace />}
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                  <EditUserProfile loggedInUser={user} />
+                </ProtectedRoute>
+              </BlockedRoute>
+            }
           />
 
           {/* Staff Dashboard Route */}
           <Route
             path="/staff"
-            element={<StaffDashboardPage />}
+            element={
+              <StaffRoute user={user}>
+                <StaffDashboardPage />
+              </StaffRoute>
+            }
           />
 
           {/* Admin Dashboard Route */}
           <Route
             path="/admin"
-            element={<AdminDashboardPage />}
+            element={
+              <AdminRoute user={user}>
+                <AdminDashboardPage />
+              </AdminRoute>
+            }
           />
 
           {/* Manager Dashboard Route */}
           <Route
             path="/manager"
-            element={<ManagerDashboardPage />}
+            element={
+              <ManagerRoute user={user}>
+                <ManagerDashboardPage />
+              </ManagerRoute>
+            }
           />
 
           {/* This route catches all other paths and renders the NotFoundPage */}
           <Route path="*" element={<NotFoundPage />} />
-          {/* <Route path="*" element={<NotGrantedPermissionPage />} /> */}
 
         </Routes>
       </main>
@@ -270,6 +326,7 @@ function App() {
     onCloseWithoutLogin: null,
   });
   const [firstTutorId, setFirstTutorId] = useState(null);
+  const [triggerRoleRedirect, setTriggerRoleRedirect] = useState(false);
 
   console.log("User state in App.jsx:", user);
 
@@ -450,6 +507,9 @@ function App() {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(fullUserData));
     localStorage.setItem("user", JSON.stringify(fullUserData));
 
+    // Trigger role-based redirect for dashboard roles
+    setTriggerRoleRedirect(true);
+
     // Execute the success callback BEFORE closing the modal and clearing callbacks
     if (loginModalCallbacks.onLoginSuccess) {
       loginModalCallbacks.onLoginSuccess();
@@ -461,6 +521,7 @@ function App() {
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
     localStorage.removeItem("hasUpdatedProfile");
+    setTriggerRoleRedirect(false);
   };
 
   const switchToSignup = () => {
@@ -546,6 +607,8 @@ function App() {
         handleConfirmEmailSuccess={handleConfirmEmailSuccess}
         handleUpdateInfoSubmit={handleUpdateInfoSubmit}
         getUserById={getUserById}
+        triggerRoleRedirect={triggerRoleRedirect}
+        setTriggerRoleRedirect={setTriggerRoleRedirect}
       />
     </Router>
   );
