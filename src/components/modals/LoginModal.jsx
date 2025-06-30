@@ -114,10 +114,9 @@ const LoginModal = ({
       let originalHeaderPaddingRight = "";
       if (header && window.getComputedStyle(header).position === "fixed") {
         originalHeaderPaddingRight = header.style.paddingRight;
-        header.style.paddingRight = `${
-          scrollbarWidth +
+        header.style.paddingRight = `${scrollbarWidth +
           parseInt(window.getComputedStyle(header).paddingRight || "0")
-        }px`;
+          }px`;
       }
 
       return () => {
@@ -199,6 +198,19 @@ const LoginModal = ({
       if (response?.data?.token?.user) {
         const { id, fullName, email, profileImageUrl, username, phoneNumber } =
           response.data.token.user;
+
+        // Try to get roles from multiple possible locations
+        let roles = response.data.roles ||
+          response.data.token.roles ||
+          response.data.token.user.roles ||
+          response.data.token.user.role ||
+          [];
+
+        // Handle single role as string
+        if (typeof roles === 'string') {
+          roles = [roles];
+        }
+
         const userDetails = {
           id,
           fullName,
@@ -206,9 +218,10 @@ const LoginModal = ({
           profileImageUrl,
           username,
           phoneNumber,
-          role: response.data.role,
-          roles: response.data.roles,
+          role: response.data.role || response.data.token.user.role,
+          roles: roles,
         };
+
         onLogin(userDetails);
         toast.success(response.message || "Đăng nhập thành công!");
         onClose();
@@ -248,7 +261,7 @@ const LoginModal = ({
       } else {
         setGeneralError(
           error.message ||
-            "Tên đăng nhập hoặc mật khẩu không đúng hoặc đã xảy ra lỗi."
+          "Tên đăng nhập hoặc mật khẩu không đúng hoặc đã xảy ra lỗi."
         );
         setFieldErrors({ username: "", password: "" });
         toast.error(error.message || "Đăng nhập không thành công.");
@@ -378,7 +391,7 @@ const LoginModal = ({
               >
                 Điều khoản dịch vụ của chúng tôi&nbsp;
               </a>
-               và&nbsp;
+              và&nbsp;
               <a
                 href="/privacy"
                 target="_blank"
@@ -439,10 +452,9 @@ const LoginModal = ({
                   }}
                   placeholder="Địa chỉ Email"
                   className={`w-full px-4 py-3 border text-black rounded-lg focus:outline-none focus:ring-1
-                    ${
-                      fieldErrors.username
-                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300 focus:ring-black focus:border-black"
+                    ${fieldErrors.username
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-300 focus:ring-black focus:border-black"
                     }`}
                   required
                 />
@@ -467,10 +479,9 @@ const LoginModal = ({
                     }}
                     placeholder="Mật khẩu"
                     className={`w-full px-4 py-3 border text-black rounded-lg focus:outline-none focus:ring-1 pr-10
-                      ${
-                        fieldErrors.password
-                          ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                          : "border-gray-300 focus:ring-black focus:border-black"
+                      ${fieldErrors.password
+                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                        : "border-gray-300 focus:ring-black focus:border-black"
                       }`}
                     required
                   />
@@ -500,9 +511,8 @@ const LoginModal = ({
 
               <button
                 type="submit"
-                className={`w-full bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200 ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`w-full bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200 ${isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 disabled={isLoading}
               >
                 {isLoading ? (
