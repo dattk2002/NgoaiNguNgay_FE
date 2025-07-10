@@ -25,7 +25,12 @@ const hasRole = (user, roleName) => {
 };
 
 const isTutor = (user) => hasRole(user, "Tutor");
-const isLearner = (user) => hasRole(user, "Learner");
+const isLearner = (user) => {
+  if (!user || !user.roles) return false;
+  const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+  // Only return true if the user has exactly one role and it is "Learner"
+  return roles.length === 1 && hasRole(user, "Learner");
+};
 
 function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -390,14 +395,14 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                         </Link>
                         {isLearner(user) && (
                           <Link
-                            to="/bookings"
+                            to="/my-bookings"
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             onClick={() => setIsDropdownOpen(false)}
                           >
                             Booking của tôi
                           </Link>
                         )}
-                        {user?.id && (
+                        {isTutor(user) && (
                           <Link
                             to={`/tutor-profile/${user?.id}`}
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

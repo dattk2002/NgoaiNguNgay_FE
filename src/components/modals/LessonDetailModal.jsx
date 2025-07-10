@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { FaVolumeUp } from "react-icons/fa"; // Example icon, adjust as needed
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 
-const LessonDetailModal = ({ isOpen, onClose, lesson, loading, error }) => {
+const LessonDetailModal = ({ isOpen, onClose, lesson, loading, error, onBookNow }) => {
   // Prevent background scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -189,7 +189,7 @@ const LessonDetailModal = ({ isOpen, onClose, lesson, loading, error }) => {
         <div className="border-t px-8 py-4 bg-white sticky bottom-0 left-0 w-full">
           <button
             className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition"
-            onClick={() => alert("Đặt lịch ngay!")}
+            onClick={() => onBookNow && lesson && onBookNow(lesson.id)}
           >
             Đặt lịch ngay
           </button>

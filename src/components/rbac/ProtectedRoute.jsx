@@ -106,5 +106,21 @@ export const BlockedRoute = ({
     return children;
 };
 
+export function TutorRoute({ user, children }) {
+    const hasTutorRole = user && (
+        (Array.isArray(user.roles) && user.roles.some(role => 
+            (typeof role === "string" && role.toLowerCase() === "tutor") ||
+            (role && role.name && role.name.toLowerCase() === "tutor")
+        )) ||
+        (typeof user.roles === "string" && user.roles.toLowerCase() === "tutor")
+    );
+
+    if (!hasTutorRole) {
+        // You can redirect to home or a "Not Authorized" page
+        return <Navigate to="/" replace />;
+    }
+    return children;
+}
+
 export { hasRole, hasAnyRole };
 export default ProtectedRoute; 
