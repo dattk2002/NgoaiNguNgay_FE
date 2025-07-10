@@ -29,6 +29,8 @@ import Collapse from "@mui/material/Collapse";
 import LessonDetailModal from "../modals/LessonDetailModal";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 import TutorWeeklyPatternDetailModal from "../modals/TutorWeeklyPatternDetailModal";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -47,6 +49,19 @@ function formatDateRange(start, end) {
     "en-US",
     options
   )} - ${end.toLocaleDateString("en-US", options)}`;
+}
+
+function getCurrentWeekMondayString() {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+  const diffToMonday = (dayOfWeek + 6) % 7; // 0 for Monday, 1 for Tuesday, ..., 6 for Sunday
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - diffToMonday);
+  // Format as YYYY-MM-DD 00:00:00
+  const yyyy = monday.getFullYear();
+  const mm = String(monday.getMonth() + 1).padStart(2, "0");
+  const dd = String(monday.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} 00:00:00`;
 }
 
 const TutorDetail = ({ user, onRequireLogin }) => {
@@ -78,6 +93,15 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [currentWeekEnd, setCurrentWeekEnd] = useState(null);
 
   const [isPatternDialogOpen, setIsPatternDialogOpen] = useState(false);
+  const [bookingLessonId, setBookingLessonId] = useState(null);
+
+  // Snackbar state for booking success
+  const [bookingSuccessSnackbar, setBookingSuccessSnackbar] = useState(false);
+
+  // Handler to show snackbar
+  const handleBookingSuccess = () => {
+    setBookingSuccessSnackbar(true);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -233,8 +257,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         const lessonsData = await fetchTutorLesson(id);
         setLessons(lessonsData);
 
-        // Fetch the weekly schedule
-        const startDate = "2025-06-30 00:00:00"; // Example start date
+        // Calculate current week's Monday as startDate
+        const startDate = getCurrentWeekMondayString();
         const scheduleData = await fetchTutorWeekSchedule(id, startDate);
         setWeeklySchedule(scheduleData);
 
@@ -319,6 +343,11 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     setIsLessonModalOpen(false);
     setLessonDetail(null);
     setLessonDetailError(null);
+  };
+
+  const handleBookNowFromLesson = (lessonId) => {
+    setBookingLessonId(lessonId);
+    setIsPatternDialogOpen(true);
   };
 
   // Helper function to check if a time slot is available based on weekly schedule
@@ -851,16 +880,48 @@ const TutorDetail = ({ user, onRequireLogin }) => {
             ))}
           </div>
         </div>
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-500">
-            Dựa trên múi giờ của bạn (UTC+07:00)
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mt-4 gap-2">
+          {/* Legend */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-1">
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: "#98D45F",
+                  marginRight: 6,
+                }}
+              />
+              <span className="text-sm text-gray-700 font-medium">Có sẵn</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: "#e2e8f0",
+                  marginRight: 6,
+                }}
+              />
+              <span className="text-sm text-gray-700 font-medium">Không có sẵn</span>
+            </div>
           </div>
-          <button
-            onClick={() => setIsPatternDialogOpen(true)}
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
-          >
-            Chi tiết lịch trình
-          </button>
+          {/* Timezone and button */}
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-500">
+              Dựa trên múi giờ của bạn (UTC+07:00)
+            </span>
+            <button
+              onClick={() => setIsPatternDialogOpen(true)}
+              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+            >
+              Chi tiết lịch trình
+            </button>
+          </div>
         </div>
       </div>
 
@@ -921,14 +982,32 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         lesson={lessonDetail}
         loading={loadingLessonDetail}
         error={lessonDetailError}
+        onBookNow={handleBookNowFromLesson}
       />
 
       <TutorWeeklyPatternDetailModal
         open={isPatternDialogOpen}
-        onClose={() => setIsPatternDialogOpen(false)}
+        onClose={() => {
+          setIsPatternDialogOpen(false);
+          setBookingLessonId(null); // reset after close
+        }}
         tutorId={teacher.id}
         initialWeekStart={currentWeekStart}
+        currentUser={user}
+        onBookingSuccess={handleBookingSuccess}
+        lessonId={bookingLessonId}
       />
+
+      <Snackbar
+        open={bookingSuccessSnackbar}
+        autoHideDuration={3000}
+        onClose={() => setBookingSuccessSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setBookingSuccessSnackbar(false)} severity="success" sx={{ width: "100%" }}>
+          Gửi yêu cầu thành công!
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

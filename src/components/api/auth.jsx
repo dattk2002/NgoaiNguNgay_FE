@@ -802,3 +802,256 @@ export async function fetchTutorWeekSchedule(tutorId, startDate) {
     throw error;
   }
 }
+
+export async function tutorBookingTimeSlotFromLearner() {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi("/api/tutor-bookings/time-slots", "GET", null, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to fetch learner booking time slots:", error.message);
+    throw error;
+  }
+}
+
+export async function tutorBookingTimeSlotFromLearnerDetail(learnerId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(`/api/tutor-bookings/learners/${learnerId}/time-slots`, "GET", null, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to fetch learner booking time slot detail:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get all tutors the learner has sent booking requests to.
+ * @returns {Promise<Array>} List of tutor requests.
+ */
+export async function getAllLearnerBookingTimeSlot() {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      "/api/learner-bookings/list-tutors-request",
+      "GET",
+      null,
+      token
+    );
+    if (response && Array.isArray(response.data)) {
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for tutor requests.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch all learner booking time slots:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get learner booking time slots by tutorId.
+ * @param {string} tutorId
+ */
+export async function learnerBookingTimeSlotByTutorId(tutorId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      `/api/learner-bookings/tutors/${tutorId}/time-slots`,
+      "GET",
+      null,
+      token
+    );
+    // Always return the array directly
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch learner booking time slots by tutorId:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Update learner booking time slots for a tutor.
+ * @param {string} tutorId
+ * @param {string} lessonId
+ * @param {string} expectedStartDate (ISO string)
+ * @param {Array<{dayInWeek: number, slotIndex: number}>} timeSlots
+ */
+export async function updateLearnerBookingTimeSlot(tutorId, lessonId, expectedStartDate, timeSlots) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    console.log("Ớp đệt: ", {
+      tutorId,
+      lessonId,
+      expectedStartDate,
+      timeSlots
+    });
+    const body = { tutorId, lessonId, expectedStartDate, timeSlots };
+    const response = await callApi("/api/learner-bookings/time-slots", "PUT", body, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to update learner booking time slot:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete learner booking time slots for a tutor.
+ * @param {string} tutorId
+ */
+export async function deleteLearnerBookingTimeSlot(tutorId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      `/api/learner-bookings/tutors/${tutorId}/time-slots`,
+      "DELETE",
+      null,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to delete learner booking time slot:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Offer booking time slots from tutor to learner.
+ * @param {Object} offerData - { learnerId, lessonId, offeredSlots }
+ * @returns {Promise<Object>} API response
+ */
+export async function createTutorBookingOffer(offerData) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      "/api/tutor-bookings/offers",
+      "POST",
+      offerData,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to offer booking slots:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get details of a tutor's booking offer by offerId.
+ * @param {string} offerId
+ * @returns {Promise<Object>} API response
+ */
+export async function tutorBookingOfferDetail(offerId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      `/api/tutor-bookings/offers/${offerId}`,
+      "GET",
+      null,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to fetch tutor booking offer detail:", error.message);
+    throw error;
+  }
+}
+
+export async function getAllTutorBookingOffer() {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      "/api/tutor-bookings/offers",
+      "GET",
+      null,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to fetch all tutor booking offers:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Update a tutor's booking offer by offerId.
+ * @param {string} offerId
+ * @param {Object} offerData - { lessonId, offeredSlots }
+ * @returns {Promise<Object>} API response
+ */
+export async function updateTutorBookingOfferByOfferId(offerId, offerData) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      `/api/tutor-bookings/offers/${offerId}`,
+      "PUT",
+      offerData,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to update tutor booking offer:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get all booking offers sent to the learner.
+ * @returns {Promise<Array>} List of booking offers.
+ */
+export async function getAllLearnerBookingOffer() {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      "/api/learner-bookings/offers",
+      "GET",
+      null,
+      token
+    );
+    if (response && Array.isArray(response.data)) {
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for learner booking offers.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch all learner booking offers:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get details of a learner's booking offer by offerId.
+ * @param {string} offerId
+ * @returns {Promise<Object>} API response
+ */
+export async function learnerBookingOfferDetail(offerId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      `/api/learner-bookings/offers/${offerId}`,
+      "GET",
+      null,
+      token
+    );
+    if (response && response.data) {
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for learner booking offer detail.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch learner booking offer detail:", error.message);
+    throw error;
+  }
+}
