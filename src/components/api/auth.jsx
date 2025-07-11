@@ -750,7 +750,7 @@ export async function deleteLesson(lessonId) {
 export async function fetchTutorWeeklyPattern(tutorId) {
   try {
     const response = await callApi(`/api/schedule/tutors/${tutorId}/weekly-patterns`, "GET");
-    
+
     if (response && response.data) {
       console.log("Weekly patterns fetched successfully:", response.data);
       return response.data;
@@ -790,7 +790,7 @@ export async function deleteTutorWeeklyPattern(patternId) {
 export async function fetchTutorWeekSchedule(tutorId, startDate) {
   try {
     const response = await callApi(`/api/schedule/tutors/${tutorId}/week?startDate=${startDate}`, "GET");
-    
+
     if (response && response.data) {
       console.log("Weekly schedule fetched successfully:", response.data);
       return response.data;
@@ -1052,6 +1052,223 @@ export async function learnerBookingOfferDetail(offerId) {
     }
   } catch (error) {
     console.error("Failed to fetch learner booking offer detail:", error.message);
+    throw error;
+  }
+}
+
+// New API function for requesting tutor verification
+export async function requestTutorVerification(tutorApplicationId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/tutorapplication/request-verification?tutorApplicationId=${tutorApplicationId}`,
+      "POST",
+      null,
+      token
+    );
+
+    console.log("Tutor verification request submitted successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Failed to request tutor verification:", error.message);
+    throw error;
+  }
+}
+
+// New API function for uploading certificate files
+export async function uploadCertificate(files, applicationId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+
+    const formData = new FormData();
+
+    // Support both single file and multiple files  
+    if (Array.isArray(files)) {
+      files.forEach((file) => {
+        formData.append(`Files`, file);
+      });
+    } else {
+      formData.append(`Files`, files);
+    }
+
+    // Add required fields based on Swagger documentation
+    formData.append('ApplicationId', applicationId || ''); // Use the actual tutor application ID
+    formData.append('StaffId', ''); // Empty for now
+    formData.append('IsVisibleToLearner', 'false');
+    formData.append('Description', 'Certificate upload from tutor profile');
+
+    const headers = {
+      Accept: "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const fullUrl = `${BASE_API_URL}/api/document/upload`;
+    console.log(`Uploading certificates to: ${fullUrl}`);
+
+    const response = await fetch(fullUrl, {
+      method: "POST",
+      headers: headers,
+      body: formData,
+      credentials: 'include',
+    });
+
+    console.log("Certificate upload response status:", response.status, response.statusText);
+
+    if (!response.ok) {
+      let formattedErrorMessage = `Certificate Upload Error: ${response.status} ${response.statusText}`;
+      let originalErrorData = null;
+
+      try {
+        const errorData = await response.json();
+        originalErrorData = errorData;
+        console.error("Certificate Upload Error Details:", errorData);
+
+        if (errorData) {
+          if (typeof errorData.errorMessage === 'string') {
+            formattedErrorMessage = errorData.errorMessage;
+          } else if (typeof errorData.message === 'string') {
+            formattedErrorMessage = errorData.message;
+          }
+        }
+      } catch (jsonError) {
+        console.warn("Failed to parse error response as JSON.", jsonError);
+      }
+
+      const error = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage);
+      error.status = response.status;
+      error.details = originalErrorData;
+      throw error;
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      const jsonData = await response.json();
+      console.log("Certificate upload success:", jsonData);
+      return jsonData;
+    } else {
+      console.log("Certificate upload completed successfully");
+      return { success: true, status: response.status };
+    }
+  } catch (error) {
+    console.error("Failed to upload certificates:", error.message);
+    throw error;
+  }
+}
+
+export async function fetchPendingApplications(page = 1, size = 20) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/tutorapplication/staff/pending-applications?page=${page}&size=${size}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("Pending applications fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("No pending applications data found.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch pending applications:", error.message);
+    throw error;
+  }
+}
+
+export async function fetchDocumentsByTutorId(tutorId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/document/tutor/${tutorId}`, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Documents fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("No documents data found for this tutor.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch documents:", error.message);
+    throw error;
+  }
+}
+
+export async function deleteDocument(documentId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/document/${documentId}`, "DELETE", null, token);
+    console.log("Document deleted successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Failed to delete document:", error.message);
+    throw error;
+  }
+}
+
+export async function fetchTutorApplicationById(applicationId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/tutorapplication/staff/${applicationId}`, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Tutor application details fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("No tutor application data found for this ID.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor application details:", error.message);
+    throw error;
+  }
+}
+
+export async function reviewTutorApplication(applicationId, action, notes = "") {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const requestBody = {
+      applicationId: applicationId,
+      action: action, // 1 = approve, 2 = reject, 3 = request more info
+      notes: notes
+    };
+
+    const response = await callApi("/api/tutorapplication/staff/review", "POST", requestBody, token);
+
+    if (response) {
+      console.log("Tutor application review completed successfully:", response);
+      return response;
+    } else {
+      throw new Error("No response data from review API.");
+    }
+  } catch (error) {
+    console.error("Failed to review tutor application:", error.message);
     throw error;
   }
 }

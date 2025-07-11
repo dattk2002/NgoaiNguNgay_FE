@@ -34,7 +34,9 @@ import {
   deleteProfileImage,
   registerAsTutor,
   fetchTutorDetail,
-  fetchChatConversationsByUserId
+  fetchChatConversationsByUserId,
+  requestTutorVerification,
+  uploadCertificate
 } from "./components/api/auth";
 
 // Import the NotFoundPage component
@@ -176,6 +178,8 @@ function AppContent({
                     user={user}
                     onRequireLogin={openLoginModal}
                     fetchTutorDetail={fetchTutorDetail}
+                    requestTutorVerification={requestTutorVerification}
+                    uploadCertificate={uploadCertificate}
                   />
                 </TutorRoute>
               </BlockedRoute>

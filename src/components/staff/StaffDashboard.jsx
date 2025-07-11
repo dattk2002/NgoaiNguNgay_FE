@@ -73,6 +73,43 @@ const StaffDashboard = () => {
 
     return (
         <div className="flex h-screen bg-gray-50">
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                    * {
+                        outline: none !important;
+                    }
+                    
+                    button:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    button:focus-visible {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    input:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    select:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    textarea:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    a:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                `
+            }} />
             {/* Sidebar */}
             <div className="w-64 bg-gray-900 text-white">
                 {/* Logo/Brand */}
@@ -95,7 +132,7 @@ const StaffDashboard = () => {
                     {menuItems.map((item) => (
                         <button
                             key={item.id}
-                            className={`w-full text-left p-3 rounded-lg transition-all duration-200 group ${activeTab === item.id
+                            className={`w-full text-left p-3 rounded-lg transition-all duration-200 group outline-none ${activeTab === item.id
                                 ? 'bg-blue-600 text-white'
                                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                                 }`}
@@ -129,7 +166,7 @@ const StaffDashboard = () => {
                             <div className="text-xs text-gray-400">Staff Member</div>
                         </div>
                         <button
-                            className="p-1 text-gray-400 hover:text-white transition-colors"
+                            className="p-1 text-gray-400 hover:text-white transition-colors outline-none"
                             onClick={handleLogout}
                             title="Đăng xuất"
                         >
