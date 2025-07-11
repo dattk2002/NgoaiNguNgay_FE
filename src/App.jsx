@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import './utils/notFocusOutline.css';
 import {
   BrowserRouter as Router,
   Routes,
@@ -14,7 +15,7 @@ import RecommendTutorList from "./components/tutors/RecommendTutorList";
 import TutorDetail from "./components/tutors/TutorDetail";
 import LoginModal from "./components/modals/LoginModal";
 import SignUpModal from "./components/modals/SignUpModal";
-import TutorSubjectList from "./components/tutors/TutorSubjectList";
+import TutorLanguageList from "./components/tutors/TutorLanguageList";
 import MessagePage from "./pages/MessageListPage";
 import BecomeATutorPage from "./pages/BecomeATutorPage";
 import BecomeATutorLandingPage from "./pages/BecomeATutorLandingPage";
@@ -25,6 +26,7 @@ import UpdateInformationModal from "./components/modals/UpdateInformationModal";
 import UserProfile from "./components/users/UserProfile";
 import EditUserProfile from "./components/users/EditUserProfile"; // Import the new component
 import MyBookingPage from "./pages/MyBookingPage"; // Import at the top
+import HowItWork from "./components/HowItWork";
 
 // Import the tutor API functions
 import {
@@ -189,7 +191,7 @@ function AppContent({
             path="/tutor/:subject"
             element={
               <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
-                <TutorSubjectList />
+                <TutorLanguageList />
               </BlockedRoute>
             }
           />
@@ -289,6 +291,16 @@ function AppContent({
               <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
                 <MyBookingPage user={user} />
               </ProtectedRoute>
+            }
+          />
+
+          {/* NEW ROUTE for How It Works */}
+          <Route
+            path="/how-it-works"
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <HowItWork />
+              </BlockedRoute>
             }
           />
 

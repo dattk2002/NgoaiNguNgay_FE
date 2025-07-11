@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import StarIconRender from "../../utils/starIconRender";
@@ -18,6 +18,7 @@ const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
 );
 
 const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
+  const [isPriceHovered, setIsPriceHovered] = useState(false);
   const navigate = useNavigate();
 
   if (!tutor) {
@@ -44,14 +45,14 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
       onRequireLogin(
         "Bạn cần đăng nhập để liên hệ với gia sư này.",
         () => {
-          navigate(`/message/${tutor.id}`);
+          navigate(`/message/${tutor.tutorId}`);
         },
         () => {
-          navigate(`/teacher/${tutor.id}`);
+          navigate(`/teacher/${tutor.tutorId}`);
         }
       );
-    } else if (tutor.id) {
-      navigate(`/message/${tutor.id}`);
+    } else if (tutor.tutorId) {
+      navigate(`/message/${tutor.tutorId}`);
     } else {
       console.error("Tutor ID is missing:", tutor);
     }
@@ -59,9 +60,8 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
 
   // Modified function for card boundary click
   const handleCardClick = () => {
-    if (tutor.id) {
-      // Navigate to the tutor detail page regardless of login status
-      navigate(`/teacher/${tutor.id}`);
+    if (tutor.tutorId) {
+      window.open(`/teacher/${tutor.tutorId}`, "_blank", "noopener,noreferrer");
     } else {
       console.error("Tutor ID is missing:", tutor);
     }
@@ -69,7 +69,7 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
 
   return (
     <div
-      className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full cursor-pointer"
+      className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full cursor-pointer group"
       onClick={handleCardClick} // Assign handleCardClick to the main div
     >
       <div className="relative w-full" style={{ paddingTop: "66.66%" }}>
@@ -89,7 +89,7 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
         </div>
       </div>
 
-      <div className="p-4 flex flex-col flex-grow relative group">
+      <div className="p-4 flex flex-col flex-grow relative">
         <div className="flex items-center justify-between mb-2 text-sm">
           <div className="flex items-center text-gray-800 mr-1">
             <StarIconRender
@@ -115,21 +115,29 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
         >
           {description}
         </p>
-        <div className="text-gray-700 text-sm mt-auto py-3 group-hover:hidden">
-          <span className="font-bold text-base">{price.toFixed(2)} VND/h</span>
-          <span className="text-red-500 ml-2">
-            • Buổi học đầu tiên miễn phí
-          </span>
-        </div>
-        <button
-          className={`hidden group-hover:block mt-auto pt-2 w-full font-bold py-2 rounded-lg transition duration-150 ease-in-out text-center
-            "bg-[#333333] hover:bg-black text-white"
-          }`}
-          onClick={handleContactClick}
-          // disabled={!user}
-        >
-          Liên hệ ngay
-        </button>
+        {/* Price line and button logic */}
+        {!isPriceHovered ? (
+          <div
+            className="text-gray-700 text-sm mt-auto py-3"
+            onMouseEnter={() => setIsPriceHovered(true)}
+            onMouseLeave={() => setIsPriceHovered(false)}
+            style={{ minHeight: 40 }}
+          >
+            <span className="font-bold text-base">{price.toFixed(2)} VND/h</span>
+            <span className="text-red-500 ml-2">
+              • Buổi học đầu tiên miễn phí
+            </span>
+          </div>
+        ) : (
+          <button
+            className="mt-auto pt-2 w-full font-bold py-2 rounded-lg transition duration-150 ease-in-out text-center bg-[#333333] hover:bg-black text-white"
+            onClick={handleContactClick}
+            onMouseLeave={() => setIsPriceHovered(false)}
+            style={{ minHeight: 40 }}
+          >
+            Liên hệ ngay
+          </button>
+        )}
       </div>
     </div>
   );

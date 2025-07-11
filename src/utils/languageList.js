@@ -1,6 +1,6 @@
 export const languageList = [
-  { code: 'en', name: 'English' },
   { code: 'vi', name: 'Vietnamese' },
+  { code: 'en', name: 'English' },
   { code: 'fr', name: 'French' },
   { code: 'ja', name: 'Japanese' },
   { code: 'ko', name: 'Korean' },

@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useState, useEffect } from "react";
 import {
   FaCheckCircle,
   FaHeart,
@@ -8,6 +8,7 @@ import {
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import StarIconRender from "../../utils/starIconRender";
+import { fetchTutorWeekSchedule } from "../api/auth"; // adjust path as needed
 
 const TutorCard = memo(({
   teacher,
@@ -22,6 +23,109 @@ const TutorCard = memo(({
   handleHoverBoxLeave,
 }) => {
   const isHovered = hoveredTutor && hoveredTutor.id === teacher.id;
+
+  // Add state for weekly schedule and week start
+  const [weeklySchedule, setWeeklySchedule] = useState([]);
+  const [weekStartDate, setWeekStartDate] = useState(null);
+
+  // Helper to get current week's Monday
+  function getCurrentWeekMondayString() {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+    const diffToMonday = (dayOfWeek + 6) % 7;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - diffToMonday);
+    const yyyy = monday.getFullYear();
+    const mm = String(monday.getMonth() + 1).padStart(2, "0");
+    const dd = String(monday.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd} 00:00:00`;
+  }
+
+  // Helper to get date for each day
+  function getDatesOfWeek(startDate) {
+    if (!startDate) return [];
+    const base = new Date(startDate);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      return d;
+    });
+  }
+  const weekDates = getDatesOfWeek(weekStartDate);
+
+  // Helper to check if a slot is available
+  function isTimeSlotAvailable(timeRange, dayIndex) {
+    if (!weeklySchedule || weeklySchedule.length === 0 || !weekDates[dayIndex])
+      return false;
+
+    const targetDate = weekDates[dayIndex];
+    const dayData = weeklySchedule.find((day) => {
+      const dayDate = new Date(day.date);
+      return (
+        dayDate.getFullYear() === targetDate.getFullYear() &&
+        dayDate.getMonth() === targetDate.getMonth() &&
+        dayDate.getDate() === targetDate.getDate()
+      );
+    });
+
+    if (!dayData || !dayData.timeSlotIndex || dayData.timeSlotIndex.length === 0) {
+      return false;
+    }
+
+    // Convert time range to slot indices (same as TutorDetail)
+    const [startTime] = timeRange.split(" - ");
+    const [hours] = startTime.split(":");
+    const startHour = parseInt(hours, 10);
+    const slots = [];
+    for (let hour = startHour; hour < startHour + 4; hour++) {
+      slots.push(hour * 2, hour * 2 + 1);
+    }
+    return slots.some((slot) => dayData.timeSlotIndex.includes(slot));
+  }
+
+  // Define the new time blocks
+  const timeBlocks = [
+    { label: "Sáng", slots: Array.from({ length: 24 }, (_, i) => i) },      // 00:00 - 12:00
+    { label: "Chiều", slots: Array.from({ length: 12 }, (_, i) => i + 24) }, // 12:00 - 18:00
+    { label: "Tối", slots: Array.from({ length: 12 }, (_, i) => i + 36) },   // 18:00 - 24:00
+  ];
+
+  // Helper to check if a block is available
+  function isTimeBlockAvailable(blockSlots, dayIndex) {
+    if (!weeklySchedule || weeklySchedule.length === 0 || !weekDates[dayIndex])
+      return false;
+
+    const targetDate = weekDates[dayIndex];
+    const dayData = weeklySchedule.find((day) => {
+      const dayDate = new Date(day.date);
+      return (
+        dayDate.getFullYear() === targetDate.getFullYear() &&
+        dayDate.getMonth() === targetDate.getMonth() &&
+        dayDate.getDate() === targetDate.getDate()
+      );
+    });
+
+    if (!dayData || !dayData.timeSlotIndex || dayData.timeSlotIndex.length === 0) {
+      return false;
+    }
+
+    // Check if any slot in the block is available
+    return blockSlots.some((slot) => dayData.timeSlotIndex.includes(slot));
+  }
+
+  // Fetch schedule when hover
+  useEffect(() => {
+    if (isHovered && teacher.id) {
+      const mondayString = getCurrentWeekMondayString();
+      setWeekStartDate(mondayString);
+      fetchTutorWeekSchedule(teacher.id, mondayString)
+        .then(setWeeklySchedule)
+        .catch((err) => setWeeklySchedule([]));
+    }
+  }, [isHovered, teacher.id]);
+
+  // Days: Monday to Sunday
+  const daysVN = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
   return (
     <div
@@ -47,10 +151,13 @@ const TutorCard = memo(({
           </span>
         </div>
         {/* Right Part: Details */}
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           {/* Name & Badges */}
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <h2 className="text-lg font-semibold text-gray-800">
+            <h2
+              className="text-lg font-semibold text-gray-800 truncate max-w-xs"
+              title={teacher.name}
+            >
               {teacher.name}
             </h2>
             {teacher.isProfessional === true && (
@@ -93,7 +200,10 @@ const TutorCard = memo(({
             )}
           </div>
           {/* Description */}
-          <p className="text-gray-700 text-sm mb-3 text-overflow">
+          <p
+            className="text-gray-700 text-sm mb-3 truncate"
+            title={teacher.description}
+          >
             {teacher.description}
           </p>
           {/* Price, Availability & Actions */}
@@ -163,27 +273,37 @@ const TutorCard = memo(({
             />
           </div>
           {/* Availability Grid */}
-          <div className="grid grid-cols-7 gap-1 text-center p-4">
-            {/* Day Headers */}
-            {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
+          <div className="grid grid-cols-8 text-center p-4">
+            {/* First row: empty cell + day headers */}
+            <div></div>
+            {daysVN.map((day, idx) => (
               <div key={day} className="text-xs font-medium text-gray-500">
                 {day}
+                <br />
+                <span className="text-xs text-gray-400">
+                  {weekDates[idx] ? weekDates[idx].getDate() : ""}
+                </span>
               </div>
             ))}
-            {/* Placeholder Cells for the 6 time slots per day */}
-            {Array.from({ length: 42 }).map((_, index) => {
-              const availabilityItem = hoveredTutor.availabilityGrid?.[index];
-              const isAvailable = availabilityItem?.available ?? false;
-
-              return (
-                <div
-                  key={index}
-                  className={`h-6 w-full border rounded ${
-                    isAvailable ? "bg-green-500" : "bg-gray-100"
-                  }`}
-                />
-              );
-            })}
+            {/* Time blocks as first column, then cells for each day */}
+            {timeBlocks.map((block) => (
+              <React.Fragment key={block.label}>
+                <div className="text-sm text-gray-600 py-2 px-2 border-r border-b border-gray-200 flex items-center justify-center">
+                  {block.label}
+                </div>
+                {daysVN.map((_, dayIdx) => {
+                  const isAvailable = isTimeBlockAvailable(block.slots, dayIdx);
+                  return (
+                    <div
+                      key={block.label + dayIdx}
+                      className={`h-10 border border-gray-200 flex items-center justify-center ${
+                        isAvailable ? "bg-[#98D45F]" : "bg-gray-100"
+                      }`}
+                    />
+                  );
+                })}
+              </React.Fragment>
+            ))}
           </div>
         </div>
       )}

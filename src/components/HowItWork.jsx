@@ -3,7 +3,7 @@ import { FaSearch, FaRegCalendarAlt, FaVideo } from 'react-icons/fa'; // Import 
 
 const HowItWork = () => {
   return (
-    <div className="py-16 bg-white"> {/* Main container */}
+    <div className="py-16 bg-gray-100"> {/* Main container */}
       <div className="container mx-auto px-4">
 
         {/* "How It Works" Section */}
