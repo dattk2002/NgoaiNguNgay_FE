@@ -81,6 +81,43 @@ const DashboardOverview = () => {
 
     return (
         <div className="space-y-8">
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                    * {
+                        outline: none !important;
+                    }
+                    
+                    button:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    button:focus-visible {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    input:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    select:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    textarea:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    a:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                `
+            }} />
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, index) => (
@@ -115,7 +152,7 @@ const DashboardOverview = () => {
                 <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-semibold text-gray-900">Hoạt động gần đây</h3>
-                        <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        <button className="text-sm text-blue-600 hover:text-blue-700 font-medium outline-none">
                             Xem tất cả
                         </button>
                     </div>
@@ -153,7 +190,7 @@ const DashboardOverview = () => {
                 <div className="bg-white p-6 rounded-xl border border-gray-100">
                     <h3 className="text-lg font-semibold text-gray-900 mb-6">Thao tác nhanh</h3>
                     <div className="space-y-3">
-                        <button className="w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-between group">
+                        <button className="w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-between group outline-none">
                             <div className="flex items-center space-x-3">
                                 <div className="p-2 bg-green-100 text-green-600 rounded-lg">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

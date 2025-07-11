@@ -60,6 +60,8 @@ import {
   tutorBookingOfferDetail,
   getAllTutorBookingOffer, // <-- add this import
   updateTutorBookingOfferByOfferId,
+  fetchDocumentsByTutorId,
+  deleteDocument,
 } from "../../components/api/auth";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import ConfirmDialog from "../modals/ConfirmDialog";
@@ -309,6 +311,8 @@ const getVerificationStatus = (status) => {
   }
 };
 
+
+
 const handleFileChange = (e) => {
   const { files } = e.target;
   if (files.length > 0) {
@@ -316,13 +320,13 @@ const handleFileChange = (e) => {
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Kích thước ảnh phải nhỏ hơn 2MB");
+      alert("Kích thước ảnh phải nhỏ hơn 2MB");
       return;
     }
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      toast.error("Chỉ chấp nhận các tệp ảnh");
+      alert("Chỉ chấp nhận các tệp ảnh");
       return;
     }
 
@@ -363,19 +367,19 @@ const RedStyledButton = styled(StyledButton)(({ theme }) => ({
 function getWeekRange(date = new Date()) {
   const monday = new Date(date);
   const day = monday.getDay();
-  
+
   // Adjust to get Monday (1) as the first day
   // If today is Sunday (0), we need to go back 6 days
   // For any other day, we go back (day - 1) days
   const diff = day === 0 ? -6 : (1 - day);
-  
+
   monday.setDate(monday.getDate() + diff);
   monday.setHours(0, 0, 0, 0);
-  
+
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
-  
+
   return { monday, sunday };
 }
 
@@ -387,7 +391,7 @@ function formatDateRange(start, end) {
 // Replace the existing getPatternForWeek function with this one
 function getPatternForWeek(weeklyPatterns, weekStart) {
   if (!weeklyPatterns || weeklyPatterns.length === 0) return null;
-  
+
   // Create a date object for the start of the week
   const weekMonday = new Date(weekStart);
   weekMonday.setHours(0, 0, 0, 0);
@@ -402,7 +406,7 @@ function getPatternForWeek(weeklyPatterns, weekStart) {
   return sorted.find(pattern => {
     const patternDate = new Date(pattern.appliedFrom);
     patternDate.setHours(0, 0, 0, 0);
-    
+
     // Compare dates without time
     return patternDate.getTime() <= weekMonday.getTime();
   }) || sorted[sorted.length - 1];
@@ -467,7 +471,7 @@ const WeeklyScheduleSkeleton = () => (
       >
         <Skeleton variant="text" width={60} height={20} />
       </Box>
-      
+
       {/* Day headers */}
       {Array.from({ length: 7 }).map((_, index) => (
         <Box
@@ -529,10 +533,10 @@ const WeeklyScheduleSkeleton = () => (
                   borderLeft: dayIdx === 0 ? "none" : "1px solid #e2e8f0",
                 }}
               >
-                <Skeleton 
-                  variant="rectangular" 
-                  width="90%" 
-                  height="80%" 
+                <Skeleton
+                  variant="rectangular"
+                  width="90%"
+                  height="80%"
                   sx={{ borderRadius: 1, margin: "auto" }}
                 />
               </Box>
@@ -638,7 +642,7 @@ const BookingDetailSkeleton = () => (
   </TableContainer>
 );
 
-const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
+const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVerification, uploadCertificate }) => {
   const { id } = useParams();
   const [tutorData, setTutorData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -663,7 +667,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState(null);
   const [showValidation, setShowValidation] = useState(false);
-  
+
   // New state for weekly patterns
   const [weeklyPatterns, setWeeklyPatterns] = useState([]);
   const [availabilityData, setAvailabilityData] = useState({});
@@ -739,7 +743,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [offerDetail, setOfferDetail] = useState(null);
   console.log("Ọp phơ đì têu: ", offerDetail);
-  
+
   const [dialogWeekStart, setDialogWeekStart] = useState(getWeekRange().monday);
 
   const [allOffers, setAllOffers] = useState([]);
@@ -763,6 +767,12 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   };
   const isDialogAtCurrentWeek = dialogWeekStart.getTime() <= getWeekRange().monday.getTime();
   const dialogWeekInfo = getWeekDates(dialogWeekStart);
+
+  // New state for certificate upload and verification
+  const [uploadedCertificates, setUploadedCertificates] = useState([]);
+  const [certificateUploading, setCertificateUploading] = useState(false);
+  const [verificationRequesting, setVerificationRequesting] = useState(false);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
 
   const handlePrevWeek = () => {
     setCurrentWeekStart(prev => {
@@ -804,6 +814,176 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
+  };
+
+  // Fetch documents when component mounts
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (!id) return;
+
+      setDocumentsLoading(true);
+      try {
+        const documents = await fetchDocumentsByTutorId(id);
+
+        // Transform API response to match our certificate format
+        const transformedDocuments = [];
+
+        documents.forEach(doc => {
+          // Handle nested files structure
+          if (doc.files && Array.isArray(doc.files) && doc.files.length > 0) {
+            doc.files.forEach(file => {
+              transformedDocuments.push({
+                id: doc.id,
+                name: file.originalFileName || doc.fileName || doc.name || 'Unknown file',
+                size: file.fileSize || doc.fileSize || 0,
+                type: file.contentType || doc.mimeType || 'application/octet-stream',
+                uploadedAt: doc.uploadedAt || new Date().toISOString(),
+                url: file.cloudinaryUrl || doc.fileUrl || null,
+                description: doc.description || '',
+                isVisibleToLearner: doc.isVisibleToLearner || false
+              });
+            });
+          } else {
+            // Fallback for documents without nested files array
+            transformedDocuments.push({
+              id: doc.id,
+              name: doc.fileName || doc.name || 'Unknown file',
+              size: doc.fileSize || 0,
+              type: doc.mimeType || 'application/octet-stream',
+              uploadedAt: doc.uploadedAt || new Date().toISOString(),
+              url: doc.fileUrl || null,
+              description: doc.description || '',
+              isVisibleToLearner: doc.isVisibleToLearner || false
+            });
+          }
+        });
+
+        setUploadedCertificates(transformedDocuments);
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+        // Don't show error for missing documents, just keep empty array
+        setUploadedCertificates([]);
+      } finally {
+        setDocumentsLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, [id]);
+
+  // Certificate upload and verification functions
+  const handleCertificateUpload = async (files) => {
+    setCertificateUploading(true);
+    try {
+      const filesToUpload = Array.from(files);
+
+      // Validate files
+      for (const file of filesToUpload) {
+        if (file.size > 25 * 1024 * 1024) { // 25MB limit
+          alert(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
+          setCertificateUploading(false);
+          return;
+        }
+
+        if (!file.type.includes('pdf') && !file.type.startsWith('image/')) {
+          alert(`File ${file.name} không đúng định dạng. Chỉ chấp nhận PDF và hình ảnh.`);
+          setCertificateUploading(false);
+          return;
+        }
+      }
+
+      // Upload certificates
+      console.log("Uploading certificates with applicationId:", tutorData?.applicationId);
+
+      if (!tutorData?.applicationId) {
+        alert("Không tìm thấy Application ID. Vui lòng thử lại sau.");
+        setCertificateUploading(false);
+        return;
+      }
+
+      const response = await uploadCertificate(filesToUpload, tutorData?.applicationId);
+      console.log("Certificates uploaded successfully:", response);
+
+      // Refresh documents list after upload
+      const updatedDocuments = await fetchDocumentsByTutorId(id);
+      const transformedDocuments = [];
+
+      updatedDocuments.forEach(doc => {
+        // Handle nested files structure
+        if (doc.files && Array.isArray(doc.files) && doc.files.length > 0) {
+          doc.files.forEach(file => {
+            transformedDocuments.push({
+              id: doc.id,
+              name: file.originalFileName || doc.fileName || doc.name || 'Unknown file',
+              size: file.fileSize || doc.fileSize || 0,
+              type: file.contentType || doc.mimeType || 'application/octet-stream',
+              uploadedAt: doc.uploadedAt || new Date().toISOString(),
+              url: file.cloudinaryUrl || doc.fileUrl || null,
+              description: doc.description || '',
+              isVisibleToLearner: doc.isVisibleToLearner || false
+            });
+          });
+        } else {
+          // Fallback for documents without nested files array
+          transformedDocuments.push({
+            id: doc.id,
+            name: doc.fileName || doc.name || 'Unknown file',
+            size: doc.fileSize || 0,
+            type: doc.mimeType || 'application/octet-stream',
+            uploadedAt: doc.uploadedAt || new Date().toISOString(),
+            url: doc.fileUrl || null,
+            description: doc.description || '',
+            isVisibleToLearner: doc.isVisibleToLearner || false
+          });
+        }
+      });
+
+      setUploadedCertificates(transformedDocuments);
+      alert("Tải lên chứng chỉ thành công!");
+
+    } catch (error) {
+      console.error("Certificate upload failed:", error);
+      alert(`Tải lên chứng chỉ thất bại: ${error.message}`);
+    } finally {
+      setCertificateUploading(false);
+    }
+  };
+
+  const handleRequestVerification = async () => {
+    if (uploadedCertificates.length === 0) {
+      alert("Vui lòng tải lên ít nhất một chứng chỉ trước khi yêu cầu xác minh.");
+      return;
+    }
+
+    if (!tutorData?.applicationId) {
+      alert("Không tìm thấy Application ID. Vui lòng thử lại sau.");
+      return;
+    }
+
+    setVerificationRequesting(true);
+    try {
+      // Using tutorData.applicationId as the tutorApplicationId
+      await requestTutorVerification(tutorData?.applicationId);
+      alert("Yêu cầu xác minh đã được gửi thành công!");
+    } catch (error) {
+      console.error("Verification request failed:", error);
+      alert(`Yêu cầu xác minh thất bại: ${error.message}`);
+    } finally {
+      setVerificationRequesting(false);
+    }
+  };
+
+  const handleRemoveCertificate = async (certificateId) => {
+    try {
+      await deleteDocument(certificateId);
+
+      // Remove from local state
+      setUploadedCertificates(prev => prev.filter(cert => cert.id !== certificateId));
+      alert("Xóa chứng chỉ thành công!");
+    } catch (error) {
+      console.error("Failed to delete certificate:", error);
+      alert(`Xóa chứng chỉ thất bại: ${error.message}`);
+    }
   };
 
   // Fetch tutor data when component mounts
@@ -849,19 +1029,19 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
           // Process slots from the API response
           if (patterns && patterns.length > 0) {
             // Sort patterns by AppliedFrom to get the most recent one
-            const sortedPatterns = patterns.sort((a, b) => 
+            const sortedPatterns = patterns.sort((a, b) =>
               new Date(b.appliedFrom) - new Date(a.appliedFrom)
             );
-            
+
             // Get the most recent pattern (first after sorting)
             const latestPattern = sortedPatterns[0];
-            
+
             if (latestPattern.slots && Array.isArray(latestPattern.slots)) {
               latestPattern.slots.forEach((slot) => {
                 // Convert slotIndex to time range
                 const hour = Math.floor(slot.slotIndex / 2);
                 const minute = (slot.slotIndex % 2) * 30;
-                
+
                 let timeRangeKey = null;
 
                 // Map to hourly time ranges
@@ -879,7 +1059,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                     6: 'fri', // Friday
                     7: 'sat'  // Saturday
                   };
-                  
+
                   const dayKey = dayMap[slot.dayInWeek];
                   if (dayKey) {
                     if (slot.type === 0) {
@@ -1721,11 +1901,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                                 </Typography>
                               </Box>
                             </Box>
-                            
+
                             <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
                               Dựa trên múi giờ của bạn (UTC+07:00) • Cập nhật lần cuối: {weeklyPatterns.length > 0 ? new Date(weeklyPatterns.sort((a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom))[0].appliedFrom).toLocaleDateString('vi-VN') : 'Không xác định'}
                             </Typography>
-                            
+
                             {/* Show pattern count for debugging */}
                             {/* <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.75rem", mt: 1 }}>
                               Số lượng mẫu lịch trình: {weeklyPatterns.length}
@@ -2135,7 +2315,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                     </Box>
 
                     {/* Insert new section here: Yêu cầu từ học viên */}
-                    
+
                   </Box>
                 )}
 
@@ -2167,6 +2347,8 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                       <SectionTitle variant="h6">
                         Tải lên chứng chỉ
                       </SectionTitle>
+
+                      {/* Upload Area */}
                       <Box
                         sx={{
                           display: "flex",
@@ -2175,6 +2357,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                           width: "100%",
                           maxWidth: "100%",
                           boxSizing: "border-box",
+                          mb: 3,
                         }}
                       >
                         <Box
@@ -2185,17 +2368,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                             width: "100%",
                             maxWidth: "100%",
                             height: "160px",
-                            border: "2px dashed #3b82f6",
+                            border: certificateUploading ? "2px dashed #10b981" : "2px dashed #3b82f6",
                             borderRadius: "16px",
-                            cursor: "pointer",
-                            backgroundColor: "#f8fafc",
+                            cursor: certificateUploading ? "not-allowed" : "pointer",
+                            backgroundColor: certificateUploading ? "#f0fdf4" : "#f8fafc",
                             transition: "all 0.3s ease",
                             boxSizing: "border-box",
+                            opacity: certificateUploading ? 0.7 : 1,
                             "&:hover": {
-                              backgroundColor: "#f0f9ff",
-                              borderColor: "#2563eb",
-                              transform: "translateY(-2px)",
-                              boxShadow: "0 8px 25px rgba(59, 130, 246, 0.15)",
+                              backgroundColor: certificateUploading ? "#f0fdf4" : "#f0f9ff",
+                              borderColor: certificateUploading ? "#10b981" : "#2563eb",
+                              transform: certificateUploading ? "none" : "translateY(-2px)",
+                              boxShadow: certificateUploading ? "none" : "0 8px 25px rgba(59, 130, 246, 0.15)",
                             },
                             "&:focus": {
                               outline: "none",
@@ -2213,57 +2397,190 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                               p: 3,
                             }}
                           >
-                            <Box
-                              sx={{
-                                width: "48px",
-                                height: "48px",
-                                color: "#3b82f6",
-                                mb: 2,
-                              }}
-                            >
-                              <svg
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
+                            {certificateUploading ? (
+                              <CircularProgress size={48} sx={{ mb: 2, color: "#10b981" }} />
+                            ) : (
+                              <Box
+                                sx={{
+                                  width: "48px",
+                                  height: "48px",
+                                  color: "#3b82f6",
+                                  mb: 2,
+                                }}
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                />
-                              </svg>
-                            </Box>
+                                <svg
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                  />
+                                </svg>
+                              </Box>
+                            )}
                             <Typography
                               variant="body1"
                               sx={{
                                 mb: 1,
-                                color: "#3b82f6",
+                                color: certificateUploading ? "#10b981" : "#3b82f6",
                                 fontWeight: 600,
                               }}
                             >
-                              <span>Nhấp để tải lên</span> hoặc kéo và thả
+                              {certificateUploading ? (
+                                "Đang tải lên..."
+                              ) : (
+                                <span><span>Nhấp để tải lên</span> hoặc kéo và thả</span>
+                              )}
                             </Typography>
                             <Typography
                               variant="body2"
                               sx={{
                                 color: "#64748b",
+                                textAlign: "center",
                               }}
                             >
-                              PDF (Tối đa 25MB)
+                              PDF, JPG, PNG (Tối đa 25MB mỗi file)
+                              <br />
+                              Có thể chọn nhiều file cùng lúc
                             </Typography>
                           </Box>
                           <input
                             type="file"
-                            name="profilePhoto"
+                            multiple
                             style={{ display: "none" }}
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            required
+                            accept=".pdf,.jpg,.jpeg,.png,.gif"
+                            onChange={(e) => {
+                              if (e.target.files.length > 0) {
+                                handleCertificateUpload(e.target.files);
+                              }
+                            }}
+                            disabled={certificateUploading}
                           />
                         </Box>
                       </Box>
+
+                      {/* Uploaded Certificates List */}
+                      {documentsLoading ? (
+                        <Box sx={{ mb: 3, display: "flex", justifyContent: "center", alignItems: "center", py: 4 }}>
+                          <CircularProgress size={32} sx={{ mr: 2 }} />
+                          <Typography variant="body1" sx={{ color: "#64748b" }}>
+                            Đang tải danh sách chứng chỉ...
+                          </Typography>
+                        </Box>
+                      ) : uploadedCertificates.length > 0 ? (
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#1e293b" }}>
+                            Chứng chỉ đã tải lên ({uploadedCertificates.length})
+                          </Typography>
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                            {uploadedCertificates.map((cert) => (
+                              <Box
+                                key={cert.id}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  p: 2,
+                                  backgroundColor: "#f8fafc",
+                                  borderRadius: "12px",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                  <Box
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: "8px",
+                                      backgroundColor: cert.type.includes('pdf') ? "#dc2626" : "#3b82f6",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontWeight: 600,
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    {cert.type.includes('pdf') ? 'PDF' : 'IMG'}
+                                  </Box>
+                                  <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#1e293b" }}>
+                                      {cert.name}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: "#64748b" }}>
+                                      {cert.size > 0 ? `${(cert.size / 1024 / 1024).toFixed(2)} MB` : 'Không xác định'} • {new Date(cert.uploadedAt).toLocaleDateString('vi-VN')}
+                                    </Typography>
+                                    {cert.description && (
+                                      <Typography variant="caption" sx={{ color: "#64748b", display: "block", mt: 0.5 }}>
+                                        {cert.description}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </Box>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  {cert.url && (
+                                    <IconButton
+                                      onClick={() => window.open(cert.url, '_blank')}
+                                      sx={{ color: "#3b82f6" }}
+                                      size="small"
+                                      title="Xem file"
+                                    >
+                                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      </svg>
+                                    </IconButton>
+                                  )}
+                                  <IconButton
+                                    onClick={() => handleRemoveCertificate(cert.id)}
+                                    sx={{ color: "#dc2626" }}
+                                    size="small"
+                                    title="Xóa file"
+                                  >
+                                    <FiTrash2 size={16} />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                            ))}
+                          </Box>
+                        </Box>
+                      ) : (
+                        <Box sx={{ mb: 3, textAlign: "center", py: 2 }}>
+                          <Typography variant="body2" sx={{ color: "#64748b", fontStyle: "italic" }}>
+                            Chưa có chứng chỉ nào được tải lên
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Request Verification Button */}
+                      {uploadedCertificates.length > 0 && (
+                        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                          <StyledButton
+                            onClick={handleRequestVerification}
+                            disabled={verificationRequesting}
+                            sx={{
+                              backgroundColor: "#10b981",
+                              "&:hover": {
+                                backgroundColor: "#059669",
+                              },
+                            }}
+                          >
+                            {verificationRequesting ? (
+                              <>
+                                <CircularProgress size={20} sx={{ mr: 1, color: "white" }} />
+                                Đang gửi yêu cầu...
+                              </>
+                            ) : (
+                              "Yêu cầu xác minh chứng chỉ"
+                            )}
+                          </StyledButton>
+                        </Box>
+                      )}
                     </Box>
 
                     <Box

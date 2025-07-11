@@ -129,7 +129,7 @@ const ReportManagement = () => {
 
             <div className="flex gap-2 flex-wrap">
                 <button
-                    className="bg-blue-500 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-600 transition-colors flex items-center gap-1"
+                    className="bg-blue-500 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-600 transition-colors flex items-center gap-1 outline-none"
                     onClick={() => handleViewDetails(report)}
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +140,7 @@ const ReportManagement = () => {
                 </button>
                 {report.status === 'pending' && (
                     <button
-                        className="bg-green-500 text-white px-3 py-2 rounded-md text-sm hover:bg-green-600 transition-colors flex items-center gap-1"
+                        className="bg-green-500 text-white px-3 py-2 rounded-md text-sm hover:bg-green-600 transition-colors flex items-center gap-1 outline-none"
                         onClick={() => handleResolveReport(report.id, 'Đã xử lý')}
                     >
                         ✅ Xử lý xong
@@ -156,7 +156,7 @@ const ReportManagement = () => {
                 <div className="flex justify-between items-center p-6 border-b border-gray-200">
                     <h3 className="text-2xl font-semibold text-gray-800">Chi tiết báo cáo</h3>
                     <button
-                        className="text-gray-500 hover:text-gray-700 p-2"
+                        className="text-gray-500 hover:text-gray-700 p-2 outline-none"
                         onClick={() => setSelectedReport(null)}
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,7 +249,7 @@ const ReportManagement = () => {
                             />
                             <div className="flex gap-3 mt-4">
                                 <button
-                                    className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2"
+                                    className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2 outline-none"
                                     onClick={() => handleResolveReport(selectedReport.id, 'Giải pháp từ form')}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,11 +279,48 @@ const ReportManagement = () => {
 
     return (
         <div className="space-y-6">
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                    * {
+                        outline: none !important;
+                    }
+                    
+                    button:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    button:focus-visible {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    input:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    select:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    textarea:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    a:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                    }
+                `
+            }} />
             {/* Header */}
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
                 <div className="flex flex-wrap gap-4 mb-6">
                     <button
-                        className={`px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 ${activeTab === 'pending'
+                        className={`px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 outline-none ${activeTab === 'pending'
                             ? 'bg-gray-800 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
@@ -295,7 +332,7 @@ const ReportManagement = () => {
                         Chờ xử lý ({pendingReports.length})
                     </button>
                     <button
-                        className={`px-6 py-3 rounded-full font-medium transition-all ${activeTab === 'resolved'
+                        className={`px-6 py-3 rounded-full font-medium transition-all outline-none ${activeTab === 'resolved'
                             ? 'bg-gray-800 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
@@ -315,7 +352,7 @@ const ReportManagement = () => {
                             placeholder="Tìm kiếm báo cáo..."
                             className="px-4 py-3 bg-transparent outline-none min-w-64 text-black"
                         />
-                        <button className="bg-gray-100 text-gray-800 px-4 py-3 hover:bg-gray-200 transition-colors">
+                        <button className="bg-gray-100 text-gray-800 px-4 py-3 hover:bg-gray-200 transition-colors outline-none">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
