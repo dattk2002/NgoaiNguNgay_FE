@@ -42,15 +42,6 @@ const timeRanges = [
   "20:00 - 24:00",
 ];
 
-function formatDateRange(start, end) {
-  if (!start || !end) return "";
-  const options = { month: "short", day: "numeric", year: "numeric" };
-  return `${start.toLocaleDateString(
-    "en-US",
-    options
-  )} - ${end.toLocaleDateString("en-US", options)}`;
-}
-
 function getCurrentWeekMondayString() {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
@@ -68,6 +59,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [teacher, setTeacher] = useState(null);
+  console.log("Tít chờ: ", teacher);
+  
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -195,7 +188,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           verificationStatus: apiTeacherData.verificationStatus, // Add verificationStatus from API
           becameTutorAt: apiTeacherData.becameTutorAt, // Add becameTutorAt from API
           // Mocked data for fields not in the provided API response structure
-          imageUrl: apiTeacherData.profilePictureUrl, // Mocked
+          profileImageUrl: apiTeacherData.profileImageUrl, // Mocked
           tag: "Professional Teacher", // Mocked
           nativeLanguage: primaryLanguage
             ? primaryLanguage.languageCode
@@ -236,19 +229,20 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         // Map the API response to the format expected by RecommendTutorCard
         const mappedRecommendedTutors = filteredRecommendedTutors.map(
           (tutor) => ({
-            id: tutor.userId,
+            tutorId: tutor.tutorId,
             name: tutor.fullName || tutor.nickName,
             subjects: tutor.languages
               ? tutor.languages
                   .map((language) => language.languageCode)
                   .join(", ")
-              : "N/A", // Assuming hashtags are subjects
-            rating: tutor.rating || 0, // Use actual rating if available, otherwise 0
-            reviews: tutor.ratingCount || 0, // Use actual review count, otherwise 0
-            price: tutor.price || 0, // Use actual price if available, otherwise 0
-            imageUrl: tutor.profilePictureUrl,
+              : "N/A",
+            rating: tutor.rating || 0,
+            reviews: tutor.ratingCount || 0,
+            price: tutor.price || 0,
+            profileImageUrl: tutor.profileImageUrl, // <-- fix typo if needed
             description: tutor.description,
             address: tutor.address,
+            isProfessional: tutor.isProfessional, // (if you want to show the tag)
           })
         );
         setTutors(mappedRecommendedTutors);
@@ -313,7 +307,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   // Updated handler for the "Contact teacher" button
   const handleContactTeacher = () => {
     if (!user) {
-      onRequireLogin("Please log in to contact this tutor.");
+      onRequireLogin("Đăng nhập để liên hệ với gia sư này !");
       return;
     }
     // Navigate to the message page with the teacher's ID
@@ -397,50 +391,76 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     return expectedSlots.some((slot) => dayData.timeSlotIndex.includes(slot));
   };
 
-  const handlePrevWeek = () => {
-    const prevMonday = new Date(currentWeekStart);
-    prevMonday.setDate(prevMonday.getDate() - 7);
-    setWeekStartDate(prevMonday);
-    setCurrentWeekStart(prevMonday);
-    const prevSunday = new Date(prevMonday);
-    prevSunday.setDate(prevMonday.getDate() + 6);
-    setCurrentWeekEnd(prevSunday);
-  };
-
-  const handleNextWeek = () => {
-    const nextMonday = new Date(currentWeekStart);
-    nextMonday.setDate(nextMonday.getDate() + 7);
-    setWeekStartDate(nextMonday);
-    setCurrentWeekStart(nextMonday);
-    const nextSunday = new Date(nextMonday);
-    nextSunday.setDate(nextMonday.getDate() + 6);
-    setCurrentWeekEnd(nextSunday);
-  };
-
   if (loading)
     return (
-      // Add black loading spinner similar to EditUserProfile
-      <div className="flex justify-center items-center min-h-screen">
-        <svg
-          className="animate-spin h-8 w-8 text-black"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"
-          ></path>
-        </svg>
+      // Skeleton loader for TutorDetail page
+      <div className="container mx-auto px-4 py-12 bg-white min-h-screen rounded-3xl max-w-7xl animate-pulse">
+        <div className="flex flex-col md:flex-row md:items-start gap-8">
+          {/* LEFT COLUMN SKELETON */}
+          <div className="flex-1">
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-full bg-gray-200" />
+              <div className="flex flex-col w-[90%] gap-2">
+                <div className="h-6 bg-gray-200 rounded w-1/3 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-1/4 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
+                <div className="h-8 bg-gray-200 rounded w-full mt-4" />
+                <div className="h-20 bg-gray-200 rounded w-full mt-4" />
+              </div>
+            </div>
+          </div>
+          {/* RIGHT COLUMN SKELETON */}
+          <div className="w-full md:w-[350px] flex-shrink-0 md:ml-0 mt-8 md:mt-0">
+            <div className="bg-white rounded-2xl shadow-lg p-4">
+              <div className="w-full aspect-video bg-gray-200 rounded-lg" />
+              <div className="mt-4 h-4 bg-gray-200 rounded w-1/2" />
+              <div className="mt-2 h-8 bg-gray-200 rounded w-full" />
+              <div className="mt-2 h-8 bg-gray-200 rounded w-full" />
+            </div>
+          </div>
+        </div>
+        {/* Stats Skeleton */}
+        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white p-6 rounded-xl shadow-md">
+              <div className="h-8 bg-gray-200 rounded w-1/2 mx-auto mb-2" />
+              <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto" />
+            </div>
+          ))}
+        </div>
+        {/* Courses Skeleton */}
+        <div className="mt-10">
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="bg-white p-4 rounded-xl shadow-md">
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
+                <div className="h-6 bg-gray-200 rounded w-1/4" />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Schedule Skeleton */}
+        <div className="mt-10">
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="h-40 bg-gray-200 rounded w-full" />
+        </div>
+        {/* Reviews Skeleton */}
+        <div className="mt-10">
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="h-20 bg-gray-200 rounded w-full" />
+        </div>
+        {/* Recommended Tutors Skeleton */}
+        <div className="mt-10">
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="flex gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="w-40 h-48 bg-gray-200 rounded-xl" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   if (error) return <p className="text-center text-red-500">Lỗi: {error}</p>;
@@ -519,7 +539,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         <div className="flex-1">
           <div className="flex items-start gap-4">
             <img
-              src={teacher.imageUrl || "https://picsum.photos/300/200?random=1"}
+              src={teacher.profileImageUrl || "https://picsum.photos/300/200?random=1"}
               alt={teacher.name}
               className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
             />
@@ -866,7 +886,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                       key={`${timeRange}-${day}`}
                       className={`h-12 border border-gray-200 last:border-b-0 ${
                         isAvailable
-                          ? "bg-[#98D45F] cursor-pointer hover:bg-[#7FC241]"
+                          ? "bg-[#98D45F] hover:bg-[#7FC241]"
                           : "bg-gray-100"
                       } ${
                         day === availabilityDays[availabilityDays.length - 1]
@@ -928,16 +948,16 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       <ReviewsSection teacher={teacher} />
 
       <div className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-6 px-16">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">
           Gia sư được đề xuất
         </h2>
         {tutors.length > 0 ? (
           <Slider {...sliderSettings}>
             {tutors.map((tutor) => (
-              <div key={tutor.id} className="px-3">
+              <div key={tutor.tutorId} className="px-3">
                 <RecommendTutorCard
                   tutor={{
-                    id: tutor.id,
+                    tutorId: tutor.tutorId,
                     name: tutor.name,
                     subjects:
                       Array.isArray(tutor.subjects) && tutor.subjects.length > 0
@@ -948,7 +968,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                     rating: tutor.rating,
                     reviews: tutor.reviews,
                     price: tutor.price,
-                    imageUrl: tutor.imageUrl,
+                    profileImageUrl: tutor.profileImageUrl,
                     isProfessional: tutor.isProfessional,
                     description: tutor.description,
                     address: tutor.address,

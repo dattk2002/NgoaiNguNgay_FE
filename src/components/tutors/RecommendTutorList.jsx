@@ -4,6 +4,45 @@ import { FaArrowRight } from "react-icons/fa6"; // Import FaArrowRight from reac
 import { fetchRecommendTutor } from "../api/auth"; // Changed import to fetchRecommendTutor
 import RecommendTutorCard from "./RecommendTutorCard";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
+import { Skeleton } from "@mui/material"; // Add this import
+import { languageList } from "../../utils/languageList"; // Add this import
+import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
+const getLanguageName = (code) => {
+  const lang = languageList.find((l) => l.code === code);
+  return lang ? lang.name : code;
+  
+};
+
+const languages = languageList.map((lang) => lang.code);
+
+const sliderSettings = {
+  dots: false,
+  infinite: false,
+  speed: 500,
+  slidesToShow: 8,
+  slidesToScroll: 4,
+  arrows: true,
+  responsive: [
+    {
+      breakpoint: 1024,
+      settings: {
+        slidesToShow: 4,
+        slidesToScroll: 2,
+      },
+    },
+    {
+      breakpoint: 600,
+      settings: {
+        slidesToShow: 2,
+        slidesToScroll: 1,
+      },
+    },
+  ],
+};
 
 const RecommendTutorList = ({ user, onRequireLogin }) => {
   const [tutors, setTutors] = useState([]);
@@ -31,16 +70,11 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
     loadTutors();
   }, []);
 
-  // Extract unique languages from tutors - Updated to use the 'languages' array
-  const languages = Array.from(
-    new Set(
-      tutors
-        .flatMap((tutor) =>
-          tutor.languages ? tutor.languages.map((lang) => lang.languageCode) : []
-        )
-        .filter((language) => language)
-    )
-  ).sort();
+  console.log("Languages extracted from tutors:", languages);
+  console.log(
+    "Languages with names:",
+    languages.map((code) => ({ code, name: getLanguageName(code) }))
+  );
 
   // Handle language filter change - Updated to filter based on 'languages' array
   const handleLanguageFilter = (language) => {
@@ -61,7 +95,28 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
     setVisibleTutors((prev) => prev + 3);
   };
 
-  if (loading) return <p className="text-center text-gray-500">Đang tải...</p>;
+  if (loading) {
+    // Show 3 skeleton cards in a grid, similar to the real cards
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6 px-16">
+          Tìm gia sư
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-16">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex flex-col items-center p-4 border rounded-lg bg-white shadow">
+              <Skeleton variant="circular" width={80} height={80} />
+              <Skeleton variant="text" width={120} height={32} sx={{ mt: 2 }} />
+              <Skeleton variant="text" width={180} height={24} />
+              <Skeleton variant="rectangular" width="100%" height={60} sx={{ mt: 2, mb: 1 }} />
+              <Skeleton variant="text" width="60%" height={20} />
+              <Skeleton variant="text" width="40%" height={20} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (error) return <p className="text-center text-red-500">Lỗi: {error}</p>;
 
   return (
@@ -71,48 +126,54 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
       </h2>
 
       {/* Language Filter */}
-      <div className="mb-8 flex flex-wrap gap-2 justify-center">
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => handleLanguageFilter("")}
-          sx={{
-            backgroundColor: selectedLanguage === "" ? "#000000" : "#d1d5db",
-            color: selectedLanguage === "" ? "#ffffff" : "#000000",
-            "&:hover": {
-              backgroundColor: selectedLanguage === "" ? "#333333" : "#d1d5db",
-            },
-            padding: "6px 12px",
-            borderRadius: "20px",
-            textTransform: "none",
-          }}
-        >
-          Tất cả
-        </Button>
-        {languages.map((language) => (
-          <Button
-            key={language}
-            variant="outlined"
-            onClick={() => handleLanguageFilter(language)}
-            sx={{
-              backgroundColor:
-                selectedLanguage === language ? "#000000" : "transparent",
-              color: selectedLanguage === language ? "#ffffff" : "#000000",
-              borderColor: "#d1d5db",
-              "&:hover": {
-                backgroundColor:
-                  selectedLanguage === language ? "#333333" : "#d1d5db",
-                borderColor: "#9ca3af",
-              },
-              padding: "6px 12px",
-              borderRadius: "20px",
-              textTransform: "none",
-            }}
-          >
-            {formatLanguageCode(language)}
-            {/* {language} */}
-          </Button>
-        ))}
+      <div className="mb-8 flex justify-center">
+        <Slider {...sliderSettings} style={{ width: "90%" }}>
+          <div>
+            <NoFocusOutLineButton
+              variant="contained"
+              color="primary"
+              onClick={() => handleLanguageFilter("")}
+              sx={{
+                backgroundColor: selectedLanguage === "" ? "#000000" : "#d1d5db",
+                color: selectedLanguage === "" ? "#ffffff" : "#000000",
+                "&:hover": {
+                  backgroundColor: selectedLanguage === "" ? "#333333" : "#d1d5db",
+                },
+                padding: "6px 12px",
+                borderRadius: "20px",
+                textTransform: "none",
+                width: "90%",
+              }}
+            >
+              Tất cả
+            </NoFocusOutLineButton>
+          </div>
+          {languages.map((language) => (
+            <div key={language}>
+              <Button
+                variant="outlined"
+                onClick={() => handleLanguageFilter(language)}
+                sx={{
+                  backgroundColor:
+                    selectedLanguage === language ? "#000000" : "transparent",
+                  color: selectedLanguage === language ? "#ffffff" : "#000000",
+                  borderColor: "#d1d5db",
+                  "&:hover": {
+                    backgroundColor:
+                      selectedLanguage === language ? "#333333" : "#d1d5db",
+                    borderColor: "#9ca3af",
+                  },
+                  padding: "6px 12px",
+                  borderRadius: "20px",
+                  textTransform: "none",
+                  width: "90%",
+                }}
+              >
+                {getLanguageName(language)}
+              </Button>
+            </div>
+          ))}
+        </Slider>
       </div>
 
       {/* Tutor Grid */}
@@ -123,19 +184,19 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
               <RecommendTutorCard
                 key={tutor.tutorId}
                 tutor={{
-                  id: tutor.tutorId, // Mapped tutorId to id
-                  name: tutor.fullName, // Mapped fullName to name
-                  subjects: // Mapped languages array to subjects string
+                  tutorId: tutor.tutorId, // <-- Fix here
+                  name: tutor.fullName,
+                  subjects:
                     Array.isArray(tutor.languages) && tutor.languages.length > 0
                       ? tutor.languages.map((lang) => lang.languageCode).join(", ")
                       : "N/A",
-                  rating: tutor.rating || 0, // Used rating, default to 0 if undefined
-                  reviews: 0, // reviews (ratingCount) is not available in new data
-                  price: 0, // price is not available in new data
-                  imageUrl: tutor.profileImageUrl, // Mapped profileImageUrl to imageUrl
-                  description: tutor.description, // Used description
+                  rating: tutor.rating || 0,
+                  reviews: 0,
+                  price: 0,
+                  imageUrl: tutor.profileImageUrl,
+                  description: tutor.description,
                   isProfessional: tutor.isProfessional,
-                  address: "N/A", // address is not available in new data, defaulting to webcam
+                  address: "N/A",
                 }}
                 user={user}
                 onRequireLogin={onRequireLogin}
@@ -145,7 +206,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
           {/* Xem thêm Button with Arrow Icon */}
           {visibleTutors < filteredTutors.length && (
             <div className="flex flex-row justify-center text-center mt-8">
-              <Button
+              <NoFocusOutLineButton
                 variant="contained"
                 color="primary"
                 onClick={handleLoadMore}
@@ -165,7 +226,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
               >
                 Xem thêm
                 <FaArrowRight />
-              </Button>
+              </NoFocusOutLineButton>
             </div>
           )}
         </>

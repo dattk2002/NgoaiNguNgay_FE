@@ -11,6 +11,7 @@ import {
   FaEllipsisV,
   FaEdit,
   FaTrash,
+  FaChevronDown,
 } from "react-icons/fa";
 import { fetchChatConversationsByUserId } from "../components/api/auth";
 import { fetchConversationList } from "../components/api/auth";
@@ -18,6 +19,9 @@ import { fetchTutorById } from "../components/api/auth";
 import Tooltip from "@mui/material/Tooltip";
 import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
 import { getAccessToken } from "../components/api/auth";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import { FaUser, FaBan, FaFlag, FaTimes } from "react-icons/fa";
 
 const MessagePage = ({ user }) => {
   const { id: tutorId } = useParams();
@@ -37,6 +41,15 @@ const MessagePage = ({ user }) => {
   const [showMessageMenu, setShowMessageMenu] = useState(null);
   const [showConvMenu, setShowConvMenu] = useState(null);
   const [connectionBadge, setConnectionBadge] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuOpen = Boolean(anchorEl);
+
+  const handleTutorMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleTutorMenuClose = () => {
+    setAnchorEl(null);
+  };
 
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
@@ -613,10 +626,6 @@ const MessagePage = ({ user }) => {
       !hubConnection ||
       hubConnection.state !== HubConnectionState.Connected
     ) {
-      console.warn(
-        "Attempted to send message while SignalR connection is not connected. Current state:",
-        hubConnection?.state
-      );
       return;
     }
 
@@ -626,8 +635,7 @@ const MessagePage = ({ user }) => {
       text: newMessage,
       id: `temp-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      senderAvatar:
-        user.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn",
+      senderAvatar: user.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn",
     };
 
     // Optimistically add message to UI
@@ -648,26 +656,15 @@ const MessagePage = ({ user }) => {
     }
 
     try {
-      // Log the message payload
-      console.log("Sending message with payload:", {
-        senderUserId: messagePayload.senderId,
-        receiverUserId: messagePayload.recipientId,
-        textMessage: messagePayload.text,
-        fullMessagePayload: messagePayload,
-      });
-
-      // Send message via SignalR with the correct format
       await hubConnection.invoke("SendMessage", {
         senderUserId: messagePayload.senderId,
         receiverUserId: messagePayload.recipientId,
         textMessage: messagePayload.text,
       });
 
-      // Refetch conversation data
-      await refetchConversationData();
+      // Optionally, refetch in the background (do not set loading)
+      // refetchConversationData(); // Remove or run in background if needed
     } catch (apiError) {
-      console.error("Failed to send message via SignalR or API:", apiError);
-      setError("Không thể gửi tin nhắn. Vui lòng thử lại.");
       setMessages((prevMessages) =>
         prevMessages.filter((msg) => msg.id !== messagePayload.id)
       );
@@ -918,8 +915,41 @@ const MessagePage = ({ user }) => {
 
   if (loading)
     return (
-      <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-        Đang tải cuộc trò chuyện...
+      <div className="container mx-auto flex flex-col md:flex-row h-full md:h-[calc(100vh-8rem)] border border-gray-300 rounded-lg overflow-hidden shadow-lg max-w-6xl">
+        {/* Skeleton for conversation list */}
+        <div className="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full">
+          <div className="p-4 border-b border-gray-200">
+            <div className="h-10 bg-gray-200 rounded-full animate-pulse" />
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center p-3 border-b border-gray-100">
+                <div className="w-10 h-10 bg-gray-200 rounded-full mr-3 animate-pulse" />
+                <div className="flex-1 min-w-0">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2 animate-pulse" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Skeleton for message area */}
+        <div className="flex-1 flex flex-col bg-gray-50 h-full">
+          <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
+            <div className="h-6 bg-gray-200 rounded w-1/3 animate-pulse" />
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+                <div className="p-3 rounded-lg bg-gray-200 w-1/2 animate-pulse" />
+              </div>
+            ))}
+          </div>
+          <div className="p-4 bg-white border-t border-gray-200 flex items-center shadow-inner">
+            <div className="h-10 bg-gray-200 rounded-full flex-1 animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   if (error)
@@ -1046,9 +1076,124 @@ const MessagePage = ({ user }) => {
               </button>
             )}
             <div className="text-lg font-semibold text-gray-800">
-              {selectedConversation?.participantName ||
-                selectedConversation?.title ||
-                "Chọn một cuộc trò chuyện"}
+              {selectedConversation?.type === "tutor" ? (
+                <>
+                  <button
+                    onClick={handleTutorMenuClick}
+                    className="text-lg font-semibold text-gray-800 flex items-center gap-2 focus:outline-none focus:ring-0"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      outline: "none",
+                      boxShadow: "none",
+                    }}
+                  >
+                    {selectedConversation?.participantName}
+                    <FaChevronDown className="text-gray-500 text-base" />
+                  </button>
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={menuOpen}
+                    onClose={handleTutorMenuClose}
+                    PaperProps={{
+                      elevation: 8,
+                      sx: {
+                        borderRadius: 3,
+                        minWidth: 240,
+                        boxShadow: "0 8px 32px rgba(60,60,60,0.18)",
+                        mt: 1,
+                        p: 1,
+                        outline: "none",
+                        "&:focus": {
+                          outline: "none",
+                        },
+                      },
+                    }}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          borderRadius: 3,
+                          minWidth: 240,
+                          boxShadow: "0 8px 32px rgba(60,60,60,0.18)",
+                          mt: 1,
+                          p: 1,
+                          outline: "none",
+                          "&:focus": {
+                            outline: "none",
+                          },
+                        },
+                      },
+                      root: {
+                        sx: {
+                          outline: "none",
+                          boxShadow: "none",
+                          "&:focus": {
+                            outline: "none",
+                          },
+                        },
+                      },
+                    }}
+                    anchorOrigin={{
+                      vertical: "bottom",
+                      horizontal: "left",
+                    }}
+                    transformOrigin={{
+                      vertical: "top",
+                      horizontal: "left",
+                    }}
+                  >
+                    <MenuItem
+                      onClick={() => {
+                        navigate(`/teacher/${selectedConversation.participantId}`);
+                        handleTutorMenuClose();
+                      }}
+                      sx={{
+                        fontWeight: 500,
+                        fontSize: "1rem",
+                        color: "#444",
+                        py: 1.5,
+                        px: 2.5,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <FaUser className="mr-3 text-gray-500" /> Xem hồ sơ gia sư
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => { /* handle block */ handleTutorMenuClose(); }}
+                      sx={{
+                        fontWeight: 500,
+                        fontSize: "1rem",
+                        color: "#444",
+                        py: 1.5,
+                        px: 2.5,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <FaBan className="mr-3 text-gray-500" /> Chặn
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => { /* handle report */ handleTutorMenuClose(); }}
+                      sx={{
+                        fontWeight: 500,
+                        fontSize: "1rem",
+                        color: "#444",
+                        py: 1.5,
+                        px: 2.5,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <FaFlag className="mr-3 text-gray-500" /> Báo cáo
+                    </MenuItem>
+                  </Menu>
+                </>
+              ) : (
+                <div className="text-lg font-semibold text-gray-800">
+                  {selectedConversation?.title || "Chọn một cuộc trò chuyện"}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center">

@@ -9,6 +9,8 @@ import {
 } from "../api/auth";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Skeleton from '@mui/material/Skeleton';
+import Stack from '@mui/material/Stack';
 
 function EditUserProfile() {
   const { id } = useParams(); // Get the user ID from the URL
@@ -956,28 +958,85 @@ function EditUserProfile() {
       <ToastContainer position="top-right" autoClose={3000} />
       <div className="max-w-4xl mx-auto bg-gray-50 min-h-screen">
         {isLoading ? (
-          <div className="flex justify-center items-center h-60">
-            {/* Black Loading Spinner */}
-            <svg
-              className="animate-spin h-8 w-8 text-black"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"
-              ></path>
-            </svg>
+          <div className="px-6 md:px-16 py-10">
+            {/* Profile Photo Skeleton */}
+            <div className="mb-12 border-b border-gray-200 pb-8">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Ảnh hồ sơ
+              </h2>
+              <div className="flex flex-col items-center sm:flex-row sm:items-start">
+                <div className="mb-4 sm:mb-0 sm:mr-6">
+                  <Skeleton variant="circular" width={96} height={96} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Skeleton variant="text" width={220} height={20} />
+                  <Skeleton variant="text" width={180} height={18} />
+                  <Skeleton variant="rectangular" width={100} height={36} style={{ borderRadius: 8, marginTop: 8 }} />
+                </div>
+              </div>
+            </div>
+            {/* Basic Information Skeleton */}
+            <div className="mb-12 border-b border-gray-200 pb-8">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Thông tin cơ bản
+              </h2>
+              <div className="space-y-6">
+                {/* Full Name */}
+                <div className="flex items-center py-1">
+                  <div className="w-1/3 sm:w-1/4">
+                    <Skeleton variant="text" width={90} height={18} />
+                  </div>
+                  <div className="w-2/3 sm:w-3/4">
+                    <Skeleton variant="text" width={180} height={24} />
+                  </div>
+                </div>
+                {/* Date of Birth */}
+                <div className="flex items-center py-1">
+                  <div className="w-1/3 sm:w-1/4">
+                    <Skeleton variant="text" width={90} height={18} />
+                  </div>
+                  <div className="w-2/3 sm:w-3/4">
+                    <Skeleton variant="rectangular" width={120} height={24} />
+                  </div>
+                </div>
+                {/* Gender */}
+                <div className="flex items-center py-1">
+                  <div className="w-1/3 sm:w-1/4">
+                    <Skeleton variant="text" width={90} height={18} />
+                  </div>
+                  <div className="w-2/3 sm:w-3/4">
+                    <Skeleton variant="rectangular" width={100} height={24} />
+                  </div>
+                </div>
+                {/* Timezone */}
+                <div className="flex items-center py-1">
+                  <div className="w-1/3 sm:w-1/4">
+                    <Skeleton variant="text" width={90} height={18} />
+                  </div>
+                  <div className="w-2/3 sm:w-3/4">
+                    <Skeleton variant="rectangular" width={160} height={24} />
+                  </div>
+                </div>
+                {/* Email */}
+                <div className="flex items-center py-1">
+                  <div className="w-1/3 sm:w-1/4">
+                    <Skeleton variant="text" width={90} height={18} />
+                  </div>
+                  <div className="w-2/3 sm:w-3/4">
+                    <Skeleton variant="text" width={200} height={24} />
+                  </div>
+                </div>
+                {/* Phone Number */}
+                <div className="flex items-center py-1">
+                  <div className="w-1/3 sm:w-1/4">
+                    <Skeleton variant="text" width={90} height={18} />
+                  </div>
+                  <div className="w-2/3 sm:w-3/4">
+                    <Skeleton variant="rectangular" width={140} height={24} />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : error ? (
           <div className="flex justify-center items-center h-60">

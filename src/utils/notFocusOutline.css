@@ -1,0 +1,5 @@
+/* src/utils/noFocusOutline.css */
+.no-focus-outline:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
