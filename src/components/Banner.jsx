@@ -13,35 +13,58 @@ import italyFlag from '../assets/italy.svg';
 import japanFlag from '../assets/japan.svg';
 import spainFlag from '../assets/spain.svg';
 import chinaFlag from '../assets/china.svg';
-import brazilFlag from '../assets/brazil.svg';
 import russiaFlag from '../assets/russia.svg';
 import portugalFlag from '../assets/portugal.svg';
 import koreaFlag from '../assets/korea.svg';
+import arabiaFlag from '../assets/arabia.svg';
+import indiaFlag from '../assets/india.svg';
+import thailandFlag from '../assets/thailand.svg';
+import indonesiaFlag from '../assets/indonesia.svg';
+import netherlandsFlag from '../assets/netherlands.svg';
 
 // Import the banner image (using placeholder since actual asset is not available)
 import bannerImage from '../assets/banner.webp';
+import { languageList } from '../utils/languageList';
+
+// Map language codes to flag imports
+const flagMap = {
+  vi: vietnamFlag,
+  fr: franceFlag,
+  de: germanyFlag,
+  en: englandFlag,
+  it: italyFlag,
+  ja: japanFlag,
+  es: spainFlag,
+  zh: chinaFlag,
+  pt: portugalFlag,
+  ru: russiaFlag,
+  ko: koreaFlag,
+  ar: arabiaFlag,
+  hi: indiaFlag,
+  th: thailandFlag,
+  id: indonesiaFlag,
+  nl: netherlandsFlag,
+  // Add more mappings as you add more flags
+};
+
+const categories = languageList.map(lang => ({
+  name: lang.name,
+  icon: (
+    <img
+      src={flagMap[lang.code]}
+      alt={`${lang.name} flag`}
+      className="w-8 h-8"
+    />
+  ),
+}));
 
 const Banner = () => {
   const navigate = useNavigate(); // Hook for navigation
 
-  const categories = [
-    { name: "Vietnamese", icon: <img src={vietnamFlag} alt="Vietnamese flag" className="w-8 h-8" /> },
-    { name: "Chinese", icon: <img src={chinaFlag} alt="Chinese flag" className="w-8 h-8" /> },
-    { name: "French", icon: <img src={franceFlag} alt="French flag" className="w-8 h-8" /> },
-    { name: "German", icon: <img src={germanyFlag} alt="German flag" className="w-8 h-8" /> },
-    { name: "English", icon: <img src={englandFlag} alt="English flag" className="w-8 h-8" /> },
-    { name: "Italian", icon: <img src={italyFlag} alt="Italian flag" className="w-8 h-8" /> },
-    { name: "Japanese", icon: <img src={japanFlag} alt="Japanese flag" className="w-8 h-8" /> },
-    { name: "Spanish", icon: <img src={spainFlag} alt="Spanish flag" className="w-8 h-8" /> },
-    { name: "Korean", icon: <img src={koreaFlag} alt="Korean flag" className="w-8 h-8" /> },
-    { name: "Russian", icon: <img src={russiaFlag} alt="Russian flag" className="w-8 h-8" /> },
-    { name: "Portuguese", icon: <img src={portugalFlag} alt="Portuguese flag" className="w-8 h-8" /> },
-    { name: "Brazilian", icon: <img src={brazilFlag} alt="Brazilian flag" className="w-8 h-8" /> },
-  ];
-
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const categoryContainerRef = useRef(null);
+  const [searchInput, setSearchInput] = useState("");
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -100,6 +123,26 @@ const Banner = () => {
     window.open(`/tutor/${subject}`, '_blank');
   };
 
+  const handleSearch = () => {
+    const trimmed = searchInput.trim();
+    if (!trimmed) return;
+
+    // Check if input matches a language
+    const lower = trimmed.toLowerCase();
+    let subject = categories.find(lang => lower === lang.name.toLowerCase());
+
+    // Special case: "Brazilian" should map to "Portuguese"
+    if (subject?.name.toLowerCase() === "brazilian") subject = categories.find(lang => lang.name.toLowerCase() === "portuguese");
+
+    if (subject) {
+      // Route to /tutor/:subject
+      navigate(`/tutor/${subject.name.toLowerCase()}`);
+    } else {
+      const defaultSubject = categories[placeholderIndex]?.name.toLowerCase() || "english";
+      navigate(`/tutor/${defaultSubject}?search=${encodeURIComponent(trimmed)}`);
+    }
+  };
+
   return (
     <div className="w-full py-16 px-4 flex flex-col justify-center items-center">
       <div className="max-w-[1240px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-16 w-full">
@@ -140,6 +183,9 @@ const Banner = () => {
         <div className="relative flex-grow h-full flex items-center">
           <input
             type="text"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleSearch(); }}
             className="w-full h-full py-3 px-2 focus:outline-none text-xl text-gray-700 bg-transparent z-10 relative"
             onFocus={() => setIsInputFocused(true)}
             onBlur={() => setIsInputFocused(false)}
@@ -161,7 +207,10 @@ const Banner = () => {
             </div>
           )}
         </div>
-        <div className="bg-[#333333] hover:bg-black text-white p-4 rounded-full font-semibold transition duration-300 shadow-sm hover:shadow-md flex items-center justify-center ml-2">
+        <div
+          className="bg-[#333333] hover:bg-black text-white p-4 rounded-full font-semibold transition duration-300 shadow-sm hover:shadow-md flex items-center justify-center ml-2 cursor-pointer"
+          onClick={handleSearch}
+        >
           <FiSearch size={20} />
         </div>
       </div>

@@ -6,7 +6,8 @@ import { FcGoogle } from "react-icons/fc";
 import { GoogleAuthProvider, signInWithPopup, FacebookAuthProvider } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { toast } from "react-toastify";
-import { login } from "../api/auth"; // Assuming your API service file is named auth.js or similar
+import { login } from "../api/auth";
+import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 
 const EyeIcon = () => (
   <svg
@@ -351,7 +352,7 @@ const LoginModal = ({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
+            <NoFocusOutLineButton
               onClick={onClose}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
               aria-label="Close modal"
@@ -369,7 +370,7 @@ const LoginModal = ({
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
+            </NoFocusOutLineButton>
 
             <h2 className="text-black text-2xl font-semibold text-center mb-4">
               Chào mừng!
@@ -410,20 +411,20 @@ const LoginModal = ({
             )}
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <button
+              <NoFocusOutLineButton
                 className="flex justify-center items-center p-3 border border-gray-200 rounded-full hover:bg-gray-50"
                 onClick={facebookLogin}
                 aria-label="Đăng nhập bằng Facebook"
               >
                 <FaFacebook className="w-6 h-6 text-blue-800" />
-              </button>
-              <button
+              </NoFocusOutLineButton>
+              <NoFocusOutLineButton
                 className="flex justify-center items-center p-3 border border-gray-200 rounded-full hover:bg-gray-50"
                 onClick={googleLogin}
                 aria-label="Đăng nhập bằng Google"
               >
                 <FcGoogle className="w-6 h-6" />
-              </button>
+              </NoFocusOutLineButton>
             </div>
 
             <div className="flex items-center mb-6">
@@ -485,14 +486,14 @@ const LoginModal = ({
                       }`}
                     required
                   />
-                  <button
+                  <NoFocusOutLineButton
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 cursor-pointer"
                     aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
                   >
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
+                  </NoFocusOutLineButton>
                 </div>
                 {fieldErrors.password && (
                   <p className="text-red-500 text-xs italic">{fieldErrors.password}</p>
@@ -509,7 +510,7 @@ const LoginModal = ({
                 </a>
               </div>
 
-              <button
+              <NoFocusOutLineButton
                 type="submit"
                 className={`w-full bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200 ${isLoading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
@@ -523,12 +524,12 @@ const LoginModal = ({
                 ) : (
                   "Đăng nhập"
                 )}
-              </button>
+              </NoFocusOutLineButton>
             </form>
 
             <p className="text-center text-sm text-gray-500 mt-6">
               Chưa có tài khoản?
-              <button
+              <NoFocusOutLineButton
                 onClick={() => {
                   onClose();
                   onSwitchToSignup();
@@ -536,7 +537,7 @@ const LoginModal = ({
                 className="font-medium text-[#333333] hover:text-black underline"
               >
                 Đăng ký
-              </button>
+              </NoFocusOutLineButton>
             </p>
           </motion.div>
         </motion.div>

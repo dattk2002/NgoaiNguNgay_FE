@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // useNavigate is already imported
+import { useParams, useNavigate, useLocation } from "react-router-dom"; // useNavigate is already imported
 
 // Assuming fetchTutorsBySubject returns data structured similarly to what's needed
 // Import fetchAllTutor instead
 import { fetchAllTutor } from "../api/auth";
 import LanguageImage from "../../assets/language_banner.png";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
+import { languageList } from "../../utils/languageList";
 
 import { FaAngleDown } from "react-icons/fa";
 
@@ -20,19 +21,25 @@ import { IoSearch } from "react-icons/io5";
 import TutorCard from "./TutorCard";
 import notFoundImg from "../../assets/not_found.gif";
 
-const TutorSubjectList = () => {
+const TutorLanguageList = () => {
   const { subject: initialSubject } = useParams();
+  const location = useLocation();
   const navigate = useNavigate(); // Get the navigate function
+
+  // Parse search param
+  const searchParams = new URLSearchParams(location.search);
+  const searchFromQuery = searchParams.get("search") || "";
 
   // Initialize subject state from URL param or default
   const [subject, setSubject] = useState(initialSubject || "French");
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Initialize filters with searchFromQuery
   const [filters, setFilters] = useState({
     instantLesson: false,
     within72Hours: false,
-    searchTerm: "",
+    searchTerm: searchFromQuery,
     // Add other filter states here as needed
   });
 
@@ -259,27 +266,43 @@ const TutorSubjectList = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <svg
-          className="animate-spin h-8 w-8 text-black"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l2-2.647z"
-          ></path>
-        </svg>
+      <div className="w-full pt-12 pb-40 px-2 md:px-4 lg:px-16 bg-gray-100 min-h-screen animate-pulse">
+        <div className="max-w-7xl mx-auto mb-10">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+            <div className="md:w-2/3 text-center md:text-left mb-6 md:mb-0">
+              <div className="h-10 bg-gray-200 rounded w-2/3 mb-3" />
+              <div className="h-6 bg-gray-200 rounded w-1/2" />
+            </div>
+            <div className="md:w-1/3 flex justify-center md:justify-end">
+              <div className="w-40 h-24 bg-gray-200 rounded" />
+            </div>
+          </div>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+            <div className="h-10 bg-gray-200 rounded w-40" />
+            <div className="h-10 bg-gray-200 rounded w-72" />
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto relative">
+          <div className="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-200">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-8 w-32 bg-gray-200 rounded" />
+            ))}
+          </div>
+          <div className="flex flex-col gap-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex gap-6 bg-white p-6 rounded-xl shadow-md">
+                <div className="w-24 h-24 bg-gray-200 rounded-full" />
+                <div className="flex-1 flex flex-col gap-3">
+                  <div className="h-6 bg-gray-200 rounded w-1/3" />
+                  <div className="h-4 bg-gray-200 rounded w-1/4" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  <div className="h-8 bg-gray-200 rounded w-full mt-2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -339,17 +362,32 @@ const TutorSubjectList = () => {
             }}
             sx={{ minWidth: 150, backgroundColor: "white" }}
           >
-            <MenuItem value="Vietnamese">Tiếng Việt</MenuItem>
-            <MenuItem value="Chinese">Tiếng Trung</MenuItem>
-            <MenuItem value="French">Tiếng Pháp</MenuItem>
-            <MenuItem value="English">Tiếng Anh</MenuItem>
-            <MenuItem value="Italian">Tiếng Ý</MenuItem>
-            <MenuItem value="Japanese">Tiếng Nhật</MenuItem>
-            <MenuItem value="Spanish">Tiếng Tây Ban Nha</MenuItem>
-            <MenuItem value="Korean">Tiếng Hàn</MenuItem>
-            <MenuItem value="Russian">Tiếng Nga</MenuItem>
-            <MenuItem value="Portuguese">Tiếng Bồ Đào Nha</MenuItem>
-            {/* Add other subjects */}
+            {languageList.map((lang) => (
+              <MenuItem key={lang.code} value={lang.name}>
+                {(() => {
+                  // You can localize the display name here if needed
+                  switch (lang.code) {
+                    case "vi": return "Tiếng Việt";
+                    case "zh": return "Tiếng Trung";
+                    case "fr": return "Tiếng Pháp";
+                    case "en": return "Tiếng Anh";
+                    case "it": return "Tiếng Ý";
+                    case "ja": return "Tiếng Nhật";
+                    case "es": return "Tiếng Tây Ban Nha";
+                    case "ko": return "Tiếng Hàn";
+                    case "ru": return "Tiếng Nga";
+                    case "pt": return "Tiếng Bồ Đào Nha";
+                    case "ar": return "Tiếng Ả Rập";
+                    case "hi": return "Tiếng Hindi";
+                    case "th": return "Tiếng Thái";
+                    case "id": return "Tiếng Indonesia";
+                    case "nl": return "Tiếng Hà Lan";
+                    case "de": return "Tiếng Đức";
+                    default: return lang.name;
+                  }
+                })()}
+              </MenuItem>
+            ))}
           </Select>
           <TextField
             name="searchTerm"
@@ -528,4 +566,4 @@ const TutorSubjectList = () => {
   );
 };
 
-export default TutorSubjectList;
+export default TutorLanguageList;

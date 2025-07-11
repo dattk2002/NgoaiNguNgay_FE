@@ -452,16 +452,60 @@ const TutorWeeklyPatternDetailModal = ({
       <DialogActions
         sx={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "space-between", // Change to flex-end for right alignment
           alignItems: "center",
           width: "100%",
+          px: 3,
+          pb: 2,
         }}
       >
-        {isTutor(currentUser) && (
-          <Typography color="warning" sx={{ mb: 1, ml: 2 }}>
-            Tài khoản gia sư không thể gửi yêu cầu đặt lịch.
-          </Typography>
-        )}
+        {/* Legend */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: "#98D45F",
+                mr: 1,
+              }}
+            />
+            <Typography variant="body2" sx={{ color: "#98D45F" }}>
+              Lịch có sẵn
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: "#2563eb",
+                mr: 1,
+              }}
+            />
+            <Typography variant="body2" sx={{ color: "#2563eb" }}>
+              Lịch bạn đang chọn
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: "#f1f5f9",
+                border: "1px solid #e2e8f0",
+                mr: 1,
+              }}
+            />
+            <Typography variant="body2" sx={{ color: "#64748b" }}>
+              Lịch không có sẵn
+            </Typography>
+          </Box>
+        </Box>
+        {/* Buttons aligned to the right */}
         <Box sx={{ display: "flex", gap: 1 }}>
           {learnerPermission && (
             <Button

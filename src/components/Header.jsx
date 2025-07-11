@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaCommentDots } from "react-icons/fa";
 import logo from "../assets/logo.png";
+import NoFocusOutLineButton from '../utils/noFocusOutlineButton';
 
 // Utility functions for role checking
 const hasRole = (user, roleName) => {
@@ -428,18 +429,12 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
               </>
             ) : (
               <>
-                <button
-                  onClick={onLoginClick}
-                  className="text-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold border border-gray-300 hover:bg-gray-100"
-                >
+                <NoFocusOutLineButton onClick={onLoginClick} className="text-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold border border-gray-300 hover:bg-gray-100">
                   Đăng nhập
-                </button>
-                <button
-                  onClick={onSignUpClick}
-                  className="bg-black text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold hover:bg-[#333333]"
-                >
+                </NoFocusOutLineButton>
+                <NoFocusOutLineButton onClick={onSignUpClick} className="bg-black text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold hover:bg-[#333333]">
                   Đăng ký
-                </button>
+                </NoFocusOutLineButton>
               </>
             )}
             <button

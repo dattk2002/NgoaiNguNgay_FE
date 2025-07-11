@@ -642,6 +642,126 @@ const BookingDetailSkeleton = () => (
   </TableContainer>
 );
 
+// Place this above TutorProfile
+const TutorProfileSkeleton = () => (
+  <Container
+    maxWidth="lg"
+    sx={{
+      py: 6,
+      backgroundColor: "#f8fafc",
+      minHeight: "100vh",
+      width: "100%",
+      maxWidth: "100%",
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
+    <Grid container spacing={4} sx={{ width: "100%", flex: "1 1 auto", margin: 0 }}>
+      {/* Left Column Skeleton */}
+      <Grid item xs={12} md={4} sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+        <Paper
+          sx={{
+            textAlign: "center",
+            position: "relative",
+            p: 4,
+            width: "100%",
+            borderRadius: "16px",
+          }}
+        >
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Skeleton variant="circular" width={160} height={160} />
+            <Skeleton variant="text" width={120} height={40} sx={{ mt: 2 }} />
+            <Skeleton variant="text" width={80} height={24} sx={{ mt: 1 }} />
+            <Skeleton variant="rectangular" width={100} height={32} sx={{ mt: 3, borderRadius: 2 }} />
+          </Box>
+        </Paper>
+      </Grid>
+      {/* Right Column Skeleton */}
+      <Grid item xs={12} md={8} sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
+        <Paper
+          sx={{
+            p: 0,
+            minHeight: "700px",
+            width: "100%",
+            maxWidth: "100%",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: "16px",
+          }}
+        >
+          {/* Tabs Skeleton */}
+          <Box
+            sx={{
+              width: "100%",
+              maxWidth: "100%",
+              flex: "0 0 auto",
+              borderBottom: "2px solid #f1f5f9",
+              display: "flex",
+            }}
+          >
+            <Skeleton variant="rectangular" width={180} height={48} sx={{ mr: 2, borderRadius: 2 }} />
+            <Skeleton variant="rectangular" width={180} height={48} sx={{ borderRadius: 2 }} />
+          </Box>
+          {/* Main Content Skeleton */}
+          <Box
+            sx={{
+              p: 4,
+              width: "100%",
+              maxWidth: "100%",
+              boxSizing: "border-box",
+              flex: "1 1 auto",
+              minWidth: 0,
+            }}
+          >
+            {/* Email Section */}
+            <Skeleton variant="text" width="25%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" width="60%" height={36} sx={{ mb: 4, borderRadius: 2 }} />
+
+            {/* About Section */}
+            <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={60} sx={{ mb: 2, borderRadius: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 4, borderRadius: 2 }} />
+
+            {/* Teaching Method Section */}
+            <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 4, borderRadius: 2 }} />
+
+            {/* Schedule Section */}
+            <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+              <Skeleton variant="circular" width={32} height={32} />
+              <Skeleton variant="text" width={120} height={32} />
+              <Skeleton variant="circular" width={32} height={32} />
+              <Skeleton variant="rectangular" width={140} height={40} sx={{ borderRadius: 2 }} />
+              <Skeleton variant="rectangular" width={140} height={40} sx={{ borderRadius: 2 }} />
+            </Box>
+            {/* Weekly Schedule Table Skeleton */}
+            <Skeleton variant="rectangular" width="100%" height={320} sx={{ mb: 4, borderRadius: 2 }} />
+
+            {/* Learner Requests Section */}
+            <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={80} sx={{ mb: 4, borderRadius: 2 }} />
+
+            {/* Lessons Section */}
+            <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+              <Skeleton variant="rectangular" width={140} height={40} sx={{ borderRadius: 2 }} />
+            </Box>
+            <Skeleton variant="rectangular" width="100%" height={120} sx={{ mb: 4, borderRadius: 2 }} />
+
+            {/* FAQ Section */}
+            <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 2, borderRadius: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 2, borderRadius: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 2, borderRadius: 2 }} />
+          </Box>
+        </Paper>
+      </Grid>
+    </Grid>
+  </Container>
+);
+
 const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVerification, uploadCertificate }) => {
   const { id } = useParams();
   const [tutorData, setTutorData] = useState(null);
@@ -1275,14 +1395,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   };
 
   if (loading) {
-    return (
-      <Container sx={{ py: 8, textAlign: "center" }}>
-        <CircularProgress size={60} />
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          Đang tải hồ sơ gia sư...
-        </Typography>
-      </Container>
-    );
+    return <TutorProfileSkeleton />;
   }
 
   if (error) {
