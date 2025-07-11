@@ -38,8 +38,9 @@ import {
   Tab,
   GlobalStyles,
   Skeleton, // Add Skeleton import
+  Tooltip,
 } from "@mui/material";
-import { FiPlusCircle, FiEdit, FiTrash2 } from "react-icons/fi";
+import { FiPlusCircle, FiEdit, FiTrash2, FiCheck } from "react-icons/fi";
 import { MdOutlineEditCalendar } from "react-icons/md";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
@@ -53,9 +54,17 @@ import {
   fetchTutorWeeklyPattern,
   editTutorWeeklyPattern,
   deleteTutorWeeklyPattern,
+  tutorBookingTimeSlotFromLearner,
+  tutorBookingTimeSlotFromLearnerDetail,
+  createTutorBookingOffer,
+  tutorBookingOfferDetail,
+  getAllTutorBookingOffer, // <-- add this import
+  updateTutorBookingOfferByOfferId,
+  fetchDocumentsByTutorId,
+  deleteDocument,
 } from "../../components/api/auth";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
-import ConfirmDeleteLessonModal from "../modals/ConfirmDeleteLessonModal";
+import ConfirmDialog from "../modals/ConfirmDialog";
 import { languageList } from "../../utils/languageList";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 import formatPriceInputWithCommas from "../../utils/formatPriceInputWithCommas";
@@ -302,6 +311,8 @@ const getVerificationStatus = (status) => {
   }
 };
 
+
+
 const handleFileChange = (e) => {
   const { files } = e.target;
   if (files.length > 0) {
@@ -309,13 +320,13 @@ const handleFileChange = (e) => {
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Kích thước ảnh phải nhỏ hơn 2MB");
+      alert("Kích thước ảnh phải nhỏ hơn 2MB");
       return;
     }
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      toast.error("Chỉ chấp nhận các tệp ảnh");
+      alert("Chỉ chấp nhận các tệp ảnh");
       return;
     }
 
@@ -356,19 +367,19 @@ const RedStyledButton = styled(StyledButton)(({ theme }) => ({
 function getWeekRange(date = new Date()) {
   const monday = new Date(date);
   const day = monday.getDay();
-  
+
   // Adjust to get Monday (1) as the first day
   // If today is Sunday (0), we need to go back 6 days
   // For any other day, we go back (day - 1) days
   const diff = day === 0 ? -6 : (1 - day);
-  
+
   monday.setDate(monday.getDate() + diff);
   monday.setHours(0, 0, 0, 0);
-  
+
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
-  
+
   return { monday, sunday };
 }
 
@@ -380,7 +391,7 @@ function formatDateRange(start, end) {
 // Replace the existing getPatternForWeek function with this one
 function getPatternForWeek(weeklyPatterns, weekStart) {
   if (!weeklyPatterns || weeklyPatterns.length === 0) return null;
-  
+
   // Create a date object for the start of the week
   const weekMonday = new Date(weekStart);
   weekMonday.setHours(0, 0, 0, 0);
@@ -395,7 +406,7 @@ function getPatternForWeek(weeklyPatterns, weekStart) {
   return sorted.find(pattern => {
     const patternDate = new Date(pattern.appliedFrom);
     patternDate.setHours(0, 0, 0, 0);
-    
+
     // Compare dates without time
     return patternDate.getTime() <= weekMonday.getTime();
   }) || sorted[sorted.length - 1];
@@ -460,7 +471,7 @@ const WeeklyScheduleSkeleton = () => (
       >
         <Skeleton variant="text" width={60} height={20} />
       </Box>
-      
+
       {/* Day headers */}
       {Array.from({ length: 7 }).map((_, index) => (
         <Box
@@ -522,10 +533,10 @@ const WeeklyScheduleSkeleton = () => (
                   borderLeft: dayIdx === 0 ? "none" : "1px solid #e2e8f0",
                 }}
               >
-                <Skeleton 
-                  variant="rectangular" 
-                  width="90%" 
-                  height="80%" 
+                <Skeleton
+                  variant="rectangular"
+                  width="90%"
+                  height="80%"
                   sx={{ borderRadius: 1, margin: "auto" }}
                 />
               </Box>
@@ -581,38 +592,57 @@ function buildEditPatternSlotsFromPattern(pattern) {
   return slotMap;
 }
 
-// Add this helper function near the top of your file (above TutorProfile)
-function ensureMondayUTC(date) {
-  const d = new Date(date);
-  const day = d.getUTCDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  d.setUTCDate(d.getUTCDate() + diff);
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
+function getSlotDateTime(weekStart, dayInWeek, slotIndex) {
+  // weekStart: Date object for Monday 00:00:00
+  // dayInWeek: 2=Mon, ..., 7=Sat, 1=Sun
+  // slotIndex: 0-47 (each 30min slot)
+  const date = new Date(weekStart);
+  // Calculate day offset: dayInWeek 2=Mon, ..., 7=Sat, 1=Sun
+  let dayOffset = dayInWeek - 2;
+  if (dayInWeek === 1) dayOffset = 6; // Sunday
+  date.setDate(date.getDate() + dayOffset);
+  // Set time
+  const hour = Math.floor(slotIndex / 2);
+  const minute = (slotIndex % 2) * 30;
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
 }
 
-function setToMonday(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+// 1. Add this skeleton component above TutorProfile
+const BookingDetailSkeleton = () => (
+  <TableContainer component={Paper}>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell>Thời gian</TableCell>
+          <TableCell>Thứ 2</TableCell>
+          <TableCell>Thứ 3</TableCell>
+          <TableCell>Thứ 4</TableCell>
+          <TableCell>Thứ 5</TableCell>
+          <TableCell>Thứ 6</TableCell>
+          <TableCell>Thứ 7</TableCell>
+          <TableCell>CN</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {Array.from({ length: 16 }).map((_, idx) => (
+          <TableRow key={idx}>
+            <TableCell>
+              <Skeleton variant="text" width="80%" height={24} />
+            </TableCell>
+            {Array.from({ length: 7 }).map((__, dayIdx) => (
+              <TableCell key={dayIdx}>
+                <Skeleton variant="rectangular" width="80%" height={24} />
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+);
 
-function getMondayUTC(date) {
-  // Get the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-  const d = new Date(date);
-  const day = d.getUTCDay();
-  // Calculate how many days to subtract to get to Monday
-  const diff = (day === 0 ? -6 : 1 - day);
-  d.setUTCDate(d.getUTCDate() + diff);
-  // Set to 00:00:00 UTC
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
-}
-
-const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
+const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVerification, uploadCertificate }) => {
   const { id } = useParams();
   const [tutorData, setTutorData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -637,7 +667,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState(null);
   const [showValidation, setShowValidation] = useState(false);
-  
+
   // New state for weekly patterns
   const [weeklyPatterns, setWeeklyPatterns] = useState([]);
   const [availabilityData, setAvailabilityData] = useState({});
@@ -699,6 +729,51 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
 
   const [currentPattern, setCurrentPattern] = useState(null);
 
+  // Add state for learner booking requests
+  const [learnerRequests, setLearnerRequests] = useState([]);
+  const [learnerRequestsLoading, setLearnerRequestsLoading] = useState(false);
+  const [learnerRequestsError, setLearnerRequestsError] = useState(null);
+  const [bookingDetailDialogOpen, setBookingDetailDialogOpen] = useState(false);
+  const [bookingDetailLoading, setBookingDetailLoading] = useState(false);
+  const [bookingDetailSlots, setBookingDetailSlots] = useState([]);
+  const [selectedLearner, setSelectedLearner] = useState(null);
+  const [selectedOfferSlots, setSelectedOfferSlots] = useState([]);
+  const [selectLessonDialogOpen, setSelectLessonDialogOpen] = useState(false);
+  const [selectedLessonId, setSelectedLessonId] = useState("");
+  const [selectedLesson, setSelectedLesson] = useState(null);
+  const [offerDetail, setOfferDetail] = useState(null);
+  console.log("Ọp phơ đì têu: ", offerDetail);
+
+  const [dialogWeekStart, setDialogWeekStart] = useState(getWeekRange().monday);
+
+  const [allOffers, setAllOffers] = useState([]);
+  const [offersLoading, setOffersLoading] = useState(false);
+
+  const handleDialogPrevWeek = () => {
+    setDialogWeekStart(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() - 7);
+      newDate.setHours(0, 0, 0, 0);
+      return newDate;
+    });
+  };
+  const handleDialogNextWeek = () => {
+    setDialogWeekStart(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + 7);
+      newDate.setHours(0, 0, 0, 0);
+      return newDate;
+    });
+  };
+  const isDialogAtCurrentWeek = dialogWeekStart.getTime() <= getWeekRange().monday.getTime();
+  const dialogWeekInfo = getWeekDates(dialogWeekStart);
+
+  // New state for certificate upload and verification
+  const [uploadedCertificates, setUploadedCertificates] = useState([]);
+  const [certificateUploading, setCertificateUploading] = useState(false);
+  const [verificationRequesting, setVerificationRequesting] = useState(false);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+
   const handlePrevWeek = () => {
     setCurrentWeekStart(prev => {
       const newDate = new Date(prev);
@@ -739,6 +814,176 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
+  };
+
+  // Fetch documents when component mounts
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (!id) return;
+
+      setDocumentsLoading(true);
+      try {
+        const documents = await fetchDocumentsByTutorId(id);
+
+        // Transform API response to match our certificate format
+        const transformedDocuments = [];
+
+        documents.forEach(doc => {
+          // Handle nested files structure
+          if (doc.files && Array.isArray(doc.files) && doc.files.length > 0) {
+            doc.files.forEach(file => {
+              transformedDocuments.push({
+                id: doc.id,
+                name: file.originalFileName || doc.fileName || doc.name || 'Unknown file',
+                size: file.fileSize || doc.fileSize || 0,
+                type: file.contentType || doc.mimeType || 'application/octet-stream',
+                uploadedAt: doc.uploadedAt || new Date().toISOString(),
+                url: file.cloudinaryUrl || doc.fileUrl || null,
+                description: doc.description || '',
+                isVisibleToLearner: doc.isVisibleToLearner || false
+              });
+            });
+          } else {
+            // Fallback for documents without nested files array
+            transformedDocuments.push({
+              id: doc.id,
+              name: doc.fileName || doc.name || 'Unknown file',
+              size: doc.fileSize || 0,
+              type: doc.mimeType || 'application/octet-stream',
+              uploadedAt: doc.uploadedAt || new Date().toISOString(),
+              url: doc.fileUrl || null,
+              description: doc.description || '',
+              isVisibleToLearner: doc.isVisibleToLearner || false
+            });
+          }
+        });
+
+        setUploadedCertificates(transformedDocuments);
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+        // Don't show error for missing documents, just keep empty array
+        setUploadedCertificates([]);
+      } finally {
+        setDocumentsLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, [id]);
+
+  // Certificate upload and verification functions
+  const handleCertificateUpload = async (files) => {
+    setCertificateUploading(true);
+    try {
+      const filesToUpload = Array.from(files);
+
+      // Validate files
+      for (const file of filesToUpload) {
+        if (file.size > 25 * 1024 * 1024) { // 25MB limit
+          alert(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
+          setCertificateUploading(false);
+          return;
+        }
+
+        if (!file.type.includes('pdf') && !file.type.startsWith('image/')) {
+          alert(`File ${file.name} không đúng định dạng. Chỉ chấp nhận PDF và hình ảnh.`);
+          setCertificateUploading(false);
+          return;
+        }
+      }
+
+      // Upload certificates
+      console.log("Uploading certificates with applicationId:", tutorData?.applicationId);
+
+      if (!tutorData?.applicationId) {
+        alert("Không tìm thấy Application ID. Vui lòng thử lại sau.");
+        setCertificateUploading(false);
+        return;
+      }
+
+      const response = await uploadCertificate(filesToUpload, tutorData?.applicationId);
+      console.log("Certificates uploaded successfully:", response);
+
+      // Refresh documents list after upload
+      const updatedDocuments = await fetchDocumentsByTutorId(id);
+      const transformedDocuments = [];
+
+      updatedDocuments.forEach(doc => {
+        // Handle nested files structure
+        if (doc.files && Array.isArray(doc.files) && doc.files.length > 0) {
+          doc.files.forEach(file => {
+            transformedDocuments.push({
+              id: doc.id,
+              name: file.originalFileName || doc.fileName || doc.name || 'Unknown file',
+              size: file.fileSize || doc.fileSize || 0,
+              type: file.contentType || doc.mimeType || 'application/octet-stream',
+              uploadedAt: doc.uploadedAt || new Date().toISOString(),
+              url: file.cloudinaryUrl || doc.fileUrl || null,
+              description: doc.description || '',
+              isVisibleToLearner: doc.isVisibleToLearner || false
+            });
+          });
+        } else {
+          // Fallback for documents without nested files array
+          transformedDocuments.push({
+            id: doc.id,
+            name: doc.fileName || doc.name || 'Unknown file',
+            size: doc.fileSize || 0,
+            type: doc.mimeType || 'application/octet-stream',
+            uploadedAt: doc.uploadedAt || new Date().toISOString(),
+            url: doc.fileUrl || null,
+            description: doc.description || '',
+            isVisibleToLearner: doc.isVisibleToLearner || false
+          });
+        }
+      });
+
+      setUploadedCertificates(transformedDocuments);
+      alert("Tải lên chứng chỉ thành công!");
+
+    } catch (error) {
+      console.error("Certificate upload failed:", error);
+      alert(`Tải lên chứng chỉ thất bại: ${error.message}`);
+    } finally {
+      setCertificateUploading(false);
+    }
+  };
+
+  const handleRequestVerification = async () => {
+    if (uploadedCertificates.length === 0) {
+      alert("Vui lòng tải lên ít nhất một chứng chỉ trước khi yêu cầu xác minh.");
+      return;
+    }
+
+    if (!tutorData?.applicationId) {
+      alert("Không tìm thấy Application ID. Vui lòng thử lại sau.");
+      return;
+    }
+
+    setVerificationRequesting(true);
+    try {
+      // Using tutorData.applicationId as the tutorApplicationId
+      await requestTutorVerification(tutorData?.applicationId);
+      alert("Yêu cầu xác minh đã được gửi thành công!");
+    } catch (error) {
+      console.error("Verification request failed:", error);
+      alert(`Yêu cầu xác minh thất bại: ${error.message}`);
+    } finally {
+      setVerificationRequesting(false);
+    }
+  };
+
+  const handleRemoveCertificate = async (certificateId) => {
+    try {
+      await deleteDocument(certificateId);
+
+      // Remove from local state
+      setUploadedCertificates(prev => prev.filter(cert => cert.id !== certificateId));
+      alert("Xóa chứng chỉ thành công!");
+    } catch (error) {
+      console.error("Failed to delete certificate:", error);
+      alert(`Xóa chứng chỉ thất bại: ${error.message}`);
+    }
   };
 
   // Fetch tutor data when component mounts
@@ -784,19 +1029,19 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
           // Process slots from the API response
           if (patterns && patterns.length > 0) {
             // Sort patterns by AppliedFrom to get the most recent one
-            const sortedPatterns = patterns.sort((a, b) => 
+            const sortedPatterns = patterns.sort((a, b) =>
               new Date(b.appliedFrom) - new Date(a.appliedFrom)
             );
-            
+
             // Get the most recent pattern (first after sorting)
             const latestPattern = sortedPatterns[0];
-            
+
             if (latestPattern.slots && Array.isArray(latestPattern.slots)) {
               latestPattern.slots.forEach((slot) => {
                 // Convert slotIndex to time range
                 const hour = Math.floor(slot.slotIndex / 2);
                 const minute = (slot.slotIndex % 2) * 30;
-                
+
                 let timeRangeKey = null;
 
                 // Map to hourly time ranges
@@ -814,7 +1059,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                     6: 'fri', // Friday
                     7: 'sat'  // Saturday
                   };
-                  
+
                   const dayKey = dayMap[slot.dayInWeek];
                   if (dayKey) {
                     if (slot.type === 0) {
@@ -941,6 +1186,93 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
 
   // After creating a new pattern, fetch the latest patterns
 
+  // Fetch learner booking requests on mount and when id changes
+  useEffect(() => {
+    const fetchLearnerRequests = async () => {
+      setLearnerRequestsLoading(true);
+      setLearnerRequestsError(null);
+      try {
+        const res = await tutorBookingTimeSlotFromLearner();
+        setLearnerRequests(res?.data || []);
+      } catch (err) {
+        setLearnerRequestsError(err.message || "Lỗi khi tải yêu cầu từ học viên");
+      } finally {
+        setLearnerRequestsLoading(false);
+      }
+    };
+    fetchLearnerRequests();
+  }, [id]);
+
+  // Fetch all offers on mount (or when needed)
+  useEffect(() => {
+    async function fetchOffers() {
+      setOffersLoading(true);
+      try {
+        const res = await getAllTutorBookingOffer();
+        setAllOffers(res?.data || []);
+      } catch (err) {
+        setAllOffers([]);
+      } finally {
+        setOffersLoading(false);
+      }
+    }
+    fetchOffers();
+  }, []);
+
+  // Helper to get nearest offerId for a learner
+  function getNearestOfferIdForLearner(learnerId) {
+    const learnerOffers = allOffers.filter(offer => offer.learner.id === learnerId);
+    if (learnerOffers.length === 0) return null;
+    // Sort by newest createdAt (descending)
+    learnerOffers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return learnerOffers[0].id;
+  }
+
+  const handleOpenBookingDetail = async (learnerId, offerId) => {
+    setDialogWeekStart(getWeekRange().monday);
+    setSelectedOfferSlots([]);
+    setOfferDetail(null);
+
+    setLearnerRequests((prev) =>
+      prev.map((req) =>
+        req.learnerId === learnerId ? { ...req, hasUnviewed: false } : req
+      )
+    );
+
+    setBookingDetailLoading(true);
+    setBookingDetailDialogOpen(true);
+    setSelectedLearner(learnerId);
+
+    try {
+      const res = await tutorBookingTimeSlotFromLearnerDetail(learnerId);
+      setBookingDetailSlots(res?.data?.timeSlots || []);
+
+      // --- Use nearest offerId if not provided ---
+      let useOfferId = offerId;
+      if (!useOfferId) {
+        useOfferId = getNearestOfferIdForLearner(learnerId);
+      }
+
+      if (useOfferId) {
+        const offerRes = await tutorBookingOfferDetail(useOfferId);
+        setOfferDetail(offerRes?.data || null);
+
+        if (offerRes?.data?.offeredSlots?.length > 0) {
+          const firstSlotDate = new Date(offerRes.data.offeredSlots[0].slotDateTime);
+          const day = firstSlotDate.getDay();
+          const diff = day === 0 ? -6 : 1 - day;
+          const monday = new Date(firstSlotDate);
+          monday.setDate(monday.getDate() + diff);
+          monday.setHours(0, 0, 0, 0);
+          setDialogWeekStart(monday);
+        }
+      }
+    } catch (err) {
+      setBookingDetailSlots([]);
+    } finally {
+      setBookingDetailLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -1569,18 +1901,122 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                                 </Typography>
                               </Box>
                             </Box>
-                            
+
                             <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
                               Dựa trên múi giờ của bạn (UTC+07:00) • Cập nhật lần cuối: {weeklyPatterns.length > 0 ? new Date(weeklyPatterns.sort((a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom))[0].appliedFrom).toLocaleDateString('vi-VN') : 'Không xác định'}
                             </Typography>
-                            
+
                             {/* Show pattern count for debugging */}
-                            <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.75rem", mt: 1 }}>
+                            {/* <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.75rem", mt: 1 }}>
                               Số lượng mẫu lịch trình: {weeklyPatterns.length}
-                            </Typography>
+                            </Typography> */}
                           </Box>
                         </Box>
                       )}
+                    </Box>
+                    <Box
+                      sx={{
+                        textAlign: "left",
+                        width: "100%",
+                        maxWidth: "100%",
+                        mb: 4,
+                        minWidth: 0,
+                        flex: "0 0 auto",
+                      }}
+                    >
+                      <SectionTitle variant="h6">Yêu Cầu Từ Học Viên</SectionTitle>
+                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" }}>
+                        {learnerRequestsLoading ? (
+                          <TableContainer component={Paper}>
+                            <Table>
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Thời gian</TableCell>
+                                  <TableCell>Thứ 2</TableCell>
+                                  <TableCell>Thứ 3</TableCell>
+                                  <TableCell>Thứ 4</TableCell>
+                                  <TableCell>Thứ 5</TableCell>
+                                  <TableCell>Thứ 6</TableCell>
+                                  <TableCell>Thứ 7</TableCell>
+                                  <TableCell>CN</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {Array.from({ length: 16 }).map((_, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell>
+                                      <Skeleton variant="text" width="80%" height={24} />
+                                    </TableCell>
+                                    {Array.from({ length: 7 }).map((__, dayIdx) => (
+                                      <TableCell key={dayIdx}>
+                                        <Skeleton variant="rectangular" width="80%" height={24} />
+                                      </TableCell>
+                                    ))}
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        ) : learnerRequestsError ? (
+                          <Alert severity="error">{learnerRequestsError}</Alert>
+                        ) : (
+                          <TableContainer component={Paper}>
+                            <Table>
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Học viên</TableCell>
+                                  <TableCell>Trạng thái</TableCell>
+                                  <TableCell>Thời gian yêu cầu mới nhất</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {learnerRequests.length === 0 ? (
+                                  <TableRow>
+                                    <TableCell colSpan={4} align="center">
+                                      Không có yêu cầu nào từ học viên.
+                                    </TableCell>
+                                  </TableRow>
+                                ) : (
+                                  learnerRequests.map((req) => (
+                                    <TableRow
+                                      key={req.learnerId}
+                                      hover
+                                      sx={{ cursor: "pointer" }}
+                                      onClick={() => handleOpenBookingDetail(req.learnerId, req.offerId)}
+                                    >
+                                      <TableCell>{req.learnerName}</TableCell>
+                                      <TableCell>
+                                        {req.hasUnviewed ? (
+                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                            <Tooltip title="Yêu cầu mới, chưa xem">
+                                              <Avatar sx={{ bgcolor: "#ff9800", width: 18, height: 18, fontSize: 18 }}>
+                                                <FiPlusCircle />
+                                              </Avatar>
+                                            </Tooltip>
+                                            <Typography sx={{ color: "#ff9800", fontWeight: 700 }}>Chưa xem</Typography>
+                                          </Box>
+                                        ) : (
+                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                            <Tooltip title="Đã xem yêu cầu này">
+                                              <Avatar sx={{ bgcolor: "#4caf50", width: 18, height: 18, fontSize: 18 }}>
+                                                <FiCheck />
+                                              </Avatar>
+                                            </Tooltip>
+                                            <Typography sx={{ color: "#4caf50", fontWeight: 500 }}>Đã xem</Typography>
+                                          </Box>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        {req.latestRequestTime ? new Date(req.latestRequestTime).toLocaleString("vi-VN") : "-"}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
+                                )}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        )}
+                      </Box>
                     </Box>
 
                     {/* Tạo bài học Section */}
@@ -1877,6 +2313,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                         </AccordionDetails>
                       </Accordion>
                     </Box>
+
+                    {/* Insert new section here: Yêu cầu từ học viên */}
+
                   </Box>
                 )}
 
@@ -1908,6 +2347,8 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                       <SectionTitle variant="h6">
                         Tải lên chứng chỉ
                       </SectionTitle>
+
+                      {/* Upload Area */}
                       <Box
                         sx={{
                           display: "flex",
@@ -1916,6 +2357,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                           width: "100%",
                           maxWidth: "100%",
                           boxSizing: "border-box",
+                          mb: 3,
                         }}
                       >
                         <Box
@@ -1926,17 +2368,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                             width: "100%",
                             maxWidth: "100%",
                             height: "160px",
-                            border: "2px dashed #3b82f6",
+                            border: certificateUploading ? "2px dashed #10b981" : "2px dashed #3b82f6",
                             borderRadius: "16px",
-                            cursor: "pointer",
-                            backgroundColor: "#f8fafc",
+                            cursor: certificateUploading ? "not-allowed" : "pointer",
+                            backgroundColor: certificateUploading ? "#f0fdf4" : "#f8fafc",
                             transition: "all 0.3s ease",
                             boxSizing: "border-box",
+                            opacity: certificateUploading ? 0.7 : 1,
                             "&:hover": {
-                              backgroundColor: "#f0f9ff",
-                              borderColor: "#2563eb",
-                              transform: "translateY(-2px)",
-                              boxShadow: "0 8px 25px rgba(59, 130, 246, 0.15)",
+                              backgroundColor: certificateUploading ? "#f0fdf4" : "#f0f9ff",
+                              borderColor: certificateUploading ? "#10b981" : "#2563eb",
+                              transform: certificateUploading ? "none" : "translateY(-2px)",
+                              boxShadow: certificateUploading ? "none" : "0 8px 25px rgba(59, 130, 246, 0.15)",
                             },
                             "&:focus": {
                               outline: "none",
@@ -1954,57 +2397,190 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
                               p: 3,
                             }}
                           >
-                            <Box
-                              sx={{
-                                width: "48px",
-                                height: "48px",
-                                color: "#3b82f6",
-                                mb: 2,
-                              }}
-                            >
-                              <svg
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
+                            {certificateUploading ? (
+                              <CircularProgress size={48} sx={{ mb: 2, color: "#10b981" }} />
+                            ) : (
+                              <Box
+                                sx={{
+                                  width: "48px",
+                                  height: "48px",
+                                  color: "#3b82f6",
+                                  mb: 2,
+                                }}
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                />
-                              </svg>
-                            </Box>
+                                <svg
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                  />
+                                </svg>
+                              </Box>
+                            )}
                             <Typography
                               variant="body1"
                               sx={{
                                 mb: 1,
-                                color: "#3b82f6",
+                                color: certificateUploading ? "#10b981" : "#3b82f6",
                                 fontWeight: 600,
                               }}
                             >
-                              <span>Nhấp để tải lên</span> hoặc kéo và thả
+                              {certificateUploading ? (
+                                "Đang tải lên..."
+                              ) : (
+                                <span><span>Nhấp để tải lên</span> hoặc kéo và thả</span>
+                              )}
                             </Typography>
                             <Typography
                               variant="body2"
                               sx={{
                                 color: "#64748b",
+                                textAlign: "center",
                               }}
                             >
-                              PDF (Tối đa 25MB)
+                              PDF, JPG, PNG (Tối đa 25MB mỗi file)
+                              <br />
+                              Có thể chọn nhiều file cùng lúc
                             </Typography>
                           </Box>
                           <input
                             type="file"
-                            name="profilePhoto"
+                            multiple
                             style={{ display: "none" }}
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            required
+                            accept=".pdf,.jpg,.jpeg,.png,.gif"
+                            onChange={(e) => {
+                              if (e.target.files.length > 0) {
+                                handleCertificateUpload(e.target.files);
+                              }
+                            }}
+                            disabled={certificateUploading}
                           />
                         </Box>
                       </Box>
+
+                      {/* Uploaded Certificates List */}
+                      {documentsLoading ? (
+                        <Box sx={{ mb: 3, display: "flex", justifyContent: "center", alignItems: "center", py: 4 }}>
+                          <CircularProgress size={32} sx={{ mr: 2 }} />
+                          <Typography variant="body1" sx={{ color: "#64748b" }}>
+                            Đang tải danh sách chứng chỉ...
+                          </Typography>
+                        </Box>
+                      ) : uploadedCertificates.length > 0 ? (
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#1e293b" }}>
+                            Chứng chỉ đã tải lên ({uploadedCertificates.length})
+                          </Typography>
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                            {uploadedCertificates.map((cert) => (
+                              <Box
+                                key={cert.id}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  p: 2,
+                                  backgroundColor: "#f8fafc",
+                                  borderRadius: "12px",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                  <Box
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: "8px",
+                                      backgroundColor: cert.type.includes('pdf') ? "#dc2626" : "#3b82f6",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontWeight: 600,
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    {cert.type.includes('pdf') ? 'PDF' : 'IMG'}
+                                  </Box>
+                                  <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#1e293b" }}>
+                                      {cert.name}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: "#64748b" }}>
+                                      {cert.size > 0 ? `${(cert.size / 1024 / 1024).toFixed(2)} MB` : 'Không xác định'} • {new Date(cert.uploadedAt).toLocaleDateString('vi-VN')}
+                                    </Typography>
+                                    {cert.description && (
+                                      <Typography variant="caption" sx={{ color: "#64748b", display: "block", mt: 0.5 }}>
+                                        {cert.description}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </Box>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  {cert.url && (
+                                    <IconButton
+                                      onClick={() => window.open(cert.url, '_blank')}
+                                      sx={{ color: "#3b82f6" }}
+                                      size="small"
+                                      title="Xem file"
+                                    >
+                                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      </svg>
+                                    </IconButton>
+                                  )}
+                                  <IconButton
+                                    onClick={() => handleRemoveCertificate(cert.id)}
+                                    sx={{ color: "#dc2626" }}
+                                    size="small"
+                                    title="Xóa file"
+                                  >
+                                    <FiTrash2 size={16} />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                            ))}
+                          </Box>
+                        </Box>
+                      ) : (
+                        <Box sx={{ mb: 3, textAlign: "center", py: 2 }}>
+                          <Typography variant="body2" sx={{ color: "#64748b", fontStyle: "italic" }}>
+                            Chưa có chứng chỉ nào được tải lên
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Request Verification Button */}
+                      {uploadedCertificates.length > 0 && (
+                        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                          <StyledButton
+                            onClick={handleRequestVerification}
+                            disabled={verificationRequesting}
+                            sx={{
+                              backgroundColor: "#10b981",
+                              "&:hover": {
+                                backgroundColor: "#059669",
+                              },
+                            }}
+                          >
+                            {verificationRequesting ? (
+                              <>
+                                <CircularProgress size={20} sx={{ mr: 1, color: "white" }} />
+                                Đang gửi yêu cầu...
+                              </>
+                            ) : (
+                              "Yêu cầu xác minh chứng chỉ"
+                            )}
+                          </StyledButton>
+                        </Box>
+                      )}
                     </Box>
 
                     <Box
@@ -2373,10 +2949,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
         </DialogActions>
       </Dialog>
 
-      <ConfirmDeleteLessonModal
+      <ConfirmDialog
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        lessonName={lessonToDelete?.name}
         onConfirm={async () => {
           setLessonLoading(true);
           try {
@@ -2389,6 +2964,15 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             setLessonLoading(false);
           }
         }}
+        title="Xác nhận xóa bài học"
+        description={
+          lessonToDelete?.name
+            ? `Bạn có chắc chắn muốn xóa bài học "${lessonToDelete.name}" không? Hành động này không thể hoàn tác.`
+            : "Bạn có chắc chắn muốn xóa bài học này không? Hành động này không thể hoàn tác."
+        }
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmColor="error"
       />
 
       <Dialog
@@ -2401,11 +2985,40 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
         }}
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span>
-            {weekInfo.length > 0
-              ? `Chỉnh sửa lịch trình khả dụng (${weekInfo[0].label} ${weekInfo[0].date} - ${weekInfo[6].label} ${weekInfo[6].date})`
-              : "Chỉnh sửa lịch trình khả dụng"}
-          </span>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <IconButton
+              onClick={handleDialogPrevWeek}
+              disabled={isDialogAtCurrentWeek}
+              sx={{
+                p: 1,
+                borderRadius: "50%",
+                backgroundColor: isDialogAtCurrentWeek ? "#f3f4f6" : "#e5e7eb",
+                "&:hover": { backgroundColor: "#e5e7eb" },
+                boxShadow: "none",
+              }}
+              aria-label="Previous week"
+            >
+              <FaChevronLeft size={20} color={isDialogAtCurrentWeek ? "#ccc" : "#333"} />
+            </IconButton>
+            <span>
+              {dialogWeekInfo.length > 0
+                ? `Chọn khung giờ để đề nghị cho học viên (${dialogWeekInfo[0].label} ${dialogWeekInfo[0].date} - ${dialogWeekInfo[6].label} ${dialogWeekInfo[6].date})`
+                : "Chọn khung giờ để đề nghị cho học viên"}
+            </span>
+            <IconButton
+              onClick={handleDialogNextWeek}
+              sx={{
+                p: 1,
+                borderRadius: "50%",
+                backgroundColor: "#f3f4f6",
+                "&:hover": { backgroundColor: "#e5e7eb" },
+                boxShadow: "none",
+              }}
+              aria-label="Next week"
+            >
+              <FaChevronRight size={20} color="#333" />
+            </IconButton>
+          </Box>
         </DialogTitle>
         <DialogContent>
           <Typography variant="subtitle1" sx={{ mb: 2 }}>
@@ -2421,7 +3034,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
             >
               {/* Header row */}
               <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>Thời gian</Box>
-              {weekInfo.map((d, i) => (
+              {dialogWeekInfo.map((d, i) => (
                 <Box key={i} sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
                   <div style={{ fontSize: 14 }}>{d.label}</div>
                   <div style={{ fontSize: 13, color: "#64748b" }}>{d.date}</div>
@@ -2562,6 +3175,312 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail }) => {
           }
         }}
       />
+
+      <Dialog
+        open={bookingDetailDialogOpen}
+        onClose={() => setBookingDetailDialogOpen(false)}
+        maxWidth="xl"
+        fullWidth
+        PaperProps={{ sx: { minWidth: 1100 } }}
+      >
+        <DialogTitle>Chọn khung giờ để đề nghị cho học viên</DialogTitle>
+        <DialogContent>
+          {bookingDetailLoading ? (
+            <BookingDetailSkeleton />
+          ) : (
+            <Box sx={{ overflowX: "auto" }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "140px repeat(7, 1fr)",
+                  minWidth: "900px",
+                }}
+              >
+                {/* Header row */}
+                <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>Thời gian</Box>
+                {dialogWeekInfo.map((d, i) => (
+                  <Box key={i} sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
+                    <div style={{ fontSize: 14 }}>{d.label}</div>
+                    <div style={{ fontSize: 13, color: "#64748b" }}>{d.date}</div>
+                  </Box>
+                ))}
+                {/* Time slots */}
+                {Array.from({ length: 48 }).map((_, slotIdx) => {
+                  const hour = Math.floor(slotIdx / 2);
+                  const minute = slotIdx % 2 === 0 ? "00" : "30";
+                  const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
+                  const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
+                  const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+                  return (
+                    <React.Fragment key={slotIdx}>
+                      {/* Time label cell */}
+                      <Box
+                        sx={{
+                          p: 1,
+                          textAlign: "center",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderBottom: "1px solid #e2e8f0",
+                          borderRight: "1px solid #e2e8f0",
+                          minHeight: 32,
+                        }}
+                      >
+                        {timeLabel}
+                      </Box>
+                      {/* For each day, render a cell for this 30-min slot */}
+                      {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                        const isRequested = Array.isArray(bookingDetailSlots) && bookingDetailSlots.some(
+                          slot => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
+                        );
+                        const isSelected = selectedOfferSlots.some(
+                          slot => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
+                        );
+                        const isOffered = offerDetail?.offeredSlots?.some(slot => {
+                          const date = new Date(slot.slotDateTime);
+                          let jsDay = date.getDay();
+                          let apiDayInWeek = jsDay === 0 ? 1 : jsDay + 1;
+
+                          // Week check
+                          const weekStart = new Date(dialogWeekStart);
+                          weekStart.setHours(0, 0, 0, 0);
+                          const weekEnd = new Date(weekStart);
+                          weekEnd.setDate(weekEnd.getDate() + 6);
+                          weekEnd.setHours(23, 59, 59, 999);
+
+                          return (
+                            apiDayInWeek === dayInWeek &&
+                            slot.slotIndex === slotIdx &&
+                            date >= weekStart &&
+                            date <= weekEnd
+                          );
+                        });
+
+                        // NEW: Purple if both requested and offered
+                        const isRequestedAndOffered = isRequested && isOffered;
+
+                        let bgColor = "#f1f5f9";
+                        if (isRequestedAndOffered) {
+                          bgColor = "#a259e6"; // purple
+                        } else if (isSelected) {
+                          bgColor = "#98D45F"; // green for selected
+                        } else if (isOffered) {
+                          bgColor = "#3b82f6"; // blue for offered
+                        } else if (isRequested) {
+                          bgColor = "#FFD700"; // yellow for requested
+                        }
+                        let textColor = (isSelected || isOffered || isRequestedAndOffered) ? "#fff" : (isRequested ? "#333" : "inherit");
+                        let fontWeight = (isSelected || isOffered || isRequestedAndOffered) ? 700 : (isRequested ? 600 : 400);
+
+                        return (
+                          <Box
+                            key={dayIdx}
+                            sx={{
+                              backgroundColor: bgColor,
+                              border: "1px solid #e2e8f0",
+                              minHeight: 32,
+                              textAlign: "center",
+                              color: textColor,
+                              fontWeight: fontWeight,
+                              fontSize: 14,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              opacity: 1,
+                            }}
+                            onClick={() => {
+                              setSelectedOfferSlots(prev => {
+                                const exists = prev.some(
+                                  slot => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
+                                );
+                                if (exists) {
+                                  return prev.filter(
+                                    slot => !(slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx)
+                                  );
+                                } else {
+                                  return [...prev, { dayInWeek, slotIndex: slotIdx }];
+                                }
+                              });
+                            }}
+                          />
+                        );
+                      })}
+                    </React.Fragment>
+                  );
+                })}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 2,
+            px: 3,
+            py: 2,
+          }}
+        >
+          {/* Legend/Note */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  backgroundColor: "#FFD700", // yellow
+                  mr: 1,
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#bfa100" }}>
+                Học viên đã đặt
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  backgroundColor: "#98D45F", // green
+                  mr: 1,
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#4a7c1c" }}>
+                Đề xuất của gia sư (chọn mới)
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  backgroundColor: "#3b82f6", // blue
+                  mr: 1,
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#3b82f6" }}>
+                Gia sư đã đề xuất trước đó
+              </Typography>
+            </Box>
+            {/* NEW: Purple legend */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  backgroundColor: "#a259e6", // purple
+                  mr: 1,
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#a259e6" }}>
+                Học viên đã đặt + Gia sư đã đề xuất trước đó
+              </Typography>
+            </Box>
+          </Box>
+          {/* Buttons */}
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Button onClick={() => {
+              setBookingDetailDialogOpen(false);
+              setSelectedLesson(null);
+              setSelectedLessonId("");
+            }}>
+              Đóng
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={selectedOfferSlots.length === 0 || !selectedLearner}
+              onClick={async () => {
+                if (!selectedLesson) {
+                  setSelectLessonDialogOpen(true);
+                  return;
+                }
+                try {
+                  const offeredSlots = selectedOfferSlots.map(slot => ({
+                    slotDateTime: getSlotDateTime(dialogWeekStart, slot.dayInWeek, slot.slotIndex),
+                    slotIndex: slot.slotIndex,
+                  }));
+
+                  if (offerDetail && offerDetail.id) {
+                    // Update existing offer
+                    await updateTutorBookingOfferByOfferId(offerDetail.id, {
+                      lessonId: selectedLesson.id,
+                      offeredSlots,
+                    });
+                    alert("Đã cập nhật đề nghị thành công!");
+                  } else {
+                    // Create new offer
+                    await createTutorBookingOffer({
+                      learnerId: selectedLearner,
+                      lessonId: selectedLesson.id,
+                      offeredSlots,
+                    });
+                    alert("Đã gửi đề nghị thành công!");
+                  }
+
+                  setBookingDetailDialogOpen(false);
+                  setSelectedOfferSlots([]);
+                  setSelectedLearner(null);
+                  setSelectedLessonId("");
+                  setSelectedLesson(null);
+                } catch (err) {
+                  alert("Gửi đề nghị thất bại: " + err.message);
+                }
+              }}
+            >
+              {selectedLesson ? (offerDetail && offerDetail.id ? "Cập nhật đề xuất" : "Gửi đề xuất") : "Chọn bài học"}
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={selectLessonDialogOpen}
+        onClose={() => setSelectLessonDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Chọn bài học để đề xuất</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="select-lesson-label">Bài học</InputLabel>
+            <Select
+              labelId="select-lesson-label"
+              value={selectedLessonId}
+              label="Bài học"
+              onChange={(e) => setSelectedLessonId(e.target.value)}
+            >
+              {lessons.map((lesson) => (
+                <MenuItem key={lesson.id} value={lesson.id}>
+                  {lesson.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectLessonDialogOpen(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={!selectedLessonId}
+            onClick={() => {
+              const lesson = lessons.find(l => l.id === selectedLessonId);
+              setSelectedLesson(lesson);
+              setSelectLessonDialogOpen(false);
+            }}
+          >
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

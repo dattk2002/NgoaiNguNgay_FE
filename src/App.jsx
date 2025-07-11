@@ -24,6 +24,7 @@ import TutorProfile from "./components/tutors/TutorProfile";
 import UpdateInformationModal from "./components/modals/UpdateInformationModal";
 import UserProfile from "./components/users/UserProfile";
 import EditUserProfile from "./components/users/EditUserProfile"; // Import the new component
+import MyBookingPage from "./pages/MyBookingPage"; // Import at the top
 
 // Import the tutor API functions
 import {
@@ -33,7 +34,9 @@ import {
   deleteProfileImage,
   registerAsTutor,
   fetchTutorDetail,
-  fetchChatConversationsByUserId
+  fetchChatConversationsByUserId,
+  requestTutorVerification,
+  uploadCertificate
 } from "./components/api/auth";
 
 // Import the NotFoundPage component
@@ -41,7 +44,7 @@ import NotFoundPage from "./pages/NotFoundPage"; // Adjust the path if necessary
 import StaffDashboardPage from "./pages/StaffDashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ManagerDashboardPage from "./pages/ManagerDashboardPage";
-import ProtectedRoute, { AdminRoute, StaffRoute, ManagerRoute, BlockedRoute } from "./components/rbac/ProtectedRoute";
+import ProtectedRoute, { AdminRoute, StaffRoute, ManagerRoute, BlockedRoute, TutorRoute } from "./components/rbac/ProtectedRoute";
 import RoleBasedRedirect from "./components/rbac/RoleBasedRedirect";
 import RoleBasedRouteGuard from "./components/rbac/RoleBasedRouteGuard";
 
@@ -170,11 +173,15 @@ function AppContent({
             path="/tutor-profile/:id"
             element={
               <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
-                <TutorProfile
-                  user={user}
-                  onRequireLogin={openLoginModal}
-                  fetchTutorDetail={fetchTutorDetail}
-                />
+                <TutorRoute user={user}>
+                  <TutorProfile
+                    user={user}
+                    onRequireLogin={openLoginModal}
+                    fetchTutorDetail={fetchTutorDetail}
+                    requestTutorVerification={requestTutorVerification}
+                    uploadCertificate={uploadCertificate}
+                  />
+                </TutorRoute>
               </BlockedRoute>
             }
           />
@@ -272,6 +279,16 @@ function AppContent({
               <ManagerRoute user={user}>
                 <ManagerDashboardPage />
               </ManagerRoute>
+            }
+          />
+
+          {/* NEW ROUTE for My Bookings */}
+          <Route
+            path="/my-bookings"
+            element={
+              <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                <MyBookingPage user={user} />
+              </ProtectedRoute>
             }
           />
 

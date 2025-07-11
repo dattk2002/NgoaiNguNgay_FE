@@ -1,9 +1,11 @@
 // src/components/modals/ReadOnlyWeeklyPatternDialog.jsx
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, IconButton } from "@mui/material";
-import { fetchTutorWeeklyPattern } from "../api/auth";
+import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot } from "../api/auth";
 import Skeleton from "@mui/material/Skeleton";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 
 const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // API: 2=Mon, ..., 7=Sat, 1=Sun
@@ -17,16 +19,47 @@ function getPatternForWeek(patterns, weekStart) {
   if (!patterns || patterns.length === 0 || !weekStart) return null;
   // Sort patterns descending by appliedFrom
   const sorted = [...patterns].sort((a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom));
-  // Find the pattern that starts before next week's Monday (so it applies to this week)
-  const nextMonday = new Date(weekStart);
-  nextMonday.setDate(weekStart.getDate() + 7);
-  return sorted.find(pattern => new Date(pattern.appliedFrom) < nextMonday) || sorted[sorted.length - 1];
+  // Find the pattern that starts before or at this week's Monday (so it applies to this week)
+  return sorted.find(pattern => new Date(pattern.appliedFrom) <= weekStart) || sorted[sorted.length - 1];
 }
 
-const TutorWeeklyPatternDetailModal = ({ open, onClose, tutorId, initialWeekStart }) => {
+const hasRole = (user, roleName) => {
+  if (!user || !user.roles) return false;
+  const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+  return roles.some(role => {
+    if (typeof role === 'string') {
+      return role.toLowerCase() === roleName.toLowerCase();
+    }
+    if (role && role.name) {
+      return role.name.toLowerCase() === roleName.toLowerCase();
+    }
+    return false;
+  });
+};
+const isLearner = (user) => hasRole(user, "Learner");
+const isTutor = (user) => hasRole(user, "Tutor");
+
+const TutorWeeklyPatternDetailModal = ({
+  open,
+  onClose,
+  tutorId,
+  initialWeekStart,
+  currentUser,
+  onBookingSuccess,
+  lessonId, 
+  expectedStartDate, 
+}) => {
   const [loading, setLoading] = useState(true);
   const [patterns, setPatterns] = useState([]);
   const [weekStart, setWeekStart] = useState(initialWeekStart);
+  const [selectedSlots, setSelectedSlots] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+
+  // Only allow slot selection for learners
+  const learnerPermission = isLearner(currentUser);
 
   useEffect(() => {
     if (!open) return;
@@ -108,6 +141,92 @@ const TutorWeeklyPatternDetailModal = ({ open, onClose, tutorId, initialWeekStar
     monday.getFullYear() === currentMonday.getFullYear() &&
     monday.getMonth() === currentMonday.getMonth() &&
     monday.getDate() === currentMonday.getDate();
+
+  const isCurrentWeek =
+    monday &&
+    monday.getFullYear() === currentMonday.getFullYear() &&
+    monday.getMonth() === currentMonday.getMonth() &&
+    monday.getDate() === currentMonday.getDate();
+
+  const handleSlotClick = (dayInWeek, slotIndex, isAvailable) => {
+    // Only allow selection if learner, slot is available, and it's the current week
+    if (!learnerPermission || !isAvailable || !isCurrentWeek) return;
+    setSelectedSlots((prev) =>
+      prev.some((s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIndex)
+        ? prev.filter((s) => !(s.dayInWeek === dayInWeek && s.slotIndex === slotIndex))
+        : [...prev, { dayInWeek, slotIndex }]
+    );
+  };
+
+  // Optional: clear selected slots when not in current week
+  useEffect(() => {
+    if (!isCurrentWeek) setSelectedSlots([]);
+  }, [isCurrentWeek]);
+
+  // Always get the current UTC date (YYYY-MM-DD)
+  const now = new Date();
+  const expectedStartDateToday = now.toISOString();
+
+  const handleSubmit = async () => {
+    if (!isCurrentWeek) {
+      return;
+    }
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+    try {
+      await updateLearnerBookingTimeSlot(
+        tutorId,
+        lessonId,
+        expectedStartDateToday, // always UTC today
+        selectedSlots
+      );
+      setSubmitSuccess(true);
+      setSelectedSlots([]);
+      if (onBookingSuccess) onBookingSuccess();
+      onClose();
+    } catch (err) {
+      setSubmitError(err.message || "Gửi yêu cầu thất bại.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Returns true if the slot is before today (for current week)
+  const isSlotInPast = (dayInWeek, slotIndex) => {
+    if (!monday) return false;
+    const slotDate = new Date(monday);
+    // dayInWeek: 2=Mon, ..., 7=Sat, 1=Sun
+    let jsDay = dayInWeek === 1 ? 6 : dayInWeek - 2; // 0=Mon, ..., 6=Sun
+    slotDate.setDate(monday.getDate() + jsDay);
+
+    const now = new Date();
+    // If slotDate is before today, it's in the past
+    if (
+      slotDate.getFullYear() < now.getFullYear() ||
+      (slotDate.getFullYear() === now.getFullYear() && slotDate.getMonth() < now.getMonth()) ||
+      (slotDate.getFullYear() === now.getFullYear() && slotDate.getMonth() === now.getMonth() && slotDate.getDate() < now.getDate())
+    ) {
+      return true;
+    }
+    // If slotDate is today, check time
+    if (
+      slotDate.getFullYear() === now.getFullYear() &&
+      slotDate.getMonth() === now.getMonth() &&
+      slotDate.getDate() === now.getDate()
+    ) {
+      // Each slot is 30min, slotIndex 0 = 00:00, 1 = 00:30, ..., 47 = 23:30
+      const slotHour = Math.floor(slotIndex / 2);
+      const slotMinute = slotIndex % 2 === 0 ? 0 : 30;
+      if (
+        slotHour < now.getHours() ||
+        (slotHour === now.getHours() && slotMinute <= now.getMinutes())
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
@@ -292,14 +411,25 @@ const TutorWeeklyPatternDetailModal = ({ open, onClose, tutorId, initialWeekStar
                   {/* For each day, render a cell for this 30-min slot */}
                   {dayInWeekOrder.map((dayInWeek, dayIdx) => {
                     const isActive = isSlotAvailable(dayInWeek, slotIdx);
+                    const isSelected = selectedSlots.some(
+                      (s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIdx
+                    );
                     return (
                       <Box
                         key={dayIdx}
                         sx={{
-                          backgroundColor: isActive ? "#98D45F" : "#f1f5f9",
+                          backgroundColor: isSelected
+                            ? "#2563eb"
+                            : isActive
+                            ? "#98D45F"
+                            : "#f1f5f9",
                           border: "1px solid #e2e8f0",
                           minHeight: 32,
+                          cursor: learnerPermission && isActive && isCurrentWeek ? "pointer" : "default",
+                          opacity: isActive && isCurrentWeek ? 1 : 0.5,
+                          transition: "background 0.2s",
                         }}
+                        onClick={() => handleSlotClick(dayInWeek, slotIdx, isActive)}
                       />
                     );
                   })}
@@ -308,10 +438,60 @@ const TutorWeeklyPatternDetailModal = ({ open, onClose, tutorId, initialWeekStar
             </Box>
           </Box>
         )}
+        {submitError && (
+          <Typography color="error" sx={{ mt: 2 }}>
+            {submitError}
+          </Typography>
+        )}
+        {submitSuccess && (
+          <Typography color="primary" sx={{ mt: 2 }}>
+            Gửi yêu cầu thành công!
+          </Typography>
+        )}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Đóng</Button>
+      <DialogActions
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
+        {isTutor(currentUser) && (
+          <Typography color="warning" sx={{ mb: 1, ml: 2 }}>
+            Tài khoản gia sư không thể gửi yêu cầu đặt lịch.
+          </Typography>
+        )}
+        <Box sx={{ display: "flex", gap: 1 }}>
+          {learnerPermission && (
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                selectedSlots.length === 0 ||
+                submitting ||
+                !isCurrentWeek ||
+                isTutor(currentUser)
+              }
+              variant="contained"
+              color="primary"
+            >
+              {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
+            </Button>
+          )}
+          <Button onClick={onClose}>Đóng</Button>
+        </Box>
       </DialogActions>
+      {/* Snackbar for success */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={3000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setOpenSnackbar(false)} severity="success" sx={{ width: "100%" }}>
+          Gửi yêu cầu thành công!
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };
