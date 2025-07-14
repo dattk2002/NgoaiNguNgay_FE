@@ -26,6 +26,7 @@ import UpdateInformationModal from "./components/modals/UpdateInformationModal";
 import UserProfile from "./components/users/UserProfile";
 import EditUserProfile from "./components/users/EditUserProfile"; // Import the new component
 import MyBookingPage from "./pages/MyBookingPage"; // Import at the top
+import WalletPage from "./pages/WalletPage"; // Import WalletPage
 import HowItWork from "./components/HowItWork";
 
 // Import the tutor API functions
@@ -290,6 +291,16 @@ function AppContent({
             element={
               <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
                 <MyBookingPage user={user} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* NEW ROUTE for Wallet */}
+          <Route
+            path="/wallet"
+            element={
+              <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                <WalletPage user={user} />
               </ProtectedRoute>
             }
           />

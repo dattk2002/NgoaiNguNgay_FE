@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCommentDots } from "react-icons/fa";
+import { FaCommentDots, FaWallet } from "react-icons/fa";
 import logo from "../assets/logo.png";
 import NoFocusOutLineButton from '../utils/noFocusOutlineButton';
 
@@ -305,6 +305,17 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                   </span>
                 </Link>
 
+                <Link
+                  to="/wallet"
+                  className="relative group p-0.5 focus:outline-none z-10 cursor-pointer"
+                  title="Ví điện tử"
+                >
+                  <div className="absolute inset-0 rounded-full -z-10"></div>
+                  <span className="p-1">
+                    <FaWallet className="w-6 h-6 text-gray-700" />
+                  </span>
+                </Link>
+
                 <div className="relative" ref={dropdownRef}>
                   <div
                     onClick={toggleDropdown}
@@ -369,6 +380,13 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                           onClick={() => setIsDropdownOpen(false)}
                         >
                           Bảng điều khiển của tôi
+                        </Link>
+                        <Link
+                          to="/wallet"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          💳 Ví điện tử
                         </Link>
                         <Link
                           to="/messages"
