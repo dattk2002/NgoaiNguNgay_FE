@@ -283,7 +283,7 @@ const TutorCard = memo(({
                 ? `${formatPriceWithCommas(lowestLessonPrice)} VND`
                 : "Không có khóa học"}
               <span className="text-gray-700 font-md text-sm">
-                {lowestLessonName ? `/ ${lowestLessonName}` : ""}
+                {lowestLessonName ? ` / ${lowestLessonName}` : ""}
               </span>
             </span>
             <span className="text-md text-green-600">

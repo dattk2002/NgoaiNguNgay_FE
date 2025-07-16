@@ -189,6 +189,14 @@ function AppContent({
             }
           />
           <Route
+            path="/tutor"
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <TutorLanguageList />
+              </BlockedRoute>
+            }
+          />
+          <Route
             path="/tutor/:subject"
             element={
               <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
