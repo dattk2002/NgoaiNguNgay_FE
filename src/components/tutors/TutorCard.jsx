@@ -9,6 +9,8 @@ import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import StarIconRender from "../../utils/starIconRender";
 import { fetchTutorWeekSchedule } from "../api/auth"; // adjust path as needed
+import { fetchTutorLesson } from "../api/auth"; // Add this import
+import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 
 const TutorCard = memo(({
   teacher,
@@ -27,6 +29,9 @@ const TutorCard = memo(({
   // Add state for weekly schedule and week start
   const [weeklySchedule, setWeeklySchedule] = useState([]);
   const [weekStartDate, setWeekStartDate] = useState(null);
+  const [availabilityText, setAvailabilityText] = useState("");
+  const [lowestLessonPrice, setLowestLessonPrice] = useState(null);
+  const [lowestLessonName, setLowestLessonName] = useState("");
 
   // Helper to get current week's Monday
   function getCurrentWeekMondayString() {
@@ -51,7 +56,6 @@ const TutorCard = memo(({
       return d;
     });
   }
-  const weekDates = getDatesOfWeek(weekStartDate);
 
   // Helper to check if a slot is available
   function isTimeSlotAvailable(timeRange, dayIndex) {
@@ -113,6 +117,20 @@ const TutorCard = memo(({
     return blockSlots.some((slot) => dayData.timeSlotIndex.includes(slot));
   }
 
+  // Helper to get all available blocks for the week
+  function getAvailableBlocksForWeek() {
+    if (!weeklySchedule || weeklySchedule.length === 0) return [];
+    const availableBlocks = new Set();
+    for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+      timeBlocks.forEach((block) => {
+        if (isTimeBlockAvailable(block.slots, dayIdx)) {
+          availableBlocks.add(block.label);
+        }
+      });
+    }
+    return Array.from(availableBlocks);
+  }
+
   // Fetch schedule when hover
   useEffect(() => {
     if (isHovered && teacher.id) {
@@ -124,8 +142,58 @@ const TutorCard = memo(({
     }
   }, [isHovered, teacher.id]);
 
+  // Fetch lowest lesson price
+  useEffect(() => {
+    let isMounted = true;
+    async function getLowestPrice() {
+      try {
+        const lessons = await fetchTutorLesson(teacher.id);
+        if (Array.isArray(lessons) && lessons.length > 0) {
+          // Find the lesson with the lowest price
+          let minLesson = lessons[0];
+          for (const lesson of lessons) {
+            if (Number(lesson.price) < Number(minLesson.price)) {
+              minLesson = lesson;
+            }
+          }
+          if (isMounted) {
+            setLowestLessonPrice(Number(minLesson.price));
+            setLowestLessonName(minLesson.name || ""); // Use lesson name, fallback to empty string
+          }
+        } else {
+          if (isMounted) {
+            setLowestLessonPrice(null);
+            setLowestLessonName("");
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setLowestLessonPrice(null);
+          setLowestLessonName("");
+        }
+      }
+    }
+    getLowestPrice();
+    return () => { isMounted = false; };
+  }, [teacher.id]);
+
+  // Update availabilityText when weeklySchedule changes
+  useEffect(() => {
+    if (weeklySchedule && weeklySchedule.length > 0) {
+      const availableBlocks = getAvailableBlocksForWeek();
+      if (availableBlocks.length === 0) {
+        setAvailabilityText("Không có lịch");
+      } else {
+        setAvailabilityText(availableBlocks.join(", "));
+      }
+    } else {
+      setAvailabilityText("Đang tải...");
+    }
+  }, [weeklySchedule]);
+
   // Days: Monday to Sunday
   const daysVN = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+  const weekDates = getDatesOfWeek(weekStartDate);
 
   return (
     <div
@@ -139,15 +207,17 @@ const TutorCard = memo(({
       {/* Tutor Card */}
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 w-full md:w-[70%] hover:shadow-md transition-shadow duration-200 z-10">
         {/* Left Part: Avatar & Rating */}
-        <div className="flex flex-row md:flex-col items-center w-full md:w-20 flex-shrink-0">
+        <div className="flex flex-row md:flex-col items-center w-full md:w-25 flex-shrink-0">
           <img
             src={teacher.imageUrl}
             alt={teacher.name}
             className="w-16 h-16 rounded-full object-cover mb-2 border border-gray-200"
           />
           <StarIconRender rating={teacher.rating} className="w-4 h-4 text-yellow-500" />
-          <span className="text-xs text-gray-500 mt-1">
-            {teacher.rating} ({teacher.lessons} Buổi học)
+          <span className="text-xs text-gray-500 pt-5">
+            {!teacher.rating
+              ? "Chưa có đánh giá"
+              : `${teacher.rating} (${teacher.lessons} Buổi học)`}
           </span>
         </div>
         {/* Right Part: Details */}
@@ -186,11 +256,11 @@ const TutorCard = memo(({
           </div>
           {/* Speaks */}
           <div className="text-sm text-gray-600 mb-2">
-            <span className="font-medium mr-2">NÓI:</span>
+            <span className="font-medium mr-2">Ngôn ngữ:</span>
             <span className="text-gray-800 font-semibold">
               {teacher.nativeLanguage}
             </span>
-            <span className="ml-1 inline-block bg-gray-200 text-gray-700 text-xs font-medium px-1.5 py-0.5 rounded">
+            <span className="ml-1 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-1.5 py-0.5 rounded">
               Bản xứ
             </span>
             {teacher.otherLanguagesCount > 0 && (
@@ -208,38 +278,34 @@ const TutorCard = memo(({
           </p>
           {/* Price, Availability & Actions */}
           <div className="flex items-center justify-between mt-2">
-            <span className="text-gray-800 font-semibold">
-              USD {parseFloat(teacher.price).toFixed(2)}
-              <span className="text-gray-500 font-normal text-sm">/ buổi thử</span>
+            <span className="text-[#333333] font-semibold">
+              {lowestLessonPrice !== null
+                ? `${formatPriceWithCommas(lowestLessonPrice)} VND`
+                : "Không có khóa học"}
+              <span className="text-gray-700 font-md text-sm">
+                {lowestLessonName ? ` / ${lowestLessonName}` : ""}
+              </span>
             </span>
-            <span className="text-sm text-green-600">
-              {teacher.availabilityText}
+            <span className="text-md text-green-600">
+              Lịch rảnh của gia sư: {availabilityText}
             </span>
             <div className="flex items-center gap-1">
-              <IconButton
-                size="small"
-                aria-label="favorite"
-                sx={{
-                  color: "grey.500",
-                  "&:hover": { color: "error.main" },
-                }}
-              >
-                <FaHeart />
-              </IconButton>
               <Button
                 variant="contained"
                 size="small"
+                // startIcon={<FaRegStar />} // Example: use a star or calendar icon
                 sx={{
-                  backgroundColor: "#333333", // Dark grey/black
-                  color: "#ffffff",
+                  background: "#3B82F6 ",
+                  color: "#fff",
                   textTransform: "none",
-                  fontSize: "0.8rem",
-                  padding: "4px 12px",
-                  borderRadius: "4px", // Less rounded than before
-                  boxShadow: "none",
+                  fontWeight: "bold",
+                  padding: "8px 20px",
+                  borderRadius: "999px", // Pill shape
+                  boxShadow: "0 2px 8px rgba(59, 130, 246, 0.15)",
+                  transition: "transform 0.15s, box-shadow 0.15s",
                   "&:hover": {
-                    backgroundColor: "#000000", // Darker on hover
-                    boxShadow: "none",
+                    background: "linear-gradient(90deg, #3B82F6 0%, #6EE7B7 100%)",
+                    boxShadow: "0 4px 16px rgba(59, 130, 246, 0.25)",
                   },
                 }}
               >

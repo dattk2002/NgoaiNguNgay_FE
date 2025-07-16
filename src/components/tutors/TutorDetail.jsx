@@ -29,8 +29,8 @@ import Collapse from "@mui/material/Collapse";
 import LessonDetailModal from "../modals/LessonDetailModal";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 import TutorWeeklyPatternDetailModal from "../modals/TutorWeeklyPatternDetailModal";
-import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -59,8 +59,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [teacher, setTeacher] = useState(null);
-  console.log("Tít chờ: ", teacher);
-  
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -88,12 +86,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [isPatternDialogOpen, setIsPatternDialogOpen] = useState(false);
   const [bookingLessonId, setBookingLessonId] = useState(null);
 
-  // Snackbar state for booking success
-  const [bookingSuccessSnackbar, setBookingSuccessSnackbar] = useState(false);
-
-  // Handler to show snackbar
+  // Handler to show toast
   const handleBookingSuccess = () => {
-    setBookingSuccessSnackbar(true);
+    toast.success("Gửi yêu cầu thành công!");
   };
 
   useEffect(() => {
@@ -189,7 +184,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           becameTutorAt: apiTeacherData.becameTutorAt, // Add becameTutorAt from API
           // Mocked data for fields not in the provided API response structure
           profileImageUrl: apiTeacherData.profileImageUrl, // Mocked
-          tag: "Professional Teacher", // Mocked
+          tag: "Gia sư uy tín", // Mocked
           nativeLanguage: primaryLanguage
             ? primaryLanguage.languageCode
             : "English", // Derived or Mocked
@@ -197,7 +192,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           address: "Unknown", // Mocked
           lessons: 100, // Mocked
           students: 50, // Mocked
-          rating: 4.5, // Mocked
+          rating: apiTeacherData.averageTeachingQuality,
           ratingCount: 30, // Mocked
           certifications: apiTeacherData.hashtags.map(
             (hashtag) => hashtag.name
@@ -534,6 +529,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   return (
     <div className="container mx-auto px-4 py-12 bg-white min-h-screen rounded-3xl max-w-7xl">
+      <ToastContainer />
       <div className="flex flex-col md:flex-row md:items-start gap-8">
         {/* LEFT COLUMN */}
         <div className="flex-1">
@@ -612,7 +608,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   {tabLabels.map((label, index) => (
                     <button
                       key={index}
-                      className={`py-2 px-4 text-sm font-medium focus:outline-none ${
+                      className={`py-2 px-4 text-sm font-medium no-focus-outline ${
                         activeTab === index
                           ? "border-b-2 border-red-500 text-red-600"
                           : "text-gray-600 hover:text-gray-800"
@@ -757,7 +753,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800">
-            {teacher.rating ? teacher.rating.toFixed(1) : "N/A"}
+            {teacher.rating !== undefined && teacher.rating !== null ? teacher.rating.toFixed(1) : "N/A"}
           </p>
           <div className="flex justify-center gap-1 mt-1">
             {[...Array(5)].map((_, i) => (
@@ -781,9 +777,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaBook className="text-blue-500" /> {teacher.lessons || 0}
+            <FaBook className="text-blue-500" /> {lessons.length || 0}
           </p>
-          <p className="text-gray-600 mt-2">Buổi học</p>
+          <p className="text-gray-600 mt-2">Khóa học</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
@@ -1017,17 +1013,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         onBookingSuccess={handleBookingSuccess}
         lessonId={bookingLessonId}
       />
-
-      <Snackbar
-        open={bookingSuccessSnackbar}
-        autoHideDuration={3000}
-        onClose={() => setBookingSuccessSnackbar(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={() => setBookingSuccessSnackbar(false)} severity="success" sx={{ width: "100%" }}>
-          Gửi yêu cầu thành công!
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

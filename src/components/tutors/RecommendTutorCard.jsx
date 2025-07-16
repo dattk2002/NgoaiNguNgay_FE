@@ -30,7 +30,7 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
   const price = typeof tutor.price === "number" ? tutor.price : 0;
   const name = tutor.name || "Unnamed Tutor";
   const isProfessional = tutor.isProfessional;
-  const tag = tutor.isProfessional ? "Professional Teacher" : "";
+  const tag = tutor.isProfessional ? "Gia sư uy tín" : "";
 
   const location = tutor.address ? `${tutor.address}` : "";
   const description = tutor.description || "Empty";

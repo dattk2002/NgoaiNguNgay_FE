@@ -80,7 +80,7 @@ const TutorLanguageList = () => {
             nativeLanguage:
               formatLanguageCode(primaryLanguage?.languageCode) || "N/A",
             otherLanguagesCount: otherLanguagesCount,
-            tag: t.isProfessional ? "Professional Teacher" : "",
+            tag: t.isProfessional ? "Gia sư uy tín" : "",
             isProfessional: t.isProfessional || false,
 
             // Fields populated from the API response
