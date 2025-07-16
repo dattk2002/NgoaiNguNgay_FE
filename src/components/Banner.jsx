@@ -25,6 +25,8 @@ import netherlandsFlag from '../assets/netherlands.svg';
 // Import the banner image (using placeholder since actual asset is not available)
 import bannerImage from '../assets/banner.webp';
 import { languageList } from '../utils/languageList';
+import { fetchTutorById, fetchTutorList } from '../components/api/auth'; // adjust path as needed
+import { formatLanguageCode } from '../utils/formatLanguageCode'; // adjust path as needed
 
 // Map language codes to flag imports
 const flagMap = {
@@ -119,15 +121,14 @@ const Banner = () => {
   // Handle category click to navigate to the teacher list page
   const handleCategoryClick = (categoryName) => {
     // Normalize the category name for the URL (e.g., "Brazilian" might map to "Portuguese")
-    const subject = categoryName.toLowerCase() === "brazilian" ? "portuguese" : categoryName.toLowerCase();
-    window.open(`/tutor/${subject}`, '_blank');
+    const language = categoryName.toLowerCase() === "brazilian" ? "portuguese" : categoryName.toLowerCase();
+    window.open(`/tutor/${language}`, '_blank');
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     const trimmed = searchInput.trim();
     if (!trimmed) return;
 
-    // Check if input matches a language
     const lower = trimmed.toLowerCase();
     let subject = categories.find(lang => lower === lang.name.toLowerCase());
 
@@ -135,11 +136,11 @@ const Banner = () => {
     if (subject?.name.toLowerCase() === "brazilian") subject = categories.find(lang => lang.name.toLowerCase() === "portuguese");
 
     if (subject) {
-      // Route to /tutor/:subject
+      // Route to /tutor/{languageName}
       navigate(`/tutor/${subject.name.toLowerCase()}`);
     } else {
-      const defaultSubject = categories[placeholderIndex]?.name.toLowerCase() || "english";
-      navigate(`/tutor/${defaultSubject}?search=${encodeURIComponent(trimmed)}`);
+      // Always route to /tutor?search={TutorName} for non-language input
+      navigate(`/tutor?search=${encodeURIComponent(trimmed)}`);
     }
   };
 

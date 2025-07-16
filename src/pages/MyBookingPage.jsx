@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import MyBookingTable from "../components/MyBookingTable";
-import { getAllLearnerBookingTimeSlot, deleteLearnerBookingTimeSlot, learnerBookingTimeSlotByTutorId } from "../components/api/auth";
+import { getAllLearnerBookingTimeSlot, deleteLearnerBookingTimeSlot } from "../components/api/auth";
 import ConfirmDialog from "../components/modals/ConfirmDialog";
 
 export default function MyBookingPage({ user }) {
+  const { id } = useParams(); // get booking id from URL
   const [sentRequests, setSentRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -48,22 +49,12 @@ export default function MyBookingPage({ user }) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <MyBookingTable
-        sentRequests={sentRequests}
-        loadingRequests={loadingRequests}
-        onMessageTutor={handleMessageTutor}
-        onDeleteRequest={handleDeleteRequest}
-      />
-      {confirmDeleteOpen && (
-        <ConfirmDialog
-          open={confirmDeleteOpen}
-          onClose={() => setConfirmDeleteOpen(false)}
-          onConfirm={handleConfirmDelete}
-          title="Xác nhận xóa yêu cầu"
-          description="Bạn có chắc chắn muốn xóa yêu cầu này không?"
-        />
-      )}
-    </div>
+    <MyBookingTable
+      sentRequests={sentRequests}
+      loadingRequests={loadingRequests}
+      onMessageTutor={handleMessageTutor}
+      onDeleteRequest={handleDeleteRequest}
+      selectedBookingId={id} // pass the id to the table
+    />
   );
 }

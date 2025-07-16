@@ -22,6 +22,7 @@ import {
   learnerBookingTimeSlotByTutorId,
   learnerBookingOfferDetail,
 } from "./api/auth"; // add learnerBookingOfferDetail
+import { useNavigate } from "react-router-dom";
 
 function getWeekInfoForDialog() {
   const today = new Date();
@@ -56,7 +57,10 @@ export default function MyBookingTable({
   loadingRequests,
   onMessageTutor,
   onDeleteRequest,
+  selectedBookingId, // <-- new prop
 }) {
+  const navigate = useNavigate();
+
   // Dialog state
   const [bookingDetailDialogOpen, setBookingDetailDialogOpen] =
     React.useState(false);
@@ -84,6 +88,11 @@ export default function MyBookingTable({
       );
       setBookingDetailExpectedStartDate(detail?.expectedStartDate || "");
 
+      // Navigate to /my-bookings/:id
+      if (detail?.id) {
+        navigate(`/my-bookings/${detail.id}`);
+      }
+
       // If there is an offer, fetch its detail
       if (tutorBookingOfferId) {
         const offer = await learnerBookingOfferDetail(tutorBookingOfferId);
@@ -100,6 +109,24 @@ export default function MyBookingTable({
     } finally {
       setBookingDetailLoading(false);
     }
+  };
+
+  // Open dialog if selectedBookingId changes
+  React.useEffect(() => {
+    if (selectedBookingId) {
+      // Find the tutorId for this bookingId
+      const req = sentRequests.find(r => r.id === selectedBookingId);
+      if (req) {
+        handleOpenBookingDetail(req.tutorId, req.tutorBookingOfferId);
+      }
+    }
+    // eslint-disable-next-line
+  }, [selectedBookingId]);
+
+  // Close dialog and navigate back
+  const handleCloseDialog = () => {
+    setBookingDetailDialogOpen(false);
+    navigate("/my-bookings");
   };
 
   return (
@@ -282,7 +309,7 @@ export default function MyBookingTable({
       {bookingDetailDialogOpen && (
         <Dialog
           open={bookingDetailDialogOpen}
-          onClose={() => setBookingDetailDialogOpen(false)}
+          onClose={handleCloseDialog}
           maxWidth="xl"
           fullWidth
           PaperProps={{ sx: { minWidth: 1100 } }}
@@ -513,7 +540,7 @@ export default function MyBookingTable({
               </Box>
             </Box>
             <Box>
-              <Button onClick={() => setBookingDetailDialogOpen(false)}>
+              <Button onClick={handleCloseDialog}>
                 Đóng
               </Button>
             </Box>

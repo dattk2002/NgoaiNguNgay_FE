@@ -189,6 +189,14 @@ function AppContent({
             }
           />
           <Route
+            path="/tutor"
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <TutorLanguageList />
+              </BlockedRoute>
+            }
+          />
+          <Route
             path="/tutor/:subject"
             element={
               <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
@@ -286,6 +294,14 @@ function AppContent({
           />
 
           {/* NEW ROUTE for My Bookings */}
+          <Route
+            path="/my-bookings/:id"
+            element={
+              <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                <MyBookingPage user={user} />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/my-bookings"
             element={
