@@ -287,6 +287,14 @@ function AppContent({
 
           {/* NEW ROUTE for My Bookings */}
           <Route
+            path="/my-bookings/:id"
+            element={
+              <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                <MyBookingPage user={user} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/my-bookings"
             element={
               <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
