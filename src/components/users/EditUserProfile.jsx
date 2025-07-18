@@ -123,9 +123,10 @@ function EditUserProfile() {
         break;
       case "phoneNumber":
         if (value) {
-          const phoneRegex = /^[0-9]{10,11}$/;
-          if (!phoneRegex.test(value.replace(/\s+/g, ""))) {
-            errors[fieldName] = "Số điện thoại phải có 10-11 chữ số.";
+          const cleanPhone = value.replace(/\s+/g, "");
+          const phoneRegex = /^0[0-9]{9}$/;
+          if (!phoneRegex.test(cleanPhone)) {
+            errors[fieldName] = "Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số.";
           }
         }
         break;
@@ -900,7 +901,7 @@ function EditUserProfile() {
                 onClick={saveWithLocalValue}
                 disabled={isSaving}
                 className={`${
-                  isSaving ? "bg-gray-400" : "bg-red-500 hover:bg-red-600"
+                  isSaving ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
                 } text-white font-medium py-1 px-3 rounded text-sm`}
               >
                 {isSaving ? "Đang lưu..." : "Lưu"}
@@ -1044,6 +1045,39 @@ function EditUserProfile() {
           </div>
         ) : (
           <div className="px-6 md:px-16 py-10">
+            {/* Header with Back Button */}
+            <div className="mb-8">
+              <button
+                type="button"
+                onClick={() => {
+                  // Use window.history.back() as fallback or navigate to user profile
+                  const user = JSON.parse(localStorage.getItem('user') || '{}');
+                  if (user && user.id) {
+                    navigate(`/user/${user.id}`);
+                  } else {
+                    window.history.back();
+                  }
+                }}
+                className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Quay lại hồ sơ
+              </button>
+            </div>
+
             {/* Profile Photo Section */}
             <div className="mb-12 border-b border-gray-200 pb-8">
               <h2 className="text-xl font-semibold text-gray-800 mb-6">
