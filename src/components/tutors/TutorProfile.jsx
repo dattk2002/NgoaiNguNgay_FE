@@ -43,6 +43,8 @@ import {
 import { FiPlusCircle, FiEdit, FiTrash2, FiCheck } from "react-icons/fi";
 import { MdOutlineEditCalendar } from "react-icons/md";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { styled } from "@mui/material/styles";
 import {
@@ -248,30 +250,7 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
   },
 }));
 
-const VerificationBadge = styled(Box)(({ status, theme }) => ({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: theme.spacing(1, 2),
-  borderRadius: "20px",
-  fontSize: "0.875rem",
-  fontWeight: 600,
-  ...(status === 0 && {
-    backgroundColor: "#fffbeb",
-    color: "#d97706",
-    border: "1px solid #fed7aa",
-  }),
-  ...(status === 1 && {
-    backgroundColor: "#f0f9ff",
-    color: "#2563eb",
-    border: "1px solid #dbeafe",
-  }),
-  ...(status === 2 && {
-    backgroundColor: "#ecfdf5",
-    color: "#059669",
-    border: "1px solid #d1fae5",
-  }),
-}));
+
 
 const getProficiencyLabel = (level) => {
   switch (level) {
@@ -297,21 +276,6 @@ const getProficiencyLabel = (level) => {
 const getLanguageName = (code) => {
   return formatLanguageCode(code);
 };
-
-const getVerificationStatus = (status) => {
-  switch (status) {
-    case 0:
-      return { label: "Đang chờ xác minh", color: "#b45309" };
-    case 1:
-      return { label: "Đang xem xét", color: "#1e429f" };
-    case 2:
-      return { label: "Đã xác minh", color: "#166534" };
-    default:
-      return { label: "Trạng thái không xác định", color: "#64748b" };
-  }
-};
-
-
 
 const handleFileChange = (e) => {
   const { files } = e.target;
@@ -893,6 +857,8 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [verificationRequesting, setVerificationRequesting] = useState(false);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [deleteCertificateDialogOpen, setDeleteCertificateDialogOpen] = useState(false);
+  const [certificateToDelete, setCertificateToDelete] = useState(null);
 
   const handlePrevWeek = () => {
     setCurrentWeekStart(prev => {
@@ -1000,13 +966,13 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
       // Validate files
       for (const file of filesToUpload) {
         if (file.size > 25 * 1024 * 1024) { // 25MB limit
-          alert(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
+          toast.error(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
           setCertificateUploading(false);
           return;
         }
 
         if (!file.type.includes('pdf') && !file.type.startsWith('image/')) {
-          alert(`File ${file.name} không đúng định dạng. Chỉ chấp nhận PDF và hình ảnh.`);
+          toast.error(`File ${file.name} không đúng định dạng. Chỉ chấp nhận PDF và hình ảnh.`);
           setCertificateUploading(false);
           return;
         }
@@ -1016,7 +982,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
       console.log("Uploading certificates with applicationId:", tutorData?.applicationId);
 
       if (!tutorData?.applicationId) {
-        alert("Không tìm thấy Application ID. Vui lòng thử lại sau.");
+        toast.error("Không tìm thấy Application ID. Vui lòng thử lại sau.");
         setCertificateUploading(false);
         return;
       }
@@ -1059,11 +1025,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
       });
 
       setUploadedCertificates(transformedDocuments);
-      alert("Tải lên chứng chỉ thành công!");
+      toast.success("Tải lên chứng chỉ thành công!");
 
     } catch (error) {
       console.error("Certificate upload failed:", error);
-      alert(`Tải lên chứng chỉ thất bại: ${error.message}`);
+      toast.error(`Tải lên chứng chỉ thất bại: ${error.message}`);
     } finally {
       setCertificateUploading(false);
     }
@@ -1071,12 +1037,12 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
 
   const handleRequestVerification = async () => {
     if (uploadedCertificates.length === 0) {
-      alert("Vui lòng tải lên ít nhất một chứng chỉ trước khi yêu cầu xác minh.");
+      toast.error("Vui lòng tải lên ít nhất một chứng chỉ trước khi yêu cầu xác minh.");
       return;
     }
 
     if (!tutorData?.applicationId) {
-      alert("Không tìm thấy Application ID. Vui lòng thử lại sau.");
+      toast.error("Không tìm thấy Application ID. Vui lòng thử lại sau.");
       return;
     }
 
@@ -1084,25 +1050,35 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
     try {
       // Using tutorData.applicationId as the tutorApplicationId
       await requestTutorVerification(tutorData?.applicationId);
-      alert("Yêu cầu xác minh đã được gửi thành công!");
+      toast.success("Yêu cầu xác minh đã được gửi thành công!");
     } catch (error) {
       console.error("Verification request failed:", error);
-      alert(`Yêu cầu xác minh thất bại: ${error.message}`);
+      toast.error(`Yêu cầu xác minh thất bại: ${error.message}`);
     } finally {
       setVerificationRequesting(false);
     }
   };
 
-  const handleRemoveCertificate = async (certificateId) => {
+  const handleRemoveCertificate = (certificate) => {
+    setCertificateToDelete(certificate);
+    setDeleteCertificateDialogOpen(true);
+  };
+
+  const confirmDeleteCertificate = async () => {
+    if (!certificateToDelete) return;
+
     try {
-      await deleteDocument(certificateId);
+      await deleteDocument(certificateToDelete.id);
 
       // Remove from local state
-      setUploadedCertificates(prev => prev.filter(cert => cert.id !== certificateId));
-      alert("Xóa chứng chỉ thành công!");
+      setUploadedCertificates(prev => prev.filter(cert => cert.id !== certificateToDelete.id));
+      toast.success("Xóa chứng chỉ thành công!");
     } catch (error) {
       console.error("Failed to delete certificate:", error);
-      alert(`Xóa chứng chỉ thất bại: ${error.message}`);
+      toast.error(`Xóa chứng chỉ thất bại: ${error.message}`);
+    } finally {
+      setDeleteCertificateDialogOpen(false);
+      setCertificateToDelete(null);
     }
   };
 
@@ -1435,7 +1411,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
     );
   }
 
-  const verificationInfo = getVerificationStatus(tutorData.verificationStatus);
+
 
   return (
     <>
@@ -1492,9 +1468,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                     justifyContent: "center",
                   }}
                 >
-                  {tutorData.profilePictureUrl ? (
+                  {tutorData.profileImageUrl ? (
                     <LargeAvatar
-                      src={tutorData.profilePictureUrl}
+                      src={tutorData.profileImageUrl}
                       alt={tutorData.fullName}
                     />
                   ) : (
@@ -1516,7 +1492,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                     textAlign: "center",
                   }}
                 >
-                  {tutorData.nickName || tutorData.fullName}
+                  {tutorData.fullName}
                 </Typography>
 
                 {tutorData.nickName &&
@@ -1530,22 +1506,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                         textAlign: "center",
                       }}
                     >
-                      ({tutorData.fullName})
+                      ({tutorData.nickName})
                     </Typography>
                   )}
-
-                <Box
-                  sx={{
-                    mt: 3,
-                    width: "100%",
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
-                  <VerificationBadge status={tutorData.verificationStatus}>
-                    {getVerificationStatus(tutorData.verificationStatus).label}
-                  </VerificationBadge>
-                </Box>
               </Box>
             </StyledPaper>
           </Grid>
@@ -2650,7 +2613,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                     </IconButton>
                                   )}
                                   <IconButton
-                                    onClick={() => handleRemoveCertificate(cert.id)}
+                                    onClick={() => handleRemoveCertificate(cert)}
                                     sx={{ color: "#dc2626" }}
                                     size="small"
                                     title="Xóa file"
@@ -3594,6 +3557,37 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteCertificateDialogOpen}
+        onClose={() => {
+          setDeleteCertificateDialogOpen(false);
+          setCertificateToDelete(null);
+        }}
+        onConfirm={confirmDeleteCertificate}
+        title="Xác nhận xóa chứng chỉ"
+        description={
+          certificateToDelete
+            ? `Bạn có chắc chắn muốn xóa chứng chỉ "${certificateToDelete.name}" không? Hành động này không thể hoàn tác.`
+            : "Bạn có chắc chắn muốn xóa chứng chỉ này không? Hành động này không thể hoàn tác."
+        }
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmColor="error"
+      />
+      
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </>
   );
 };

@@ -386,7 +386,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
                           onClick={() => setIsDropdownOpen(false)}
                         >
-                          💳 Ví điện tử
+                          Ví điện tử
                         </Link>
                         <Link
                           to="/messages"

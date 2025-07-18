@@ -407,6 +407,41 @@ export async function fetchUserById() {
   }
 }
 
+export async function fetchUserProfileById(userId) {
+  const token = getAccessToken();
+  if (!token) {
+    throw new Error("Authentication token not found.");
+  }
+
+  try {
+    console.log(`Fetching user profile data for ID: ${userId}`);
+    const response = await callApi(`/api/profile/user/${userId}`, "GET", null, token);
+    console.log("User profile API response:", response);
+
+    if (response && response.data) {
+      const userData = response.data;
+
+      if (userData.gender !== undefined && typeof userData.gender === 'string') {
+        userData.gender = parseInt(userData.gender, 10);
+      }
+
+      if (userData.learningProficiencyLevel !== undefined &&
+        typeof userData.learningProficiencyLevel === 'string') {
+        userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
+      }
+
+      console.log("Normalized user data:", userData);
+      return userData;
+    } else {
+      console.error("Invalid API response format:", response);
+      throw new Error("Invalid response format or missing data.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch user profile:", error.message);
+    throw error;
+  }
+}
+
 export async function uploadProfileImage(file) {
   try {
     const token = getAccessToken();
