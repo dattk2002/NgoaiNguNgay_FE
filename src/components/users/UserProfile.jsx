@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Skeleton } from "@mui/material";
 import {
   Box,
   Container,
@@ -135,6 +136,197 @@ const InfoValue = styled(Typography)(({ theme }) => ({
   fontSize: "1rem",
   fontWeight: 500,
 }));
+
+// Skeleton Components
+const UserProfileSkeleton = () => (
+  <Container
+    maxWidth="lg"
+    sx={{
+      py: 6,
+      backgroundColor: "#f8fafc",
+      minHeight: "100vh",
+      width: "100%",
+      maxWidth: "100%",
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
+    <Grid container spacing={4} sx={{ width: "100%", flex: "1 1 auto", margin: 0 }}>
+      {/* Left Column Skeleton */}
+      <Grid item xs={12} md={4} sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+        {/* Avatar Section Skeleton */}
+        <StyledPaper sx={{ textAlign: "center", position: "relative", mb: 3, width: "100%" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 2 }}>
+            <Skeleton 
+              variant="circular" 
+              width={160} 
+              height={160} 
+              sx={{ 
+                mb: 2,
+                border: "4px solid #ffffff",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
+              }} 
+            />
+            <Skeleton variant="text" width={180} height={40} sx={{ mb: 1 }} />
+            <Skeleton variant="text" width={120} height={24} />
+          </Box>
+        </StyledPaper>
+
+        {/* Profile Details Skeleton */}
+        <StyledPaper sx={{ width: "100%" }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+            <Skeleton variant="text" width={100} height={32} />
+            <Skeleton variant="rectangular" width={120} height={40} sx={{ borderRadius: 2 }} />
+          </Box>
+          
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Box
+                key={index}
+                sx={{
+                  p: 2,
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <Skeleton variant="text" width={80} height={20} sx={{ mb: 1 }} />
+                <Skeleton variant="text" width="90%" height={24} />
+              </Box>
+            ))}
+            
+            {/* Interest/Language chips skeleton */}
+            <Box
+              sx={{
+                p: 2,
+                backgroundColor: "#f8fafc",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <Skeleton variant="text" width={80} height={20} sx={{ mb: 1 }} />
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <Skeleton 
+                    key={idx} 
+                    variant="rectangular" 
+                    width={80} 
+                    height={24} 
+                    sx={{ borderRadius: "8px" }} 
+                  />
+                ))}
+              </Box>
+            </Box>
+          </Box>
+        </StyledPaper>
+      </Grid>
+
+      {/* Right Column Skeleton */}
+      <Grid item xs={12} md={8} sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
+        <StyledPaper
+          sx={{
+            minHeight: "700px",
+            width: "100%",
+            maxWidth: "100%",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Skeleton variant="text" width={200} height={32} sx={{ mb: 3 }} />
+
+          {/* Lesson History Section Skeleton */}
+          <Box sx={{ mb: 4 }}>
+            <Skeleton variant="text" width={160} height={28} sx={{ mb: 2 }} />
+            <Box
+              sx={{
+                borderRadius: "12px",
+                overflow: "hidden",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              {/* Table Header */}
+              <Box
+                sx={{
+                  display: "flex",
+                  backgroundColor: "#f8fafc",
+                  p: 2,
+                  borderBottom: "1px solid #e2e8f0",
+                }}
+              >
+                <Box sx={{ flex: "1 1 25%" }}>
+                  <Skeleton variant="text" width="60%" height={20} />
+                </Box>
+                <Box sx={{ flex: "1 1 25%", textAlign: "center" }}>
+                  <Skeleton variant="text" width="80%" height={20} sx={{ mx: "auto" }} />
+                </Box>
+                <Box sx={{ flex: "1 1 25%", textAlign: "center" }}>
+                  <Skeleton variant="text" width="80%" height={20} sx={{ mx: "auto" }} />
+                </Box>
+                <Box sx={{ flex: "1 1 25%", textAlign: "center" }}>
+                  <Skeleton variant="text" width="60%" height={20} sx={{ mx: "auto" }} />
+                </Box>
+              </Box>
+              
+              {/* Table Rows */}
+              {Array.from({ length: 2 }).map((_, rowIdx) => (
+                <Box
+                  key={rowIdx}
+                  sx={{
+                    display: "flex",
+                    p: 2,
+                    borderBottom: rowIdx === 1 ? "none" : "1px solid #e2e8f0",
+                  }}
+                >
+                  <Box sx={{ flex: "1 1 25%" }}>
+                    <Skeleton variant="text" width="90%" height={20} />
+                  </Box>
+                  <Box sx={{ flex: "1 1 25%", textAlign: "center" }}>
+                    <Skeleton variant="text" width="40%" height={20} sx={{ mx: "auto" }} />
+                  </Box>
+                  <Box sx={{ flex: "1 1 25%", textAlign: "center" }}>
+                    <Skeleton variant="text" width="40%" height={20} sx={{ mx: "auto" }} />
+                  </Box>
+                  <Box sx={{ flex: "1 1 25%", textAlign: "center" }}>
+                    <Skeleton variant="text" width="40%" height={20} sx={{ mx: "auto" }} />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Teacher Reviews Section Skeleton */}
+          <Box>
+            <Skeleton variant="text" width={160} height={28} sx={{ mb: 2 }} />
+            <Box
+              sx={{
+                p: 3,
+                backgroundColor: "#f8fafc",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              {Array.from({ length: 2 }).map((_, reviewIdx) => (
+                <Box
+                  key={reviewIdx}
+                  sx={{
+                    borderBottom: reviewIdx === 1 ? "none" : "1px solid #e2e8f0",
+                    pb: reviewIdx === 1 ? 0 : 2,
+                    pt: reviewIdx === 0 ? 0 : 2,
+                  }}
+                >
+                  <Skeleton variant="text" width={150} height={24} sx={{ mb: 1 }} />
+                  <Skeleton variant="text" width="100%" height={20} sx={{ mb: 1 }} />
+                  <Skeleton variant="text" width="70%" height={20} />
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </StyledPaper>
+      </Grid>
+    </Grid>
+  </Container>
+);
 
 // Helper functions
 function hasOnlyLearnerRole(user) {
@@ -379,9 +571,10 @@ function UserProfile({ loggedInUser, getUserById }) {
 
   if (isLoading) {
     return (
-      <Container sx={{ py: 8, display: "flex", justifyContent: "center" }}>
-        <CircularProgress size={60} sx={{ color: "#3b82f6" }} />
-      </Container>
+      <>
+        {globalStyles}
+        <UserProfileSkeleton />
+      </>
     );
   }
 

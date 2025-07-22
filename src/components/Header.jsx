@@ -254,12 +254,21 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
               <img src={logo} alt="logo" className="w-20 h-20" />
             </Link>
             <div className="hidden md:flex items-center gap-4 sm:gap-6">
-              <Link
-                to="/become-tutor"
-                className="text-gray-700 hover:text-black text-sm sm:text-base"
-              >
-                Trở thành gia sư
-              </Link>
+              {isTutor(user) ? (
+                <Link
+                  to="/tutor-management"
+                  className="text-gray-700 hover:text-black text-sm sm:text-base"
+                >
+                  Quản lí dạy học
+                </Link>
+              ) : (
+                <Link
+                  to="/become-tutor"
+                  className="text-gray-700 hover:text-black text-sm sm:text-base"
+                >
+                  Trở thành gia sư
+                </Link>
+              )}
 
               <Link
                 to="/languages"
@@ -492,13 +501,23 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
               <div className="flex flex-col px-4 py-2 space-y-2">
-                <Link
-                  to="/become-tutor"
-                  className="text-gray-700 hover:text-black text-sm py-2"
-                  onClick={toggleMenu}
-                >
-                  Trở thành gia sư
-                </Link>
+                {isTutor(user) ? (
+                  <Link
+                    to="/tutor-management"
+                    className="text-gray-700 hover:text-black text-sm py-2"
+                    onClick={toggleMenu}
+                  >
+                    Quản lí dạy học
+                  </Link>
+                ) : (
+                  <Link
+                    to="/become-tutor"
+                    className="text-gray-700 hover:text-black text-sm py-2"
+                    onClick={toggleMenu}
+                  >
+                    Trở thành gia sư
+                  </Link>
+                )}
                 <Link
                   to="/languages"
                   className="text-gray-700 hover:text-black text-sm py-2"

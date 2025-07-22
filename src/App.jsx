@@ -28,6 +28,7 @@ import EditUserProfile from "./components/users/EditUserProfile"; // Import the 
 import MyBookingPage from "./pages/MyBookingPage"; // Import at the top
 import WalletPage from "./pages/WalletPage"; // Import WalletPage
 import HowItWork from "./components/HowItWork";
+import TutorManagementPage from "./pages/TutorManagementPage"; // Import TutorManagementPage
 
 // Import the tutor API functions
 import {
@@ -259,6 +260,18 @@ function AppContent({
                 <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
                   <EditUserProfile loggedInUser={user} />
                 </ProtectedRoute>
+              </BlockedRoute>
+            }
+          />
+
+          {/* NEW ROUTE for Tutor Management */}
+          <Route
+            path="/tutor-management"
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <TutorRoute user={user}>
+                  <TutorManagementPage user={user} />
+                </TutorRoute>
               </BlockedRoute>
             }
           />
