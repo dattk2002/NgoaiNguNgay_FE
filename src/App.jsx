@@ -334,9 +334,9 @@ function AppContent({
             }
           />
 
-          {/* NEW ROUTE for Payment Return */}
+          {/* ROUTE for Payment Return */}
           <Route
-            path="/wallet/payment-return"
+            path="/payment-return"
             element={
               <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
                 <WalletPage user={user} showPaymentReturn={true} />
