@@ -1307,3 +1307,111 @@ export async function reviewTutorApplication(applicationId, action, notes = "") 
     throw error;
   }
 }
+
+// Payment return URL configuration
+const BASE_URL = "https://ngoai-ngu-ngay.vercel.app"; // Change to "https://ngoai-ngu-ngay.vercel.app" for production
+const PAYMENT_RETURN_PATH = "/wallet/payment-return";
+
+// Deposit API function
+export async function createDepositRequest(amount) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const paymentReturnUrl = `${BASE_URL}${PAYMENT_RETURN_PATH}`;
+    
+    const requestBody = {
+      amount: amount,
+      returnUrl: paymentReturnUrl,
+      cancelUrl: paymentReturnUrl
+    };
+
+    const response = await callApi("/api/deposit", "POST", requestBody, token);
+
+    if (response && response.data) {
+      console.log("Deposit request created successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for deposit request.");
+    }
+  } catch (error) {
+    console.error("Failed to create deposit request:", error.message);
+    throw error;
+  }
+}
+
+// Wallet API functions
+export async function fetchWalletInfo() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/wallet/info", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Wallet info fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for wallet info.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch wallet info:", error.message);
+    throw error;
+  }
+}
+
+export async function fetchWalletTransactions() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/wallet/transactions", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Wallet transactions fetched successfully:", response.data);
+      // Handle paginated response structure
+      if (response.data.items && Array.isArray(response.data.items)) {
+        return response.data.items;
+      }
+      // Fallback to direct array or data
+      return Array.isArray(response.data) ? response.data : [];
+    } else {
+      throw new Error("Invalid response format for wallet transactions.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch wallet transactions:", error.message);
+    throw error;
+  }
+}
+
+export async function fetchDepositHistory() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/deposit/history", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Deposit history fetched successfully:", response.data);
+      // Handle paginated response structure
+      if (response.data.items && Array.isArray(response.data.items)) {
+        return response.data.items;
+      }
+      // Fallback to direct array or data
+      return Array.isArray(response.data) ? response.data : [];
+    } else {
+      throw new Error("Invalid response format for deposit history.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch deposit history:", error.message);
+    throw error;
+  }
+}
