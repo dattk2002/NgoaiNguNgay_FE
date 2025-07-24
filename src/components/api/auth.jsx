@@ -1309,8 +1309,8 @@ export async function reviewTutorApplication(applicationId, action, notes = "") 
 }
 
 // Payment return URL configuration
-const BASE_URL = "https://ngoai-ngu-ngay.vercel.app"; // Change to "https://ngoai-ngu-ngay.vercel.app" for production
-const PAYMENT_RETURN_PATH = "/wallet/payment-return";
+const BASE_URL = "https://ngoai-ngu-ngay.vercel.app";
+const PAYMENT_RETURN_PATH = "/payment-return";
 
 // Deposit API function
 export async function createDepositRequest(amount) {
