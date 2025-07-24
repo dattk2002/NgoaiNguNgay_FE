@@ -15,6 +15,8 @@ const PaymentReturn = ({ onReturn }) => {
     const id = searchParams.get('id');
     const cancel = searchParams.get('cancel');
 
+
+
     // Store payment details
     setPaymentDetails({
       status: paymentStatus,
@@ -24,7 +26,7 @@ const PaymentReturn = ({ onReturn }) => {
       cancel
     });
 
-    if (cancel === 'true') {
+    if (cancel === 'true' || paymentStatus === 'CANCELLED') {
       setStatus('cancelled');
       setMessage('Bạn đã hủy giao dịch thanh toán');
     } else if (paymentStatus === 'PAID' && code === '00') {
@@ -34,9 +36,6 @@ const PaymentReturn = ({ onReturn }) => {
       if (onReturn && typeof onReturn === 'function') {
         onReturn();
       }
-    } else if (paymentStatus === 'CANCELLED') {
-      setStatus('cancelled');
-      setMessage('Giao dịch đã được hủy');
     } else if (paymentStatus === 'PENDING') {
       setStatus('pending');
       setMessage('Giao dịch đang được xử lý. Vui lòng kiểm tra lại sau.');
@@ -87,6 +86,8 @@ const PaymentReturn = ({ onReturn }) => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+
+          
           <div className="text-6xl mb-4">{getStatusIcon()}</div>
           
           <div className={`p-4 rounded-xl border mb-6 ${getStatusColor()}`}>
