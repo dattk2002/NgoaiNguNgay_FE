@@ -1,10 +1,10 @@
 import React from 'react';
 import WalletMain from '../components/wallet/WalletMain';
 
-const WalletPage = () => {
+const WalletPage = ({ showPaymentReturn = false }) => {
   return (
     <div className="wallet-page">
-      <WalletMain />
+      <WalletMain showPaymentReturn={showPaymentReturn} />
     </div>
   );
 };
