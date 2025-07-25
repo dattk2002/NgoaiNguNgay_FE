@@ -16,7 +16,7 @@ const WalletMain = ({ showPaymentReturn = false }) => {
   const tabs = [
     { id: 'dashboard', label: 'Tổng quan', icon: '📊' },
     { id: 'cards', label: 'Thẻ ngân hàng', icon: '💳' },
-    { id: 'deposit', label: 'Nạp tiền', icon: '💰' },
+    { id: 'deposit', label: 'Nạp/Rút tiền', icon: '💰' },
     { id: 'transactions', label: 'Lịch sử giao dịch', icon: '📋' }
   ];
 
