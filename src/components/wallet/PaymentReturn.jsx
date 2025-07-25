@@ -15,8 +15,6 @@ const PaymentReturn = ({ onReturn }) => {
     const id = searchParams.get('id');
     const cancel = searchParams.get('cancel');
 
-
-
     // Store payment details
     setPaymentDetails({
       status: paymentStatus,
@@ -31,7 +29,7 @@ const PaymentReturn = ({ onReturn }) => {
       setMessage('Bạn đã hủy giao dịch thanh toán');
     } else if (paymentStatus === 'PAID' && code === '00') {
       setStatus('success');
-      setMessage('Thanh toán thành công! Số dư của bạn đã được cập nhật.');
+      setMessage('Cảm ơn bạn! Giao dịch nạp tiền đã được xử lý thành công.');
       // Trigger wallet data refresh on success
       if (onReturn && typeof onReturn === 'function') {
         onReturn();
@@ -41,96 +39,140 @@ const PaymentReturn = ({ onReturn }) => {
       setMessage('Giao dịch đang được xử lý. Vui lòng kiểm tra lại sau.');
     } else {
       setStatus('failed');
-      setMessage('Giao dịch thất bại. Vui lòng thử lại.');
+      setMessage('Giao dịch thất bại. Vui lòng liên hệ hỗ trợ nếu cần thiết.');
     }
-
-    // Auto redirect after 3 seconds
-    const timer = setTimeout(() => {
-      navigate('/wallet');
-    }, 3000);
-
-    return () => clearTimeout(timer);
   }, [searchParams, navigate]);
 
-  const getStatusIcon = () => {
+  const getStatusConfig = () => {
     switch (status) {
       case 'success':
-        return '✅';
+        return {
+          icon: '✓',
+          title: 'Thanh toán thành công!',
+          titleColor: 'text-green-600',
+          iconBg: 'bg-green-500'
+        };
       case 'cancelled':
-        return '⚠️';
+        return {
+          icon: '⚠',
+          title: 'Giao dịch đã hủy',
+          titleColor: 'text-yellow-600', 
+          iconBg: 'bg-yellow-500'
+        };
       case 'failed':
-        return '❌';
+        return {
+          icon: '✕',
+          title: 'Giao dịch thất bại',
+          titleColor: 'text-red-600',
+          iconBg: 'bg-red-500'
+        };
       case 'pending':
-        return '⏳';
+        return {
+          icon: '⏳',
+          title: 'Đang xử lý...',
+          titleColor: 'text-blue-600',
+          iconBg: 'bg-blue-500'
+        };
       default:
-        return '🔄';
+        return {
+          icon: '⟳',
+          title: 'Đang xử lý...',
+          titleColor: 'text-gray-600',
+          iconBg: 'bg-gray-500'
+        };
     }
   };
 
-  const getStatusColor = () => {
-    switch (status) {
-      case 'success':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'cancelled':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'failed':
-        return 'text-red-600 bg-red-50 border-red-200';
-      case 'pending':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
+  const config = getStatusConfig();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-
+    <div className="min-h-[68vh] w-full bg-gray-100 flex items-center justify-center p-6">
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           
-          <div className="text-6xl mb-4">{getStatusIcon()}</div>
-          
-          <div className={`p-4 rounded-xl border mb-6 ${getStatusColor()}`}>
-            <h2 className="text-xl font-bold mb-2">
-              {status === 'success' && 'Thanh toán thành công!'}
-              {status === 'cancelled' && 'Giao dịch đã hủy'}
-              {status === 'failed' && 'Giao dịch thất bại'}
-              {status === 'pending' && 'Đang xử lý...'}
-              {status === 'processing' && 'Đang xử lý...'}
-            </h2>
-            <p className="text-sm mb-3">{message}</p>
+          {/* Header Section */}
+          <div className="text-center pt-12 pb-8 px-8">
+            <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${config.iconBg} mb-6`}>
+              <span className="text-3xl text-white font-bold">{config.icon}</span>
+            </div>
             
-            {/* Payment Details */}
+            <h1 className={`text-3xl font-bold mb-4 ${config.titleColor}`}>
+              {config.title}
+            </h1>
+            
+            <p className="text-lg text-gray-700 leading-relaxed">
+              {message}
+            </p>
+
+            {/* Order and Transaction Info */}
             {paymentDetails.orderCode && (
-              <div className="text-xs opacity-75 border-t pt-2">
-                <p>Mã đơn hàng: <span className="font-mono">{paymentDetails.orderCode}</span></p>
-                {paymentDetails.code && (
-                  <p>Mã kết quả: <span className="font-mono">{paymentDetails.code}</span></p>
-                )}
+              <div className="mt-6 text-sm text-gray-600">
+                <p>
+                  Mã đơn hàng: <span className="font-mono font-semibold">{paymentDetails.orderCode}</span>
+                </p>
               </div>
             )}
           </div>
 
-          <div className="space-y-3">
+          {/* Payment Details Section */}
+          {status === 'success' && (
+            <div className="px-8 pb-8">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                Chi tiết thanh toán
+              </h3>
+              
+              <div className="bg-gray-50 rounded-xl p-6 border">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-white rounded-lg border">
+                    <p className="text-sm text-gray-600 mb-1">Tổng số tiền</p>
+                    <p className="text-lg font-semibold text-gray-800">Đang cập nhật</p>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-white rounded-lg border">
+                    <p className="text-sm text-gray-600 mb-1">Phương thức</p>
+                    <p className="text-lg font-semibold text-gray-800">Chuyển khoản ngân hàng</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <p className="text-sm text-blue-800 text-center">
+                  Vui lòng đợi một thời gian để số tiền được cập nhật vào tài khoản ví của bạn.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Contact Info for Failed Transactions */}
+          {status === 'failed' && (
+            <div className="px-8 pb-8">
+              <div className="p-4 bg-red-50 rounded-xl border border-red-200">
+                <p className="text-sm text-red-800 text-center">
+                  Vui lòng liên hệ hỗ trợ kỹ thuật hoặc email tới support@ngoainguday.com để được trợ giúp.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* OK Button */}
+          <div className="px-8 pb-8">
             <button
               onClick={() => navigate('/wallet')}
-              className="w-full py-3 bg-gray-600 text-white rounded-xl font-medium hover:bg-gray-700 transition-all outline-none"
+              className="w-full py-4 text-white rounded-xl font-semibold text-lg transition-all duration-200 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-gray-300 shadow-lg"
+              style={{ backgroundColor: '#666666' }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#555555'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#666666'}
             >
               Quay về Ví điện tử
             </button>
-            
-            {status === 'failed' && (
-              <button
-                onClick={() => navigate('/wallet?tab=deposit')}
-                className="w-full py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all outline-none"
-              >
-                Thử lại
-              </button>
-            )}
           </div>
 
-          <div className="mt-6 text-xs text-gray-500">
-            Tự động chuyển hướng sau 3 giây...
+          {/* Footer */}
+          <div className="border-t border-gray-200 px-8 py-4 bg-gray-50">
+            <p className="text-xs text-gray-500 text-center">
+              🔒 Giao dịch được bảo mật bởi hệ thống thanh toán an toàn
+            </p>
           </div>
         </div>
       </div>
