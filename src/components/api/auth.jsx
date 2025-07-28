@@ -1091,6 +1091,28 @@ export async function learnerBookingOfferDetail(offerId) {
   }
 }
 
+/**
+ * Accept a booking offer from tutor.
+ * @param {string} offerId
+ * @returns {Promise<Object>} API response
+ */
+export async function acceptLearnerBookingOffer(offerId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      "/api/learner-bookings/accept-offer",
+      "POST",
+      { offerId },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to accept booking offer:", error.message);
+    throw error;
+  }
+}
+
 // New API function for requesting tutor verification
 export async function requestTutorVerification(tutorApplicationId) {
   try {

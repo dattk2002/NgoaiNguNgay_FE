@@ -73,7 +73,7 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
     
     const totalWithdrawals = transactions
       .filter(t => {
-        const description = t.description || t.transactionType || t.note || '';
+        const description = String(t.description || t.transactionType || t.note || '');
         // Skip deposit-like transactions
         if (description.toLowerCase().includes('nạp')) {
           return false;
@@ -127,8 +127,8 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
       // Filter out deposit transactions from wallet API to avoid duplication with deposit history
       ...transactions
         .filter(t => {
-          const description = t.description || t.transactionType || t.note || '';
-          const type = t.type || t.transactionType || '';
+          const description = String(t.description || t.transactionType || t.note || '');
+          const type = String(t.type || t.transactionType || '');
           // Skip transactions that look like deposits (they should come from deposit history instead)
           return !description.toLowerCase().includes('nạp') && 
                  !type.toLowerCase().includes('deposit') &&
