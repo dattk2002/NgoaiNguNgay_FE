@@ -21,8 +21,21 @@ import { FiTrash2, FiXCircle, FiCheckCircle } from "react-icons/fi";
 import {
   learnerBookingTimeSlotByTutorId,
   learnerBookingOfferDetail,
-} from "./api/auth"; // add learnerBookingOfferDetail
+  acceptLearnerBookingOffer,
+} from "./api/auth"; // add acceptLearnerBookingOffer
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+// Toast configuration
+const toastConfig = {
+  position: "top-right",
+  autoClose: 3000,
+  hideProgressBar: false,
+  closeOnClick: true,
+  pauseOnHover: true,
+  draggable: true,
+};
 
 function getWeekInfoForDialog() {
   const today = new Date();
@@ -71,6 +84,11 @@ export default function MyBookingTable({
   const [selectedTutor, setSelectedTutor] = React.useState(null);
   const [offerDetail, setOfferDetail] = React.useState(null);
   const [tutorOfferedSlots, setTutorOfferedSlots] = React.useState([]);
+  const [acceptingOffer, setAcceptingOffer] = React.useState(false);
+  const [confirmAcceptOpen, setConfirmAcceptOpen] = React.useState(false);
+  const [errorDialogOpen, setErrorDialogOpen] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState("");
+  const [isInsufficientFunds, setIsInsufficientFunds] = React.useState(false);
 
   // Handler to open dialog and fetch booking detail
   const handleOpenBookingDetail = async (tutorId, tutorBookingOfferId) => {
@@ -129,6 +147,62 @@ export default function MyBookingTable({
     navigate("/my-bookings");
   };
 
+  // Handle accepting offer
+  const handleAcceptOffer = () => {
+    setConfirmAcceptOpen(true);
+  };
+
+  const handleConfirmAccept = async () => {
+    if (!offerDetail?.id) return;
+    
+    setAcceptingOffer(true);
+    try {
+      await acceptLearnerBookingOffer(offerDetail.id);
+      toast.success("Đã chấp nhận đề xuất thành công!", toastConfig);
+      handleCloseDialog();
+      // Optionally refresh the data
+      window.location.reload();
+    } catch (error) {
+      console.error("Error accepting offer:", error);
+      
+      // Check for specific error messages
+      let message = "Không thể chấp nhận đề xuất. Vui lòng thử lại!";
+      let isInsufficientFundsError = false;
+      
+      // Convert error to string for easier checking
+      const errorString = JSON.stringify(error).toLowerCase();
+      const errorMessage = error.message ? error.message.toLowerCase() : "";
+      const detailMessage = error.details?.errorMessage ? error.details.errorMessage.toLowerCase() : "";
+      
+      // Check for insufficient funds in various formats
+      if (errorString.includes("insufficient funds") || 
+          errorString.includes("không đủ tiền") ||
+          errorString.includes("not enough") ||
+          errorMessage.includes("insufficient funds") || 
+          detailMessage.includes("insufficient funds")) {
+        message = "Không đủ tiền trong ví, vui lòng nạp thêm tiền để tiếp tục!";
+        isInsufficientFundsError = true;
+      } else if (errorString.includes("wallet") || errorMessage.includes("wallet")) {
+        message = "Có lỗi với ví của bạn, vui lòng kiểm tra lại!";
+      } else if (errorString.includes("balance") || errorMessage.includes("balance")) {
+        message = "Số dư trong ví không đủ, vui lòng nạp thêm tiền!";
+        isInsufficientFundsError = true;
+      }
+      
+      setErrorMessage(message);
+      setIsInsufficientFunds(isInsufficientFundsError);
+      setErrorDialogOpen(true);
+    } finally {
+      setAcceptingOffer(false);
+      setConfirmAcceptOpen(false);
+    }
+  };
+
+  const handleGoToWallet = () => {
+    setErrorDialogOpen(false);
+    navigate("/wallet");
+  };
+
   return (
     <>
       <div className="flex flex-col items-center w-full">
@@ -151,6 +225,9 @@ export default function MyBookingTable({
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                   Trạng thái
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                  Thông tin đề xuất
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider"></th>
               </tr>
             </thead>
@@ -172,13 +249,16 @@ export default function MyBookingTable({
                       <Skeleton variant="text" width={100} height={28} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <Skeleton variant="text" width={120} height={28} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <Skeleton variant="rectangular" width={60} height={28} />
                     </td>
                   </tr>
                 ))
               ) : sentRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} align="center" className="py-8">
+                  <td colSpan={6} align="center" className="py-8">
                     <div className="flex flex-col items-center justify-center">
                       <svg
                         width="64"
@@ -260,6 +340,21 @@ export default function MyBookingTable({
                         )}
                       </span>
                     </td>
+                    {/* OFFER INFO CELL */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {req.tutorBookingOfferId ? (
+                        <div className="text-sm">
+                          <div className="text-gray-600">Có đề xuất mới</div>
+                          <div className="text-xs text-blue-600 font-medium">
+                            Nhấp để xem chi tiết
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400">
+                          Chưa có đề xuất
+                        </div>
+                      )}
+                    </td>
                     {/* ACTIONS CELL - NO FLEX */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex gap-2">
@@ -331,6 +426,57 @@ export default function MyBookingTable({
                   {new Date(bookingDetailExpectedStartDate).toLocaleString()}
                 </Typography>
               </Box>
+            )}
+            
+            {/* Show offer details if available */}
+            {offerDetail && (
+              <Paper sx={{ p: 2, mb: 3, backgroundColor: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                <Typography variant="h6" sx={{ mb: 2, color: "#1976d2", fontWeight: 600 }}>
+                  Thông tin đề xuất từ gia sư
+                </Typography>
+                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
+                  {offerDetail.lessonName && (
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151" }}>
+                        Tên bài học:
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                        {offerDetail.lessonName}
+                      </Typography>
+                    </Box>
+                  )}
+                  {offerDetail.pricePerSlot && (
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151" }}>
+                        Giá mỗi slot:
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "#10b981", fontWeight: 600 }}>
+                        {offerDetail.pricePerSlot?.toLocaleString()} VND
+                      </Typography>
+                    </Box>
+                  )}
+                  {offerDetail.totalPrice && (
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151" }}>
+                        Tổng giá:
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                        {offerDetail.totalPrice?.toLocaleString()} VND
+                      </Typography>
+                    </Box>
+                  )}
+                  {offerDetail.slotCount && (
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151" }}>
+                        Số lượng slot:
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                        {offerDetail.slotCount} slots
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Paper>
             )}
             {bookingDetailLoading ? (
               <MuiTable>
@@ -539,14 +685,134 @@ export default function MyBookingTable({
                 </Typography>
               </Box>
             </Box>
-            <Box>
-              <Button onClick={handleCloseDialog}>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              {offerDetail && (
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={handleAcceptOffer}
+                  disabled={acceptingOffer}
+                  sx={{ 
+                    bgcolor: "#10b981", 
+                    "&:hover": { bgcolor: "#059669" },
+                    fontWeight: 600
+                  }}
+                >
+                  {acceptingOffer ? "Đang xử lý..." : "Chấp nhận đề xuất"}
+                </Button>
+              )}
+              <Button onClick={handleCloseDialog} variant="outlined">
                 Đóng
               </Button>
             </Box>
           </DialogActions>
         </Dialog>
       )}
+
+      {/* Confirm Accept Offer Dialog */}
+      <Dialog open={confirmAcceptOpen} onClose={() => setConfirmAcceptOpen(false)}>
+        <DialogTitle>Xác nhận chấp nhận đề xuất</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn chấp nhận đề xuất này không?
+          </Typography>
+          {offerDetail && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                Thông tin đề xuất:
+              </Typography>
+              {offerDetail.lessonName && (
+                <Typography variant="body2">
+                  • Bài học: {offerDetail.lessonName}
+                </Typography>
+              )}
+              {offerDetail.totalPrice && (
+                <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                  • Tổng giá: {offerDetail.totalPrice?.toLocaleString()} VND
+                </Typography>
+              )}
+              {offerDetail.slotCount && (
+                <Typography variant="body2">
+                  • Số slots: {offerDetail.slotCount}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmAcceptOpen(false)} disabled={acceptingOffer}>
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleConfirmAccept} 
+            variant="contained"
+            disabled={acceptingOffer}
+            sx={{ 
+              bgcolor: "#10b981", 
+              "&:hover": { bgcolor: "#059669" }
+            }}
+          >
+            {acceptingOffer ? "Đang xử lý..." : "Chấp nhận"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Error Dialog */}
+      <Dialog open={errorDialogOpen} onClose={() => setErrorDialogOpen(false)}>
+        <DialogTitle sx={{ color: "#dc2626", fontWeight: 600 }}>
+          {isInsufficientFunds ? "Không đủ tiền trong ví" : "Lỗi"}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            {errorMessage}
+          </Typography>
+          {isInsufficientFunds && offerDetail && (
+            <Box sx={{ p: 2, backgroundColor: "#fef2f2", borderRadius: 1, border: "1px solid #fecaca" }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#dc2626", mb: 1 }}>
+                Chi tiết giao dịch:
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#7f1d1d" }}>
+                • Tổng số tiền cần thanh toán: {offerDetail.totalPrice?.toLocaleString()} VND
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#7f1d1d" }}>
+                • Bài học: {offerDetail.lessonName}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setErrorDialogOpen(false)} color="inherit">
+            Đóng
+          </Button>
+          {isInsufficientFunds && (
+            <Button 
+              onClick={handleGoToWallet} 
+              variant="contained"
+              sx={{ 
+                bgcolor: "#10b981", 
+                "&:hover": { bgcolor: "#059669" },
+                fontWeight: 600
+              }}
+            >
+              Nạp tiền vào ví
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Toast Container */}
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </>
   );
 }
