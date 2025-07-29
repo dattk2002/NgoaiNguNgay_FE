@@ -1437,3 +1437,66 @@ export async function fetchDepositHistory() {
     throw error;
   }
 }
+
+/**
+ * Fetch learner bookings with pagination.
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Number of items per page (default: 10)
+ * @returns {Promise<Object>} API response with booking data
+ */
+export async function fetchLearnerBookings(page = 1, pageSize = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/booking/learner?page=${page}&pageSize=${pageSize}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("Learner bookings fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for learner bookings.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch learner bookings:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch booking details by booking ID.
+ * @param {string} bookingId - The booking ID
+ * @returns {Promise<Object>} API response with detailed booking data
+ */
+export async function fetchBookingDetail(bookingId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/booking/${bookingId}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("Booking detail fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for booking detail.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch booking detail:", error.message);
+    throw error;
+  }
+}
