@@ -198,7 +198,6 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
     setIsLoading(true);
     try {
       const response = await register(email, password, confirmPassword, fullName);
-      console.log("Registration successful:", response);
       onSignUpSuccess(email);
       onClose();
     } catch (errorResponse) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchPendingApplications, fetchTutorApplicationById, reviewTutorApplication } from '../api/auth';
+import { toast } from 'react-toastify';
 
 const TutorManagement = () => {
     const [activeTab, setActiveTab] = useState('pending');
@@ -58,7 +59,6 @@ const TutorManagement = () => {
                 setLoading(true);
                 setError(null);
                 const data = await fetchPendingApplications(currentPage, pageSize);
-                console.log('Debug - Pending applications data structure:', data);
 
                 // Fetch detailed information for each application
                 const enrichedData = await Promise.all(
@@ -66,7 +66,6 @@ const TutorManagement = () => {
                         try {
                             // Check cache first
                             if (detailsCache[application.id]) {
-                                console.log(`Using cached data for ${application.id}`);
                                 return {
                                     ...application,
                                     tutor: {
@@ -169,8 +168,6 @@ const TutorManagement = () => {
     };
 
     const confirmApprove = async () => {
-        if (!reviewingTutor) return;
-
         setReviewLoading(true);
         try {
             await reviewTutorApplication(reviewingTutor.id, 1, reviewNotes);
@@ -185,10 +182,10 @@ const TutorManagement = () => {
             setReviewNotes('');
 
             // Show success message
-            alert('Đã phê duyệt hồ sơ gia sư thành công!');
+            toast.success('Đã phê duyệt hồ sơ gia sư thành công!');
         } catch (error) {
             console.error('Error approving tutor:', error);
-            alert('Có lỗi xảy ra khi phê duyệt hồ sơ: ' + error.message);
+            toast.error('Có lỗi xảy ra khi phê duyệt hồ sơ: ' + error.message);
         } finally {
             setReviewLoading(false);
         }
@@ -196,7 +193,7 @@ const TutorManagement = () => {
 
     const confirmReject = async () => {
         if (!reviewingTutor || !reviewNotes.trim()) {
-            alert('Vui lòng nhập lý do từ chối');
+            toast.error('Vui lòng nhập lý do từ chối');
             return;
         }
 
@@ -214,10 +211,10 @@ const TutorManagement = () => {
             setReviewNotes('');
 
             // Show success message
-            alert('Đã từ chối hồ sơ gia sư!');
+            toast.success('Đã từ chối hồ sơ gia sư!');
         } catch (error) {
             console.error('Error rejecting tutor:', error);
-            alert('Có lỗi xảy ra khi từ chối hồ sơ: ' + error.message);
+            toast.error('Có lỗi xảy ra khi từ chối hồ sơ: ' + error.message);
         } finally {
             setReviewLoading(false);
         }
@@ -225,7 +222,7 @@ const TutorManagement = () => {
 
     const confirmRequestInfo = async () => {
         if (!reviewingTutor || !reviewNotes.trim()) {
-            alert('Vui lòng nhập thông tin cần bổ sung');
+            toast.error('Vui lòng nhập thông tin cần bổ sung');
             return;
         }
 
@@ -243,10 +240,10 @@ const TutorManagement = () => {
             setReviewNotes('');
 
             // Show success message
-            alert('Đã yêu cầu bổ sung thông tin!');
+            toast.success('Đã yêu cầu bổ sung thông tin!');
         } catch (error) {
             console.error('Error requesting info:', error);
-            alert('Có lỗi xảy ra khi yêu cầu thông tin: ' + error.message);
+            toast.error('Có lỗi xảy ra khi yêu cầu thông tin: ' + error.message);
         } finally {
             setReviewLoading(false);
         }
