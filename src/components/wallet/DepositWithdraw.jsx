@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { createDepositRequest } from '../api/auth';
+import { toast } from 'react-toastify';
 
 const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   const [activeTab, setActiveTab] = useState('deposit');
@@ -29,12 +30,12 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
 
   const handleDeposit = async () => {
     if (!amount || parseInt(amount) <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ');
+      toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
     if (parseInt(amount) < 10000) {
-      alert('Số tiền nạp tối thiểu là 10,000 VND');
+      toast.error('Số tiền nạp tối thiểu là 10,000 VND');
       return;
     }
 
@@ -55,7 +56,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       }
     } catch (error) {
       console.error('Deposit failed:', error);
-      alert(`Lỗi tạo yêu cầu nạp tiền: ${error.message}`);
+      toast.error(`Lỗi tạo yêu cầu nạp tiền: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -63,22 +64,22 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
 
   const handleWithdraw = async () => {
     if (!amount || parseInt(amount) <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ');
+      toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
     if (parseInt(amount) < 50000) {
-      alert('Số tiền rút tối thiểu là 50,000 VND');
+      toast.error('Số tiền rút tối thiểu là 50,000 VND');
       return;
     }
 
     if (parseInt(amount) > currentBalance) {
-      alert('Số dư không đủ để thực hiện giao dịch');
+      toast.error('Số dư không đủ để thực hiện giao dịch');
       return;
     }
 
     if (!bankAccount || !bankName || !accountHolder) {
-      alert('Vui lòng điền đầy đủ thông tin tài khoản ngân hàng');
+      toast.error('Vui lòng điền đầy đủ thông tin tài khoản ngân hàng');
       return;
     }
 
@@ -96,7 +97,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      alert('Yêu cầu rút tiền đã được gửi thành công! Chúng tôi sẽ xử lý trong vòng 24 giờ.');
+      toast.success('Yêu cầu rút tiền đã được gửi thành công! Chúng tôi sẽ xử lý trong vòng 24 giờ.');
       
       // Reset form
       setAmount('');
@@ -110,7 +111,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       }
     } catch (error) {
       console.error('Withdraw failed:', error);
-      alert(`Lỗi tạo yêu cầu rút tiền: ${error.message}`);
+      toast.error(`Lỗi tạo yêu cầu rút tiền: ${error.message}`);
     } finally {
       setLoading(false);
     }

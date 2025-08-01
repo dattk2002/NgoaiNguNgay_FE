@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 
 const FinancialReports = () => {
     const [selectedReportType, setSelectedReportType] = useState('revenue');
@@ -19,11 +20,11 @@ const FinancialReports = () => {
     ];
 
     const handleGenerateReport = () => {
-        alert(`Đang tạo ${reportTypes.find(r => r.id === selectedReportType)?.name} cho ${dateRange === 'week' ? '7 ngày' : dateRange === 'month' ? '30 ngày' : dateRange === 'quarter' ? '3 tháng' : '12 tháng'} qua...`);
+        toast.info(`Đang tạo ${reportTypes.find(r => r.id === selectedReportType)?.name} cho ${dateRange === 'week' ? '7 ngày' : dateRange === 'month' ? '30 ngày' : dateRange === 'quarter' ? '3 tháng' : '12 tháng'} qua...`);
     };
 
     const handleDownloadReport = (reportId) => {
-        alert(`Đang tải xuống báo cáo ID: ${reportId}`);
+        toast.info(`Đang tải xuống báo cáo ID: ${reportId}`);
     };
 
     return (

@@ -98,7 +98,6 @@ export default function MyBookingTable({
     setTutorOfferedSlots([]); // reset
     try {
       const res = await learnerBookingTimeSlotByTutorId(tutorId);
-      console.log("API response for booking detail:", res);
       // Support both { data: { ... } } and { ... }
       const detail = res?.data ? res.data : res;
       setBookingDetailSlots(

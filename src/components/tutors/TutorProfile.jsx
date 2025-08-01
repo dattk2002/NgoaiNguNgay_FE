@@ -284,13 +284,13 @@ const handleFileChange = (e) => {
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert("Kích thước ảnh phải nhỏ hơn 2MB");
+      toast.error("Kích thước ảnh phải nhỏ hơn 2MB");
       return;
     }
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("Chỉ chấp nhận các tệp ảnh");
+      toast.error("Chỉ chấp nhận các tệp ảnh");
       return;
     }
 
@@ -2865,8 +2865,8 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
       <Dialog
         open={lessonDialogOpen}
         onClose={() => setLessonDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
+        maxWidth={false}
+        fullWidth={false}
       >
         <DialogTitle>{editLesson ? "Sửa bài học" : "Tạo bài học"}</DialogTitle>
         <DialogContent>
@@ -3013,7 +3013,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                 setLessonDialogOpen(false);
                 setShowValidation(false);
               } catch (err) {
-                alert("Lưu bài học thất bại: " + err.message);
+                toast.error("Lưu bài học thất bại: " + err.message);
               } finally {
                 setLessonLoading(false);
               }
@@ -3035,7 +3035,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             setLessons(lessons.filter((l) => l.id !== lessonToDelete.id));
             setDeleteModalOpen(false);
           } catch (err) {
-            alert("Xóa bài học thất bại: " + err.message);
+            toast.error("Xóa bài học thất bại: " + err.message);
           } finally {
             setLessonLoading(false);
           }
@@ -3222,7 +3222,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                 const updatedPatterns = await fetchTutorWeeklyPattern(id);
                 setWeeklyPatterns(updatedPatterns);
               } catch (err) {
-                alert("Cập nhật lịch trình thất bại: " + err.message);
+                toast.error("Cập nhật lịch trình thất bại: " + err.message);
               } finally {
                 setPatternLoading(false);
               }
@@ -3245,7 +3245,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             const updatedPatterns = await fetchTutorWeeklyPattern(id);
             setWeeklyPatterns(updatedPatterns); // Update the state with the new patterns
           } catch (error) {
-            alert("Xóa lịch trình thất bại: " + error.message);
+            toast.error("Xóa lịch trình thất bại: " + error.message);
           } finally {
             setDeletePatternModalOpen(false);
           }
@@ -3255,9 +3255,20 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
       <Dialog
         open={bookingDetailDialogOpen}
         onClose={() => setBookingDetailDialogOpen(false)}
-        maxWidth="xl"
-        fullWidth
-        PaperProps={{ sx: { minWidth: 1100 } }}
+        maxWidth={false}
+        fullWidth={false}
+        PaperProps={{
+          sx: {
+            width: '100%',
+            height: '90%',
+            maxWidth: 'none',
+            maxHeight: 'none',
+            top: '5%',
+            left: '0%',
+            right: '0%',
+            margin: '0 auto'
+          }
+        }}
       >
         <DialogTitle>Chọn khung giờ để đề nghị cho học viên</DialogTitle>
         <DialogContent>
@@ -3490,7 +3501,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                       lessonId: selectedLesson.id,
                       offeredSlots,
                     });
-                    alert("Đã cập nhật đề nghị thành công!");
+                    toast.success("Đã cập nhật đề nghị thành công!");
                   } else {
                     // Create new offer
                     await createTutorBookingOffer({
@@ -3498,7 +3509,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                       lessonId: selectedLesson.id,
                       offeredSlots,
                     });
-                    alert("Đã gửi đề nghị thành công!");
+                    toast.success("Đã gửi đề nghị thành công!");
                   }
 
                   setBookingDetailDialogOpen(false);
@@ -3507,7 +3518,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                   setSelectedLessonId("");
                   setSelectedLesson(null);
                 } catch (err) {
-                  alert("Gửi đề nghị thất bại: " + err.message);
+                  toast.error("Gửi đề nghị thất bại: " + err.message);
                 }
               }}
             >

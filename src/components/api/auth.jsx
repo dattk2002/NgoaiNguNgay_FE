@@ -25,7 +25,6 @@ async function callApi(endpoint, method, body, token) {
   }
 
   const fullUrl = `${BASE_API_URL}${endpoint}`;
-  console.log(`Calling API: ${method} ${fullUrl}`);
 
   try {
     const response = await fetch(fullUrl, {
@@ -34,8 +33,6 @@ async function callApi(endpoint, method, body, token) {
       body: body ? JSON.stringify(body) : null,
       credentials: 'include',
     });
-
-    console.log("Response status:", response.status, response.statusText);
 
     if (!response.ok) {
       let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
@@ -76,7 +73,6 @@ async function callApi(endpoint, method, body, token) {
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const jsonData = await response.json();
-      console.log("API JSON Response:", jsonData);
       return jsonData;
     } else {
       console.warn(
@@ -256,7 +252,6 @@ export async function fetchTutors() {
     throw new Error("Cấu hình API bị lỗi.");
   }
 
-  console.log(`[Mock API] Fetching tutors from: ${MOCK_TUTOR_API_URL}`);
 
   try {
     const response = await fetch(MOCK_TUTOR_API_URL);
@@ -266,7 +261,6 @@ export async function fetchTutors() {
       );
     }
     const tutorsData = await response.json();
-    console.log("[Mock API] Tutors fetched successfully:", tutorsData);
     return tutorsData;
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu tutors:", error);
@@ -275,13 +269,11 @@ export async function fetchTutors() {
 }
 
 export async function fetchTutorById(id) {
-  console.log(`Fetching tutor with ID: ${id} from real API`);
 
   try {
     const response = await callApi(`/api/tutor/${id}`, "GET");
 
     if (response && response.data) {
-      console.log(`Tutor with ID ${id} fetched successfully:`, response.data);
       return response.data;
     } else {
       console.error("Invalid API response format for fetchTutorById:", response);
@@ -309,10 +301,6 @@ export async function fetchTutorsBySubject(subject) {
         tutor.nativeLanguage &&
         tutor.nativeLanguage.toLowerCase() === normalizedSubject
     );
-    console.log(
-      `[Mock API] Tutors filtered by subject '${subject}' (normalized: '${normalizedSubject}'):`,
-      filteredTutors.length
-    );
     return filteredTutors;
   } catch (error) {
     console.error(`Error fetching tutors by subject: ${subject}`, error);
@@ -327,7 +315,6 @@ export async function fetchTutorList(subject) {
       let tutors = response.data;
 
       if (subject) {
-        console.log(`Filtering tutor list by subject: ${subject}`);
         const normalizedSubject =
           subject.toLowerCase() === "portuguese"
             ? "brazilian portuguese"
@@ -338,14 +325,8 @@ export async function fetchTutorList(subject) {
             tutor.nativeLanguage &&
             tutor.nativeLanguage.toLowerCase() === normalizedSubject
         );
-        console.log(
-          `Filtered tutor list by subject '${subject}' (normalized: '${normalizedSubject}'):`,
-          tutors.length
-        );
       }
 
-
-      console.log("Fetched and potentially filtered tutor list:", tutors);
       return tutors;
     } else {
       console.error("Invalid API response format for tutor list:", response);
@@ -363,7 +344,6 @@ export function isUserAuthenticated(user) {
 
 export async function editUserProfile(token, updateData) {
   try {
-    console.log("Sending profile update with data:", updateData);
     const response = await callApi("/api/profile/user", "PATCH", updateData, token);
     return response;
   } catch (error) {
@@ -379,9 +359,7 @@ export async function fetchUserById() {
   }
 
   try {
-    console.log("Fetching user profile data...");
     const response = await callApi(`/api/profile/user`, "GET", null, token);
-    console.log("User profile API response:", response);
 
     if (response && response.data) {
       const userData = response.data;
@@ -395,7 +373,6 @@ export async function fetchUserById() {
         userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
       }
 
-      console.log("Normalized user data:", userData);
       return userData;
     } else {
       console.error("Invalid API response format:", response);
@@ -414,9 +391,7 @@ export async function fetchUserProfileById(userId) {
   }
 
   try {
-    console.log(`Fetching user profile data for ID: ${userId}`);
     const response = await callApi(`/api/profile/user/${userId}`, "GET", null, token);
-    console.log("User profile API response:", response);
 
     if (response && response.data) {
       const userData = response.data;
@@ -430,7 +405,6 @@ export async function fetchUserProfileById(userId) {
         userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
       }
 
-      console.log("Normalized user data:", userData);
       return userData;
     } else {
       console.error("Invalid API response format:", response);
@@ -548,12 +522,52 @@ export async function fetchTutorDetail(tutorId) {
   }
 }
 
-export async function fetchAllTutor(page = 1, size = 20) {
+export async function fetchAllTutor(
+  page = 1, 
+  size = 20, 
+  languageCodes = null, 
+  primaryLanguageCode = null, 
+  daysInWeek = null, 
+  slotIndexes = null, 
+  minPrice = null, 
+  maxPrice = null
+) {
   try {
-    const response = await callApi(`/api/tutor/all?page=${page}&size=${size}`, "GET");
+    // Build query parameters
+    const params = new URLSearchParams();
+    
+    // Add pagination parameters
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    
+    // Add optional filter parameters
+    if (languageCodes && Array.isArray(languageCodes) && languageCodes.length > 0) {
+      languageCodes.forEach(code => params.append('languageCodes', code));
+    }
+    
+    if (primaryLanguageCode) {
+      params.append('primaryLanguageCode', primaryLanguageCode);
+    }
+    
+    if (daysInWeek && Array.isArray(daysInWeek) && daysInWeek.length > 0) {
+      daysInWeek.forEach(day => params.append('daysInWeek', day.toString()));
+    }
+    
+    if (slotIndexes && Array.isArray(slotIndexes) && slotIndexes.length > 0) {
+      slotIndexes.forEach(slot => params.append('slotIndexes', slot.toString()));
+    }
+    
+    if (minPrice !== null && minPrice !== undefined) {
+      params.append('minPrice', minPrice.toString());
+    }
+    
+    if (maxPrice !== null && maxPrice !== undefined) {
+      params.append('maxPrice', maxPrice.toString());
+    }
+
+    const response = await callApi(`/api/tutor/all?${params.toString()}`, "GET");
 
     if (response && Array.isArray(response.data)) {
-      console.log(`Fetched tutor list for page ${page}, size ${size}:`, response.data);
       return response.data;
     } else {
       console.error("Invalid API response format for fetchAllTutor:", response);
@@ -570,7 +584,6 @@ export async function fetchRecommendTutor() {
     const response = await callApi("/api/tutor/recommended-tutors", "GET");
 
     if (response && response.data && Array.isArray(response.data)) {
-      console.log("[API] Recommended tutors fetched successfully:", response.data);
       return response.data;
     } else {
       console.error("Invalid API response format for fetchRecommendTutor:", response);
@@ -597,7 +610,6 @@ export async function fetchChatConversationsByUserId(userId, page = 1, size = 20
     );
 
     if (response && Array.isArray(response.data)) {
-      console.log("Chat conversations fetched successfully:", response.data);
 
       const formattedConversations = response.data.map((conv) => {
         const otherParticipant = conv.participants.find(
@@ -683,7 +695,6 @@ export async function fetchConversationList(conversationId, page = 1, size = 20)
     );
 
     if (response && response.data && Array.isArray(response.data.messages)) {
-      console.log(`Messages for conversation ${conversationId} fetched successfully:`, response.data.messages);
 
       const participants = response.data.participants;
       const getParticipantInfo = (userId) => {
@@ -787,7 +798,6 @@ export async function fetchTutorWeeklyPattern(tutorId) {
     const response = await callApi(`/api/schedule/tutors/${tutorId}/weekly-patterns`, "GET");
 
     if (response && response.data) {
-      console.log("Weekly patterns fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("No weekly pattern data found for this tutor.");
@@ -920,12 +930,6 @@ export async function updateLearnerBookingTimeSlot(tutorId, lessonId, expectedSt
   try {
     const token = getAccessToken();
     if (!token) throw new Error("Authentication token is required");
-    console.log("Ớp đệt: ", {
-      tutorId,
-      lessonId,
-      expectedStartDate,
-      timeSlots
-    });
     const body = { tutorId, lessonId, expectedStartDate, timeSlots };
     const response = await callApi("/api/learner-bookings/time-slots", "PUT", body, token);
     return response;
@@ -1497,6 +1501,56 @@ export async function fetchBookingDetail(bookingId) {
     }
   } catch (error) {
     console.error("Failed to fetch booking detail:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Send a system notification to specific users.
+ * @param {Object} content - The notification content object.
+ * @param {Array<string>} receiverUserIds - Array of user IDs to receive the notification.
+ * @returns {Promise<Object>} API response
+ */
+export async function systemSendNotificationToUsers(content, receiverUserIds) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+
+    const body = {
+      content,
+      receiverUserIds,
+    };
+
+    const response = await callApi(
+      "/api/notification/send-to-users",
+      "POST",
+      body,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to send system notification:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch notifications for the current user.
+ * @param {number} page - The page number (default: 1)
+ * @param {number} size - The number of notifications per page (default: 10)
+ * @param {boolean} isUnreadOnly - Whether to fetch only unread notifications
+ * @returns {Promise<Object>} API response
+ */
+export async function getNotification(page = 1, size = 10, isUnreadOnly = false) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+
+    const url = `/api/notification/user?page=${page}&size=${size}&isUnreadOnly=${isUnreadOnly}`;
+    const response = await callApi(url, "GET", null, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to fetch notifications:", error.message);
     throw error;
   }
 }

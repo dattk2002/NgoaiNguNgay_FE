@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import { 
   Skeleton, 
   Box, 
@@ -168,7 +169,7 @@ const ScheduleTracking = () => {
 
   const handleCancelSchedule = () => {
     if (!cancelReason.trim()) {
-      alert('Vui lòng nhập lý do hủy lịch');
+      toast.error('Vui lòng nhập lý do hủy lịch');
       return;
     }
 
