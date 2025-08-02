@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import './utils/notFocusOutline.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   BrowserRouter as Router,
   Routes,
@@ -813,6 +815,19 @@ function App() {
           </div>
         </MuiAlert>
       </Snackbar>
+      <ToastContainer
+        position="top-right"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        style={{ zIndex: 99999 }}
+      />
     </Router>
   );
 }

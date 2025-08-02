@@ -26,6 +26,19 @@ async function callApi(endpoint, method, body, token) {
 
   const fullUrl = `${BASE_API_URL}${endpoint}`;
 
+  // Debug logging for rating API calls
+  if (endpoint.includes('booking-slot-rating')) {
+    console.log("🔍 Debug callApi - Full URL:", fullUrl);
+    console.log("🔍 Debug callApi - Method:", method);
+    console.log("🔍 Debug callApi - Headers:", headers);
+    console.log("🔍 Debug callApi - Body:", body);
+    console.log("🔍 Debug callApi - Token preview:", token ? `${token.substring(0, 20)}...` : 'null');
+    
+    if (method === "GET" && endpoint.includes('/booking/')) {
+      console.log("🔍 Debug - GET Rating for booking endpoint");
+    }
+  }
+
   try {
     const response = await fetch(fullUrl, {
       method: method,
@@ -38,10 +51,22 @@ async function callApi(endpoint, method, body, token) {
       let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
       let originalErrorData = null;
 
+      // Debug logging for rating API errors
+      if (endpoint.includes('booking-slot-rating')) {
+        console.log("❌ Debug callApi - Response status:", response.status);
+        console.log("❌ Debug callApi - Response statusText:", response.statusText);
+        console.log("❌ Debug callApi - Response headers:", Object.fromEntries(response.headers));
+      }
+
       try {
         const errorData = await response.json();
         originalErrorData = errorData;
         console.error("API Error Details Received:", errorData);
+        
+        // Debug logging for rating API errors
+        if (endpoint.includes('booking-slot-rating')) {
+          console.log("❌ Debug callApi - Error data:", errorData);
+        }
 
         if (errorData) {
           if (typeof errorData.errorMessage === 'string') {
@@ -240,6 +265,29 @@ export function getAccessToken() {
 
 export function getRefreshToken() {
   return localStorage.getItem("refreshToken");
+}
+
+/**
+ * Debug function to check authentication status
+ * @returns {Object} Authentication debug info
+ */
+export function debugAuthStatus() {
+  const accessToken = getAccessToken();
+  const refreshToken = getRefreshToken();
+  const user = getStoredUser();
+  
+  const authInfo = {
+    hasAccessToken: !!accessToken,
+    hasRefreshToken: !!refreshToken,
+    hasUser: !!user,
+    accessTokenPreview: accessToken ? `${accessToken.substring(0, 20)}...` : null,
+    refreshTokenPreview: refreshToken ? `${refreshToken.substring(0, 20)}...` : null,
+    userInfo: user ? { id: user.id, email: user.email, role: user.role } : null,
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log("🔍 Auth Debug Status:", authInfo);
+  return authInfo;
 }
 
 export async function fetchTutors() {
@@ -1551,6 +1599,159 @@ export async function getNotification(page = 1, size = 10, isUnreadOnly = false)
     return response;
   } catch (error) {
     console.error("Failed to fetch notifications:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor bookings with pagination.
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Number of items per page (default: 10)
+ * @returns {Promise<Object>} API response with tutor booking data
+ */
+export async function fetchTutorBookings(page = 1, pageSize = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/booking/tutor?page=${page}&pageSize=${pageSize}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("Tutor bookings fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for tutor bookings.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor bookings:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Rate a booking slot after completion.
+ * @param {Object} ratingData - { bookingSlotId, teachingQuality, attitude, commitment, comment }
+ * @returns {Promise<Object>} API response
+ */
+export async function submitBookingSlotRating(ratingData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/booking-slot-rating", "POST", ratingData, token);
+
+    if (response) {
+      console.log("Booking slot rating submitted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for booking slot rating.");
+    }
+  } catch (error) {
+    console.error("Failed to submit booking slot rating:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Rate a complete booking/course after at least one slot is completed.
+ * @param {Object} ratingData - { bookingId, teachingQuality, attitude, commitment, comment }
+ * @returns {Promise<Object>} API response
+ */
+export async function submitBookingRating(ratingData) {
+  try {
+    const token = getAccessToken();
+    console.log("🔍 Debug submitBookingRating - Token exists:", !!token);
+    console.log("🔍 Debug submitBookingRating - Token preview:", token ? `${token.substring(0, 20)}...` : 'null');
+    console.log("🔍 Debug submitBookingRating - Rating data (bookingSlotId contains bookingId):", ratingData);
+    
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/booking-slot-rating", "POST", ratingData, token);
+
+    if (response) {
+      console.log("✅ Booking rating submitted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for booking rating.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to submit booking rating:", error.message);
+    console.error("❌ Error status:", error.status);
+    console.error("❌ Error details:", error.details);
+    throw error;
+  }
+}
+
+/**
+ * Get existing rating for a booking
+ * @param {string} bookingId - The booking ID to get rating for
+ * @returns {Promise<Object>} Rating data or null if no rating exists
+ */
+export async function getBookingRating(bookingId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/booking-slot-rating/booking/${bookingId}`, "GET", null, token);
+    
+    if (response && response.data) {
+      console.log("✅ Booking rating fetched successfully:", response.data);
+      return response.data;
+    }
+    
+    return null; // No rating found
+  } catch (error) {
+    // If rating doesn't exist, API might return 404 - this is normal
+    if (error.status === 404) {
+      console.log("📝 No rating found for booking:", bookingId);
+      return null;
+    }
+    
+    console.error("❌ Failed to fetch booking rating:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Complete a booked slot by changing its status to completed.
+ * @param {string} bookedSlotId - The booked slot ID to complete
+ * @returns {Promise<Object>} API response
+ */
+export async function completeBookedSlot(bookedSlotId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/tutor-bookings/booked-slots/${bookedSlotId}/complete`,
+      "PATCH",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("Booked slot completed successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for completing booked slot.");
+    }
+  } catch (error) {
+    console.error("Failed to complete booked slot:", error.message);
     throw error;
   }
 }
