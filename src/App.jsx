@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import './utils/notFocusOutline.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   BrowserRouter as Router,
   Routes,
@@ -40,7 +42,9 @@ import {
   fetchTutorDetail,
   fetchChatConversationsByUserId,
   requestTutorVerification,
-  uploadCertificate
+  uploadCertificate,
+  systemSendNotificationToUsers,
+  getNotification
 } from "./components/api/auth";
 
 // Import the NotFoundPage component
@@ -51,6 +55,9 @@ import ManagerDashboardPage from "./pages/ManagerDashboardPage";
 import ProtectedRoute, { AdminRoute, StaffRoute, ManagerRoute, BlockedRoute, TutorRoute } from "./components/rbac/ProtectedRoute";
 import RoleBasedRedirect from "./components/rbac/RoleBasedRedirect";
 import RoleBasedRouteGuard from "./components/rbac/RoleBasedRouteGuard";
+import { useNotificationHub } from "./hooks/useNotificationHub";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 
 // New component to handle scrolling to top on route change
 function ScrollToTop() {
@@ -103,12 +110,13 @@ function AppContent({
 
   const [firstTutorId, setFirstTutorId] = useState(null);
 
+  // Remove notification handling from here - it will be in the main App component
+
   useEffect(() => {
     const fetchMostRecentTutorId = async () => {
       if (user && user.id) {
         try {
           const conversations = await fetchChatConversationsByUserId(user.id);
-          // Only consider tutor conversations, sort by most recent
           const sorted = conversations
             .filter(conv => conv.type === "tutor")
             .sort((a, b) => b.actualTimestamp - a.actualTimestamp);
@@ -387,6 +395,7 @@ function AppContent({
         onSubmit={handleUpdateInfoSubmit}
         user={user}
       />
+      {/* Remove the Snackbar from here */}
     </div>
   );
 }
@@ -400,12 +409,83 @@ function App() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [loginPromptMessage, setLoginPromptMessage] = useState("");
   const [isUpdateInfoModalOpen, setIsUpdateInfoModalOpen] = useState(false);
-  const [loginModalCallbacks, setLoginModalCallbacks] = useState({ // New state for callbacks
+  const [loginModalCallbacks, setLoginModalCallbacks] = useState({
     onLoginSuccess: null,
     onCloseWithoutLogin: null,
   });
   const [firstTutorId, setFirstTutorId] = useState(null);
   const [triggerRoleRedirect, setTriggerRoleRedirect] = useState(false);
+
+  // Add notification state here
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarContent, setSnackbarContent] = useState(null);
+
+  // Use the notification hub at the top level
+  const { notification, connected, error, connectionState, connectionStateName } = useNotificationHub();
+
+  // Debug: Log connection status with state details
+  useEffect(() => {
+    console.log("🔗 Notification Hub Connection Status:", {
+      connected,
+      connectionState,
+      connectionStateName,
+      error,
+      userId: user?.id,
+      userRoles: user?.roles
+    });
+  }, [connected, connectionState, connectionStateName, error, user]);
+
+  // Handle notifications globally with detailed debugging
+  useEffect(() => {
+    console.log("📨 App.jsx - Notification Effect Triggered:", {
+      hasNotification: !!notification,
+      notificationData: notification,
+      hasUser: !!user,
+      userId: user?.id,
+      userRoles: user?.roles
+    });
+
+    if (notification && user && user.id) {
+      console.log("✅ App.jsx - Processing Notification:", {
+        notificationId: notification.id,
+        title: notification.title,
+        content: notification.content,
+        priority: notification.notificationPriority,
+        isRead: notification.isRead,
+        createdAt: notification.createdAt
+      });
+      
+      setSnackbarContent({
+        title: notification.title || "Thông báo mới",
+        body: notification.content || "",
+        priority: notification.notificationPriority || "Normal",
+        id: notification.id
+      });
+      
+      console.log("🎯 App.jsx - Setting Snackbar Content:", {
+        title: notification.title || "Thông báo mới",
+        body: notification.content || "",
+        priority: notification.notificationPriority || "Normal"
+      });
+      
+      setSnackbarOpen(true);
+      console.log(" App.jsx - Snackbar Opened");
+    } else {
+      console.log("❌ App.jsx - Notification Conditions Not Met:", {
+        hasNotification: !!notification,
+        hasUser: !!user,
+        hasUserId: !!(user && user.id)
+      });
+    }
+  }, [notification, user]);
+
+  // Debug: Log snackbar state changes
+  useEffect(() => {
+    console.log("🍿 Snackbar State Changed:", {
+      isOpen: snackbarOpen,
+      content: snackbarContent
+    });
+  }, [snackbarOpen, snackbarContent]);
 
   console.log("User state in App.jsx:", user);
 
@@ -688,6 +768,65 @@ function App() {
         getUserById={getUserById}
         triggerRoleRedirect={triggerRoleRedirect}
         setTriggerRoleRedirect={setTriggerRoleRedirect}
+      />
+      
+      {/* Global Snackbar with debug info */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => {
+          console.log("🔒 Snackbar Closed by User");
+          setSnackbarOpen(false);
+        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        sx={{
+          zIndex: 9999,
+        }}
+      >
+        <MuiAlert
+          onClose={() => {
+            console.log("🔒 Snackbar Alert Closed");
+            setSnackbarOpen(false);
+          }}
+          severity={
+            snackbarContent?.priority === "Critical" ? "error" :
+            snackbarContent?.priority === "Warning" ? "warning" :
+            "info"
+          }
+          sx={{ 
+            width: "100%", 
+            alignItems: "flex-start",
+            backgroundColor: 
+              snackbarContent?.priority === "Critical" ? "#f44336" :
+              snackbarContent?.priority === "Warning" ? "#ff9800" :
+              "#2196f3",
+            color: "white",
+            "& .MuiAlert-message": {
+              color: "white"
+            }
+          }}
+          icon={false}
+        >
+          <div style={{ fontWeight: 600, color: "white" }}>
+            {snackbarContent?.title}
+          </div>
+          <div style={{ color: "white", marginTop: "4px" }}>
+            {snackbarContent?.body}
+          </div>
+        </MuiAlert>
+      </Snackbar>
+      <ToastContainer
+        position="top-right"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        style={{ zIndex: 99999 }}
       />
     </Router>
   );

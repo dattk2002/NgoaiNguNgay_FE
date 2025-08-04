@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { createDepositRequest } from '../api/auth';
+import React, { useState, useEffect } from 'react';
+import { createDepositRequest, fetchBankAccounts as apiFetchBankAccounts, createWithdrawalRequest } from '../api/auth';
+import { toast } from 'react-toastify';
 
 const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   const [activeTab, setActiveTab] = useState('deposit');
@@ -8,10 +9,10 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   const [paymentUrl, setPaymentUrl] = useState('');
   const [depositId, setDepositId] = useState('');
   
-  // Withdraw specific states
-  const [bankAccount, setBankAccount] = useState('');
-  const [bankName, setBankName] = useState('');
-  const [accountHolder, setAccountHolder] = useState('');
+  // Bank accounts management
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState('');
+  const [loadingBankAccounts, setLoadingBankAccounts] = useState(false);
 
   const quickAmounts = [50000, 100000, 200000, 500000, 1000000, 2000000];
   const withdrawAmounts = [50000, 100000, 200000, 500000, 1000000];
@@ -27,14 +28,41 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
     setAmount(value.toString());
   };
 
+  // Fetch bank accounts when component mounts or when withdraw tab is selected
+  const fetchBankAccounts = async () => {
+    try {
+      setLoadingBankAccounts(true);
+      const data = await apiFetchBankAccounts();
+      setBankAccounts(data || []);
+      
+      // Auto-select default account if available
+      const defaultAccount = data?.find(account => account.isDefault);
+      if (defaultAccount) {
+        setSelectedBankAccountId(defaultAccount.id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch bank accounts:', error);
+      toast.error('Không thể tải danh sách tài khoản ngân hàng');
+      setBankAccounts([]);
+    } finally {
+      setLoadingBankAccounts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'withdraw') {
+      fetchBankAccounts();
+    }
+  }, [activeTab]);
+
   const handleDeposit = async () => {
     if (!amount || parseInt(amount) <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ');
+      toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
     if (parseInt(amount) < 10000) {
-      alert('Số tiền nạp tối thiểu là 10,000 VND');
+      toast.error('Số tiền nạp tối thiểu là 10,000 VND');
       return;
     }
 
@@ -55,7 +83,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       }
     } catch (error) {
       console.error('Deposit failed:', error);
-      alert(`Lỗi tạo yêu cầu nạp tiền: ${error.message}`);
+      toast.error(`Lỗi tạo yêu cầu nạp tiền: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -63,54 +91,50 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
 
   const handleWithdraw = async () => {
     if (!amount || parseInt(amount) <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ');
+      toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
     if (parseInt(amount) < 50000) {
-      alert('Số tiền rút tối thiểu là 50,000 VND');
+      toast.error('Số tiền rút tối thiểu là 50,000 VND');
       return;
     }
 
     if (parseInt(amount) > currentBalance) {
-      alert('Số dư không đủ để thực hiện giao dịch');
+      toast.error('Số dư không đủ để thực hiện giao dịch');
       return;
     }
 
-    if (!bankAccount || !bankName || !accountHolder) {
-      alert('Vui lòng điền đầy đủ thông tin tài khoản ngân hàng');
+    if (!selectedBankAccountId) {
+      toast.error('Vui lòng chọn tài khoản ngân hàng nhận tiền');
       return;
     }
 
     setLoading(true);
     
     try {
-      // TODO: Implement withdraw API call
-      console.log('Withdraw request:', {
-        amount: parseInt(amount),
-        bankAccount,
-        bankName,
-        accountHolder
-      });
+      const withdrawalData = {
+        bankAccountId: selectedBankAccountId,
+        grossAmount: parseInt(amount)
+      };
+
+      const response = await createWithdrawalRequest(withdrawalData);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      alert('Yêu cầu rút tiền đã được gửi thành công! Chúng tôi sẽ xử lý trong vòng 24 giờ.');
-      
-      // Reset form
-      setAmount('');
-      setBankAccount('');
-      setBankName('');
-      setAccountHolder('');
-      
-      // Trigger balance update
-      if (onBalanceUpdate) {
-        onBalanceUpdate();
+      if (response) {
+        toast.success('Yêu cầu rút tiền đã được gửi thành công! Chúng tôi sẽ xử lý trong vòng 1-3 ngày làm việc.');
+        
+        // Reset form
+        setAmount('');
+        setSelectedBankAccountId('');
+        
+        // Trigger balance update
+        if (onBalanceUpdate) {
+          onBalanceUpdate();
+        }
       }
     } catch (error) {
       console.error('Withdraw failed:', error);
-      alert(`Lỗi tạo yêu cầu rút tiền: ${error.message}`);
+      toast.error(`Lỗi tạo yêu cầu rút tiền: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -145,6 +169,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
           onClick={() => {
             setActiveTab('withdraw');
             setAmount('');
+            setSelectedBankAccountId('');
           }}
           className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 outline-none ${
             activeTab === 'withdraw'
@@ -342,66 +367,94 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
               </div>
             </div>
 
-            {/* Bank Account Info */}
+            {/* Bank Account Selection */}
             <div className="mb-8 space-y-6">
-              <h4 className="font-medium text-gray-700">Thông tin tài khoản nhận tiền</h4>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tên chủ tài khoản
-                </label>
-                <input
-                  type="text"
-                  value={accountHolder}
-                  onChange={(e) => setAccountHolder(e.target.value)}
-                  placeholder="Nhập tên chủ tài khoản"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-800 transition-all outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tên ngân hàng
-                </label>
-                <select
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-800 transition-all outline-none"
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-gray-700">Chọn tài khoản nhận tiền</h4>
+                <button
+                  onClick={fetchBankAccounts}
+                  disabled={loadingBankAccounts}
+                  className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50"
                 >
-                  <option value="">Chọn ngân hàng</option>
-                  <option value="Vietcombank">Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)</option>
-                  <option value="VietinBank">Ngân hàng TMCP Công thương Việt Nam (VietinBank)</option>
-                  <option value="BIDV">Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)</option>
-                  <option value="Agribank">Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam (Agribank)</option>
-                  <option value="Techcombank">Ngân hàng TMCP Kỹ thương Việt Nam (Techcombank)</option>
-                  <option value="MBBank">Ngân hàng TMCP Quân đội (MBBank)</option>
-                  <option value="ACB">Ngân hàng TMCP Á Châu (ACB)</option>
-                  <option value="TPBank">Ngân hàng TMCP Tiên Phong (TPBank)</option>
-                  <option value="Sacombank">Ngân hàng TMCP Sài Gòn Thương tín (Sacombank)</option>
-                  <option value="VPBank">Ngân hàng TMCP Việt Nam Thịnh vượng (VPBank)</option>
-                </select>
+                  {loadingBankAccounts ? '🔄 Đang tải...' : '🔄 Làm mới'}
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số tài khoản
-                </label>
-                <input
-                  type="text"
-                  value={bankAccount}
-                  onChange={(e) => setBankAccount(e.target.value)}
-                  placeholder="Nhập số tài khoản ngân hàng"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-800 transition-all outline-none"
-                />
-              </div>
+              {/* Loading State */}
+              {loadingBankAccounts && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                  <span className="ml-3 text-gray-600">Đang tải tài khoản ngân hàng...</span>
+                </div>
+              )}
+
+              {/* No Bank Accounts */}
+              {!loadingBankAccounts && bankAccounts.length === 0 && (
+                <div className="text-center py-8 bg-yellow-50 rounded-xl border border-yellow-200">
+                  <div className="text-yellow-600 text-4xl mb-3">🏦</div>
+                  <h4 className="font-medium text-yellow-800 mb-2">Chưa có tài khoản ngân hàng</h4>
+                  <p className="text-yellow-700 text-sm mb-4">
+                    Bạn cần thêm tài khoản ngân hàng trước khi rút tiền
+                  </p>
+                  <button
+                    onClick={() => window.location.href = '#bank-manager'}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                  >
+                    Thêm tài khoản ngân hàng
+                  </button>
+                </div>
+              )}
+
+              {/* Bank Account Cards */}
+              {!loadingBankAccounts && bankAccounts.length > 0 && (
+                <div className="space-y-3">
+                  {bankAccounts.map((account) => (
+                    <div
+                      key={account.id}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                        selectedBankAccountId === account.id
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-200 bg-white hover:border-red-300 hover:bg-red-50'
+                      }`}
+                      onClick={() => setSelectedBankAccountId(account.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            selectedBankAccountId === account.id
+                              ? 'border-red-500 bg-red-500'
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedBankAccountId === account.id && (
+                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-800">{account.bankName}</div>
+                            <div className="text-sm text-gray-600">
+                              {account.accountNumber ? `**** **** **** ${account.accountNumber.slice(-4)}` : 'N/A'}
+                            </div>
+                            <div className="text-sm text-gray-500">{account.accountHolderName}</div>
+                          </div>
+                        </div>
+                        {account.isDefault && (
+                          <div className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-medium">
+                            Mặc định
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               onClick={handleWithdraw}
-              disabled={!amount || parseInt(amount) < 50000 || parseInt(amount) > currentBalance || !bankAccount || !bankName || !accountHolder || loading}
+              disabled={!amount || parseInt(amount) < 50000 || parseInt(amount) > currentBalance || !selectedBankAccountId || loading || bankAccounts.length === 0}
               className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-200 outline-none ${
-                !amount || parseInt(amount) < 50000 || parseInt(amount) > currentBalance || !bankAccount || !bankName || !accountHolder || loading
+                !amount || parseInt(amount) < 50000 || parseInt(amount) > currentBalance || !selectedBankAccountId || loading || bankAccounts.length === 0
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg'
               }`}
@@ -434,7 +487,11 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                   </li>
                   <li className="flex items-start gap-2">
                     <span>•</span>
-                    <span>Vui lòng kiểm tra kỹ thông tin tài khoản trước khi gửi</span>
+                    <span>Sử dụng tài khoản ngân hàng đã lưu để đảm bảo an toàn</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>•</span>
+                    <span>Vui lòng kiểm tra kỹ thông tin tài khoản đã chọn</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span>•</span>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 
 const AccountCreation = () => {
     const [showModal, setShowModal] = useState(false);
@@ -26,7 +27,7 @@ const AccountCreation = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         // Mock account creation
-        alert(`Tạo tài khoản ${modalType} thành công cho ${formData.name}!`);
+        toast.success(`Tạo tài khoản ${modalType} thành công cho ${formData.name}!`);
         setShowModal(false);
         setFormData({ name: '', email: '', password: '', confirmPassword: '' });
     };

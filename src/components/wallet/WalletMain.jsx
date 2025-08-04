@@ -50,10 +50,19 @@ const WalletMain = ({ showPaymentReturn = false }) => {
     }
   };
 
+  const handleViewAllTransactions = () => {
+    setActiveTab('transactions');
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <WalletDashboard balance={walletBalance} availableBalance={availableBalance} onRefresh={loadWalletInfo} />;
+        return <WalletDashboard 
+          balance={walletBalance} 
+          availableBalance={availableBalance} 
+          onRefresh={loadWalletInfo}
+          onViewAllTransactions={handleViewAllTransactions}
+        />;
       case 'cards':
         return <BankCardManager />;
       case 'deposit':
@@ -61,7 +70,12 @@ const WalletMain = ({ showPaymentReturn = false }) => {
       case 'transactions':
         return <TransactionHistory />;
       default:
-        return <WalletDashboard balance={walletBalance} availableBalance={availableBalance} onRefresh={loadWalletInfo} />;
+        return <WalletDashboard 
+          balance={walletBalance} 
+          availableBalance={availableBalance} 
+          onRefresh={loadWalletInfo}
+          onViewAllTransactions={handleViewAllTransactions}
+        />;
     }
   };
 

@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaCommentDots, FaWallet } from "react-icons/fa";
+import { toast } from "react-toastify";
 import logo from "../assets/logo.png";
 import NoFocusOutLineButton from '../utils/noFocusOutlineButton';
 
@@ -60,7 +61,6 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
 
   useEffect(() => {
     const handleStorageChange = () => {
-      console.log("Storage change detected - checking for user updates");
       try {
         const updatedUser = JSON.parse(localStorage.getItem("user"));
         if (updatedUser && updatedUser.profileImageUrl) {
@@ -70,7 +70,6 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
             newUrl = `${newUrl}?t=${timestamp}`;
           }
 
-          console.log("Updated avatar from storage event:", newUrl);
           setCurrentAvatar(newUrl);
           setAvatarKey(timestamp);
 
@@ -95,13 +94,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
 
   useEffect(() => {
     const handleAvatarUpdate = (event) => {
-      console.log("Avatar update event received in Header:", event.detail);
       if (event.detail && event.detail.profileImageUrl) {
-        console.log(
-          "Setting new avatar URL in Header:",
-          event.detail.profileImageUrl
-        );
-
         let newUrl = event.detail.profileImageUrl;
         if (!newUrl.includes("?")) {
           newUrl = `${newUrl}?t=${Date.now()}`;
@@ -114,7 +107,6 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
         img.crossOrigin = "anonymous";
         img.src = newUrl;
         img.onload = () => {
-          console.log("Avatar preloaded in Header component");
           setAvatarKey(Date.now() + 1);
 
           if (imgRef.current) {
@@ -144,7 +136,6 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
             newUrl = `${newUrl}?t=${timestamp}`;
           }
 
-          console.log("Updated avatar from localStorage in Header:", newUrl);
           setCurrentAvatar(newUrl);
           setAvatarKey(timestamp);
 
@@ -304,7 +295,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                     if (firstTutorId) {
                       navigate(`/message/${firstTutorId}`);
                     } else {
-                      alert("Bạn chưa từng nhắn tin với gia sư nào.");
+                      toast.info("Bạn chưa từng nhắn tin với gia sư nào.");
                     }
                   }}
                 >

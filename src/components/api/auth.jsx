@@ -25,7 +25,19 @@ async function callApi(endpoint, method, body, token) {
   }
 
   const fullUrl = `${BASE_API_URL}${endpoint}`;
-  console.log(`Calling API: ${method} ${fullUrl}`);
+
+  // Debug logging for rating API calls
+  if (endpoint.includes('booking-slot-rating')) {
+    console.log("🔍 Debug callApi - Full URL:", fullUrl);
+    console.log("🔍 Debug callApi - Method:", method);
+    console.log("🔍 Debug callApi - Headers:", headers);
+    console.log("🔍 Debug callApi - Body:", body);
+    console.log("🔍 Debug callApi - Token preview:", token ? `${token.substring(0, 20)}...` : 'null');
+    
+    if (method === "GET" && endpoint.includes('/booking/')) {
+      console.log("🔍 Debug - GET Rating for booking endpoint");
+    }
+  }
 
   try {
     const response = await fetch(fullUrl, {
@@ -35,16 +47,26 @@ async function callApi(endpoint, method, body, token) {
       credentials: 'include',
     });
 
-    console.log("Response status:", response.status, response.statusText);
-
     if (!response.ok) {
       let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
       let originalErrorData = null;
+
+      // Debug logging for rating API errors
+      if (endpoint.includes('booking-slot-rating')) {
+        console.log("❌ Debug callApi - Response status:", response.status);
+        console.log("❌ Debug callApi - Response statusText:", response.statusText);
+        console.log("❌ Debug callApi - Response headers:", Object.fromEntries(response.headers));
+      }
 
       try {
         const errorData = await response.json();
         originalErrorData = errorData;
         console.error("API Error Details Received:", errorData);
+        
+        // Debug logging for rating API errors
+        if (endpoint.includes('booking-slot-rating')) {
+          console.log("❌ Debug callApi - Error data:", errorData);
+        }
 
         if (errorData) {
           if (typeof errorData.errorMessage === 'string') {
@@ -76,7 +98,6 @@ async function callApi(endpoint, method, body, token) {
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const jsonData = await response.json();
-      console.log("API JSON Response:", jsonData);
       return jsonData;
     } else {
       console.warn(
@@ -246,6 +267,29 @@ export function getRefreshToken() {
   return localStorage.getItem("refreshToken");
 }
 
+/**
+ * Debug function to check authentication status
+ * @returns {Object} Authentication debug info
+ */
+export function debugAuthStatus() {
+  const accessToken = getAccessToken();
+  const refreshToken = getRefreshToken();
+  const user = getStoredUser();
+  
+  const authInfo = {
+    hasAccessToken: !!accessToken,
+    hasRefreshToken: !!refreshToken,
+    hasUser: !!user,
+    accessTokenPreview: accessToken ? `${accessToken.substring(0, 20)}...` : null,
+    refreshTokenPreview: refreshToken ? `${refreshToken.substring(0, 20)}...` : null,
+    userInfo: user ? { id: user.id, email: user.email, role: user.role } : null,
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log("🔍 Auth Debug Status:", authInfo);
+  return authInfo;
+}
+
 export async function fetchTutors() {
   const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL;
 
@@ -256,7 +300,6 @@ export async function fetchTutors() {
     throw new Error("Cấu hình API bị lỗi.");
   }
 
-  console.log(`[Mock API] Fetching tutors from: ${MOCK_TUTOR_API_URL}`);
 
   try {
     const response = await fetch(MOCK_TUTOR_API_URL);
@@ -266,7 +309,6 @@ export async function fetchTutors() {
       );
     }
     const tutorsData = await response.json();
-    console.log("[Mock API] Tutors fetched successfully:", tutorsData);
     return tutorsData;
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu tutors:", error);
@@ -275,13 +317,11 @@ export async function fetchTutors() {
 }
 
 export async function fetchTutorById(id) {
-  console.log(`Fetching tutor with ID: ${id} from real API`);
 
   try {
     const response = await callApi(`/api/tutor/${id}`, "GET");
 
     if (response && response.data) {
-      console.log(`Tutor with ID ${id} fetched successfully:`, response.data);
       return response.data;
     } else {
       console.error("Invalid API response format for fetchTutorById:", response);
@@ -309,10 +349,6 @@ export async function fetchTutorsBySubject(subject) {
         tutor.nativeLanguage &&
         tutor.nativeLanguage.toLowerCase() === normalizedSubject
     );
-    console.log(
-      `[Mock API] Tutors filtered by subject '${subject}' (normalized: '${normalizedSubject}'):`,
-      filteredTutors.length
-    );
     return filteredTutors;
   } catch (error) {
     console.error(`Error fetching tutors by subject: ${subject}`, error);
@@ -327,7 +363,6 @@ export async function fetchTutorList(subject) {
       let tutors = response.data;
 
       if (subject) {
-        console.log(`Filtering tutor list by subject: ${subject}`);
         const normalizedSubject =
           subject.toLowerCase() === "portuguese"
             ? "brazilian portuguese"
@@ -338,14 +373,8 @@ export async function fetchTutorList(subject) {
             tutor.nativeLanguage &&
             tutor.nativeLanguage.toLowerCase() === normalizedSubject
         );
-        console.log(
-          `Filtered tutor list by subject '${subject}' (normalized: '${normalizedSubject}'):`,
-          tutors.length
-        );
       }
 
-
-      console.log("Fetched and potentially filtered tutor list:", tutors);
       return tutors;
     } else {
       console.error("Invalid API response format for tutor list:", response);
@@ -363,7 +392,6 @@ export function isUserAuthenticated(user) {
 
 export async function editUserProfile(token, updateData) {
   try {
-    console.log("Sending profile update with data:", updateData);
     const response = await callApi("/api/profile/user", "PATCH", updateData, token);
     return response;
   } catch (error) {
@@ -379,9 +407,7 @@ export async function fetchUserById() {
   }
 
   try {
-    console.log("Fetching user profile data...");
     const response = await callApi(`/api/profile/user`, "GET", null, token);
-    console.log("User profile API response:", response);
 
     if (response && response.data) {
       const userData = response.data;
@@ -395,7 +421,6 @@ export async function fetchUserById() {
         userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
       }
 
-      console.log("Normalized user data:", userData);
       return userData;
     } else {
       console.error("Invalid API response format:", response);
@@ -414,9 +439,7 @@ export async function fetchUserProfileById(userId) {
   }
 
   try {
-    console.log(`Fetching user profile data for ID: ${userId}`);
     const response = await callApi(`/api/profile/user/${userId}`, "GET", null, token);
-    console.log("User profile API response:", response);
 
     if (response && response.data) {
       const userData = response.data;
@@ -430,7 +453,6 @@ export async function fetchUserProfileById(userId) {
         userData.learningProficiencyLevel = parseInt(userData.learningProficiencyLevel, 10);
       }
 
-      console.log("Normalized user data:", userData);
       return userData;
     } else {
       console.error("Invalid API response format:", response);
@@ -548,12 +570,52 @@ export async function fetchTutorDetail(tutorId) {
   }
 }
 
-export async function fetchAllTutor(page = 1, size = 20) {
+export async function fetchAllTutor(
+  page = 1, 
+  size = 20, 
+  languageCodes = null, 
+  primaryLanguageCode = null, 
+  daysInWeek = null, 
+  slotIndexes = null, 
+  minPrice = null, 
+  maxPrice = null
+) {
   try {
-    const response = await callApi(`/api/tutor/all?page=${page}&size=${size}`, "GET");
+    // Build query parameters
+    const params = new URLSearchParams();
+    
+    // Add pagination parameters
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    
+    // Add optional filter parameters
+    if (languageCodes && Array.isArray(languageCodes) && languageCodes.length > 0) {
+      languageCodes.forEach(code => params.append('languageCodes', code));
+    }
+    
+    if (primaryLanguageCode) {
+      params.append('primaryLanguageCode', primaryLanguageCode);
+    }
+    
+    if (daysInWeek && Array.isArray(daysInWeek) && daysInWeek.length > 0) {
+      daysInWeek.forEach(day => params.append('daysInWeek', day.toString()));
+    }
+    
+    if (slotIndexes && Array.isArray(slotIndexes) && slotIndexes.length > 0) {
+      slotIndexes.forEach(slot => params.append('slotIndexes', slot.toString()));
+    }
+    
+    if (minPrice !== null && minPrice !== undefined) {
+      params.append('minPrice', minPrice.toString());
+    }
+    
+    if (maxPrice !== null && maxPrice !== undefined) {
+      params.append('maxPrice', maxPrice.toString());
+    }
+
+    const response = await callApi(`/api/tutor/all?${params.toString()}`, "GET");
 
     if (response && Array.isArray(response.data)) {
-      console.log(`Fetched tutor list for page ${page}, size ${size}:`, response.data);
       return response.data;
     } else {
       console.error("Invalid API response format for fetchAllTutor:", response);
@@ -570,7 +632,6 @@ export async function fetchRecommendTutor() {
     const response = await callApi("/api/tutor/recommended-tutors", "GET");
 
     if (response && response.data && Array.isArray(response.data)) {
-      console.log("[API] Recommended tutors fetched successfully:", response.data);
       return response.data;
     } else {
       console.error("Invalid API response format for fetchRecommendTutor:", response);
@@ -597,7 +658,6 @@ export async function fetchChatConversationsByUserId(userId, page = 1, size = 20
     );
 
     if (response && Array.isArray(response.data)) {
-      console.log("Chat conversations fetched successfully:", response.data);
 
       const formattedConversations = response.data.map((conv) => {
         const otherParticipant = conv.participants.find(
@@ -683,7 +743,6 @@ export async function fetchConversationList(conversationId, page = 1, size = 20)
     );
 
     if (response && response.data && Array.isArray(response.data.messages)) {
-      console.log(`Messages for conversation ${conversationId} fetched successfully:`, response.data.messages);
 
       const participants = response.data.participants;
       const getParticipantInfo = (userId) => {
@@ -787,7 +846,6 @@ export async function fetchTutorWeeklyPattern(tutorId) {
     const response = await callApi(`/api/schedule/tutors/${tutorId}/weekly-patterns`, "GET");
 
     if (response && response.data) {
-      console.log("Weekly patterns fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("No weekly pattern data found for this tutor.");
@@ -920,12 +978,6 @@ export async function updateLearnerBookingTimeSlot(tutorId, lessonId, expectedSt
   try {
     const token = getAccessToken();
     if (!token) throw new Error("Authentication token is required");
-    console.log("Ớp đệt: ", {
-      tutorId,
-      lessonId,
-      expectedStartDate,
-      timeSlots
-    });
     const body = { tutorId, lessonId, expectedStartDate, timeSlots };
     const response = await callApi("/api/learner-bookings/time-slots", "PUT", body, token);
     return response;
@@ -1497,6 +1549,396 @@ export async function fetchBookingDetail(bookingId) {
     }
   } catch (error) {
     console.error("Failed to fetch booking detail:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Send a system notification to specific users.
+ * @param {Object} content - The notification content object.
+ * @param {Array<string>} receiverUserIds - Array of user IDs to receive the notification.
+ * @returns {Promise<Object>} API response
+ */
+export async function systemSendNotificationToUsers(content, receiverUserIds) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+
+    const body = {
+      content,
+      receiverUserIds,
+    };
+
+    const response = await callApi(
+      "/api/notification/send-to-users",
+      "POST",
+      body,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to send system notification:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch notifications for the current user.
+ * @param {number} page - The page number (default: 1)
+ * @param {number} size - The number of notifications per page (default: 10)
+ * @param {boolean} isUnreadOnly - Whether to fetch only unread notifications
+ * @returns {Promise<Object>} API response
+ */
+export async function getNotification(page = 1, size = 10, isUnreadOnly = false) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+
+    const url = `/api/notification/user?page=${page}&size=${size}&isUnreadOnly=${isUnreadOnly}`;
+    const response = await callApi(url, "GET", null, token);
+    return response;
+  } catch (error) {
+    console.error("Failed to fetch notifications:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor bookings with pagination.
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Number of items per page (default: 10)
+ * @returns {Promise<Object>} API response with tutor booking data
+ */
+export async function fetchTutorBookings(page = 1, pageSize = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/booking/tutor?page=${page}&pageSize=${pageSize}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("Tutor bookings fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for tutor bookings.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor bookings:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Rate a booking slot after completion.
+ * @param {Object} ratingData - { bookingSlotId, teachingQuality, attitude, commitment, comment }
+ * @returns {Promise<Object>} API response
+ */
+export async function submitBookingSlotRating(ratingData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/booking-slot-rating", "POST", ratingData, token);
+
+    if (response) {
+      console.log("Booking slot rating submitted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for booking slot rating.");
+    }
+  } catch (error) {
+    console.error("Failed to submit booking slot rating:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Rate a complete booking/course after at least one slot is completed.
+ * @param {Object} ratingData - { bookingId, teachingQuality, attitude, commitment, comment }
+ * @returns {Promise<Object>} API response
+ */
+export async function submitBookingRating(ratingData) {
+  try {
+    const token = getAccessToken();
+    console.log("🔍 Debug submitBookingRating - Token exists:", !!token);
+    console.log("🔍 Debug submitBookingRating - Token preview:", token ? `${token.substring(0, 20)}...` : 'null');
+    console.log("🔍 Debug submitBookingRating - Rating data (bookingSlotId contains bookingId):", ratingData);
+    
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/booking-slot-rating", "POST", ratingData, token);
+
+    if (response) {
+      console.log("✅ Booking rating submitted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for booking rating.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to submit booking rating:", error.message);
+    console.error("❌ Error status:", error.status);
+    console.error("❌ Error details:", error.details);
+    throw error;
+  }
+}
+
+/**
+ * Get existing rating for a booking
+ * @param {string} bookingId - The booking ID to get rating for
+ * @returns {Promise<Object>} Rating data or null if no rating exists
+ */
+export async function getBookingRating(bookingId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/booking-slot-rating/booking/${bookingId}`, "GET", null, token);
+    
+    if (response && response.data) {
+      console.log("✅ Booking rating fetched successfully:", response.data);
+      return response.data;
+    }
+    
+    return null; // No rating found
+  } catch (error) {
+    // If rating doesn't exist, API might return 404 - this is normal
+    if (error.status === 404) {
+      console.log("📝 No rating found for booking:", bookingId);
+      return null;
+    }
+    
+    console.error("❌ Failed to fetch booking rating:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Complete a booked slot by changing its status to completed.
+ * @param {string} bookedSlotId - The booked slot ID to complete
+ * @returns {Promise<Object>} API response
+ */
+export async function completeBookedSlot(bookedSlotId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/tutor-bookings/booked-slots/${bookedSlotId}/complete`,
+      "PATCH",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("Booked slot completed successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for completing booked slot.");
+    }
+  } catch (error) {
+    console.error("Failed to complete booked slot:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch bank accounts for withdrawals.
+ * @returns {Promise<Object>} API response with bank accounts data
+ */
+export async function fetchBankAccounts() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/bank-accounts", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Bank accounts fetched successfully:", response.data);
+      return response.data;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Failed to fetch bank accounts:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a new bank account for withdrawals.
+ * @param {Object} accountData - { bankName, accountNumber, accountHolderName }
+ * @returns {Promise<Object>} API response
+ */
+export async function createBankAccount(accountData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/bank-accounts", "POST", accountData, token);
+
+    if (response) {
+      console.log("Bank account created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for bank account creation.");
+    }
+  } catch (error) {
+    console.error("Failed to create bank account:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a withdrawal request.
+ * @param {Object} withdrawalData - { bankAccountId, grossAmount }
+ * @returns {Promise<Object>} API response
+ */
+export async function createWithdrawalRequest(withdrawalData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals", "POST", withdrawalData, token);
+
+    if (response) {
+      console.log("Withdrawal request created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for withdrawal request.");
+    }
+  } catch (error) {
+    console.error("Failed to create withdrawal request:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete a bank account by ID.
+ * @param {string} bankAccountId - The ID of the bank account to delete
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteBankAccount(bankAccountId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/withdrawals/bank-accounts/${bankAccountId}`, "DELETE", null, token);
+
+    console.log("Bank account deleted successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Failed to delete bank account:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch withdrawal requests with pagination.
+ * @param {Object} params - Query parameters { pageIndex, pageSize, status, etc. }
+ * @returns {Promise<Object>} API response with withdrawal requests data
+ */
+export async function fetchWithdrawalRequests(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const queryParams = new URLSearchParams({
+      pageIndex: params.pageIndex || 1,
+      pageSize: params.pageSize || 10,
+      ...params
+    });
+    
+    const response = await callApi(`/api/withdrawals?${queryParams.toString()}`, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Withdrawal requests fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for withdrawal requests.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch withdrawal requests:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Process a withdrawal request (approve: 0 -> 2).
+ * @param {string} withdrawalId - The ID of the withdrawal request to process
+ * @returns {Promise<Object>} API response
+ */
+export async function processWithdrawal(withdrawalId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/process", "POST", { withdrawalId }, token);
+
+    if (response) {
+      console.log("Withdrawal processed successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for withdrawal processing.");
+    }
+  } catch (error) {
+    console.error("Failed to process withdrawal:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Reject a withdrawal request (reject: 0 -> 3).
+ * @param {string} withdrawalId - The ID of the withdrawal request to reject
+ * @param {string} rejectionReason - The reason for rejection
+ * @returns {Promise<Object>} API response
+ */
+export async function rejectWithdrawal(withdrawalId, rejectionReason) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/reject", "POST", { 
+      withdrawalId, 
+      rejectionReason 
+    }, token);
+
+    if (response) {
+      console.log("Withdrawal rejected successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for withdrawal rejection.");
+    }
+  } catch (error) {
+    console.error("Failed to reject withdrawal:", error.message);
     throw error;
   }
 }

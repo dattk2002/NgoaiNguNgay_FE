@@ -70,12 +70,6 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
     loadTutors();
   }, []);
 
-  console.log("Languages extracted from tutors:", languages);
-  console.log(
-    "Languages with names:",
-    languages.map((code) => ({ code, name: getLanguageName(code) }))
-  );
-
   // Handle language filter change - Updated to filter based on 'languages' array
   const handleLanguageFilter = (language) => {
     setSelectedLanguage(language);

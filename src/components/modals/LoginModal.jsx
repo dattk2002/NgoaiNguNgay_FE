@@ -194,7 +194,6 @@ const LoginModal = ({
 
     try {
       const response = await login(username, password);
-      console.log("Login Response:", response);
 
       if (response?.data?.token?.user) {
         const { id, fullName, email, profileImageUrl, username, phoneNumber } =

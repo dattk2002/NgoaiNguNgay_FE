@@ -1,7 +1,7 @@
 // src/components/modals/ReadOnlyWeeklyPatternDialog.jsx
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, IconButton } from "@mui/material";
-import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot } from "../api/auth";
+import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot, systemSendNotificationToUsers } from "../api/auth";
 import Skeleton from "@mui/material/Skeleton";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Snackbar from "@mui/material/Snackbar";
@@ -174,18 +174,58 @@ const TutorWeeklyPatternDetailModal = ({
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
+    
+    console.log("🔗 TutorWeeklyPatternDetailModal - Starting booking submission");
+    console.log("📦 Booking Details:", {
+      tutorId,
+      lessonId,
+      expectedStartDateToday,
+      selectedSlots,
+      currentUser: {
+        id: currentUser?.id,
+        name: currentUser?.name,
+        fullName: currentUser?.fullName
+      }
+    });
+
     try {
+      console.log("📦 TutorWeeklyPatternDetailModal - Calling updateLearnerBookingTimeSlot...");
       await updateLearnerBookingTimeSlot(
         tutorId,
         lessonId,
-        expectedStartDateToday, // always UTC today
+        expectedStartDateToday,
         selectedSlots
       );
+      console.log("✅ TutorWeeklyPatternDetailModal - Booking slot updated successfully");
+
+      // --- Send notification to tutor ---
+      const learnerName = currentUser.fullName || currentUser.name || "Một học viên";
+      const notificationContent = {
+        notificationPriority: 2,
+        title: "Bạn có 1 yêu cầu đặt lịch mới",
+        content: `${learnerName} đã gửi 1 yêu cầu đặt lịch cho bạn`,
+        additionalData: ""
+      };
+
+      console.log("📦 TutorWeeklyPatternDetailModal - Sending notification to tutor:", {
+        tutorId,
+        notificationContent,
+        learnerName
+      });
+
+      await systemSendNotificationToUsers(
+        notificationContent,
+        [tutorId]
+      );
+      console.log("✅ TutorWeeklyPatternDetailModal - Notification sent successfully to tutor");
+      // --- End notification logic ---
+
       setSubmitSuccess(true);
       setSelectedSlots([]);
       if (onBookingSuccess) onBookingSuccess();
       onClose();
     } catch (err) {
+      console.error("❌ TutorWeeklyPatternDetailModal - Error during submission:", err);
       setSubmitError(err.message || "Gửi yêu cầu thất bại.");
     } finally {
       setSubmitting(false);

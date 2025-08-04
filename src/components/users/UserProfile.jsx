@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Skeleton } from "@mui/material";
+import { toast } from "react-toastify";
 import {
   Box,
   Container,
@@ -565,7 +566,7 @@ function UserProfile({ loggedInUser, getUserById }) {
       setSentRequests((prev) => prev.filter((req) => req.tutorId !== tutorId));
     } catch (error) {
       console.error("Failed to delete booking request:", error);
-      alert("Xóa yêu cầu thất bại. Vui lòng thử lại!");
+      toast.error("Xóa yêu cầu thất bại. Vui lòng thử lại!");
     }
   };
 
