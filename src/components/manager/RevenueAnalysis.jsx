@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 
 const RevenueAnalysis = () => {
     const [dateFilter, setDateFilter] = useState('month');
@@ -62,9 +63,9 @@ const RevenueAnalysis = () => {
                         </select>
                     </div>
                     <div className="flex items-end">
-                        <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <NoFocusOutLineButton className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
                             Xuất báo cáo
-                        </button>
+                        </NoFocusOutLineButton>
                     </div>
                 </div>
             </div>

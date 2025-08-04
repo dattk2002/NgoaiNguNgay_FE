@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { fetchWalletTransactions, fetchDepositHistory } from '../api/auth';
+import { fetchWalletTransactions, fetchDepositHistory, fetchWithdrawalRequests } from '../api/auth';
+import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 
 const TransactionHistory = () => {
   const [filter, setFilter] = useState('all');
@@ -20,131 +21,294 @@ const TransactionHistory = () => {
       setLoading(true);
       setError(null);
       
-      const [walletTransactions, depositHistory] = await Promise.all([
-        fetchWalletTransactions().catch(err => {
-          console.warn('Failed to fetch wallet transactions:', err);
-          return [];
-        }),
-        fetchDepositHistory().catch(err => {
-          console.warn('Failed to fetch deposit history:', err);
-          return [];
-        })
-      ]);
+      console.log('🔄 Starting to load transaction data...');
+      
+      // Fetch wallet transactions
+      let walletTransactions = [];
+      try {
+        const walletResult = await fetchWalletTransactions();
+        console.log('✅ Wallet transactions result:', walletResult);
+        walletTransactions = walletResult || [];
+      } catch (err) {
+        console.warn('⚠️ Failed to fetch wallet transactions:', err);
+        walletTransactions = [];
+      }
 
-      console.log('Debug - Raw wallet transactions:', walletTransactions);
-      console.log('Debug - Raw deposit history:', depositHistory);
+      // Fetch deposit history  
+      let depositHistory = [];
+      try {
+        const depositResult = await fetchDepositHistory();
+        console.log('✅ Deposit history result:', depositResult);
+        depositHistory = depositResult || [];
+      } catch (err) {
+        console.warn('⚠️ Failed to fetch deposit history:', err);
+        depositHistory = [];
+      }
 
-      // APIs now return arrays directly from auth.jsx after handling pagination
+      // Fetch withdrawal history
+      let withdrawalHistory = [];
+      try {
+        const withdrawalResult = await fetchWithdrawalRequests({ pageSize: 100 });
+        console.log('✅ Withdrawal history result:', withdrawalResult);
+        // API returns { data: [...], totalItems, totalPages } format
+        withdrawalHistory = withdrawalResult?.data || withdrawalResult || [];
+      } catch (err) {
+        console.warn('⚠️ Failed to fetch withdrawal history:', err);
+        withdrawalHistory = [];
+      }
+
+      console.log('📊 Raw data summary:', {
+        walletTransactions: {
+          type: typeof walletTransactions,
+          isArray: Array.isArray(walletTransactions),
+          length: Array.isArray(walletTransactions) ? walletTransactions.length : 'N/A',
+          data: walletTransactions
+        },
+        depositHistory: {
+          type: typeof depositHistory,
+          isArray: Array.isArray(depositHistory),
+          length: Array.isArray(depositHistory) ? depositHistory.length : 'N/A',
+          data: depositHistory
+        },
+        withdrawalHistory: {
+          type: typeof withdrawalHistory,
+          isArray: Array.isArray(withdrawalHistory),
+          length: Array.isArray(withdrawalHistory) ? withdrawalHistory.length : 'N/A',
+          data: withdrawalHistory
+        }
+      });
+
+      // Ensure arrays
       let normalizedWalletTransactions = Array.isArray(walletTransactions) ? walletTransactions : [];
       let normalizedDepositHistory = Array.isArray(depositHistory) ? depositHistory : [];
+      let normalizedWithdrawalHistory = Array.isArray(withdrawalHistory) ? withdrawalHistory : [];
 
-      console.log('Debug - Normalized wallet transactions:', normalizedWalletTransactions);
-      console.log('Debug - Normalized deposit history:', normalizedDepositHistory);
+      console.log('🔧 Normalized data:', {
+        walletCount: normalizedWalletTransactions.length,
+        depositCount: normalizedDepositHistory.length,
+        withdrawalCount: normalizedWithdrawalHistory.length
+      });
 
-      // Combine and normalize transaction data
-      const allTransactions = [
-        // Wallet transactions (filter out deposits to avoid duplication)
-        ...normalizedWalletTransactions
+      // Process transactions safely
+      let processedTransactions = [];
+      
+      try {
+        console.log('🔄 Processing wallet transactions...');
+        
+        // Process wallet transactions (include all except deposits to avoid duplication)
+        const walletTxs = normalizedWalletTransactions
           .filter(t => {
-            const description = t.description || t.transactionType || t.note || '';
-            const type = t.type || t.transactionType || '';
-            // Skip transactions that look like deposits
-            return !description.toLowerCase().includes('nạp') && 
-                   !type.toLowerCase().includes('deposit') &&
-                   !type.toLowerCase().includes('nạp');
+            if (!t) return false;
+            const description = String(t.description || t.transactionType || t.note || '').toLowerCase();
+            const type = String(t.type || t.transactionType || '').toLowerCase();
+            // Skip transactions that look like deposits (they come from deposit history)
+            return !description.includes('nạp') && 
+                   !type.includes('deposit') &&
+                   !type.includes('nạp');
           })
-          .map(t => {
-          // Handle transaction type safely
-          let transactionType = 'transaction';
-          if (t.transactionType && typeof t.transactionType === 'string') {
-            transactionType = t.transactionType.toLowerCase();
-          } else if (t.type && typeof t.type === 'string') {
-            transactionType = t.type.toLowerCase();
-          }
+          .map((t, index) => {
+            try {
+              // Handle transaction type safely
+              let transactionType = 'transaction';
+              if (t.transactionType && typeof t.transactionType === 'string') {
+                transactionType = t.transactionType.toLowerCase();
+              } else if (t.type && typeof t.type === 'string') {
+                transactionType = t.type.toLowerCase();
+              }
 
-          // Handle status safely
-          let statusValue = 'failed';
-          if (typeof t.status === 'number') {
-            statusValue = t.status === 1 ? 'success' : t.status === 0 ? 'failed' : 'pending';
-          } else if (t.status && typeof t.status === 'string') {
-            const statusLower = t.status.toLowerCase();
-            if (statusLower === 'success' || statusLower === 'completed' || statusLower === 'successful') {
-              statusValue = 'success';
-            } else if (statusLower === 'pending') {
-              statusValue = 'pending';
-            } else {
-              statusValue = 'failed';
+              // Handle status safely
+              let statusValue = 'pending';
+              if (typeof t.status === 'number') {
+                statusValue = t.status === 1 ? 'success' : t.status === 0 ? 'pending' : 'failed';
+              } else if (t.status && typeof t.status === 'string') {
+                const statusLower = t.status.toLowerCase();
+                if (statusLower === 'success' || statusLower === 'completed' || statusLower === 'successful') {
+                  statusValue = 'success';
+                } else if (statusLower === 'pending') {
+                  statusValue = 'pending';
+                } else {
+                  statusValue = 'failed';
+                }
+              }
+
+              const transaction = {
+                id: t.id || t.transactionId || `wallet_${index}_${Date.now()}`,
+                type: transactionType,
+                amount: parseFloat(t.amount) || 0,
+                description: t.description || t.transactionType || t.note || 'Giao dịch ví',
+                date: t.createdAt || t.transactionDate || t.createdTime || new Date().toISOString(),
+                status: statusValue
+              };
+              
+              console.log('✅ Processed wallet transaction:', transaction);
+              return transaction;
+            } catch (err) {
+              console.error('❌ Error processing wallet transaction:', err, t);
+              return null;
             }
-          }
+          })
+          .filter(t => t !== null);
 
-          const transaction = {
-            id: t.id || t.transactionId || Math.random(),
-            type: transactionType,
-            amount: parseFloat(t.amount) || 0,
-            description: t.description || t.transactionType || t.note || 'Giao dịch ví',
-            date: t.createdAt || t.transactionDate || t.createdTime || new Date().toISOString(),
-            status: statusValue
-          };
-          console.log('Debug - Processed wallet transaction:', transaction);
-          return transaction;
-        }),
-        // Deposit history
-        ...normalizedDepositHistory.map(d => {
-          // Handle status as number or string
-          let statusText = '';
-          let statusValue = '';
-          
-          if (typeof d.status === 'number') {
-            // API returns status as number: 1 = success, 0 = failed, etc.
-            if (d.status === 1) {
-              statusText = '- Thành công';
-              statusValue = 'success';
-            } else if (d.status === 0) {
-              statusText = '- Thất bại';
-              statusValue = 'failed';
-            } else {
-              statusText = '- Đang xử lý';
-              statusValue = 'pending';
+        console.log(`✅ Processed ${walletTxs.length} wallet transactions`);
+        processedTransactions.push(...walletTxs);
+      } catch (err) {
+        console.error('❌ Error processing wallet transactions:', err);
+      }
+
+      try {
+        console.log('🔄 Processing deposit history...');
+        
+        // Process deposit history
+        const depositTxs = normalizedDepositHistory
+          .map((d, index) => {
+            try {
+              if (!d) return null;
+              
+              // Handle status as number or string
+              let statusText = '';
+              let statusValue = 'pending';
+              
+              if (typeof d.status === 'number') {
+                // API returns status as number: 1 = success, 0 = failed, etc.
+                if (d.status === 1) {
+                  statusText = '- Thành công';
+                  statusValue = 'success';
+                } else if (d.status === 0) {
+                  statusText = '- Thất bại';
+                  statusValue = 'failed';
+                } else {
+                  statusText = '- Đang xử lý';
+                  statusValue = 'pending';
+                }
+              } else if (typeof d.status === 'string') {
+                // Fallback for string status
+                const statusLower = d.status.toLowerCase();
+                if (statusLower === 'success' || statusLower === 'successful') {
+                  statusText = '- Thành công';
+                  statusValue = 'success';
+                } else if (statusLower === 'pending') {
+                  statusText = '- Đang xử lý';
+                  statusValue = 'pending';
+                } else {
+                  statusText = '- Thất bại';
+                  statusValue = 'failed';
+                }
+              } else {
+                statusText = '- Thất bại';
+                statusValue = 'failed';
+              }
+
+              const deposit = {
+                id: d.id || d.depositId || `deposit_${index}_${Date.now()}`,
+                type: 'deposit',
+                amount: parseFloat(d.amount) || 0,
+                description: `Nạp tiền qua ${d.paymentGateway || 'PayOS'} ${statusText}`,
+                date: d.createdTime || d.createdAt || d.requestTime || new Date().toISOString(),
+                status: statusValue
+              };
+              
+              console.log('✅ Processed deposit:', deposit);
+              return deposit;
+            } catch (err) {
+              console.error('❌ Error processing deposit:', err, d);
+              return null;
             }
-          } else if (typeof d.status === 'string') {
-            // Fallback for string status
-            const statusLower = d.status.toLowerCase();
-            if (statusLower === 'success' || statusLower === 'successful') {
-              statusText = '- Thành công';
-              statusValue = 'success';
-            } else if (statusLower === 'pending') {
-              statusText = '- Đang xử lý';
-              statusValue = 'pending';
-            } else {
-              statusText = '- Thất bại';
-              statusValue = 'failed';
+          })
+          .filter(d => d !== null);
+
+        console.log(`✅ Processed ${depositTxs.length} deposits`);
+        processedTransactions.push(...depositTxs);
+      } catch (err) {
+        console.error('❌ Error processing deposit history:', err);
+      }
+
+      try {
+        console.log('🔄 Processing withdrawal history...');
+        
+        // Process withdrawal history
+        const withdrawalTxs = normalizedWithdrawalHistory
+          .map((w, index) => {
+            try {
+              if (!w) return null;
+              
+              // Handle status for withdrawals: 0 = pending, 1 = processing, 2 = completed, 3 = failed/rejected
+              let statusValue = 'pending';
+              let statusText = '';
+              
+              if (typeof w.status === 'number') {
+                switch (w.status) {
+                  case 0:
+                    statusValue = 'pending';
+                    statusText = '- Chờ xử lý';
+                    break;
+                  case 1:
+                    statusValue = 'pending';
+                    statusText = '- Đang xử lý';
+                    break;
+                  case 2:
+                    statusValue = 'success';
+                    statusText = '- Thành công';
+                    break;
+                  case 3:
+                    statusValue = 'failed';
+                    statusText = '- Từ chối';
+                    break;
+                  default:
+                    statusValue = 'pending';
+                    statusText = '- Đang xử lý';
+                }
+              } else if (typeof w.status === 'string') {
+                const statusLower = w.status.toLowerCase();
+                if (statusLower === 'completed' || statusLower === 'success') {
+                  statusValue = 'success';
+                  statusText = '- Thành công';
+                } else if (statusLower === 'rejected' || statusLower === 'failed') {
+                  statusValue = 'failed';
+                  statusText = '- Từ chối';
+                } else {
+                  statusValue = 'pending';
+                  statusText = '- Đang xử lý';
+                }
+              }
+
+              const withdrawal = {
+                id: w.id || w.withdrawalId || `withdrawal_${index}_${Date.now()}`,
+                type: 'withdraw',
+                amount: parseFloat(w.grossAmount || w.amount) || 0,
+                description: `Rút tiền về ${w.bankAccount?.bankName || 'ngân hàng'} ${statusText}`,
+                date: w.createdTime || w.createdAt || w.requestTime || new Date().toISOString(),
+                status: statusValue
+              };
+              
+              console.log('✅ Processed withdrawal:', withdrawal);
+              return withdrawal;
+            } catch (err) {
+              console.error('❌ Error processing withdrawal:', err, w);
+              return null;
             }
-          } else {
-            statusText = '- Thất bại';
-            statusValue = 'failed';
-          }
+          })
+          .filter(w => w !== null);
 
-          const deposit = {
-            id: d.id || d.depositId || Math.random(),
-            type: 'deposit',
-            amount: parseFloat(d.amount) || 0,
-            description: `Nạp tiền qua ${d.paymentGateway || 'PayOS'} ${statusText}`,
-            date: d.createdTime || d.createdAt || d.requestTime || new Date().toISOString(),
-            status: statusValue
-          };
-          console.log('Debug - Processed deposit:', deposit);
-          return deposit;
-        })
-      ];
+        console.log(`✅ Processed ${withdrawalTxs.length} withdrawals`);
+        processedTransactions.push(...withdrawalTxs);
+      } catch (err) {
+        console.error('❌ Error processing withdrawal history:', err);
+      }
 
-      console.log('Debug - Final all transactions:', allTransactions);
+      console.log(`📊 Total processed transactions: ${processedTransactions.length}`);
 
       // Sort by date (newest first)
-      allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+      processedTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
       
-      setTransactions(allTransactions);
+      console.log('✅ Final processed transactions:', processedTransactions);
+      
+      setTransactions(processedTransactions);
+      
+      // Success message
+      console.log(`🎉 Successfully loaded ${processedTransactions.length} transactions`);
+      
     } catch (err) {
-      console.error('Failed to load transaction data:', err);
+      console.error('❌ Critical error in loadTransactionData:', err);
       setError('Không thể tải lịch sử giao dịch. Vui lòng thử lại.');
       setTransactions([]);
     } finally {
@@ -184,17 +348,22 @@ const TransactionHistory = () => {
   };
 
   const getTransactionIcon = (type) => {
-    return type === 'deposit' ? '⬇' : '⬆';
+    if (type === 'deposit') return '⬇';
+    if (type === 'withdraw') return '⬆';
+    return '🔄';
   };
 
   const getAmountColor = (type) => {
-    return type === 'deposit' ? 'text-emerald-600' : 'text-rose-600';
+    if (type === 'deposit') return 'text-emerald-600';
+    if (type === 'withdraw') return 'text-rose-600';
+    return 'text-blue-600';
   };
 
   const filterOptions = [
     { key: 'all', label: 'Tất cả', icon: '📋' },
     { key: 'deposit', label: 'Nạp tiền', icon: '⬇️' },
     { key: 'withdraw', label: 'Rút tiền', icon: '⬆️' },
+    { key: 'transaction', label: 'Giao dịch khác', icon: '🔄' },
     { key: 'success', label: 'Thành công', icon: '✅' },
     { key: 'pending', label: 'Đang xử lý', icon: '⏳' },
     { key: 'failed', label: 'Thất bại', icon: '❌' }
@@ -213,10 +382,10 @@ const TransactionHistory = () => {
         {/* Filter Buttons */}
         <div className="flex flex-wrap gap-2">
           {filterOptions.map((filterOption) => (
-            <button
+            <NoFocusOutLineButton
               key={filterOption.key}
               onClick={() => setFilter(filterOption.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm outline-none ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm ${
                 filter === filterOption.key
                   ? 'bg-gray-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -224,7 +393,7 @@ const TransactionHistory = () => {
             >
               <span>{filterOption.icon}</span>
               <span>{filterOption.label}</span>
-            </button>
+            </NoFocusOutLineButton>
           ))}
         </div>
 
@@ -235,7 +404,7 @@ const TransactionHistory = () => {
             placeholder="Tìm kiếm giao dịch..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 transition-all outline-none"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-black transition-all focus:outline-none"
           />
         </div>
       </div>
@@ -252,12 +421,12 @@ const TransactionHistory = () => {
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
             <h3 className="text-xl font-semibold text-gray-600 mb-2">Lỗi tải dữ liệu</h3>
             <p className="text-gray-500 mb-4">{error}</p>
-            <button
+            <NoFocusOutLineButton
               onClick={loadTransactionData}
-              className="px-6 py-3 bg-gray-600 text-white rounded-xl font-medium hover:bg-gray-700 transition-all outline-none"
+              className="px-6 py-3 bg-gray-600 text-white rounded-xl font-medium hover:bg-gray-700 transition-all"
             >
               Thử lại
-            </button>
+            </NoFocusOutLineButton>
           </div>
         ) : currentTransactions.length > 0 ? (
           <div className="divide-y divide-gray-200">
@@ -266,7 +435,8 @@ const TransactionHistory = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-medium ${
-                      transaction.type === 'deposit' ? 'bg-emerald-500' : 'bg-rose-500'
+                      transaction.type === 'deposit' ? 'bg-emerald-500' : 
+                      transaction.type === 'withdraw' ? 'bg-rose-500' : 'bg-blue-500'
                     }`}>
                       {getTransactionIcon(transaction.type)}
                     </div>
@@ -279,7 +449,8 @@ const TransactionHistory = () => {
                   </div>
                   <div className="flex sm:flex-col items-end sm:items-end gap-2">
                     <div className={`text-lg font-bold ${getAmountColor(transaction.type)}`}>
-                      {transaction.type === 'deposit' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      {transaction.type === 'deposit' ? '+' : 
+                       transaction.type === 'withdraw' ? '-' : ''}{formatCurrency(transaction.amount)}
                     </div>
                     <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(transaction.status).color}`}>
                       {getStatusBadge(transaction.status).label}
@@ -307,13 +478,13 @@ const TransactionHistory = () => {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2">
-          <button
+          <NoFocusOutLineButton
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 outline-none"
+            className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             Trước
-          </button>
+          </NoFocusOutLineButton>
           
           <div className="flex gap-1">
             {[...Array(Math.min(5, totalPages))].map((_, index) => {
@@ -321,28 +492,28 @@ const TransactionHistory = () => {
               if (pageNumber > totalPages) return null;
               
               return (
-                <button
+                <NoFocusOutLineButton
                   key={pageNumber}
                   onClick={() => setCurrentPage(pageNumber)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 outline-none ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                     currentPage === pageNumber
                       ? 'bg-gray-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
                   {pageNumber}
-                </button>
+                </NoFocusOutLineButton>
               );
             })}
           </div>
           
-          <button
+          <NoFocusOutLineButton
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 outline-none"
+            className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             Sau
-          </button>
+          </NoFocusOutLineButton>
         </div>
       )}
 
@@ -371,7 +542,7 @@ const TransactionHistory = () => {
             <div className="text-2xl font-bold text-rose-600">
               {formatCurrency(
                 filteredTransactions
-                  .filter(t => (t.type === 'withdraw' || t.type === 'withdrawal') && t.status === 'success')
+                  .filter(t => t.type === 'withdraw' && t.status === 'success')
                   .reduce((sum, t) => sum + t.amount, 0)
               )}
             </div>

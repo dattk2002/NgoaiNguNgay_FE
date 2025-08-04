@@ -1755,3 +1755,190 @@ export async function completeBookedSlot(bookedSlotId) {
     throw error;
   }
 }
+
+/**
+ * Fetch bank accounts for withdrawals.
+ * @returns {Promise<Object>} API response with bank accounts data
+ */
+export async function fetchBankAccounts() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/bank-accounts", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Bank accounts fetched successfully:", response.data);
+      return response.data;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Failed to fetch bank accounts:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a new bank account for withdrawals.
+ * @param {Object} accountData - { bankName, accountNumber, accountHolderName }
+ * @returns {Promise<Object>} API response
+ */
+export async function createBankAccount(accountData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/bank-accounts", "POST", accountData, token);
+
+    if (response) {
+      console.log("Bank account created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for bank account creation.");
+    }
+  } catch (error) {
+    console.error("Failed to create bank account:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a withdrawal request.
+ * @param {Object} withdrawalData - { bankAccountId, grossAmount }
+ * @returns {Promise<Object>} API response
+ */
+export async function createWithdrawalRequest(withdrawalData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals", "POST", withdrawalData, token);
+
+    if (response) {
+      console.log("Withdrawal request created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for withdrawal request.");
+    }
+  } catch (error) {
+    console.error("Failed to create withdrawal request:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete a bank account by ID.
+ * @param {string} bankAccountId - The ID of the bank account to delete
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteBankAccount(bankAccountId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/withdrawals/bank-accounts/${bankAccountId}`, "DELETE", null, token);
+
+    console.log("Bank account deleted successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Failed to delete bank account:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch withdrawal requests with pagination.
+ * @param {Object} params - Query parameters { pageIndex, pageSize, status, etc. }
+ * @returns {Promise<Object>} API response with withdrawal requests data
+ */
+export async function fetchWithdrawalRequests(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const queryParams = new URLSearchParams({
+      pageIndex: params.pageIndex || 1,
+      pageSize: params.pageSize || 10,
+      ...params
+    });
+    
+    const response = await callApi(`/api/withdrawals?${queryParams.toString()}`, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Withdrawal requests fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for withdrawal requests.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch withdrawal requests:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Process a withdrawal request (approve: 0 -> 2).
+ * @param {string} withdrawalId - The ID of the withdrawal request to process
+ * @returns {Promise<Object>} API response
+ */
+export async function processWithdrawal(withdrawalId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/process", "POST", { withdrawalId }, token);
+
+    if (response) {
+      console.log("Withdrawal processed successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for withdrawal processing.");
+    }
+  } catch (error) {
+    console.error("Failed to process withdrawal:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Reject a withdrawal request (reject: 0 -> 3).
+ * @param {string} withdrawalId - The ID of the withdrawal request to reject
+ * @param {string} rejectionReason - The reason for rejection
+ * @returns {Promise<Object>} API response
+ */
+export async function rejectWithdrawal(withdrawalId, rejectionReason) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/reject", "POST", { 
+      withdrawalId, 
+      rejectionReason 
+    }, token);
+
+    if (response) {
+      console.log("Withdrawal rejected successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for withdrawal rejection.");
+    }
+  } catch (error) {
+    console.error("Failed to reject withdrawal:", error.message);
+    throw error;
+  }
+}

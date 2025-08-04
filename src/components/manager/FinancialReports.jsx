@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
+import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 
 const FinancialReports = () => {
     const [selectedReportType, setSelectedReportType] = useState('revenue');
@@ -59,12 +60,12 @@ const FinancialReports = () => {
                         </select>
                     </div>
                     <div className="flex items-end">
-                        <button
+                        <NoFocusOutLineButton
                             onClick={handleGenerateReport}
                             className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                         >
                             Tạo báo cáo
-                        </button>
+                        </NoFocusOutLineButton>
                     </div>
                 </div>
 
@@ -88,9 +89,9 @@ const FinancialReports = () => {
                         </div>
                         <h4 className="text-sm font-medium text-gray-900 mb-2">PDF</h4>
                         <p className="text-xs text-gray-500 mb-3">Định dạng in ấn và chia sẻ</p>
-                        <button className="w-full px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors">
+                        <NoFocusOutLineButton className="w-full px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors">
                             Xuất PDF
-                        </button>
+                        </NoFocusOutLineButton>
                     </div>
                     <div className="border border-gray-200 rounded-lg p-4 text-center">
                         <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -100,9 +101,9 @@ const FinancialReports = () => {
                         </div>
                         <h4 className="text-sm font-medium text-gray-900 mb-2">Excel</h4>
                         <p className="text-xs text-gray-500 mb-3">Định dạng phân tích dữ liệu</p>
-                        <button className="w-full px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors">
+                        <NoFocusOutLineButton className="w-full px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors">
                             Xuất Excel
-                        </button>
+                        </NoFocusOutLineButton>
                     </div>
                     <div className="border border-gray-200 rounded-lg p-4 text-center">
                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -112,9 +113,9 @@ const FinancialReports = () => {
                         </div>
                         <h4 className="text-sm font-medium text-gray-900 mb-2">CSV</h4>
                         <p className="text-xs text-gray-500 mb-3">Định dạng dữ liệu thô</p>
-                        <button className="w-full px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
+                        <NoFocusOutLineButton className="w-full px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
                             Xuất CSV
-                        </button>
+                        </NoFocusOutLineButton>
                     </div>
                 </div>
             </div>
@@ -130,12 +131,12 @@ const FinancialReports = () => {
                                     <h4 className="text-sm font-medium text-gray-900 mb-1">{type.name}</h4>
                                     <p className="text-xs text-gray-500 mb-3">{type.description}</p>
                                     <div className="flex space-x-2">
-                                        <button className="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200 transition-colors">
+                                        <NoFocusOutLineButton className="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200 transition-colors">
                                             Xem mẫu
-                                        </button>
-                                        <button className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200 transition-colors">
+                                        </NoFocusOutLineButton>
+                                        <NoFocusOutLineButton className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200 transition-colors">
                                             Sử dụng
-                                        </button>
+                                        </NoFocusOutLineButton>
                                     </div>
                                 </div>
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${type.id === 'revenue' ? 'bg-green-100' :
@@ -195,12 +196,12 @@ const FinancialReports = () => {
                                     <td className="py-3 px-4 text-sm text-gray-900">{report.size}</td>
                                     <td className="py-3 px-4">
                                         {report.status === 'completed' ? (
-                                            <button
+                                            <NoFocusOutLineButton
                                                 onClick={() => handleDownloadReport(report.id)}
                                                 className="text-green-600 hover:text-green-900 text-sm font-medium"
                                             >
                                                 Tải xuống
-                                            </button>
+                                            </NoFocusOutLineButton>
                                         ) : (
                                             <span className="text-gray-400 text-sm">Đang xử lý...</span>
                                         )}
