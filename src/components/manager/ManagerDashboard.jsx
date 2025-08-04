@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import ManagerOverview from './ManagerOverview';
 import RevenueAnalysis from './RevenueAnalysis';
 import FinancialReports from './FinancialReports';
+import WithdrawalManagement from './WithdrawalManagement';
+import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 
 const ManagerDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -55,6 +57,16 @@ const ManagerDashboard = () => {
                 </svg>
             ),
             description: 'Financial Reports & Export'
+        },
+        {
+            id: 'withdrawal-management',
+            title: 'Quản lý rút tiền',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            ),
+            description: 'Withdrawal Requests Management'
         }
     ];
 
@@ -66,6 +78,8 @@ const ManagerDashboard = () => {
                 return <RevenueAnalysis />;
             case 'financial-reports':
                 return <FinancialReports />;
+            case 'withdrawal-management':
+                return <WithdrawalManagement />;
             default:
                 return <ManagerOverview />;
         }
@@ -93,7 +107,7 @@ const ManagerDashboard = () => {
                 {/* Navigation */}
                 <nav className="p-4 space-y-2">
                     {menuItems.map((item) => (
-                        <button
+                        <NoFocusOutLineButton
                             key={item.id}
                             className={`w-full text-left p-3 rounded-lg transition-all duration-200 group ${activeTab === item.id
                                 ? 'bg-green-600 text-white'
@@ -112,7 +126,7 @@ const ManagerDashboard = () => {
                                     </div>
                                 </div>
                             </div>
-                        </button>
+                        </NoFocusOutLineButton>
                     ))}
                 </nav>
 
@@ -128,7 +142,7 @@ const ManagerDashboard = () => {
                             <div className="text-sm font-medium text-white">Financial Manager</div>
                             <div className="text-xs text-gray-400">Revenue Access</div>
                         </div>
-                        <button
+                        <NoFocusOutLineButton
                             className="p-1 text-gray-400 hover:text-white transition-colors"
                             onClick={handleLogout}
                             title="Đăng xuất"
@@ -136,7 +150,7 @@ const ManagerDashboard = () => {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
-                        </button>
+                        </NoFocusOutLineButton>
                     </div>
                 </div>
             </div>

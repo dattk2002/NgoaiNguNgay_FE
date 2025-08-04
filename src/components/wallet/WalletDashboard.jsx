@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { fetchWalletTransactions, fetchDepositHistory } from '../api/auth';
+import { fetchWalletTransactions, fetchDepositHistory, fetchWithdrawalRequests } from '../api/auth';
 
-const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
+const WalletDashboard = ({ balance, availableBalance, onRefresh, onViewAllTransactions }) => {
   const [transactions, setTransactions] = useState([]);
   const [depositHistory, setDepositHistory] = useState([]);
+  const [withdrawalHistory, setWithdrawalHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const formatCurrency = (amount) => {
@@ -23,7 +24,7 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
       setLoading(true);
       setError(null);
       
-      const [walletTransactions, deposits] = await Promise.all([
+      const [walletTransactions, deposits, withdrawals] = await Promise.all([
         fetchWalletTransactions().catch(err => {
           console.warn('Failed to fetch wallet transactions:', err);
           return [];
@@ -31,21 +32,29 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
         fetchDepositHistory().catch(err => {
           console.warn('Failed to fetch deposit history:', err);
           return [];
+        }),
+        fetchWithdrawalRequests({ pageSize: 50 }).catch(err => {
+          console.warn('Failed to fetch withdrawal history:', err);
+          return [];
         })
       ]);
 
       console.log('Debug Dashboard - Raw wallet transactions:', walletTransactions);
       console.log('Debug Dashboard - Raw deposits:', deposits);
+      console.log('Debug Dashboard - Raw withdrawals:', withdrawals);
 
       // Handle different data structures - APIs now return arrays directly from auth.jsx
       let normalizedTransactions = Array.isArray(walletTransactions) ? walletTransactions : [];
       let normalizedDeposits = Array.isArray(deposits) ? deposits : [];
+      let normalizedWithdrawals = Array.isArray(withdrawals?.data || withdrawals) ? (withdrawals?.data || withdrawals) : [];
 
       console.log('Debug Dashboard - Normalized transactions:', normalizedTransactions);
       console.log('Debug Dashboard - Normalized deposits:', normalizedDeposits);
+      console.log('Debug Dashboard - Normalized withdrawals:', normalizedWithdrawals);
 
       setTransactions(normalizedTransactions);
       setDepositHistory(normalizedDeposits);
+      setWithdrawalHistory(normalizedWithdrawals);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError('Không thể tải dữ liệu. Vui lòng thử lại.');
@@ -58,6 +67,7 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
   const calculateStats = () => {
     console.log('Debug Stats - Transactions:', transactions);
     console.log('Debug Stats - Deposit History:', depositHistory);
+    console.log('Debug Stats - Withdrawal History:', withdrawalHistory);
 
     const totalDeposits = depositHistory
       .filter(d => {
@@ -71,33 +81,35 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
       })
       .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
     
-    const totalWithdrawals = transactions
+    // Calculate from both wallet transactions and dedicated withdrawal history
+    const walletWithdrawals = transactions
       .filter(t => {
-        const description = String(t.description || t.transactionType || t.note || '');
+        const description = String(t.description || t.transactionType || t.note || '').toLowerCase();
         // Skip deposit-like transactions
-        if (description.toLowerCase().includes('nạp')) {
+        if (description.includes('nạp')) {
           return false;
         }
         
-        let type = '';
-        if (t.type && typeof t.type === 'string') {
-          type = t.type.toLowerCase();
-        } else if (t.transactionType && typeof t.transactionType === 'string') {
-          type = t.transactionType.toLowerCase();
-        }
+        const type = String(t.type || t.transactionType || '').toLowerCase();
         return type.includes('withdraw') || type.includes('withdrawal') || type.includes('rut');
       })
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+    const withdrawalHistoryAmount = withdrawalHistory
+      .filter(w => w.status === 2) // Only completed withdrawals
+      .reduce((sum, w) => sum + (parseFloat(w.grossAmount || w.amount) || 0), 0);
+
+    const totalWithdrawals = walletWithdrawals + withdrawalHistoryAmount;
     
     // Filter out deposit-like transactions from wallet transactions for counting
     const filteredTransactions = transactions.filter(t => {
-      const description = t.description || t.transactionType || t.note || '';
-      return !description.toLowerCase().includes('nạp');
+      const description = String(t.description || t.transactionType || t.note || '').toLowerCase();
+      return !description.includes('nạp');
     });
     
-    const allTransactionsCount = filteredTransactions.length + depositHistory.length;
+    const allTransactionsCount = filteredTransactions.length + depositHistory.length + withdrawalHistory.length;
     
-    const thisMonthTransactions = [...filteredTransactions, ...depositHistory].filter(t => {
+    const thisMonthTransactions = [...filteredTransactions, ...depositHistory, ...withdrawalHistory].filter(t => {
       const date = t.createdAt || t.date || t.createdTime || t.requestTime;
       if (!date) return false;
       const transactionDate = new Date(date);
@@ -127,12 +139,12 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
       // Filter out deposit transactions from wallet API to avoid duplication with deposit history
       ...transactions
         .filter(t => {
-          const description = String(t.description || t.transactionType || t.note || '');
-          const type = String(t.type || t.transactionType || '');
+          const description = String(t.description || t.transactionType || t.note || '').toLowerCase();
+          const type = String(t.type || t.transactionType || '').toLowerCase();
           // Skip transactions that look like deposits (they should come from deposit history instead)
-          return !description.toLowerCase().includes('nạp') && 
-                 !type.toLowerCase().includes('deposit') &&
-                 !type.toLowerCase().includes('nạp');
+          return !description.includes('nạp') && 
+                 !type.includes('deposit') &&
+                 !type.includes('nạp');
         })
         .map(t => {
           let transactionType = 'transaction';
@@ -169,7 +181,30 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
            date: d.createdTime || d.createdAt || d.requestTime || new Date().toISOString(),
            description: `Nạp tiền qua ${d.paymentGateway || 'PayOS'} ${statusText}`
          };
-       })
+       }),
+      // Add withdrawal history
+      ...withdrawalHistory.map(w => {
+        let statusText = '';
+        if (typeof w.status === 'number') {
+          switch (w.status) {
+            case 0: statusText = '- Chờ xử lý'; break;
+            case 1: statusText = '- Đang xử lý'; break;
+            case 2: statusText = '- Thành công'; break;
+            case 3: statusText = '- Từ chối'; break;
+            default: statusText = '- Đang xử lý';
+          }
+        } else {
+          statusText = '- Đang xử lý';
+        }
+
+        return {
+          id: w.id || w.withdrawalId || Math.random(),
+          type: 'withdraw',
+          amount: parseFloat(w.grossAmount || w.amount) || 0,
+          date: w.createdTime || w.createdAt || w.requestTime || new Date().toISOString(),
+          description: `Rút tiền về ${w.bankAccount?.bankName || 'ngân hàng'} ${statusText}`
+        };
+      })
     ];
 
     console.log('Debug Recent - All transactions:', allTransactions);
@@ -238,7 +273,10 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
       <div className="bg-gray-50 rounded-2xl p-6">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-gray-800">📋 Giao dịch gần đây</h3>
-          <button className="text-sm text-gray-600 hover:text-gray-800 font-medium outline-none">
+          <button 
+            onClick={onViewAllTransactions}
+            className="text-sm text-gray-600 hover:text-gray-800 font-medium outline-none"
+          >
             Xem tất cả →
           </button>
         </div>
@@ -263,9 +301,11 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
               <div key={transaction.id} className="flex items-center justify-between p-4 bg-white rounded-xl hover:shadow-sm transition-all border border-gray-100">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm ${
-                    transaction.type === 'deposit' ? 'bg-emerald-500' : 'bg-rose-500'
+                    transaction.type === 'deposit' ? 'bg-emerald-500' : 
+                    transaction.type === 'withdraw' ? 'bg-rose-500' : 'bg-blue-500'
                   }`}>
-                    {transaction.type === 'deposit' ? '↗' : '↙'}
+                    {transaction.type === 'deposit' ? '↗' : 
+                     transaction.type === 'withdraw' ? '↙' : '↔'}
                   </div>
                   <div>
                     <div className="font-medium text-gray-800 text-sm">{transaction.description}</div>
@@ -275,9 +315,11 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
                   </div>
                 </div>
                 <div className={`font-bold ${
-                  transaction.type === 'deposit' ? 'text-emerald-600' : 'text-rose-600'
+                  transaction.type === 'deposit' ? 'text-emerald-600' : 
+                  transaction.type === 'withdraw' ? 'text-rose-600' : 'text-blue-600'
                 }`}>
-                  {transaction.type === 'deposit' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                  {transaction.type === 'deposit' ? '+' : 
+                   transaction.type === 'withdraw' ? '-' : ''}{formatCurrency(transaction.amount)}
                 </div>
               </div>
             ))}
@@ -290,6 +332,7 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh }) => {
         )}
         <div className="text-center mt-6">
           <button 
+            onClick={onViewAllTransactions}
             className="px-8 py-3 bg-gray-600 text-white rounded-xl font-medium hover:bg-gray-700 transition-all duration-200 outline-none"
           >
             Xem tất cả giao dịch
