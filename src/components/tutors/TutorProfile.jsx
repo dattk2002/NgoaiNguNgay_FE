@@ -40,7 +40,14 @@ import {
   Skeleton, // Add Skeleton import
   Tooltip,
 } from "@mui/material";
-import { FiPlusCircle, FiEdit, FiTrash2, FiCheck } from "react-icons/fi";
+import {
+  FiPlusCircle,
+  FiEdit,
+  FiTrash2,
+  FiCheck,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
 import { MdOutlineEditCalendar } from "react-icons/md";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
@@ -250,8 +257,6 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
   },
 }));
 
-
-
 const getProficiencyLabel = (level) => {
   switch (level) {
     case 1:
@@ -284,13 +289,13 @@ const handleFileChange = (e) => {
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Kích thước ảnh phải nhỏ hơn 2MB");
+      alert("Kích thước ảnh phải nhỏ hơn 2MB");
       return;
     }
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      toast.error("Chỉ chấp nhận các tệp ảnh");
+      alert("Chỉ chấp nhận các tệp ảnh");
       return;
     }
 
@@ -311,12 +316,17 @@ function getNextMondayDateUTC() {
   const today = new Date();
   const day = today.getUTCDay();
   const daysUntilMonday = (8 - day) % 7 || 7;
-  const nextMonday = new Date(Date.UTC(
-    today.getUTCFullYear(),
-    today.getUTCMonth(),
-    today.getUTCDate() + daysUntilMonday,
-    0, 0, 0, 0
-  ));
+  const nextMonday = new Date(
+    Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate() + daysUntilMonday,
+      0,
+      0,
+      0,
+      0
+    )
+  );
   return nextMonday;
 }
 
@@ -335,7 +345,7 @@ function getWeekRange(date = new Date()) {
   // Adjust to get Monday (1) as the first day
   // If today is Sunday (0), we need to go back 6 days
   // For any other day, we go back (day - 1) days
-  const diff = day === 0 ? -6 : (1 - day);
+  const diff = day === 0 ? -6 : 1 - day;
 
   monday.setDate(monday.getDate() + diff);
   monday.setHours(0, 0, 0, 0);
@@ -349,7 +359,10 @@ function getWeekRange(date = new Date()) {
 
 function formatDateRange(start, end) {
   const options = { day: "2-digit", month: "2-digit", year: "numeric" };
-  return `${start.toLocaleDateString("vi-VN", options)} - ${end.toLocaleDateString("vi-VN", options)}`;
+  return `${start.toLocaleDateString(
+    "vi-VN",
+    options
+  )} - ${end.toLocaleDateString("vi-VN", options)}`;
 }
 
 // Replace the existing getPatternForWeek function with this one
@@ -367,20 +380,28 @@ function getPatternForWeek(weeklyPatterns, weekStart) {
 
   // Find the pattern that starts on or before this week's Monday
   // We need to compare the dates without the time component
-  return sorted.find(pattern => {
-    const patternDate = new Date(pattern.appliedFrom);
-    patternDate.setHours(0, 0, 0, 0);
+  return (
+    sorted.find((pattern) => {
+      const patternDate = new Date(pattern.appliedFrom);
+      patternDate.setHours(0, 0, 0, 0);
 
-    // Compare dates without time
-    return patternDate.getTime() <= weekMonday.getTime();
-  }) || sorted[sorted.length - 1];
+      // Compare dates without time
+      return patternDate.getTime() <= weekMonday.getTime();
+    }) || sorted[sorted.length - 1]
+  );
 }
 
 function buildAvailabilityData(pattern, timeRanges) {
   const blockAvailability = {};
   timeRanges.forEach((range) => {
     blockAvailability[range] = {
-      mon: false, tue: false, wed: false, thu: false, fri: false, sat: false, sun: false,
+      mon: false,
+      tue: false,
+      wed: false,
+      thu: false,
+      fri: false,
+      sat: false,
+      sun: false,
     };
   });
   if (pattern && pattern.slots && Array.isArray(pattern.slots)) {
@@ -388,10 +409,25 @@ function buildAvailabilityData(pattern, timeRanges) {
       const hour = Math.floor(slot.slotIndex / 2);
       const startHour = hour;
       const endHour = hour + 1;
-      const timeRangeKey = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
-      const dayMap = { 1: 'sun', 2: 'mon', 3: 'tue', 4: 'wed', 5: 'thu', 6: 'fri', 7: 'sat' };
+      const timeRangeKey = `${startHour
+        .toString()
+        .padStart(2, "0")}:00 - ${endHour.toString().padStart(2, "0")}:00`;
+      const dayMap = {
+        1: "sun",
+        2: "mon",
+        3: "tue",
+        4: "wed",
+        5: "thu",
+        6: "fri",
+        7: "sat",
+      };
       const dayKey = dayMap[slot.dayInWeek];
-      if (timeRangeKey && blockAvailability[timeRangeKey] && dayKey && slot.type === 0) {
+      if (
+        timeRangeKey &&
+        blockAvailability[timeRangeKey] &&
+        dayKey &&
+        slot.type === 0
+      ) {
         blockAvailability[timeRangeKey][dayKey] = true;
       }
     });
@@ -448,7 +484,12 @@ const WeeklyScheduleSkeleton = () => (
             textAlign: "center",
           }}
         >
-          <Skeleton variant="text" width={20} height={16} sx={{ mx: "auto", mb: 0.5 }} />
+          <Skeleton
+            variant="text"
+            width={20}
+            height={16}
+            sx={{ mx: "auto", mb: 0.5 }}
+          />
           <Skeleton variant="text" width={16} height={12} sx={{ mx: "auto" }} />
         </Box>
       ))}
@@ -466,7 +507,9 @@ const WeeklyScheduleSkeleton = () => (
         // Show 14 time labels, e.g. 00:00 - 01:00, 01:00 - 02:00, ...
         const hour = slotIdx;
         const nextHour = hour + 1;
-        const timeLabel = `${hour.toString().padStart(2, "0")}:00 - ${nextHour.toString().padStart(2, "0")}:00`;
+        const timeLabel = `${hour.toString().padStart(2, "0")}:00 - ${nextHour
+          .toString()
+          .padStart(2, "0")}:00`;
         return (
           <React.Fragment key={slotIdx}>
             {/* Time label skeleton */}
@@ -546,7 +589,7 @@ function buildEditPatternSlotsFromPattern(pattern) {
   // pattern: { slots: [...] }
   const slotMap = {};
   if (pattern && pattern.slots && Array.isArray(pattern.slots)) {
-    pattern.slots.forEach(slot => {
+    pattern.slots.forEach((slot) => {
       if (slot.type === 0) {
         if (!slotMap[slot.dayInWeek]) slotMap[slot.dayInWeek] = new Set();
         slotMap[slot.dayInWeek].add(slot.slotIndex);
@@ -620,9 +663,18 @@ const TutorProfileSkeleton = () => (
       flexDirection: "column",
     }}
   >
-    <Grid container spacing={4} sx={{ width: "100%", flex: "1 1 auto", margin: 0 }}>
+    <Grid
+      container
+      spacing={4}
+      sx={{ width: "100%", flex: "1 1 auto", margin: 0 }}
+    >
       {/* Left Column Skeleton */}
-      <Grid item xs={12} md={4} sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+      <Grid
+        item
+        xs={12}
+        md={4}
+        sx={{ display: "flex", flexDirection: "column", width: "100%" }}
+      >
         <Paper
           sx={{
             textAlign: "center",
@@ -632,16 +684,37 @@ const TutorProfileSkeleton = () => (
             borderRadius: "16px",
           }}
         >
-          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
             <Skeleton variant="circular" width={160} height={160} />
             <Skeleton variant="text" width={120} height={40} sx={{ mt: 2 }} />
             <Skeleton variant="text" width={80} height={24} sx={{ mt: 1 }} />
-            <Skeleton variant="rectangular" width={100} height={32} sx={{ mt: 3, borderRadius: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              width={100}
+              height={32}
+              sx={{ mt: 3, borderRadius: 2 }}
+            />
           </Box>
         </Paper>
       </Grid>
       {/* Right Column Skeleton */}
-      <Grid item xs={12} md={8} sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
+      <Grid
+        item
+        xs={12}
+        md={8}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          width: "100%",
+        }}
+      >
         <Paper
           sx={{
             p: 0,
@@ -664,8 +737,18 @@ const TutorProfileSkeleton = () => (
               display: "flex",
             }}
           >
-            <Skeleton variant="rectangular" width={180} height={48} sx={{ mr: 2, borderRadius: 2 }} />
-            <Skeleton variant="rectangular" width={180} height={48} sx={{ borderRadius: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              width={180}
+              height={48}
+              sx={{ mr: 2, borderRadius: 2 }}
+            />
+            <Skeleton
+              variant="rectangular"
+              width={180}
+              height={48}
+              sx={{ borderRadius: 2 }}
+            />
           </Box>
           {/* Main Content Skeleton */}
           <Box
@@ -680,16 +763,36 @@ const TutorProfileSkeleton = () => (
           >
             {/* Email Section */}
             <Skeleton variant="text" width="25%" height={32} sx={{ mb: 2 }} />
-            <Skeleton variant="rectangular" width="60%" height={36} sx={{ mb: 4, borderRadius: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              width="60%"
+              height={36}
+              sx={{ mb: 4, borderRadius: 2 }}
+            />
 
             {/* About Section */}
             <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
-            <Skeleton variant="rectangular" width="100%" height={60} sx={{ mb: 2, borderRadius: 2 }} />
-            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 4, borderRadius: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={60}
+              sx={{ mb: 2, borderRadius: 2 }}
+            />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={40}
+              sx={{ mb: 4, borderRadius: 2 }}
+            />
 
             {/* Teaching Method Section */}
             <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
-            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 4, borderRadius: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={40}
+              sx={{ mb: 4, borderRadius: 2 }}
+            />
 
             {/* Schedule Section */}
             <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
@@ -697,28 +800,56 @@ const TutorProfileSkeleton = () => (
               <Skeleton variant="circular" width={32} height={32} />
               <Skeleton variant="text" width={120} height={32} />
               <Skeleton variant="circular" width={32} height={32} />
-              <Skeleton variant="rectangular" width={140} height={40} sx={{ borderRadius: 2 }} />
-              <Skeleton variant="rectangular" width={140} height={40} sx={{ borderRadius: 2 }} />
+              <Skeleton
+                variant="rectangular"
+                width={140}
+                height={40}
+                sx={{ borderRadius: 2 }}
+              />
+              <Skeleton
+                variant="rectangular"
+                width={140}
+                height={40}
+                sx={{ borderRadius: 2 }}
+              />
             </Box>
             {/* Weekly Schedule Table Skeleton */}
-            <Skeleton variant="rectangular" width="100%" height={320} sx={{ mb: 4, borderRadius: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={320}
+              sx={{ mb: 4, borderRadius: 2 }}
+            />
 
             {/* Learner Requests Section */}
             <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
-            <Skeleton variant="rectangular" width="100%" height={80} sx={{ mb: 4, borderRadius: 2 }} />
-
-            {/* Lessons Section */}
-            <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-              <Skeleton variant="rectangular" width={140} height={40} sx={{ borderRadius: 2 }} />
-            </Box>
-            <Skeleton variant="rectangular" width="100%" height={120} sx={{ mb: 4, borderRadius: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={80}
+              sx={{ mb: 4, borderRadius: 2 }}
+            />
 
             {/* FAQ Section */}
             <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
-            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 2, borderRadius: 2 }} />
-            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 2, borderRadius: 2 }} />
-            <Skeleton variant="rectangular" width="100%" height={40} sx={{ mb: 2, borderRadius: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={40}
+              sx={{ mb: 2, borderRadius: 2 }}
+            />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={40}
+              sx={{ mb: 2, borderRadius: 2 }}
+            />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={40}
+              sx={{ mb: 2, borderRadius: 2 }}
+            />
           </Box>
         </Paper>
       </Grid>
@@ -726,14 +857,19 @@ const TutorProfileSkeleton = () => (
   </Container>
 );
 
-const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVerification, uploadCertificate }) => {
+const TutorProfile = ({
+  user,
+  onRequireLogin,
+  fetchTutorDetail,
+  requestTutorVerification,
+  uploadCertificate,
+}) => {
   const { id } = useParams();
   const [tutorData, setTutorData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeSlots, setTimeSlots] = useState([]);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [lessons, setLessons] = useState([]);
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
   const [editLesson, setEditLesson] = useState(null);
   const [lessonForm, setLessonForm] = useState({
@@ -809,7 +945,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   const [patternToDelete, setPatternToDelete] = useState(null);
 
   // Inside TutorProfile component, after useState declarations
-  const [currentWeekStart, setCurrentWeekStart] = useState(getWeekRange().monday);
+  const [currentWeekStart, setCurrentWeekStart] = useState(
+    getWeekRange().monday
+  );
 
   const [currentPattern, setCurrentPattern] = useState(null);
 
@@ -822,11 +960,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   const [bookingDetailSlots, setBookingDetailSlots] = useState([]);
   const [selectedLearner, setSelectedLearner] = useState(null);
   const [selectedOfferSlots, setSelectedOfferSlots] = useState([]);
-  const [selectLessonDialogOpen, setSelectLessonDialogOpen] = useState(false);
-  const [selectedLessonId, setSelectedLessonId] = useState("");
-  const [selectedLesson, setSelectedLesson] = useState(null);
   const [offerDetail, setOfferDetail] = useState(null);
-  console.log("Ọp phơ đì têu: ", offerDetail);
 
   const [dialogWeekStart, setDialogWeekStart] = useState(getWeekRange().monday);
 
@@ -834,7 +968,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   const [offersLoading, setOffersLoading] = useState(false);
 
   const handleDialogPrevWeek = () => {
-    setDialogWeekStart(prev => {
+    setDialogWeekStart((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() - 7);
       newDate.setHours(0, 0, 0, 0);
@@ -842,14 +976,15 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
     });
   };
   const handleDialogNextWeek = () => {
-    setDialogWeekStart(prev => {
+    setDialogWeekStart((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() + 7);
       newDate.setHours(0, 0, 0, 0);
       return newDate;
     });
   };
-  const isDialogAtCurrentWeek = dialogWeekStart.getTime() <= getWeekRange().monday.getTime();
+  const isDialogAtCurrentWeek =
+    dialogWeekStart.getTime() <= getWeekRange().monday.getTime();
   const dialogWeekInfo = getWeekDates(dialogWeekStart);
 
   // New state for certificate upload and verification
@@ -857,11 +992,12 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [verificationRequesting, setVerificationRequesting] = useState(false);
   const [documentsLoading, setDocumentsLoading] = useState(false);
-  const [deleteCertificateDialogOpen, setDeleteCertificateDialogOpen] = useState(false);
+  const [deleteCertificateDialogOpen, setDeleteCertificateDialogOpen] =
+    useState(false);
   const [certificateToDelete, setCertificateToDelete] = useState(null);
 
   const handlePrevWeek = () => {
-    setCurrentWeekStart(prev => {
+    setCurrentWeekStart((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() - 7);
       newDate.setHours(0, 0, 0, 0);
@@ -870,7 +1006,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   };
 
   const handleNextWeek = () => {
-    setCurrentWeekStart(prev => {
+    setCurrentWeekStart((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() + 7);
       newDate.setHours(0, 0, 0, 0);
@@ -879,7 +1015,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   };
 
   const handleEditPrevWeek = () => {
-    setCurrentWeekStart(prev => {
+    setCurrentWeekStart((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() - 7);
       newDate.setHours(0, 0, 0, 0);
@@ -888,7 +1024,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   };
 
   const handleEditNextWeek = () => {
-    setCurrentWeekStart(prev => {
+    setCurrentWeekStart((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() + 7);
       newDate.setHours(0, 0, 0, 0);
@@ -914,39 +1050,46 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
         // Transform API response to match our certificate format
         const transformedDocuments = [];
 
-        documents.forEach(doc => {
+        documents.forEach((doc) => {
           // Handle nested files structure
           if (doc.files && Array.isArray(doc.files) && doc.files.length > 0) {
-            doc.files.forEach(file => {
+            doc.files.forEach((file) => {
               transformedDocuments.push({
                 id: doc.id,
-                name: file.originalFileName || doc.fileName || doc.name || 'Unknown file',
+                name:
+                  file.originalFileName ||
+                  doc.fileName ||
+                  doc.name ||
+                  "Unknown file",
                 size: file.fileSize || doc.fileSize || 0,
-                type: file.contentType || doc.mimeType || 'application/octet-stream',
+                type:
+                  file.contentType ||
+                  doc.mimeType ||
+                  "application/octet-stream",
                 uploadedAt: doc.uploadedAt || new Date().toISOString(),
                 url: file.cloudinaryUrl || doc.fileUrl || null,
-                description: doc.description || '',
-                isVisibleToLearner: doc.isVisibleToLearner || false
+                description: doc.description || "",
+                isVisibleToLearner: doc.isVisibleToLearner || false,
               });
             });
           } else {
             // Fallback for documents without nested files array
             transformedDocuments.push({
               id: doc.id,
-              name: doc.fileName || doc.name || 'Unknown file',
+              name: doc.fileName || doc.name || "Unknown file",
               size: doc.fileSize || 0,
-              type: doc.mimeType || 'application/octet-stream',
+              type: doc.mimeType || "application/octet-stream",
               uploadedAt: doc.uploadedAt || new Date().toISOString(),
               url: doc.fileUrl || null,
-              description: doc.description || '',
-              isVisibleToLearner: doc.isVisibleToLearner || false
+              description: doc.description || "",
+              isVisibleToLearner: doc.isVisibleToLearner || false,
             });
           }
         });
 
         setUploadedCertificates(transformedDocuments);
       } catch (error) {
-        console.error('Error fetching documents:', error);
+        console.error("Error fetching documents:", error);
         // Don't show error for missing documents, just keep empty array
         setUploadedCertificates([]);
       } finally {
@@ -965,21 +1108,27 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
 
       // Validate files
       for (const file of filesToUpload) {
-        if (file.size > 25 * 1024 * 1024) { // 25MB limit
+        if (file.size > 25 * 1024 * 1024) {
+          // 25MB limit
           toast.error(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
           setCertificateUploading(false);
           return;
         }
 
-        if (!file.type.includes('pdf') && !file.type.startsWith('image/')) {
-          toast.error(`File ${file.name} không đúng định dạng. Chỉ chấp nhận PDF và hình ảnh.`);
+        if (!file.type.includes("pdf") && !file.type.startsWith("image/")) {
+          toast.error(
+            `File ${file.name} không đúng định dạng. Chỉ chấp nhận PDF và hình ảnh.`
+          );
           setCertificateUploading(false);
           return;
         }
       }
 
       // Upload certificates
-      console.log("Uploading certificates with applicationId:", tutorData?.applicationId);
+      console.log(
+        "Uploading certificates with applicationId:",
+        tutorData?.applicationId
+      );
 
       if (!tutorData?.applicationId) {
         toast.error("Không tìm thấy Application ID. Vui lòng thử lại sau.");
@@ -987,46 +1136,53 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
         return;
       }
 
-      const response = await uploadCertificate(filesToUpload, tutorData?.applicationId);
+      const response = await uploadCertificate(
+        filesToUpload,
+        tutorData?.applicationId
+      );
       console.log("Certificates uploaded successfully:", response);
 
       // Refresh documents list after upload
       const updatedDocuments = await fetchDocumentsByTutorId(id);
       const transformedDocuments = [];
 
-      updatedDocuments.forEach(doc => {
+      updatedDocuments.forEach((doc) => {
         // Handle nested files structure
         if (doc.files && Array.isArray(doc.files) && doc.files.length > 0) {
-          doc.files.forEach(file => {
+          doc.files.forEach((file) => {
             transformedDocuments.push({
               id: doc.id,
-              name: file.originalFileName || doc.fileName || doc.name || 'Unknown file',
+              name:
+                file.originalFileName ||
+                doc.fileName ||
+                doc.name ||
+                "Unknown file",
               size: file.fileSize || doc.fileSize || 0,
-              type: file.contentType || doc.mimeType || 'application/octet-stream',
+              type:
+                file.contentType || doc.mimeType || "application/octet-stream",
               uploadedAt: doc.uploadedAt || new Date().toISOString(),
               url: file.cloudinaryUrl || doc.fileUrl || null,
-              description: doc.description || '',
-              isVisibleToLearner: doc.isVisibleToLearner || false
+              description: doc.description || "",
+              isVisibleToLearner: doc.isVisibleToLearner || false,
             });
           });
         } else {
           // Fallback for documents without nested files array
           transformedDocuments.push({
             id: doc.id,
-            name: doc.fileName || doc.name || 'Unknown file',
+            name: doc.fileName || doc.name || "Unknown file",
             size: doc.fileSize || 0,
-            type: doc.mimeType || 'application/octet-stream',
+            type: doc.mimeType || "application/octet-stream",
             uploadedAt: doc.uploadedAt || new Date().toISOString(),
             url: doc.fileUrl || null,
-            description: doc.description || '',
-            isVisibleToLearner: doc.isVisibleToLearner || false
+            description: doc.description || "",
+            isVisibleToLearner: doc.isVisibleToLearner || false,
           });
         }
       });
 
       setUploadedCertificates(transformedDocuments);
       toast.success("Tải lên chứng chỉ thành công!");
-
     } catch (error) {
       console.error("Certificate upload failed:", error);
       toast.error(`Tải lên chứng chỉ thất bại: ${error.message}`);
@@ -1037,7 +1193,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
 
   const handleRequestVerification = async () => {
     if (uploadedCertificates.length === 0) {
-      toast.error("Vui lòng tải lên ít nhất một chứng chỉ trước khi yêu cầu xác minh.");
+      toast.error(
+        "Vui lòng tải lên ít nhất một chứng chỉ trước khi yêu cầu xác minh."
+      );
       return;
     }
 
@@ -1071,7 +1229,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
       await deleteDocument(certificateToDelete.id);
 
       // Remove from local state
-      setUploadedCertificates(prev => prev.filter(cert => cert.id !== certificateToDelete.id));
+      setUploadedCertificates((prev) =>
+        prev.filter((cert) => cert.id !== certificateToDelete.id)
+      );
       toast.success("Xóa chứng chỉ thành công!");
     } catch (error) {
       console.error("Failed to delete certificate:", error);
@@ -1092,7 +1252,6 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
         }
 
         const response = await fetchTutorDetail(id);
-        console.log("Tutor data:", response);
 
         if (response && response.data) {
           setTutorData(response.data);
@@ -1125,8 +1284,8 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
           // Process slots from the API response
           if (patterns && patterns.length > 0) {
             // Sort patterns by AppliedFrom to get the most recent one
-            const sortedPatterns = patterns.sort((a, b) =>
-              new Date(b.appliedFrom) - new Date(a.appliedFrom)
+            const sortedPatterns = patterns.sort(
+              (a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom)
             );
 
             // Get the most recent pattern (first after sorting)
@@ -1143,17 +1302,21 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                 // Map to hourly time ranges
                 const startHour = hour;
                 const endHour = hour + 1;
-                timeRangeKey = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
+                timeRangeKey = `${startHour
+                  .toString()
+                  .padStart(2, "0")}:00 - ${endHour
+                  .toString()
+                  .padStart(2, "0")}:00`;
 
                 if (timeRangeKey && blockAvailability[timeRangeKey]) {
                   const dayMap = {
-                    1: 'sun', // Sunday
-                    2: 'mon', // Monday
-                    3: 'tue', // Tuesday
-                    4: 'wed', // Wednesday
-                    5: 'thu', // Thursday
-                    6: 'fri', // Friday
-                    7: 'sat'  // Saturday
+                    1: "sun", // Sunday
+                    2: "mon", // Monday
+                    3: "tue", // Tuesday
+                    4: "wed", // Wednesday
+                    5: "thu", // Thursday
+                    6: "fri", // Friday
+                    7: "sat", // Saturday
                   };
 
                   const dayKey = dayMap[slot.dayInWeek];
@@ -1172,7 +1335,8 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
           // Set up availability days and dates (start from next Monday)
           const today = new Date();
           const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
-          const daysUntilMonday = (dayOfWeek === 1) ? 0 : (dayOfWeek === 0 ? 1 : (8 - dayOfWeek));
+          const daysUntilMonday =
+            dayOfWeek === 1 ? 0 : dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
           const monday = new Date(today);
           monday.setDate(today.getDate() + daysUntilMonday);
 
@@ -1189,11 +1353,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
 
           setAvailabilityDays(next7Days);
           setAvailabilityDates(next7Dates);
-
         } else {
           throw new Error("Invalid data format received from server");
         }
-
       } catch (error) {
         console.error("Error fetching tutor data:", error);
         setError(error.message || "Failed to load tutor profile");
@@ -1207,22 +1369,6 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
 
     fetchTutorData();
   }, [id, fetchTutorDetail, onRequireLogin]);
-
-  useEffect(() => {
-    if (!id) return;
-    const fetchLessons = async () => {
-      try {
-        setLessonLoading(true);
-        const data = await fetchTutorLesson(id);
-        setLessons(data);
-      } catch (err) {
-        setLessons([]);
-      } finally {
-        setLessonLoading(false);
-      }
-    };
-    fetchLessons();
-  }, [id]);
 
   // Update the useEffect for fetching weekly patterns to also update dialog data
   useEffect(() => {
@@ -1245,7 +1391,6 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   useEffect(() => {
     if (!currentWeekStart || !weeklyPatterns) return;
     const pattern = getPatternForWeek(weeklyPatterns, currentWeekStart);
-    console.log('Main table pattern for week', currentWeekStart, pattern);
     setCurrentPattern(pattern);
     setAvailabilityData(buildAvailabilityData(pattern, timeRanges));
   }, [currentWeekStart, weeklyPatterns]);
@@ -1260,7 +1405,10 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
   // When opening the edit dialog, set the week to the current main table week
   const openEditPatternDialog = () => {
     // Use the pattern for the current week, not always the latest
-    const patternForWeek = getPatternForWeek(weeklyPatterns, currentWeekStart) || { slots: [] };
+    const patternForWeek = getPatternForWeek(
+      weeklyPatterns,
+      currentWeekStart
+    ) || { slots: [] };
     const slotMap = buildEditPatternSlotsFromPattern(patternForWeek);
 
     setEditPatternSlots(slotMap);
@@ -1291,7 +1439,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
         const res = await tutorBookingTimeSlotFromLearner();
         setLearnerRequests(res?.data || []);
       } catch (err) {
-        setLearnerRequestsError(err.message || "Lỗi khi tải yêu cầu từ học viên");
+        setLearnerRequestsError(
+          err.message || "Lỗi khi tải yêu cầu từ học viên"
+        );
       } finally {
         setLearnerRequestsLoading(false);
       }
@@ -1317,52 +1467,45 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
 
   // Helper to get nearest offerId for a learner
   function getNearestOfferIdForLearner(learnerId) {
-    const learnerOffers = allOffers.filter(offer => offer.learner.id === learnerId);
+    const learnerOffers = allOffers.filter(
+      (offer) => offer.learner.id === learnerId
+    );
     if (learnerOffers.length === 0) return null;
     // Sort by newest createdAt (descending)
     learnerOffers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return learnerOffers[0].id;
   }
 
-  const handleOpenBookingDetail = async (learnerId, offerId) => {
-    setDialogWeekStart(getWeekRange().monday);
-    setSelectedOfferSlots([]);
-    setOfferDetail(null);
-
-    setLearnerRequests((prev) =>
-      prev.map((req) =>
-        req.learnerId === learnerId ? { ...req, hasUnviewed: false } : req
-      )
-    );
-
+  const handleOpenBookingDetail = async (learnerId) => {
     setBookingDetailLoading(true);
     setBookingDetailDialogOpen(true);
     setSelectedLearner(learnerId);
 
     try {
       const res = await tutorBookingTimeSlotFromLearnerDetail(learnerId);
-      setBookingDetailSlots(res?.data?.timeSlots || []);
+      const { expectedStartDate, timeSlots } = res?.data || {};
 
-      // --- Use nearest offerId if not provided ---
-      let useOfferId = offerId;
-      if (!useOfferId) {
-        useOfferId = getNearestOfferIdForLearner(learnerId);
+      let initialWeekStart = getWeekRange().monday;
+      if (expectedStartDate) {
+        const expectedDate = new Date(expectedStartDate);
+        const day = expectedDate.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        const monday = new Date(expectedDate);
+        monday.setDate(monday.getDate() + diff);
+        monday.setHours(0, 0, 0, 0);
+        initialWeekStart = monday;
       }
+      setDialogWeekStart(initialWeekStart);
 
-      if (useOfferId) {
-        const offerRes = await tutorBookingOfferDetail(useOfferId);
-        setOfferDetail(offerRes?.data || null);
+      setBookingDetailSlots(timeSlots || []);
+      setSelectedOfferSlots([]);
+      setOfferDetail(null);
 
-        if (offerRes?.data?.offeredSlots?.length > 0) {
-          const firstSlotDate = new Date(offerRes.data.offeredSlots[0].slotDateTime);
-          const day = firstSlotDate.getDay();
-          const diff = day === 0 ? -6 : 1 - day;
-          const monday = new Date(firstSlotDate);
-          monday.setDate(monday.getDate() + diff);
-          monday.setHours(0, 0, 0, 0);
-          setDialogWeekStart(monday);
-        }
-      }
+      setLearnerRequests((prev) =>
+        prev.map((req) =>
+          req.learnerId === learnerId ? { ...req, hasUnviewed: false } : req
+        )
+      );
     } catch (err) {
       setBookingDetailSlots([]);
     } finally {
@@ -1410,8 +1553,6 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
       </Container>
     );
   }
-
-
 
   return (
     <>
@@ -1750,9 +1891,19 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                         Lịch trình khả dụng
                       </SectionTitle>
 
-                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, gap: 4 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          mb: 2,
+                          gap: 4,
+                        }}
+                      >
                         {/* Week range and navigation */}
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
                           <IconButton
                             onClick={handlePrevWeek}
                             sx={{
@@ -1766,7 +1917,10 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                           >
                             <FaChevronLeft size={20} color="#333" />
                           </IconButton>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          <Typography
+                            variant="subtitle1"
+                            sx={{ fontWeight: 600 }}
+                          >
                             {formatDateRange(monday, sunday)}
                           </Typography>
                           <IconButton
@@ -1790,7 +1944,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                               <StyledButton onClick={openEditPatternDialog}>
                                 Chỉnh sửa lịch trình
                               </StyledButton>
-                              <RedStyledButton onClick={() => openDeletePatternDialog(weeklyPatterns[0]?.id)}>
+                              <RedStyledButton
+                                onClick={() =>
+                                  openDeletePatternDialog(weeklyPatterns[0]?.id)
+                                }
+                              >
                                 Xóa lịch trình
                               </RedStyledButton>
                             </>
@@ -1860,7 +2018,10 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                     p: 1.5,
                                     backgroundColor: "#f8fafc",
                                     borderBottom: "1px solid #e2e8f0",
-                                    borderRight: i === weekInfo.length - 1 ? "none" : "1px solid #e2e8f0",
+                                    borderRight:
+                                      i === weekInfo.length - 1
+                                        ? "none"
+                                        : "1px solid #e2e8f0",
                                     textAlign: "center",
                                     fontWeight: 600,
                                     color: "#1e293b",
@@ -1870,8 +2031,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                     zIndex: 1,
                                   }}
                                 >
-                                  <Box sx={{ fontSize: "0.75rem" }}>{d.label}</Box>
-                                  <Box sx={{ fontSize: "0.625rem", color: "#64748b", mt: 0.25 }}>{d.date}</Box>
+                                  <Box sx={{ fontSize: "0.75rem" }}>
+                                    {d.label}
+                                  </Box>
+                                  <Box
+                                    sx={{
+                                      fontSize: "0.625rem",
+                                      color: "#64748b",
+                                      mt: 0.25,
+                                    }}
+                                  >
+                                    {d.date}
+                                  </Box>
                                 </Box>
                               ))}
 
@@ -1879,9 +2050,15 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                               {Array.from({ length: 48 }).map((_, slotIdx) => {
                                 const hour = Math.floor(slotIdx / 2);
                                 const minute = slotIdx % 2 === 0 ? "00" : "30";
-                                const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
-                                const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
-                                const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+                                const nextHour =
+                                  slotIdx % 2 === 0 ? hour : hour + 1;
+                                const nextMinute =
+                                  slotIdx % 2 === 0 ? "30" : "00";
+                                const timeLabel = `${hour
+                                  .toString()
+                                  .padStart(2, "0")}:${minute} - ${nextHour
+                                  .toString()
+                                  .padStart(2, "0")}:${nextMinute}`;
 
                                 return (
                                   <React.Fragment key={slotIdx}>
@@ -1902,14 +2079,20 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                     </Box>
                                     {/* For each day, render a cell for this 30-min slot */}
                                     {dayInWeekOrder.map((dayInWeek, dayIdx) => {
-                                      const isActive = !!(currentPattern?.slots || []).find(
-                                        slot => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
+                                      const isActive = !!(
+                                        currentPattern?.slots || []
+                                      ).find(
+                                        (slot) =>
+                                          slot.dayInWeek === dayInWeek &&
+                                          slot.slotIndex === slotIdx
                                       );
                                       return (
                                         <Box
                                           key={dayIdx}
                                           sx={{
-                                            backgroundColor: isActive ? "#98D45F" : "#f1f5f9",
+                                            backgroundColor: isActive
+                                              ? "#98D45F"
+                                              : "#f1f5f9",
                                             border: "1px solid #e2e8f0",
                                             minHeight: 32,
                                           }}
@@ -1953,7 +2136,10 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                     backgroundColor: "#98D45F",
                                   }}
                                 />
-                                <Typography variant="body2" sx={{ color: "#475569" }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: "#475569" }}
+                                >
                                   Có sẵn
                                 </Typography>
                               </Box>
@@ -1972,14 +2158,30 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                     backgroundColor: "#e2e8f0",
                                   }}
                                 />
-                                <Typography variant="body2" sx={{ color: "#475569" }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: "#475569" }}
+                                >
                                   Không có sẵn
                                 </Typography>
                               </Box>
                             </Box>
 
-                            <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
-                              Dựa trên múi giờ của bạn (UTC+07:00) • Cập nhật lần cuối: {weeklyPatterns.length > 0 ? new Date(weeklyPatterns.sort((a, b) => new Date(b.appliedFrom) - new Date(a.appliedFrom))[0].appliedFrom).toLocaleDateString('vi-VN') : 'Không xác định'}
+                            <Typography
+                              variant="body2"
+                              sx={{ color: "#64748b", fontSize: "0.875rem" }}
+                            >
+                              Dựa trên múi giờ của bạn (UTC+07:00) • Cập nhật
+                              lần cuối:{" "}
+                              {weeklyPatterns.length > 0
+                                ? new Date(
+                                    weeklyPatterns.sort(
+                                      (a, b) =>
+                                        new Date(b.appliedFrom) -
+                                        new Date(a.appliedFrom)
+                                    )[0].appliedFrom
+                                  ).toLocaleDateString("vi-VN")
+                                : "Không xác định"}
                             </Typography>
 
                             {/* Show pattern count for debugging */}
@@ -2000,8 +2202,17 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                         flex: "0 0 auto",
                       }}
                     >
-                      <SectionTitle variant="h6">Yêu Cầu Từ Học Viên</SectionTitle>
-                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" }}>
+                      <SectionTitle variant="h6">
+                        Yêu Cầu Từ Học Viên
+                      </SectionTitle>
+                      <Box
+                        sx={{
+                          p: 2,
+                          backgroundColor: "#fff",
+                          borderRadius: 2,
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
                         {learnerRequestsLoading ? (
                           <TableContainer component={Paper}>
                             <Table>
@@ -2021,11 +2232,19 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                 {Array.from({ length: 16 }).map((_, idx) => (
                                   <TableRow key={idx}>
                                     <TableCell>
-                                      <Skeleton variant="text" width="80%" height={24} />
+                                      <Skeleton
+                                        variant="text"
+                                        width="80%"
+                                        height={24}
+                                      />
                                     </TableCell>
                                     {Array.from({ length: 7 }).map((__, dayIdx) => (
                                       <TableCell key={dayIdx}>
-                                        <Skeleton variant="rectangular" width="80%" height={24} />
+                                        <Skeleton
+                                          variant="rectangular"
+                                          width="80%"
+                                          height={24}
+                                        />
                                       </TableCell>
                                     ))}
                                   </TableRow>
@@ -2042,7 +2261,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                 <TableRow>
                                   <TableCell>Học viên</TableCell>
                                   <TableCell>Trạng thái</TableCell>
-                                  <TableCell>Thời gian yêu cầu mới nhất</TableCell>
+                                  <TableCell>
+                                    Thời gian yêu cầu mới nhất
+                                  </TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -2058,32 +2279,76 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                       key={req.learnerId}
                                       hover
                                       sx={{ cursor: "pointer" }}
-                                      onClick={() => handleOpenBookingDetail(req.learnerId, req.offerId)}
+                                      onClick={() => handleOpenBookingDetail(req.learnerId)}
                                     >
                                       <TableCell>{req.learnerName}</TableCell>
                                       <TableCell>
                                         {req.hasUnviewed ? (
-                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: 1,
+                                            }}
+                                          >
                                             <Tooltip title="Yêu cầu mới, chưa xem">
-                                              <Avatar sx={{ bgcolor: "#ff9800", width: 18, height: 18, fontSize: 18 }}>
+                                              <Avatar
+                                                sx={{
+                                                  bgcolor: "#ff9800",
+                                                  width: 18,
+                                                  height: 18,
+                                                  fontSize: 18,
+                                                }}
+                                              >
                                                 <FiPlusCircle />
                                               </Avatar>
                                             </Tooltip>
-                                            <Typography sx={{ color: "#ff9800", fontWeight: 700 }}>Chưa xem</Typography>
+                                            <Typography
+                                              sx={{
+                                                color: "#ff9800",
+                                                fontWeight: 700,
+                                              }}
+                                            >
+                                              Chưa xem
+                                            </Typography>
                                           </Box>
                                         ) : (
-                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: 1,
+                                            }}
+                                          >
                                             <Tooltip title="Đã xem yêu cầu này">
-                                              <Avatar sx={{ bgcolor: "#4caf50", width: 18, height: 18, fontSize: 18 }}>
+                                              <Avatar
+                                                sx={{
+                                                  bgcolor: "#4caf50",
+                                                  width: 18,
+                                                  height: 18,
+                                                  fontSize: 18,
+                                                }}
+                                              >
                                                 <FiCheck />
                                               </Avatar>
                                             </Tooltip>
-                                            <Typography sx={{ color: "#4caf50", fontWeight: 500 }}>Đã xem</Typography>
+                                            <Typography
+                                              sx={{
+                                                color: "#4caf50",
+                                                fontWeight: 500,
+                                              }}
+                                            >
+                                              Đã xem
+                                            </Typography>
                                           </Box>
                                         )}
                                       </TableCell>
                                       <TableCell>
-                                        {req.latestRequestTime ? new Date(req.latestRequestTime).toLocaleString("vi-VN") : "-"}
+                                        {req.latestRequestTime
+                                          ? new Date(
+                                              req.latestRequestTime
+                                            ).toLocaleString("vi-VN")
+                                          : "-"}
                                       </TableCell>
                                     </TableRow>
                                   ))
@@ -2134,61 +2399,6 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                               <TableCell align="right" />
                             </TableRow>
                           </TableHead>
-                          <TableBody>
-                            {lessons && lessons.length > 0 ? (
-                              lessons.map((lesson) => (
-                                <TableRow key={lesson.id}>
-                                  <TableCell>{lesson.name}</TableCell>
-                                  <TableCell>{formatLanguageCode(lesson.languageCode)}</TableCell>
-                                  <TableCell>
-                                    {formatPriceWithCommas(String(lesson.price))} VND
-                                  </TableCell>
-                                  <TableCell>{lesson.targetAudience}</TableCell>
-                                  <TableCell
-                                    sx={{
-                                      maxWidth: 180,
-                                      whiteSpace: "nowrap",
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                    }}
-                                  >
-                                    {lesson.description}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    <Button
-                                      variant="outlined"
-                                      size="small"
-                                      sx={{ mr: 1 }}
-                                      onClick={() => {
-                                        setEditLesson(lesson);
-                                        setLessonForm({ ...lesson });
-                                        setLessonDialogOpen(true);
-                                      }}
-                                    >
-                                      Sửa
-                                    </Button>
-                                    <Button
-                                      variant="contained"
-                                      color="error"
-                                      size="small"
-                                      onClick={() => {
-                                        setLessonToDelete(lesson);
-                                        setDeleteModalOpen(true);
-                                      }}
-                                    >
-                                      Xóa
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            ) : (
-                              <TableRow>
-                                <TableCell colSpan={6} align="center">
-                                  Không có bài học nào.
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
                         </Table>
                       </TableContainer>
                     </Box>
@@ -2391,7 +2601,6 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                     </Box>
 
                     {/* Insert new section here: Yêu cầu từ học viên */}
-
                   </Box>
                 )}
 
@@ -2444,18 +2653,32 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                             width: "100%",
                             maxWidth: "100%",
                             height: "160px",
-                            border: certificateUploading ? "2px dashed #10b981" : "2px dashed #3b82f6",
+                            border: certificateUploading
+                              ? "2px dashed #10b981"
+                              : "2px dashed #3b82f6",
                             borderRadius: "16px",
-                            cursor: certificateUploading ? "not-allowed" : "pointer",
-                            backgroundColor: certificateUploading ? "#f0fdf4" : "#f8fafc",
+                            cursor: certificateUploading
+                              ? "not-allowed"
+                              : "pointer",
+                            backgroundColor: certificateUploading
+                              ? "#f0fdf4"
+                              : "#f8fafc",
                             transition: "all 0.3s ease",
                             boxSizing: "border-box",
                             opacity: certificateUploading ? 0.7 : 1,
                             "&:hover": {
-                              backgroundColor: certificateUploading ? "#f0fdf4" : "#f0f9ff",
-                              borderColor: certificateUploading ? "#10b981" : "#2563eb",
-                              transform: certificateUploading ? "none" : "translateY(-2px)",
-                              boxShadow: certificateUploading ? "none" : "0 8px 25px rgba(59, 130, 246, 0.15)",
+                              backgroundColor: certificateUploading
+                                ? "#f0fdf4"
+                                : "#f0f9ff",
+                              borderColor: certificateUploading
+                                ? "#10b981"
+                                : "#2563eb",
+                              transform: certificateUploading
+                                ? "none"
+                                : "translateY(-2px)",
+                              boxShadow: certificateUploading
+                                ? "none"
+                                : "0 8px 25px rgba(59, 130, 246, 0.15)",
                             },
                             "&:focus": {
                               outline: "none",
@@ -2474,7 +2697,10 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                             }}
                           >
                             {certificateUploading ? (
-                              <CircularProgress size={48} sx={{ mb: 2, color: "#10b981" }} />
+                              <CircularProgress
+                                size={48}
+                                sx={{ mb: 2, color: "#10b981" }}
+                              />
                             ) : (
                               <Box
                                 sx={{
@@ -2503,14 +2729,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                               variant="body1"
                               sx={{
                                 mb: 1,
-                                color: certificateUploading ? "#10b981" : "#3b82f6",
+                                color: certificateUploading
+                                  ? "#10b981"
+                                  : "#3b82f6",
                                 fontWeight: 600,
                               }}
                             >
                               {certificateUploading ? (
                                 "Đang tải lên..."
                               ) : (
-                                <span><span>Nhấp để tải lên</span> hoặc kéo và thả</span>
+                                <span>
+                                  <span>Nhấp để tải lên</span> hoặc kéo và thả
+                                </span>
                               )}
                             </Typography>
                             <Typography
@@ -2542,7 +2772,15 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
 
                       {/* Uploaded Certificates List */}
                       {documentsLoading ? (
-                        <Box sx={{ mb: 3, display: "flex", justifyContent: "center", alignItems: "center", py: 4 }}>
+                        <Box
+                          sx={{
+                            mb: 3,
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            py: 4,
+                          }}
+                        >
                           <CircularProgress size={32} sx={{ mr: 2 }} />
                           <Typography variant="body1" sx={{ color: "#64748b" }}>
                             Đang tải danh sách chứng chỉ...
@@ -2550,10 +2788,19 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                         </Box>
                       ) : uploadedCertificates.length > 0 ? (
                         <Box sx={{ mb: 3 }}>
-                          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#1e293b" }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ mb: 2, fontWeight: 600, color: "#1e293b" }}
+                          >
                             Chứng chỉ đã tải lên ({uploadedCertificates.length})
                           </Typography>
-                          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 2,
+                            }}
+                          >
                             {uploadedCertificates.map((cert) => (
                               <Box
                                 key={cert.id}
@@ -2567,13 +2814,21 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                   border: "1px solid #e2e8f0",
                                 }}
                               >
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 2,
+                                  }}
+                                >
                                   <Box
                                     sx={{
                                       width: 40,
                                       height: 40,
                                       borderRadius: "8px",
-                                      backgroundColor: cert.type.includes('pdf') ? "#dc2626" : "#3b82f6",
+                                      backgroundColor: cert.type.includes("pdf")
+                                        ? "#dc2626"
+                                        : "#3b82f6",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
@@ -2582,38 +2837,85 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                                       fontSize: "12px",
                                     }}
                                   >
-                                    {cert.type.includes('pdf') ? 'PDF' : 'IMG'}
+                                    {cert.type.includes("pdf") ? "PDF" : "IMG"}
                                   </Box>
                                   <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#1e293b" }}>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ fontWeight: 600, color: "#1e293b" }}
+                                    >
                                       {cert.name}
                                     </Typography>
-                                    <Typography variant="caption" sx={{ color: "#64748b" }}>
-                                      {cert.size > 0 ? `${(cert.size / 1024 / 1024).toFixed(2)} MB` : 'Không xác định'} • {new Date(cert.uploadedAt).toLocaleDateString('vi-VN')}
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ color: "#64748b" }}
+                                    >
+                                      {cert.size > 0
+                                        ? `${(cert.size / 1024 / 1024).toFixed(
+                                            2
+                                          )} MB`
+                                        : "Không xác định"}{" "}
+                                      •{" "}
+                                      {new Date(
+                                        cert.uploadedAt
+                                      ).toLocaleDateString("vi-VN")}
                                     </Typography>
                                     {cert.description && (
-                                      <Typography variant="caption" sx={{ color: "#64748b", display: "block", mt: 0.5 }}>
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          color: "#64748b",
+                                          display: "block",
+                                          mt: 0.5,
+                                        }}
+                                      >
                                         {cert.description}
                                       </Typography>
                                     )}
                                   </Box>
                                 </Box>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
                                   {cert.url && (
                                     <IconButton
-                                      onClick={() => window.open(cert.url, '_blank')}
+                                      onClick={() =>
+                                        window.open(cert.url, "_blank")
+                                      }
                                       sx={{ color: "#3b82f6" }}
                                       size="small"
                                       title="Xem file"
                                     >
-                                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      <svg
+                                        width="16"
+                                        height="16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                        />
                                       </svg>
                                     </IconButton>
                                   )}
                                   <IconButton
-                                    onClick={() => handleRemoveCertificate(cert)}
+                                    onClick={() =>
+                                      handleRemoveCertificate(cert)
+                                    }
                                     sx={{ color: "#dc2626" }}
                                     size="small"
                                     title="Xóa file"
@@ -2627,7 +2929,10 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                         </Box>
                       ) : (
                         <Box sx={{ mb: 3, textAlign: "center", py: 2 }}>
-                          <Typography variant="body2" sx={{ color: "#64748b", fontStyle: "italic" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "#64748b", fontStyle: "italic" }}
+                          >
                             Chưa có chứng chỉ nào được tải lên
                           </Typography>
                         </Box>
@@ -2635,7 +2940,13 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
 
                       {/* Request Verification Button */}
                       {uploadedCertificates.length > 0 && (
-                        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 3,
+                          }}
+                        >
                           <StyledButton
                             onClick={handleRequestVerification}
                             disabled={verificationRequesting}
@@ -2648,7 +2959,10 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                           >
                             {verificationRequesting ? (
                               <>
-                                <CircularProgress size={20} sx={{ mr: 1, color: "white" }} />
+                                <CircularProgress
+                                  size={20}
+                                  sx={{ mr: 1, color: "white" }}
+                                />
                                 Đang gửi yêu cầu...
                               </>
                             ) : (
@@ -2880,7 +3194,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             }
             required
             error={!lessonForm.name && showValidation}
-            helperText={!lessonForm.name && showValidation ? "Vui lòng nhập tên bài học" : ""}
+            helperText={
+              !lessonForm.name && showValidation
+                ? "Vui lòng nhập tên bài học"
+                : ""
+            }
           />
           <TextField
             label="Mô tả"
@@ -2892,7 +3210,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             }
             required
             error={!lessonForm.description && showValidation}
-            helperText={!lessonForm.description && showValidation ? "Vui lòng nhập mô tả" : ""}
+            helperText={
+              !lessonForm.description && showValidation
+                ? "Vui lòng nhập mô tả"
+                : ""
+            }
           />
           <TextField
             label="Ghi chú"
@@ -2913,7 +3235,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             }
             required
             error={!lessonForm.targetAudience && showValidation}
-            helperText={!lessonForm.targetAudience && showValidation ? "Vui lòng nhập đối tượng" : ""}
+            helperText={
+              !lessonForm.targetAudience && showValidation
+                ? "Vui lòng nhập đối tượng"
+                : ""
+            }
           />
           <TextField
             label="Yêu cầu trước"
@@ -2925,9 +3251,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             }
             required
             error={!lessonForm.prerequisites && showValidation}
-            helperText={!lessonForm.prerequisites && showValidation ? "Vui lòng nhập yêu cầu trước" : ""}
+            helperText={
+              !lessonForm.prerequisites && showValidation
+                ? "Vui lòng nhập yêu cầu trước"
+                : ""
+            }
           />
-          <FormControl fullWidth margin="normal" required error={!lessonForm.languageCode && showValidation}>
+          <FormControl
+            fullWidth
+            margin="normal"
+            required
+            error={!lessonForm.languageCode && showValidation}
+          >
             <InputLabel id="language-select-label">Ngôn ngữ</InputLabel>
             <Select
               labelId="language-select-label"
@@ -2944,7 +3279,9 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
               ))}
             </Select>
             {!lessonForm.languageCode && showValidation && (
-              <Typography color="error" variant="caption">Vui lòng chọn ngôn ngữ</Typography>
+              <Typography color="error" variant="caption">
+                Vui lòng chọn ngôn ngữ
+              </Typography>
             )}
           </FormControl>
           <TextField
@@ -2957,7 +3294,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             }
             required
             error={!lessonForm.category && showValidation}
-            helperText={!lessonForm.category && showValidation ? "Vui lòng nhập danh mục" : ""}
+            helperText={
+              !lessonForm.category && showValidation
+                ? "Vui lòng nhập danh mục"
+                : ""
+            }
           />
           <TextField
             label="Giá"
@@ -2971,7 +3312,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             }}
             required
             error={!lessonForm.price && showValidation}
-            helperText={!lessonForm.price && showValidation ? "Vui lòng nhập giá tiền" : ""}
+            helperText={
+              !lessonForm.price && showValidation
+                ? "Vui lòng nhập giá tiền"
+                : ""
+            }
           />
         </DialogContent>
         <DialogActions>
@@ -3013,7 +3358,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                 setLessonDialogOpen(false);
                 setShowValidation(false);
               } catch (err) {
-                toast.error("Lưu bài học thất bại: " + err.message);
+                alert("Lưu bài học thất bại: " + err.message);
               } finally {
                 setLessonLoading(false);
               }
@@ -3035,7 +3380,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             setLessons(lessons.filter((l) => l.id !== lessonToDelete.id));
             setDeleteModalOpen(false);
           } catch (err) {
-            toast.error("Xóa bài học thất bại: " + err.message);
+            alert("Xóa bài học thất bại: " + err.message);
           } finally {
             setLessonLoading(false);
           }
@@ -3057,10 +3402,16 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
         maxWidth="xl"
         fullWidth
         PaperProps={{
-          sx: { minWidth: 1100 }
+          sx: { minWidth: 1100 },
         }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <IconButton
               onClick={handleDialogPrevWeek}
@@ -3074,7 +3425,10 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
               }}
               aria-label="Previous week"
             >
-              <FaChevronLeft size={20} color={isDialogAtCurrentWeek ? "#ccc" : "#333"} />
+              <FaChevronLeft
+                size={20}
+                color={isDialogAtCurrentWeek ? "#ccc" : "#333"}
+              />
             </IconButton>
             <span>
               {dialogWeekInfo.length > 0
@@ -3109,9 +3463,21 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
               }}
             >
               {/* Header row */}
-              <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>Thời gian</Box>
+              <Box
+                sx={{
+                  p: 1.5,
+                  fontWeight: 600,
+                  textAlign: "center",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Thời gian
+              </Box>
               {dialogWeekInfo.map((d, i) => (
-                <Box key={i} sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
+                <Box
+                  key={i}
+                  sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}
+                >
                   <div style={{ fontSize: 14 }}>{d.label}</div>
                   <div style={{ fontSize: 13, color: "#64748b" }}>{d.date}</div>
                 </Box>
@@ -3122,7 +3488,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                 const minute = slotIdx % 2 === 0 ? "00" : "30";
                 const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
                 const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
-                const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+                const timeLabel = `${hour
+                  .toString()
+                  .padStart(2, "0")}:${minute} - ${nextHour
+                  .toString()
+                  .padStart(2, "0")}:${nextMinute}`;
 
                 return (
                   <React.Fragment key={slotIdx}>
@@ -3158,13 +3528,16 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                             cursor: "pointer",
                             transition: "background 0.2s",
                             "&:hover": {
-                              backgroundColor: isSelected ? "#7bbf3f" : "#e0e7ef",
+                              backgroundColor: isSelected
+                                ? "#7bbf3f"
+                                : "#e0e7ef",
                             },
                           }}
                           onClick={() => {
                             setEditPatternSlots((prev) => {
                               const newSlots = { ...prev };
-                              if (!newSlots[dayInWeek]) newSlots[dayInWeek] = new Set();
+                              if (!newSlots[dayInWeek])
+                                newSlots[dayInWeek] = new Set();
                               const slotSet = new Set(newSlots[dayInWeek]);
                               if (slotSet.has(slotIdx)) {
                                 slotSet.delete(slotIdx);
@@ -3193,26 +3566,33 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
               try {
                 // Convert slot map to array
                 const slots = [];
-                Object.entries(editPatternSlots).forEach(([dayInWeek, slotSet]) => {
-                  slotSet.forEach(slotIndex => {
-                    slots.push({
-                      type: 0,
-                      dayInWeek: Number(dayInWeek),
-                      slotIndex: Number(slotIndex),
+                Object.entries(editPatternSlots).forEach(
+                  ([dayInWeek, slotSet]) => {
+                    slotSet.forEach((slotIndex) => {
+                      slots.push({
+                        type: 0,
+                        dayInWeek: Number(dayInWeek),
+                        slotIndex: Number(slotIndex),
+                      });
                     });
-                  });
-                });
+                  }
+                );
 
                 // Always use Monday 00:00:00 UTC
                 const localMonday = currentWeekStart; // e.g., 2025-07-07T00:00:00+07:00
-                const appliedFromUTC = new Date(Date.UTC(
-                  localMonday.getFullYear(),
-                  localMonday.getMonth(),
-                  localMonday.getDate(),
-                  0, 0, 0, 0
-                )); // This is 2025-07-07T00:00:00.000Z
+                const appliedFromUTC = new Date(
+                  Date.UTC(
+                    localMonday.getFullYear(),
+                    localMonday.getMonth(),
+                    localMonday.getDate(),
+                    0,
+                    0,
+                    0,
+                    0
+                  )
+                ); // This is 2025-07-07T00:00:00.000Z
 
-                console.log('appliedFrom (UTC):', appliedFromUTC.toISOString());
+                console.log("appliedFrom (UTC):", appliedFromUTC.toISOString());
                 await editTutorWeeklyPattern({
                   appliedFrom: appliedFromUTC.toISOString(),
                   slots,
@@ -3222,7 +3602,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                 const updatedPatterns = await fetchTutorWeeklyPattern(id);
                 setWeeklyPatterns(updatedPatterns);
               } catch (err) {
-                toast.error("Cập nhật lịch trình thất bại: " + err.message);
+                alert("Cập nhật lịch trình thất bại: " + err.message);
               } finally {
                 setPatternLoading(false);
               }
@@ -3245,7 +3625,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
             const updatedPatterns = await fetchTutorWeeklyPattern(id);
             setWeeklyPatterns(updatedPatterns); // Update the state with the new patterns
           } catch (error) {
-            toast.error("Xóa lịch trình thất bại: " + error.message);
+            alert("Xóa lịch trình thất bại: " + error.message);
           } finally {
             setDeletePatternModalOpen(false);
           }
@@ -3259,18 +3639,61 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
         fullWidth={false}
         PaperProps={{
           sx: {
-            width: '100%',
-            height: '90%',
-            maxWidth: 'none',
-            maxHeight: 'none',
-            top: '5%',
-            left: '0%',
-            right: '0%',
-            margin: '0 auto'
-          }
+            width: "100%",
+            height: "90%",
+            maxWidth: "none",
+            maxHeight: "none",
+            top: "5%",
+            left: "0%",
+            right: "0%",
+            margin: "0 auto",
+          },
         }}
       >
-        <DialogTitle>Chọn khung giờ để đề nghị cho học viên</DialogTitle>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            
+            <Typography variant="h6">
+              Chọn khung giờ để đề nghị cho học viên
+            </Typography>
+            
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+              onClick={handleDialogPrevWeek}
+              sx={{
+                color: "primary.main",
+                "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
+              }}
+            >
+              <FiChevronLeft />
+            </IconButton>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              {(() => {
+                const startDate = new Date(dialogWeekStart);
+                const endDate = new Date(dialogWeekStart);
+                endDate.setDate(endDate.getDate() + 6);
+                return formatDateRange(startDate, endDate);
+              })()}
+            </Typography>
+            <IconButton
+              onClick={handleDialogNextWeek}
+              sx={{
+                color: "primary.main",
+                "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
+              }}
+            >
+              <FiChevronRight />
+            </IconButton>
+          </Box>
+        </DialogTitle>
         <DialogContent>
           {bookingDetailLoading ? (
             <BookingDetailSkeleton />
@@ -3284,11 +3707,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                 }}
               >
                 {/* Header row */}
-                <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>Thời gian</Box>
+                <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
+                  Thời gian
+                </Box>
                 {dialogWeekInfo.map((d, i) => (
-                  <Box key={i} sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
+                  <Box
+                    key={i}
+                    sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}
+                  >
                     <div style={{ fontSize: 14 }}>{d.label}</div>
-                    <div style={{ fontSize: 13, color: "#64748b" }}>{d.date}</div>
+                    <div style={{ fontSize: 13, color: "#64748b" }}>
+                      {d.date}
+                    </div>
                   </Box>
                 ))}
                 {/* Time slots */}
@@ -3297,7 +3727,11 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                   const minute = slotIdx % 2 === 0 ? "00" : "30";
                   const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
                   const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
-                  const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+                  const timeLabel = `${hour
+                    .toString()
+                    .padStart(2, "0")}:${minute} - ${nextHour
+                    .toString()
+                    .padStart(2, "0")}:${nextMinute}`;
                   return (
                     <React.Fragment key={slotIdx}>
                       {/* Time label cell */}
@@ -3317,31 +3751,39 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                       </Box>
                       {/* For each day, render a cell for this 30-min slot */}
                       {dayInWeekOrder.map((dayInWeek, dayIdx) => {
-                        const isRequested = Array.isArray(bookingDetailSlots) && bookingDetailSlots.some(
-                          slot => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
-                        );
-                        const isSelected = selectedOfferSlots.some(
-                          slot => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
-                        );
-                        const isOffered = offerDetail?.offeredSlots?.some(slot => {
-                          const date = new Date(slot.slotDateTime);
-                          let jsDay = date.getDay();
-                          let apiDayInWeek = jsDay === 0 ? 1 : jsDay + 1;
-
-                          // Week check
-                          const weekStart = new Date(dialogWeekStart);
-                          weekStart.setHours(0, 0, 0, 0);
-                          const weekEnd = new Date(weekStart);
-                          weekEnd.setDate(weekEnd.getDate() + 6);
-                          weekEnd.setHours(23, 59, 59, 999);
-
-                          return (
-                            apiDayInWeek === dayInWeek &&
-                            slot.slotIndex === slotIdx &&
-                            date >= weekStart &&
-                            date <= weekEnd
+                        const isRequested =
+                          Array.isArray(bookingDetailSlots) &&
+                          bookingDetailSlots.some(
+                            (slot) =>
+                              slot.dayInWeek === dayInWeek &&
+                              slot.slotIndex === slotIdx
                           );
-                        });
+                        const isSelected = selectedOfferSlots.some(
+                          (slot) =>
+                            slot.dayInWeek === dayInWeek &&
+                            slot.slotIndex === slotIdx
+                        );
+                        const isOffered = offerDetail?.offeredSlots?.some(
+                          (slot) => {
+                            const date = new Date(slot.slotDateTime);
+                            let jsDay = date.getDay();
+                            let apiDayInWeek = jsDay === 0 ? 1 : jsDay + 1;
+
+                            // Week check
+                            const weekStart = new Date(dialogWeekStart);
+                            weekStart.setHours(0, 0, 0, 0);
+                            const weekEnd = new Date(weekStart);
+                            weekEnd.setDate(weekEnd.getDate() + 6);
+                            weekEnd.setHours(23, 59, 59, 999);
+
+                            return (
+                              apiDayInWeek === dayInWeek &&
+                              slot.slotIndex === slotIdx &&
+                              date >= weekStart &&
+                              date <= weekEnd
+                            );
+                          }
+                        );
 
                         // NEW: Purple if both requested and offered
                         const isRequestedAndOffered = isRequested && isOffered;
@@ -3356,8 +3798,18 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                         } else if (isRequested) {
                           bgColor = "#FFD700"; // yellow for requested
                         }
-                        let textColor = (isSelected || isOffered || isRequestedAndOffered) ? "#fff" : (isRequested ? "#333" : "inherit");
-                        let fontWeight = (isSelected || isOffered || isRequestedAndOffered) ? 700 : (isRequested ? 600 : 400);
+                        let textColor =
+                          isSelected || isOffered || isRequestedAndOffered
+                            ? "#fff"
+                            : isRequested
+                            ? "#333"
+                            : "inherit";
+                        let fontWeight =
+                          isSelected || isOffered || isRequestedAndOffered
+                            ? 700
+                            : isRequested
+                            ? 600
+                            : 400;
 
                         return (
                           <Box
@@ -3377,16 +3829,25 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
                               opacity: 1,
                             }}
                             onClick={() => {
-                              setSelectedOfferSlots(prev => {
+                              setSelectedOfferSlots((prev) => {
                                 const exists = prev.some(
-                                  slot => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
+                                  (slot) =>
+                                    slot.dayInWeek === dayInWeek &&
+                                    slot.slotIndex === slotIdx
                                 );
                                 if (exists) {
                                   return prev.filter(
-                                    slot => !(slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx)
+                                    (slot) =>
+                                      !(
+                                        slot.dayInWeek === dayInWeek &&
+                                        slot.slotIndex === slotIdx
+                                      )
                                   );
                                 } else {
-                                  return [...prev, { dayInWeek, slotIndex: slotIdx }];
+                                  return [
+                                    ...prev,
+                                    { dayInWeek, slotIndex: slotIdx },
+                                  ];
                                 }
                               });
                             }}
@@ -3473,11 +3934,12 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
           </Box>
           {/* Buttons */}
           <Box sx={{ display: "flex", gap: 2 }}>
-            <Button onClick={() => {
-              setBookingDetailDialogOpen(false);
-              setSelectedLesson(null);
-              setSelectedLessonId("");
-            }}>
+            <Button
+              onClick={() => {
+                setBookingDetailDialogOpen(false);
+                setSelectedLearner(null);
+              }}
+            >
               Đóng
             </Button>
             <Button
@@ -3485,87 +3947,47 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
               color="primary"
               disabled={selectedOfferSlots.length === 0 || !selectedLearner}
               onClick={async () => {
-                if (!selectedLesson) {
-                  setSelectLessonDialogOpen(true);
+                if (!selectedLearner) {
                   return;
                 }
                 try {
-                  const offeredSlots = selectedOfferSlots.map(slot => ({
-                    slotDateTime: getSlotDateTime(dialogWeekStart, slot.dayInWeek, slot.slotIndex),
+                  const offeredSlots = selectedOfferSlots.map((slot) => ({
+                    slotDateTime: getSlotDateTime(
+                      dialogWeekStart,
+                      slot.dayInWeek,
+                      slot.slotIndex
+                    ),
                     slotIndex: slot.slotIndex,
                   }));
 
                   if (offerDetail && offerDetail.id) {
                     // Update existing offer
                     await updateTutorBookingOfferByOfferId(offerDetail.id, {
-                      lessonId: selectedLesson.id,
                       offeredSlots,
                     });
-                    toast.success("Đã cập nhật đề nghị thành công!");
+                    alert("Đã cập nhật đề nghị thành công!");
                   } else {
                     // Create new offer
                     await createTutorBookingOffer({
                       learnerId: selectedLearner,
-                      lessonId: selectedLesson.id,
                       offeredSlots,
                     });
-                    toast.success("Đã gửi đề nghị thành công!");
+                    alert("Đã gửi đề nghị thành công!");
                   }
 
                   setBookingDetailDialogOpen(false);
                   setSelectedOfferSlots([]);
                   setSelectedLearner(null);
-                  setSelectedLessonId("");
-                  setSelectedLesson(null);
                 } catch (err) {
-                  toast.error("Gửi đề nghị thất bại: " + err.message);
+                  alert("Gửi đề nghị thất bại: " + err.message);
                 }
               }}
             >
-              {selectedLesson ? (offerDetail && offerDetail.id ? "Cập nhật đề xuất" : "Gửi đề xuất") : "Chọn bài học"}
+              {offerDetail && offerDetail.id
+                ? "Cập nhật đề xuất"
+                : "Gửi đề xuất"}
             </Button>
           </Box>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={selectLessonDialogOpen}
-        onClose={() => setSelectLessonDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Chọn bài học để đề xuất</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth margin="normal">
-            <InputLabel id="select-lesson-label">Bài học</InputLabel>
-            <Select
-              labelId="select-lesson-label"
-              value={selectedLessonId}
-              label="Bài học"
-              onChange={(e) => setSelectedLessonId(e.target.value)}
-            >
-              {lessons.map((lesson) => (
-                <MenuItem key={lesson.id} value={lesson.id}>
-                  {lesson.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectLessonDialogOpen(false)}>Hủy</Button>
-          <Button
-            variant="contained"
-            color="primary"
-            disabled={!selectedLessonId}
-            onClick={() => {
-              const lesson = lessons.find(l => l.id === selectedLessonId);
-              setSelectedLesson(lesson);
-              setSelectLessonDialogOpen(false);
-            }}
-          >
-            Xác nhận
-          </Button>
         </DialogActions>
       </Dialog>
 
@@ -3586,7 +4008,7 @@ const TutorProfile = ({ user, onRequireLogin, fetchTutorDetail, requestTutorVeri
         cancelText="Hủy"
         confirmColor="error"
       />
-      
+
       <ToastContainer
         position="top-right"
         autoClose={3000}

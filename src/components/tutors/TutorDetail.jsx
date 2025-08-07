@@ -86,9 +86,28 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const [isPatternDialogOpen, setIsPatternDialogOpen] = useState(false);
   const [bookingLessonId, setBookingLessonId] = useState(null);
 
-  // Handler to show toast
+  // Handler to show toast and add notification
   const handleBookingSuccess = () => {
-    toast.success("Gửi yêu cầu thành công!");
+    toast.success("Gửi yêu cầu thành công!", {
+      onClose: () => {
+        // Add notification after toast closes
+        if (window.addNotification && teacher) {
+          window.addNotification({
+            title: "Đặt lịch thành công",
+            message: `Bạn đã đặt lịch gia sư ${teacher.name} thành công`,
+            type: "success",
+            senderProfile: {
+              profilePictureUrl:
+                teacher.profileImageUrl ||
+                "https://avatar.iran.liara.run/public",
+            },
+          });
+        }
+      },
+    });
+
+    // Close the LessonDetailModal as well
+    handleCloseLessonModal();
   };
 
   useEffect(() => {
@@ -126,52 +145,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
             sun: false,
           };
         });
-
-        //    the following loop needs to be updated to parse it correctly.
-        //    Based on the provided empty array, I'm keeping the old processing logic
-        //    as a placeholder, but it might need significant changes. ***
-        if (
-          apiTeacherData &&
-          Array.isArray(apiTeacherData.availabilityPatterns)
-        ) {
-          // Assuming availabilityPatterns might contain objects similar to the old 'availability' structure
-          apiTeacherData.availabilityPatterns.forEach((timeSlot) => {
-            if (timeSlot && timeSlot.time) {
-              const hour = parseInt(timeSlot.time.split(":")[0], 10);
-              let timeRangeKey = null;
-
-              if (hour >= 0 && hour < 4) timeRangeKey = "00:00 - 04:00";
-              else if (hour >= 4 && hour < 8) timeRangeKey = "04:00 - 08:00";
-              else if (hour >= 8 && hour < 12) timeRangeKey = "08:00 - 12:00";
-              else if (hour >= 12 && hour < 16) timeRangeKey = "12:00 - 16:00";
-              else if (hour >= 16 && hour < 20) timeRangeKey = "16:00 - 20:00";
-              else if (hour >= 20 && hour < 24) timeRangeKey = "20:00 - 24:00";
-
-              if (timeRangeKey && blockAvailability[timeRangeKey]) {
-                if (timeSlot.mon === true)
-                  blockAvailability[timeRangeKey].mon = true;
-                if (timeSlot.tue === true)
-                  blockAvailability[timeRangeKey].tue = true;
-                if (timeSlot.wed === true)
-                  blockAvailability[timeRangeKey].wed = true;
-                if (timeSlot.thu === true)
-                  blockAvailability[timeRangeKey].thu = true;
-                if (timeSlot.fri === true)
-                  blockAvailability[timeRangeKey].fri = true;
-                if (timeSlot.sat === true)
-                  blockAvailability[timeRangeKey].sat = true;
-                if (timeSlot.sun === true)
-                  blockAvailability[timeRangeKey].sun = true;
-              }
-            } else {
-              // Log a warning if the structure isn't as expected
-              console.warn(
-                "Skipping potentially invalid availabilityPattern data:",
-                timeSlot
-              );
-            }
-          });
-        }
 
         const formattedTeacherData = {
           id: apiTeacherData.userId, // Use userId from API
@@ -261,7 +234,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     };
 
     loadData();
-  }, [id, user, navigate, onRequireLogin]); // Added dependencies
+  }, [id, user, navigate, onRequireLogin]); 
 
   useEffect(() => {
     if (!weekStartDate) return;
@@ -535,7 +508,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         <div className="flex-1">
           <div className="flex items-start gap-4">
             <img
-              src={teacher.profileImageUrl || "https://picsum.photos/300/200?random=1"}
+              src={
+                teacher.profileImageUrl ||
+                "https://picsum.photos/300/200?random=1"
+              }
               alt={teacher.name}
               className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
             />
@@ -753,7 +729,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800">
-            {teacher.rating !== undefined && teacher.rating !== null ? teacher.rating.toFixed(1) : "N/A"}
+            {teacher.rating !== undefined && teacher.rating !== null
+              ? teacher.rating.toFixed(1)
+              : "N/A"}
           </p>
           <div className="flex justify-center gap-1 mt-1">
             {[...Array(5)].map((_, i) => (
@@ -923,7 +901,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   marginRight: 6,
                 }}
               />
-              <span className="text-sm text-gray-700 font-medium">Không có sẵn</span>
+              <span className="text-sm text-gray-700 font-medium">
+                Không có sẵn
+              </span>
             </div>
           </div>
           {/* Timezone and button */}
@@ -1008,6 +988,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           setBookingLessonId(null); // reset after close
         }}
         tutorId={teacher.id}
+        tutorName={teacher.name} // Pass tutor name
         initialWeekStart={currentWeekStart}
         currentUser={user}
         onBookingSuccess={handleBookingSuccess}
