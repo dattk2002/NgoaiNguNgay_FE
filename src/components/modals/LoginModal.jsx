@@ -6,7 +6,7 @@ import { FcGoogle } from "react-icons/fc";
 import { GoogleAuthProvider, signInWithPopup, FacebookAuthProvider } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { toast } from "react-toastify";
-import { login } from "../api/auth";
+import { login, loginGoogleToFirebase } from "../api/auth";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 
 const EyeIcon = () => (
@@ -271,27 +271,82 @@ const LoginModal = ({
     }
   };
 
-  const googleLogin = () => {
-    // Initialize Google Sign-In
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: 'email profile',
-      callback: async (response) => {
-        if (response.access_token) {
-          try {
-            // Store the access token temporarily
-            localStorage.setItem("google_access_token", response.access_token);
-            // Redirect to callback URL
-            window.location.href = GOOGLE_LOGIN_URI;
-          } catch (error) {
-            console.error("Google Sign-In Error:", error);
-            toast.error("Đăng nhập Google thất bại. Vui lòng thử lại.");
-          }
-        }
-      },
-    });
+  const googleLogin = async () => {
+    setIsLoading(true);
+    setGeneralError("");
 
-    client.requestAccessToken();
+    try {
+      // 1. Trigger Google sign-in popup
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+
+      // 2. Get the ID token from the signed-in user
+      const googleAccessToken = await result.user.getIdToken();
+      console.log("Google Access Token: ", googleAccessToken);
+
+      // 3. Call your backend with the ID token
+      const response = await loginGoogleToFirebase(googleAccessToken);
+
+      // ... (rest of your logic, as previously fixed) ...
+      if (response?.token?.user) {
+        const { id, fullName, email, profileImageUrl, username, phoneNumber, dateOfBirth, gender } = response.token.user;
+
+        let roles = response.roles ||
+          response.token.roles ||
+          response.token.user.roles ||
+          response.token.user.role ||
+          [];
+
+        if (typeof roles === 'string') {
+          roles = [roles];
+        }
+
+        const userDetails = {
+          id,
+          fullName,
+          email,
+          profileImageUrl,
+          username,
+          phoneNumber,
+          dateOfBirth,
+          gender,
+          role: response.role || response.token.user.role,
+          roles: roles,
+          accessToken: response.token.accessToken,
+          refreshToken: response.token.refreshToken,
+        };
+
+        localStorage.setItem("accessToken", response.token.accessToken);
+        localStorage.setItem("refreshToken", response.token.refreshToken);
+
+        onLogin(userDetails);
+
+        toast.success("Đăng nhập Google thành công!", {
+          position: "top-center",
+        });
+        onClose();
+      } else {
+        throw new Error("Invalid response from Google login API");
+      }
+    } catch (error) {
+      console.error("Google Sign-In Error:", error);
+      let userFacingErrorMessage = "Đăng nhập Google thất bại. Vui lòng thử lại.";
+
+      if (error.code === 'auth/popup-closed-by-user') {
+        userFacingErrorMessage = "Đăng nhập bị hủy. Vui lòng thử lại.";
+      } else if (error.code === 'auth/popup-blocked') {
+        userFacingErrorMessage = "Popup bị chặn. Vui lòng cho phép popup cho trang web này.";
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        userFacingErrorMessage = "Tài khoản đã tồn tại với phương thức đăng nhập khác.";
+      } else if (error.message) {
+        userFacingErrorMessage = error.message;
+      }
+
+      setGeneralError(userFacingErrorMessage);
+      toast.error(userFacingErrorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const facebookLogin = () => {

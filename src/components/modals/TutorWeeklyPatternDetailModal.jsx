@@ -1,7 +1,7 @@
 // src/components/modals/ReadOnlyWeeklyPatternDialog.jsx
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, IconButton } from "@mui/material";
-import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot, systemSendNotificationToUsers } from "../api/auth";
+import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot } from "../api/auth";
 import Skeleton from "@mui/material/Skeleton";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Snackbar from "@mui/material/Snackbar";
@@ -43,6 +43,7 @@ const TutorWeeklyPatternDetailModal = ({
   open,
   onClose,
   tutorId,
+  tutorName, // Add tutor name prop
   initialWeekStart,
   currentUser,
   onBookingSuccess,
@@ -198,27 +199,8 @@ const TutorWeeklyPatternDetailModal = ({
       );
       console.log("✅ TutorWeeklyPatternDetailModal - Booking slot updated successfully");
 
-      // --- Send notification to tutor ---
-      const learnerName = currentUser.fullName || currentUser.name || "Một học viên";
-      const notificationContent = {
-        notificationPriority: 2,
-        title: "Bạn có 1 yêu cầu đặt lịch mới",
-        content: `${learnerName} đã gửi 1 yêu cầu đặt lịch cho bạn`,
-        additionalData: ""
-      };
-
-      console.log("📦 TutorWeeklyPatternDetailModal - Sending notification to tutor:", {
-        tutorId,
-        notificationContent,
-        learnerName
-      });
-
-      await systemSendNotificationToUsers(
-        notificationContent,
-        [tutorId]
-      );
-      console.log("✅ TutorWeeklyPatternDetailModal - Notification sent successfully to tutor");
-      // --- End notification logic ---
+      // Note: Notification will be sent via SignalR hub automatically by the backend
+      console.log("✅ TutorWeeklyPatternDetailModal - Notification will be sent via SignalR hub");
 
       setSubmitSuccess(true);
       setSelectedSlots([]);

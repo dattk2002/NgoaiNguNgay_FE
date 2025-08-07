@@ -3,8 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
 import { getAccessToken } from "../components/api/auth";
 
-// Try different possible notification hub URLs
-
 export function useNotificationHub() {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
@@ -14,31 +12,19 @@ export function useNotificationHub() {
   const connectionRef = useRef(null);
 
   useEffect(() => {
-    console.log(" useNotificationHub - Starting connection setup...");
-
-    // Get the real access token
     const accessToken = getAccessToken();
-    console.log("Ạc sét tô cần: ", accessToken);
-    
     if (!accessToken) {
       console.warn(" useNotificationHub - No access token found. Connection will not be established.");
       setError("No access token available.");
       return;
     }
 
-    // Debug: Log the token being used
-    console.log(" useNotificationHub - Using token:", accessToken ? `${accessToken}` : "No token");
-
     // Test the token format
     try {
       const tokenParts = accessToken.split('.');
       if (tokenParts.length === 3) {
         const payload = JSON.parse(atob(tokenParts[1]));
-        console.log(" useNotificationHub - Token payload:", payload);
-        console.log(" useNotificationHub - Token contains user ID:", payload.sub || payload.userId || payload.id);
-        console.log(" useNotificationHub - Token expiration:", new Date(payload.exp * 1000));
       } else {
-        console.log(" useNotificationHub - Token doesn't appear to be a JWT");
       }
     } catch (error) {
       console.error(" useNotificationHub - Error decoding token:", error);
@@ -46,10 +32,8 @@ export function useNotificationHub() {
 
     const hubConnection = new HubConnectionBuilder()
       .withUrl("https://tutorbooking-dev-065fe6ad4a6a.herokuapp.com/notification-hub", {
-        accessTokenFactory: () => {
-          console.log(" useNotificationHub - Token: ", accessToken);
-          return accessToken;
-        },
+        accessTokenFactory: () => accessToken,
+        
         // Try without additional headers first
         // headers: {
         //   "Authorization": `Bearer ${accessToken}`,
@@ -59,7 +43,6 @@ export function useNotificationHub() {
       })
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: retryContext => {
-          console.log(` useNotificationHub - Reconnect attempt ${retryContext.elapsedMilliseconds}ms, retries: ${retryContext.retryReason}`);
           if (retryContext.elapsedMilliseconds < 60000) {
             return Math.random() * 10000; // Random delay up to 10 seconds
           }
@@ -75,11 +58,6 @@ export function useNotificationHub() {
     const updateConnectionState = () => {
       const state = hubConnection.state;
       setConnectionState(state);
-      console.log(" useNotificationHub - Connection state changed to:", {
-        state: state,
-        stateName: HubConnectionState[state],
-        timestamp: new Date().toISOString()
-      });
     };
 
     // Initial state
@@ -87,21 +65,18 @@ export function useNotificationHub() {
 
     // Log connection state changes
     hubConnection.onreconnecting((error) => {
-      console.log(" useNotificationHub - Reconnecting:", error);
       setConnected(false);
       setError("Reconnecting...");
       updateConnectionState();
     });
 
     hubConnection.onreconnected((connectionId) => {
-      console.log(" useNotificationHub - Reconnected. ConnectionId:", connectionId);
       setConnected(true);
       setError(null);
       updateConnectionState();
     });
 
     hubConnection.onclose((error) => {
-      console.log(" useNotificationHub - Connection closed:", error);
       setConnected(false);
       setError(error ? `Connection closed with error: ${error.message}` : "Connection closed.");
       updateConnectionState();
@@ -109,7 +84,6 @@ export function useNotificationHub() {
 
     // Handle successful connection
     hubConnection.on("UserConnected", (message) => {
-      console.log(" useNotificationHub - UserConnected event received:", message);
       if (message === "CONNECTED_TO_NOTIFICATION_HUB") {
         setConnected(true);
         setError(null);
@@ -120,7 +94,6 @@ export function useNotificationHub() {
 
     // Listen for the "ReceiveNotification" method from the hub
     hubConnection.on("ReceiveNotification", (notificationData) => {
-      console.log(" useNotificationHub - Received Notification:", notificationData);
       setNotification(notificationData);
     });
 
@@ -136,10 +109,6 @@ export function useNotificationHub() {
         updateConnectionState();
         console.log("🔗 Notification Hub State: Connected!");
         console.log("🔗 Current HubConnectionState:", hubConnection.state);
-        
-        // If the hub has a "UserConnected" method, invoke it here
-        // await hubConnection.invoke("UserConnected");
-        // console.log("🔗 Invoked UserConnected method.");
         
       } catch (err) {
         setConnected(false);
@@ -180,12 +149,38 @@ export function useNotificationHub() {
     });
   }, [connectionState, connected, error]);
 
+  // Add the markAsRead function
+  const markAsRead = async (notificationId) => {
+    if (!connectionRef.current || connectionRef.current.state !== HubConnectionState.Connected) {
+      console.error("useNotificationHub - Cannot mark as read: connection not established");
+      throw new Error("Connection not established");
+    }
+
+    try {
+      
+      // Invoke the MarkAsRead method on the hub
+      const result = await connectionRef.current.invoke("MarkAsRead", notificationId);
+      
+      // Handle the response based on the API documentation
+      if (result && result.statusCode === 200 && result.data === "SUCCESS") {
+        return { success: true, message: "Notification marked as read" };
+      } else {
+        console.warn("useNotificationHub - Unexpected response from MarkAsRead:", result);
+        return { success: false, message: "Unexpected response from server" };
+      }
+    } catch (error) {
+      console.error("useNotificationHub - Error marking notification as read:", error);
+      throw new Error(`Failed to mark notification as read: ${error.message}`);
+    }
+  };
+
   return {
     connected,
     error,
     notification,
     connection: connectionRef.current,
     connectionState,
-    connectionStateName: HubConnectionState[connectionState]
+    connectionStateName: HubConnectionState[connectionState],
+    markAsRead // Export the new function
   };
 }

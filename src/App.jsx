@@ -43,7 +43,6 @@ import {
   fetchChatConversationsByUserId,
   requestTutorVerification,
   uploadCertificate,
-  systemSendNotificationToUsers,
   getNotification
 } from "./components/api/auth";
 
@@ -78,6 +77,16 @@ function ScrollToTop() {
 const USER_STORAGE_KEY = "loggedInUser";
 const REMEMBERED_ACCOUNTS_KEY = "rememberedAccounts";
 const ACCOUNTS_STORAGE_KEY = "accounts";
+
+// Utility function to delete all cookies
+function deleteAllCookies() {
+  const cookies = document.cookie.split("; ");
+  for (const cookie of cookies) {
+    const eqPos = cookie.indexOf("=");
+    const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+  }
+}
 
 // Component to handle conditional layout
 function AppContent({
@@ -452,20 +461,80 @@ function App() {
         content: notification.content,
         priority: notification.notificationPriority,
         isRead: notification.isRead,
+        createdAt: notification.createdAt,
+        additionalData: notification.additionalData
+      });
+      
+      // Parse the notification data based on the API structure
+      let displayTitle = notification.title || "Thông báo mới";
+      let displayContent = notification.content || "";
+      let priority = "Normal";
+
+      // Handle different notification types based on title
+      if (notification.title === "PUSH_ON_LEARNER_ACCEPT_OFFER") {
+        try {
+          const additionalData = notification.additionalData ? JSON.parse(notification.additionalData) : {};
+          displayTitle = "Học viên đã chấp nhận đề nghị";
+          displayContent = `Học viên đã chấp nhận đề nghị cho bài học "${additionalData.LessonName || 'không xác định'}"`;
+          priority = "Success";
+        } catch (error) {
+          console.error("Error parsing PUSH_ON_LEARNER_ACCEPT_OFFER data:", error);
+          displayTitle = "Học viên đã chấp nhận đề nghị";
+          displayContent = "Học viên đã chấp nhận đề nghị của bạn";
+          priority = "Success";
+        }
+      } else if (notification.title === "PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST") {
+        try {
+          const additionalData = notification.additionalData ? JSON.parse(notification.additionalData) : {};
+          displayTitle = "Yêu cầu đặt lịch mới";
+          displayContent = `Bạn có yêu cầu đặt lịch mới cho bài học. Ngày bắt đầu dự kiến: ${new Date(additionalData.ExpectedStartDate).toLocaleDateString('vi-VN')}`;
+          priority = "Info";
+        } catch (error) {
+          console.error("Error parsing PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST data:", error);
+          displayTitle = "Yêu cầu đặt lịch mới";
+          displayContent = "Bạn có yêu cầu đặt lịch mới";
+          priority = "Info";
+        }
+      } else if (notification.title === "Bạn có 1 yêu cầu đặt lịch mới") {
+        displayTitle = notification.title;
+        displayContent = notification.content;
+        priority = "Warning";
+      } else {
+        // Handle other notification types
+        displayTitle = notification.title;
+        displayContent = notification.content;
+        
+        // Set priority based on notificationPriority
+        switch (notification.notificationPriority) {
+          case 1:
+            priority = "Critical";
+            break;
+          case 2:
+            priority = "Warning";
+            break;
+          case 3:
+            priority = "Info";
+            break;
+          default:
+            priority = "Normal";
+        }
+      }
+      
+      setSnackbarContent({
+        title: displayTitle,
+        body: displayContent,
+        priority: priority,
+        id: notification.id,
+        additionalData: notification.additionalData,
         createdAt: notification.createdAt
       });
       
-      setSnackbarContent({
-        title: notification.title || "Thông báo mới",
-        body: notification.content || "",
-        priority: notification.notificationPriority || "Normal",
-        id: notification.id
-      });
-      
       console.log("🎯 App.jsx - Setting Snackbar Content:", {
-        title: notification.title || "Thông báo mới",
-        body: notification.content || "",
-        priority: notification.notificationPriority || "Normal"
+        title: displayTitle,
+        body: displayContent,
+        priority: priority,
+        originalTitle: notification.title,
+        originalContent: notification.content
       });
       
       setSnackbarOpen(true);
@@ -679,7 +748,11 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem("user");
     localStorage.removeItem("hasUpdatedProfile");
+    // Remove any other keys you use for login/session
+    sessionStorage.clear();
+    deleteAllCookies(); // <-- Add this line
     setTriggerRoleRedirect(false);
   };
 
@@ -770,7 +843,7 @@ function App() {
         setTriggerRoleRedirect={setTriggerRoleRedirect}
       />
       
-      {/* Global Snackbar with debug info */}
+      {/* Global Snackbar with enhanced content */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
@@ -791,6 +864,7 @@ function App() {
           severity={
             snackbarContent?.priority === "Critical" ? "error" :
             snackbarContent?.priority === "Warning" ? "warning" :
+            snackbarContent?.priority === "Success" ? "success" :
             "info"
           }
           sx={{ 
@@ -799,6 +873,7 @@ function App() {
             backgroundColor: 
               snackbarContent?.priority === "Critical" ? "#f44336" :
               snackbarContent?.priority === "Warning" ? "#ff9800" :
+              snackbarContent?.priority === "Success" ? "#4caf50" :
               "#2196f3",
             color: "white",
             "& .MuiAlert-message": {
@@ -807,12 +882,22 @@ function App() {
           }}
           icon={false}
         >
-          <div style={{ fontWeight: 600, color: "white" }}>
+          <div style={{ fontWeight: 600, color: "white", marginBottom: "4px" }}>
             {snackbarContent?.title}
           </div>
-          <div style={{ color: "white", marginTop: "4px" }}>
+          <div style={{ color: "white", fontSize: "14px", lineHeight: "1.4" }}>
             {snackbarContent?.body}
           </div>
+          {snackbarContent?.createdAt && (
+            <div style={{ 
+              color: "rgba(255, 255, 255, 0.8)", 
+              fontSize: "12px", 
+              marginTop: "4px",
+              fontStyle: "italic"
+            }}>
+              {new Date(snackbarContent.createdAt).toLocaleString('vi-VN')}
+            </div>
+          )}
         </MuiAlert>
       </Snackbar>
       <ToastContainer
