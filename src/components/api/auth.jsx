@@ -26,19 +26,6 @@ async function callApi(endpoint, method, body, token) {
 
   const fullUrl = `${BASE_API_URL}${endpoint}`;
 
-  // Debug logging for rating API calls
-  if (endpoint.includes('booking-slot-rating')) {
-    console.log("🔍 Debug callApi - Full URL:", fullUrl);
-    console.log("🔍 Debug callApi - Method:", method);
-    console.log("🔍 Debug callApi - Headers:", headers);
-    console.log("🔍 Debug callApi - Body:", body);
-    console.log("🔍 Debug callApi - Token preview:", token ? `${token.substring(0, 20)}...` : 'null');
-    
-    if (method === "GET" && endpoint.includes('/booking/')) {
-      console.log("🔍 Debug - GET Rating for booking endpoint");
-    }
-  }
-
   try {
     const response = await fetch(fullUrl, {
       method: method,
@@ -52,21 +39,13 @@ async function callApi(endpoint, method, body, token) {
       let originalErrorData = null;
 
       // Debug logging for rating API errors
-      if (endpoint.includes('booking-slot-rating')) {
-        console.log("❌ Debug callApi - Response status:", response.status);
-        console.log("❌ Debug callApi - Response statusText:", response.statusText);
-        console.log("❌ Debug callApi - Response headers:", Object.fromEntries(response.headers));
-      }
+    
 
       try {
         const errorData = await response.json();
         originalErrorData = errorData;
         console.error("API Error Details Received:", errorData);
-        
-        // Debug logging for rating API errors
-        if (endpoint.includes('booking-slot-rating')) {
-          console.log("❌ Debug callApi - Error data:", errorData);
-        }
+  
 
         if (errorData) {
           if (typeof errorData.errorMessage === 'string') {
@@ -123,7 +102,6 @@ export async function login(username, password) {
     }
 
     const { accessToken, refreshToken, user } = response.data.token;
-    console.log("User:", user);
 
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
@@ -271,24 +249,6 @@ export function getRefreshToken() {
  * Debug function to check authentication status
  * @returns {Object} Authentication debug info
  */
-export function debugAuthStatus() {
-  const accessToken = getAccessToken();
-  const refreshToken = getRefreshToken();
-  const user = getStoredUser();
-  
-  const authInfo = {
-    hasAccessToken: !!accessToken,
-    hasRefreshToken: !!refreshToken,
-    hasUser: !!user,
-    accessTokenPreview: accessToken ? `${accessToken.substring(0, 20)}...` : null,
-    refreshTokenPreview: refreshToken ? `${refreshToken.substring(0, 20)}...` : null,
-    userInfo: user ? { id: user.id, email: user.email, role: user.role } : null,
-    timestamp: new Date().toISOString()
-  };
-  
-  console.log("🔍 Auth Debug Status:", authInfo);
-  return authInfo;
-}
 
 export async function fetchTutors() {
   const MOCK_TUTOR_API_URL = MOCK_TUTORS_URL;
@@ -885,7 +845,6 @@ export async function fetchTutorWeekSchedule(tutorId, startDate) {
     const response = await callApi(`/api/schedule/tutors/${tutorId}/week?startDate=${startDate}`, "GET");
 
     if (response && response.data) {
-      console.log("Weekly schedule fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("No weekly schedule data found for this tutor.");
@@ -1180,7 +1139,6 @@ export async function requestTutorVerification(tutorApplicationId) {
       token
     );
 
-    console.log("Tutor verification request submitted successfully:", response);
     return response;
   } catch (error) {
     console.error("Failed to request tutor verification:", error.message);
@@ -1228,7 +1186,6 @@ export async function uploadCertificate(files, applicationId) {
       credentials: 'include',
     });
 
-    console.log("Certificate upload response status:", response.status, response.statusText);
 
     if (!response.ok) {
       let formattedErrorMessage = `Certificate Upload Error: ${response.status} ${response.statusText}`;
@@ -1259,10 +1216,8 @@ export async function uploadCertificate(files, applicationId) {
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const jsonData = await response.json();
-      console.log("Certificate upload success:", jsonData);
       return jsonData;
     } else {
-      console.log("Certificate upload completed successfully");
       return { success: true, status: response.status };
     }
   } catch (error) {
@@ -1286,7 +1241,6 @@ export async function fetchPendingApplications(page = 1, size = 20) {
     );
 
     if (response && response.data) {
-      console.log("Pending applications fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("No pending applications data found.");
@@ -1307,7 +1261,6 @@ export async function fetchDocumentsByTutorId(tutorId) {
     const response = await callApi(`/api/document/tutor/${tutorId}`, "GET", null, token);
 
     if (response && response.data) {
-      console.log("Documents fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("No documents data found for this tutor.");
@@ -1326,7 +1279,6 @@ export async function deleteDocument(documentId) {
     }
 
     const response = await callApi(`/api/document/${documentId}`, "DELETE", null, token);
-    console.log("Document deleted successfully:", response);
     return response;
   } catch (error) {
     console.error("Failed to delete document:", error.message);
@@ -1344,7 +1296,6 @@ export async function fetchTutorApplicationById(applicationId) {
     const response = await callApi(`/api/tutorapplication/staff/${applicationId}`, "GET", null, token);
 
     if (response && response.data) {
-      console.log("Tutor application details fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("No tutor application data found for this ID.");
@@ -1371,7 +1322,6 @@ export async function reviewTutorApplication(applicationId, action, notes = "") 
     const response = await callApi("/api/tutorapplication/staff/review", "POST", requestBody, token);
 
     if (response) {
-      console.log("Tutor application review completed successfully:", response);
       return response;
     } else {
       throw new Error("No response data from review API.");
@@ -1405,7 +1355,6 @@ export async function createDepositRequest(amount) {
     const response = await callApi("/api/deposit", "POST", requestBody, token);
 
     if (response && response.data) {
-      console.log("Deposit request created successfully:", response.data);
       return response.data;
     } else {
       throw new Error("Invalid response format for deposit request.");
@@ -1427,7 +1376,6 @@ export async function fetchWalletInfo() {
     const response = await callApi("/api/wallet/info", "GET", null, token);
 
     if (response && response.data) {
-      console.log("Wallet info fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("Invalid response format for wallet info.");
@@ -1448,7 +1396,6 @@ export async function fetchWalletTransactions() {
     const response = await callApi("/api/wallet/transactions", "GET", null, token);
 
     if (response && response.data) {
-      console.log("Wallet transactions fetched successfully:", response.data);
       // Handle paginated response structure
       if (response.data.items && Array.isArray(response.data.items)) {
         return response.data.items;
@@ -1474,7 +1421,6 @@ export async function fetchDepositHistory() {
     const response = await callApi("/api/deposit/history", "GET", null, token);
 
     if (response && response.data) {
-      console.log("Deposit history fetched successfully:", response.data);
       // Handle paginated response structure
       if (response.data.items && Array.isArray(response.data.items)) {
         return response.data.items;
@@ -1511,7 +1457,6 @@ export async function fetchLearnerBookings(page = 1, pageSize = 10) {
     );
 
     if (response && response.data) {
-      console.log("Learner bookings fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("Invalid response format for learner bookings.");
@@ -1542,42 +1487,12 @@ export async function fetchBookingDetail(bookingId) {
     );
 
     if (response && response.data) {
-      console.log("Booking detail fetched successfully:", response.data);
       return response.data;
     } else {
       throw new Error("Invalid response format for booking detail.");
     }
   } catch (error) {
     console.error("Failed to fetch booking detail:", error.message);
-    throw error;
-  }
-}
-
-/**
- * Send a system notification to specific users.
- * @param {Object} content - The notification content object.
- * @param {Array<string>} receiverUserIds - Array of user IDs to receive the notification.
- * @returns {Promise<Object>} API response
- */
-export async function systemSendNotificationToUsers(content, receiverUserIds) {
-  try {
-    const token = getAccessToken();
-    if (!token) throw new Error("Authentication token is required");
-
-    const body = {
-      content,
-      receiverUserIds,
-    };
-
-    const response = await callApi(
-      "/api/notification/send-to-users",
-      "POST",
-      body,
-      token
-    );
-    return response;
-  } catch (error) {
-    console.error("Failed to send system notification:", error.message);
     throw error;
   }
 }
@@ -1604,91 +1519,62 @@ export async function getNotification(page = 1, size = 10, isUnreadOnly = false)
 }
 
 /**
- * Fetch tutor bookings with pagination.
- * @param {number} page - Page number (default: 1)
- * @param {number} pageSize - Number of items per page (default: 10)
- * @returns {Promise<Object>} API response with tutor booking data
+ * Fetch sender profile information by user ID.
+ * @param {string} userId - The user ID to get profile information for
+ * @returns {Promise<Object>} API response with sender profile data
  */
-export async function fetchTutorBookings(page = 1, pageSize = 10) {
+export async function getSenderProfile(userId) {
   try {
     const token = getAccessToken();
     if (!token) {
       throw new Error("Authentication token is required");
     }
 
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
     const response = await callApi(
-      `/api/booking/tutor?page=${page}&pageSize=${pageSize}`,
+      `/api/notification/sender?userId=${userId}`,
       "GET",
       null,
       token
     );
 
     if (response && response.data) {
-      console.log("Tutor bookings fetched successfully:", response.data);
       return response.data;
     } else {
-      throw new Error("Invalid response format for tutor bookings.");
+      throw new Error("Invalid response format for sender profile.");
     }
   } catch (error) {
-    console.error("Failed to fetch tutor bookings:", error.message);
+    console.error("Failed to fetch sender profile:", error.message);
     throw error;
   }
 }
 
 /**
- * Rate a booking slot after completion.
- * @param {Object} ratingData - { bookingSlotId, teachingQuality, attitude, commitment, comment }
- * @returns {Promise<Object>} API response
+ * Login with Firebase authentication.
+ * @returns {Promise<Object>} API response with authentication data
  */
-export async function submitBookingSlotRating(ratingData) {
+export async function loginGoogleToFirebase(googleAccessToken) {
   try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
+    const response = await callApi(
+      "/api/auth/login-firebase",
+      "POST",
+      null,
+      googleAccessToken
+    );
+
+    if (response?.data?.token) {
+      const { accessToken, refreshToken, user } = response.data.token;
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("user", JSON.stringify(user));
     }
 
-    const response = await callApi("/api/booking-slot-rating", "POST", ratingData, token);
-
-    if (response) {
-      console.log("Booking slot rating submitted successfully:", response);
-      return response;
-    } else {
-      throw new Error("Invalid response format for booking slot rating.");
-    }
+    return response;
   } catch (error) {
-    console.error("Failed to submit booking slot rating:", error.message);
-    throw error;
-  }
-}
-
-/**
- * Rate a complete booking/course after at least one slot is completed.
- * @param {Object} ratingData - { bookingId, teachingQuality, attitude, commitment, comment }
- * @returns {Promise<Object>} API response
- */
-export async function submitBookingRating(ratingData) {
-  try {
-    const token = getAccessToken();
-    console.log("🔍 Debug submitBookingRating - Token exists:", !!token);
-    console.log("🔍 Debug submitBookingRating - Token preview:", token ? `${token.substring(0, 20)}...` : 'null');
-    console.log("🔍 Debug submitBookingRating - Rating data (bookingSlotId contains bookingId):", ratingData);
-    
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
-
-    const response = await callApi("/api/booking-slot-rating", "POST", ratingData, token);
-
-    if (response) {
-      console.log("✅ Booking rating submitted successfully:", response);
-      return response;
-    } else {
-      throw new Error("Invalid response format for booking rating.");
-    }
-  } catch (error) {
-    console.error("❌ Failed to submit booking rating:", error.message);
-    console.error("❌ Error status:", error.status);
-    console.error("❌ Error details:", error.details);
+    console.error("Firebase login failed:", error.message);
     throw error;
   }
 }
@@ -1726,57 +1612,33 @@ export async function getBookingRating(bookingId) {
 }
 
 /**
- * Complete a booked slot by changing its status to completed.
- * @param {string} bookedSlotId - The booked slot ID to complete
+ * Rate a complete booking/course after at least one slot is completed.
+ * @param {Object} ratingData - { bookingId, teachingQuality, attitude, commitment, comment }
  * @returns {Promise<Object>} API response
  */
-export async function completeBookedSlot(bookedSlotId) {
+export async function submitBookingRating(ratingData) {
   try {
     const token = getAccessToken();
+    console.log("🔍 Debug submitBookingRating - Token exists:", !!token);
+    console.log("🔍 Debug submitBookingRating - Token preview:", token ? `${token.substring(0, 20)}...` : 'null');
+    console.log("🔍 Debug submitBookingRating - Rating data (bookingSlotId contains bookingId):", ratingData);
+    
     if (!token) {
       throw new Error("Authentication token is required");
     }
 
-    const response = await callApi(
-      `/api/tutor-bookings/booked-slots/${bookedSlotId}/complete`,
-      "PATCH",
-      null,
-      token
-    );
+    const response = await callApi("/api/booking-slot-rating", "POST", ratingData, token);
 
     if (response) {
-      console.log("Booked slot completed successfully:", response);
+      console.log("✅ Booking rating submitted successfully:", response);
       return response;
     } else {
-      throw new Error("Invalid response format for completing booked slot.");
+      throw new Error("Invalid response format for booking rating.");
     }
   } catch (error) {
-    console.error("Failed to complete booked slot:", error.message);
-    throw error;
-  }
-}
-
-/**
- * Fetch bank accounts for withdrawals.
- * @returns {Promise<Object>} API response with bank accounts data
- */
-export async function fetchBankAccounts() {
-  try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
-
-    const response = await callApi("/api/withdrawals/bank-accounts", "GET", null, token);
-
-    if (response && response.data) {
-      console.log("Bank accounts fetched successfully:", response.data);
-      return response.data;
-    } else {
-      return [];
-    }
-  } catch (error) {
-    console.error("Failed to fetch bank accounts:", error.message);
+    console.error("❌ Failed to submit booking rating:", error.message);
+    console.error("❌ Error status:", error.status);
+    console.error("❌ Error details:", error.details);
     throw error;
   }
 }
@@ -1808,32 +1670,6 @@ export async function createBankAccount(accountData) {
 }
 
 /**
- * Create a withdrawal request.
- * @param {Object} withdrawalData - { bankAccountId, grossAmount }
- * @returns {Promise<Object>} API response
- */
-export async function createWithdrawalRequest(withdrawalData) {
-  try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
-
-    const response = await callApi("/api/withdrawals", "POST", withdrawalData, token);
-
-    if (response) {
-      console.log("Withdrawal request created successfully:", response);
-      return response;
-    } else {
-      throw new Error("Invalid response format for withdrawal request.");
-    }
-  } catch (error) {
-    console.error("Failed to create withdrawal request:", error.message);
-    throw error;
-  }
-}
-
-/**
  * Delete a bank account by ID.
  * @param {string} bankAccountId - The ID of the bank account to delete
  * @returns {Promise<Object>} API response
@@ -1851,6 +1687,31 @@ export async function deleteBankAccount(bankAccountId) {
     return response;
   } catch (error) {
     console.error("Failed to delete bank account:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch bank accounts for withdrawals.
+ * @returns {Promise<Object>} API response with bank accounts data
+ */
+export async function fetchBankAccounts() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals/bank-accounts", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("Bank accounts fetched successfully:", response.data);
+      return response.data;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Failed to fetch bank accounts:", error.message);
     throw error;
   }
 }
@@ -1883,6 +1744,95 @@ export async function fetchWithdrawalRequests(params = {}) {
     }
   } catch (error) {
     console.error("Failed to fetch withdrawal requests:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a withdrawal request.
+ * @param {Object} withdrawalData - { bankAccountId, grossAmount }
+ * @returns {Promise<Object>} API response
+ */
+export async function createWithdrawalRequest(withdrawalData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/withdrawals", "POST", withdrawalData, token);
+
+    if (response) {
+      console.log("Withdrawal request created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for withdrawal request.");
+    }
+  } catch (error) {
+    console.error("Failed to create withdrawal request:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Complete a booked slot by changing its status to completed.
+ * @param {string} bookedSlotId - The booked slot ID to complete
+ * @returns {Promise<Object>} API response
+ */
+export async function completeBookedSlot(bookedSlotId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/tutor-bookings/booked-slots/${bookedSlotId}/complete`,
+      "PATCH",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("Booked slot completed successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for completing booked slot.");
+    }
+  } catch (error) {
+    console.error("Failed to complete booked slot:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor bookings with pagination.
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Number of items per page (default: 10)
+ * @returns {Promise<Object>} API response with tutor booking data
+ */
+export async function fetchTutorBookings(page = 1, pageSize = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/booking/tutor?page=${page}&pageSize=${pageSize}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("Tutor bookings fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for tutor bookings.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor bookings:", error.message);
     throw error;
   }
 }

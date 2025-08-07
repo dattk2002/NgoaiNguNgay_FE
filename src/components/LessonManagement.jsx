@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating, debugAuthStatus } from "./api/auth";
+import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating } from "./api/auth";
 import { formatCentralTimestamp } from "../utils/formatCentralTimestamp";
 import { Skeleton } from "@mui/material";
 
@@ -415,10 +415,6 @@ const LessonManagement = () => {
 
     try {
       setSubmittingRating(true);
-      
-      // Debug authentication before submitting rating
-      console.log("🔍 Debug - Starting rating submission...");
-      debugAuthStatus();
       
       const ratingPayload = {
         bookingSlotId: selectedBookingForRating.bookingId,

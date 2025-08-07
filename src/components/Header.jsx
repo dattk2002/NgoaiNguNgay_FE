@@ -1,10 +1,52 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCommentDots, FaWallet } from "react-icons/fa";
+import { 
+  FaCommentDots, 
+  FaWallet, 
+  FaBell, 
+  FaCheck, 
+  FaCheckDouble, 
+  FaTimes, 
+  FaInfoCircle, 
+  FaExclamationTriangle, 
+  FaExclamationCircle,
+  FaBellSlash,
+  FaClock,
+  FaRegBell
+} from "react-icons/fa";
 import { toast } from "react-toastify";
 import logo from "../assets/logo.png";
 import NoFocusOutLineButton from '../utils/noFocusOutlineButton';
+import { useNotificationHub } from "../hooks/useNotificationHub";
+import { getNotification } from "./api/auth";
+import { getSenderProfile } from "./api/auth";
+import { 
+  Badge, 
+  Menu, 
+  MenuItem, 
+  List, 
+  ListItem, 
+  ListItemText, 
+  ListItemAvatar, 
+  Avatar, 
+  Typography, 
+  IconButton, 
+  CircularProgress, 
+  Box, 
+  Divider, 
+  Button,
+  Chip,
+  Tooltip,
+  Fade,
+  Skeleton
+} from '@mui/material';
+import { 
+  getNotificationTitle, 
+  getNotificationContent, 
+  getNotificationMessage,
+  isSupportedNotificationType
+} from "../utils/notificationMessages";
 
 // Utility functions for role checking
 const hasRole = (user, roleName) => {
@@ -37,12 +79,61 @@ const isLearner = (user) => {
 function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState(null);
   const [avatarKey, setAvatarKey] = useState(Date.now());
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
   const imgRef = useRef(null);
   const navigate = useNavigate();
+  const [anchorNotif, setAnchorNotif] = useState(null);
+  const [senderProfiles, setSenderProfiles] = useState({});
+
+  // Use the notification hub
+  const { connected, notification } = useNotificationHub();
+
+  // Function to add a new notification
+  const addNotification = useCallback((notificationData) => {
+    const newNotification = {
+      id: Date.now(),
+      title: notificationData.title || "Thông báo mới",
+      message: notificationData.message || "Bạn có thông báo mới",
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      type: notificationData.type || "success",
+      senderProfile: notificationData.senderProfile || null
+    };
+    
+    setNotifications(prev => [newNotification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+    
+    // Save to local storage
+    try {
+      const storageKey = `notifications_${user?.id || 'anonymous'}`;
+      const existingNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const updatedNotifications = [newNotification, ...existingNotifications];
+      
+      // Keep only the last 100 notifications to prevent storage bloat
+      const trimmedNotifications = updatedNotifications.slice(0, 100);
+      
+      localStorage.setItem(storageKey, JSON.stringify(trimmedNotifications));
+    } catch (error) {
+      console.error("Error saving notification to local storage:", error);
+    }
+  }, [user?.id]);
+
+  // Expose the addNotification function globally
+  useEffect(() => {
+    window.addNotification = addNotification;
+    
+    return () => {
+      delete window.addNotification;
+    };
+  }, [addNotification]);
 
   useEffect(() => {
     if (user?.profileImageUrl) {
@@ -149,6 +240,178 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
     }
   }, []);
 
+  // Fetch notifications from API
+  const fetchNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      setLoadingNotifications(true);
+      
+      // Load notifications from local storage first
+      const storageKey = `notifications_${user.id}`;
+      const localNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      
+      // Fetch from API
+      const response = await getNotification(1, 50, false); // Fetch all notifications
+      
+      if (response && response.data) {
+        const fetchedNotifications = response.data.items || response.data || [];
+        
+        // Transform API response to match our notification format
+        const transformedNotifications = await Promise.all(fetchedNotifications.map(async (notif) => {
+          // Extract sender information from additionalData
+          let senderId = null;
+          let senderProfile = null;
+          
+          if (notif.additionalData) {
+            try {
+              const additionalData = JSON.parse(notif.additionalData);
+              senderId = additionalData.SenderId;
+              
+              // Fetch sender profile if we have a senderId and haven't fetched it yet
+              if (senderId && !senderProfiles[senderId]) {
+                try {
+                  const senderResponse = await getSenderProfile(senderId);
+                  if (senderResponse) {
+                    setSenderProfiles(prev => ({
+                      ...prev,
+                      [senderId]: senderResponse
+                    }));
+                    senderProfile = senderResponse;
+                  }
+                } catch (error) {
+                  console.error(`Failed to fetch sender profile for ${senderId}:`, error);
+                }
+              } else if (senderId && senderProfiles[senderId]) {
+                senderProfile = senderProfiles[senderId];
+              }
+            } catch (error) {
+              console.error("Failed to parse additionalData:", error);
+            }
+          }
+          
+          // Check if title needs conversion (is a notification key)
+          const titleNeedsConversion = notif.title && (
+            notif.title.startsWith('PUSH_ON_') || 
+            notif.title.includes('_BODY')
+          );
+          
+          // Check if content needs conversion (is a notification key)
+          const contentNeedsConversion = notif.content && (
+            notif.content.startsWith('PUSH_ON_') || 
+            notif.content.includes('_BODY')
+          );
+          
+          // Convert title
+          let convertedTitle;
+          if (titleNeedsConversion) {
+            convertedTitle = getNotificationTitle(notif.title.trim());
+          } else {
+            convertedTitle = notif.title; // Use original if already user-friendly
+          }
+          
+          // Convert content and include sender name if available
+          let convertedContent;
+          if (contentNeedsConversion) {
+            convertedContent = getNotificationContent(notif.content.trim());
+            
+            // Customize content based on notification type and sender info
+            if (notif.title === 'PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST' || 
+                notif.title === 'PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST_BODY') {
+              if (senderProfile && senderProfile.fullName) {
+                convertedContent = `${senderProfile.fullName} đã gửi cho bạn một yêu cầu`;
+              } else {
+                convertedContent = "1 học viên đã gửi cho bạn một yêu cầu";
+              }
+            }
+          } else {
+            convertedContent = notif.content; // Use original if already user-friendly
+          }
+          
+          return {
+            id: notif.id,
+            title: convertedTitle,
+            message: convertedContent,
+            timestamp: notif.createdTime || notif.createdAt || new Date().toISOString(),
+            isRead: notif.isRead || false,
+            type: notif.type || "info",
+            senderId: senderId,
+            senderProfile: senderProfile
+          };
+        }));
+        
+        // Merge API notifications with local notifications
+        // Use a Map to avoid duplicates based on ID
+        const notificationMap = new Map();
+        
+        // Add API notifications first (they have priority)
+        transformedNotifications.forEach(notif => {
+          notificationMap.set(notif.id, notif);
+        });
+        
+        // Add local notifications (only if not already present)
+        localNotifications.forEach(notif => {
+          if (!notificationMap.has(notif.id)) {
+            notificationMap.set(notif.id, notif);
+          }
+        });
+        
+        // Convert back to array and sort by timestamp (newest first)
+        const mergedNotifications = Array.from(notificationMap.values())
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        setNotifications(mergedNotifications);
+        
+        // Calculate unread count
+        const unread = mergedNotifications.filter(n => !n.isRead).length;
+        setUnreadCount(unread);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      toast.error("Không thể tải thông báo");
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  // Fetch notifications when user is available
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  // Handle new notifications from the hub
+  useEffect(() => {
+    if (notification) {
+      const newNotification = {
+        id: Date.now(),
+        title: notification.title || "Thông báo mới",
+        message: notification.message || notification.content || "Bạn có thông báo mới",
+        timestamp: new Date().toISOString(),
+        isRead: false,
+        type: notification.type || "info"
+      };
+      
+      setNotifications(prev => [newNotification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      
+      // Save to local storage
+      try {
+        const storageKey = `notifications_${user?.id || 'anonymous'}`;
+        const existingNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const updatedNotifications = [newNotification, ...existingNotifications];
+        
+        // Keep only the last 100 notifications to prevent storage bloat
+        const trimmedNotifications = updatedNotifications.slice(0, 100);
+        
+        localStorage.setItem(storageKey, JSON.stringify(trimmedNotifications));
+      } catch (error) {
+        console.error("Error saving hub notification to local storage:", error);
+      }
+    }
+  }, [notification, user?.id]);
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
     setIsDropdownOpen(false);
@@ -159,17 +422,69 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
     setIsMenuOpen(false);
   };
 
+  const toggleNotification = () => {
+    setIsNotificationOpen(!isNotificationOpen);
+    setIsDropdownOpen(false);
+    setIsMenuOpen(false);
+    
+    // Refresh notifications when opening dropdown
+    if (!isNotificationOpen && user) {
+      fetchNotifications();
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      // Update local state immediately for better UX
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif.id === notificationId 
+            ? { ...notif, isRead: true }
+            : notif
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      // TODO: Add API call to mark notification as read
+      // await markNotificationAsRead(notificationId);
+      
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+      toast.error("Không thể cập nhật trạng thái thông báo");
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      // Update local state immediately for better UX
+      setNotifications(prev => 
+        prev.map(notif => ({ ...notif, isRead: true }))
+      );
+      setUnreadCount(0);
+      
+      // TODO: Add API call to mark all notifications as read
+      // await markAllNotificationsAsRead();
+      
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+      toast.error("Không thể cập nhật trạng thái thông báo");
+    }
+  };
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setIsNotificationOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef]);
+  }, [dropdownRef, notificationRef]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -183,6 +498,82 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
+  // Open/close handlers for MUI Menu
+  const handleNotifClick = (event) => {
+    setAnchorNotif(event.currentTarget);
+    setIsNotificationOpen(true);
+    fetchNotifications();
+  };
+
+  const handleNotifClose = () => {
+    setAnchorNotif(null);
+    setIsNotificationOpen(false);
+  };
+
+  // Get notification icon based on type
+  const getNotificationIcon = (type, isRead) => {
+    const iconProps = {
+      size: 20,
+      style: { 
+        color: isRead ? '#9e9e9e' : '#1976d2'
+      }
+    };
+
+    switch (type?.toLowerCase()) {
+      case 'success':
+        return <FaCheck {...iconProps} />;
+      case 'warning':
+        return <FaExclamationTriangle {...iconProps} />;
+      case 'error':
+        return <FaExclamationCircle {...iconProps} />;
+      case 'info':
+      default:
+        return <FaInfoCircle {...iconProps} />;
+    }
+  };
+
+  // Get notification color based on type
+  const getNotificationColor = (type, isRead) => {
+    if (isRead) return '#e0e0e0';
+    
+    switch (type?.toLowerCase()) {
+      case 'success':
+        return '#4caf50';
+      case 'warning':
+        return '#ff9800';
+      case 'error':
+        return '#f44336';
+      case 'info':
+      default:
+        return '#333333'
+    }
+  };
+
+  // Format timestamp
+  const formatTimestamp = (timestamp) => {
+    const now = new Date();
+    const notifDate = new Date(timestamp);
+    const diffInHours = (now - notifDate) / (1000 * 60 * 60);
+    const diffInMinutes = (now - notifDate) / (1000 * 60);
+
+    // Format the date part
+    const dateStr = notifDate.toLocaleDateString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    if (diffInMinutes < 1) {
+      return `Vừa xong lúc ${dateStr}`;
+    } else if (diffInMinutes < 60) {
+      return `Vài phút trước lúc ${dateStr}`;
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} giờ trước lúc ${dateStr}`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays} ngày trước lúc ${dateStr}`;
+    }
+  };
 
   const dropdownVariants = {
     hidden: {
@@ -224,7 +615,26 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
     },
   };
 
-
+  const notificationVariants = {
+    hidden: {
+      opacity: 0,
+      y: -10,
+      scale: 0.95,
+      transition: { duration: 0.15, ease: "easeOut" },
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.2, ease: "easeIn" },
+    },
+    exit: {
+      opacity: 0,
+      y: -10,
+      scale: 0.95,
+      transition: { duration: 0.15, ease: "easeOut" },
+    },
+  };
 
   return (
     <>
@@ -287,9 +697,357 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
           <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
               <>
-                <Link
-                  to="#"
-                  className="relative group p-0.5 focus:outline-none z-10 cursor-pointer"
+                {/* Enhanced Notification Icon with MUI Badge */}
+                <Tooltip title="Thông báo" arrow>
+                  <IconButton
+                    color="inherit"
+                    onClick={handleNotifClick}
+                    aria-label="show notifications"
+                    size="large"
+                    className="no-focus-outline"
+                    sx={{
+                      position: 'relative',
+                      color: '#333333',
+                      outline: 'none',
+                      '&:hover': {
+                        color: '#000000',
+                      }
+                    }}
+                  >
+                    <Badge 
+                      badgeContent={unreadCount > 9 ? '9+' : unreadCount} 
+                      color="error"
+                      max={99}
+                      sx={{
+                        '& .MuiBadge-badge': {
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          minWidth: '20px',
+                          height: '20px',
+                        }
+                      }}
+                    >
+                      {unreadCount > 0 ? <FaBell /> : <FaRegBell />}
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+
+                {/* Enhanced Notification Menu */}
+                <Menu
+                  anchorEl={anchorNotif}
+                  open={Boolean(anchorNotif)}
+                  onClose={handleNotifClose}
+                  PaperProps={{
+                    sx: { 
+                      width: 500, // Increased from 400 to 500
+                      maxHeight: 600, // Increased from 500 to 600
+                      p: 0,
+                      borderRadius: 2,
+                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                      border: '1px solid rgba(0, 0, 0, 0.08)',
+                      overflow: 'hidden' // Prevent horizontal scroll
+                    }
+                  }}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  TransitionComponent={Fade}
+                  transitionDuration={200}
+                >
+                  {/* Header */}
+                  <Box sx={{ 
+                    px: 3, 
+                    py: 2, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    minWidth: 0 // Prevent horizontal scroll
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
+                      <FaBell style={{ color: '#1976d2', fontSize: 20, flexShrink: 0 }} />
+                      <Typography 
+                        variant="h6" 
+                        fontWeight="bold" 
+                        color="text.primary"
+                        sx={{ 
+                          flex: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        Thông báo
+                      </Typography>
+                      {unreadCount > 0 && (
+                        <Chip 
+                          label={unreadCount} 
+                          size="small" 
+                          color="primary" 
+                          sx={{ ml: 1, flexShrink: 0 }}
+                        />
+                      )}
+                    </Box>
+                    {unreadCount > 0 && (
+                      <Tooltip title="Đánh dấu đã đọc tất cả" arrow>
+                        <IconButton 
+                          size="small" 
+                          onClick={markAllAsRead}
+                          sx={{ 
+                            color: 'primary.main',
+                            flexShrink: 0,
+                            '&:hover': { backgroundColor: 'primary.light', color: 'white' }
+                          }}
+                        >
+                          <FaCheckDouble />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
+
+                  {/* Content */}
+                  <Box sx={{ 
+                    maxHeight: 500,
+                    overflow: 'auto',
+                    overflowX: 'hidden'
+                  }}>
+                    {loadingNotifications ? (
+                      <Box sx={{ p: 2 }}>
+                        {/* Skeleton for notification items */}
+                        {[1, 2, 3, 4].map((index) => (
+                          <Box key={index} sx={{ mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                              {/* Avatar skeleton */}
+                              <Skeleton 
+                                variant="circular" 
+                                width={40} 
+                                height={40} 
+                                sx={{ flexShrink: 0 }}
+                              />
+                              
+                              {/* Content skeleton */}
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                {/* Title skeleton */}
+                                <Skeleton 
+                                  variant="text" 
+                                  width="60%" 
+                                  height={20} 
+                                  sx={{ mb: 1 }}
+                                />
+                                
+                                {/* Message skeleton */}
+                                <Skeleton 
+                                  variant="text" 
+                                  width="100%" 
+                                  height={16} 
+                                  sx={{ mb: 0.5 }}
+                                />
+                                <Skeleton 
+                                  variant="text" 
+                                  width="80%" 
+                                  height={16} 
+                                  sx={{ mb: 1 }}
+                                />
+                                
+                                {/* Timestamp skeleton */}
+                                <Skeleton 
+                                  variant="text" 
+                                  width="40%" 
+                                  height={14} 
+                                />
+                              </Box>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : notifications.length === 0 ? (
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        py: 6,
+                        px: 3
+                      }}>
+                        <FaBellSlash style={{ 
+                          fontSize: 48, 
+                          color: '#e0e0e0', 
+                          marginBottom: 16,
+                          display: 'block'
+                        }} />
+                        <Typography 
+                          variant="body1" 
+                          color="text.secondary" 
+                          sx={{ 
+                            mb: 1,
+                            textAlign: 'center'
+                          }}
+                        >
+                          Không có thông báo nào
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.disabled"
+                          sx={{ textAlign: 'center' }}
+                        >
+                          Bạn sẽ thấy thông báo mới ở đây
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <List dense disablePadding>
+                        {notifications.map((notif, index) => (
+                          <ListItem
+                            key={notif.id}
+                            alignItems="flex-start"
+                            button
+                            onClick={() => markAsRead(notif.id)}
+                            sx={{
+                              py: 2,
+                              px: 3,
+                              borderBottom: index < notifications.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
+                              backgroundColor: !notif.isRead ? 'rgba(25, 118, 210, 0.04)' : 'inherit',
+                              borderLeft: !notif.isRead ? '4px solid #1976d2' : '4px solid transparent',
+                              '&:hover': {
+                                backgroundColor: !notif.isRead ? 'rgba(25, 118, 210, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                              },
+                              transition: 'all 0.2s ease-in-out',
+                              minWidth: 0,
+                              width: '100%'
+                            }}
+                          >
+                            <ListItemAvatar sx={{ flexShrink: 0 }}>
+                              {notif.senderProfile && notif.senderProfile.profilePictureUrl ? (
+                                <Avatar 
+                                  src={notif.senderProfile.profilePictureUrl}
+                                  sx={{ 
+                                    width: 40, 
+                                    height: 40,
+                                    opacity: notif.isRead ? 0.6 : 1
+                                  }}
+                                />
+                              ) : (
+                                <Avatar 
+                                  sx={{ 
+                                    bgcolor: getNotificationColor(notif.type, notif.isRead),
+                                    width: 40, 
+                                    height: 40,
+                                    opacity: notif.isRead ? 0.6 : 1
+                                  }}
+                                >
+                                  {getNotificationIcon(notif.type, notif.isRead)}
+                                </Avatar>
+                              )}
+                            </ListItemAvatar>
+                            
+                            <ListItemText
+                              sx={{ 
+                                minWidth: 0,
+                                flex: 1
+                              }}
+                              primary={
+                                <Box sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: 1, 
+                                  mb: 0.5,
+                                  minWidth: 0
+                                }}>
+                                  <Typography
+                                    variant="subtitle2"
+                                    fontWeight={notif.isRead ? 'normal' : 'bold'}
+                                    color={notif.isRead ? 'text.primary' : 'primary.main'}
+                                    sx={{ 
+                                      flex: 1,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {notif.title}
+                                  </Typography>
+                                  {!notif.isRead && (
+                                    <Box sx={{ 
+                                      width: 8, 
+                                      height: 8, 
+                                      borderRadius: '50%', 
+                                      bgcolor: 'error.main',
+                                      flexShrink: 0
+                                    }} />
+                                  )}
+                                </Box>
+                              }
+                              secondary={
+                                <Box sx={{ minWidth: 0 }}>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ 
+                                      mb: 1,
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 3,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      lineHeight: 1.4,
+                                      wordBreak: 'break-word'
+                                    }}
+                                  >
+                                    {notif.message}
+                                  </Typography>
+                                  <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: 1,
+                                    minWidth: 0
+                                  }}>
+                                    <FaClock style={{ fontSize: 14, color: '#9e9e9e', flexShrink: 0 }} />
+                                    <Typography 
+                                      variant="caption" 
+                                      color="text.disabled"
+                                      sx={{
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >
+                                      {formatTimestamp(notif.timestamp)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              }
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    )}
+                  </Box>
+
+                  {/* Footer */}
+                  {notifications.length > 0 && (
+                    <Box sx={{ 
+                      px: 3, 
+                      py: 1.5, 
+                      borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                      textAlign: 'center',
+                      minWidth: 0 // Prevent horizontal scroll
+                    }}>
+                      <Typography variant="caption" color="text.disabled">
+                        {notifications.length} thông báo
+                      </Typography>
+                    </Box>
+                  )}
+                </Menu>
+
+                {/* Message Icon - Updated to use IconButton */}
+                <Tooltip title="Tin nhắn" arrow>
+                  <IconButton
+                    color="inherit"
                   onClick={(e) => {
                     e.preventDefault();
                     if (firstTutorId) {
@@ -298,23 +1056,42 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                       toast.info("Bạn chưa từng nhắn tin với gia sư nào.");
                     }
                   }}
-                >
-                  <div className="absolute inset-0 rounded-full -z-10"></div>
-                  <span className="p-1">
-                    <FaCommentDots className="w-6 h-6 text-gray-700" />
-                  </span>
-                </Link>
+                    aria-label="show messages"
+                    size="large"
+                    className="no-focus-outline"
+                    sx={{
+                      position: 'relative',
+                      color: '#333333',
+                      outline: 'none',
+                      '&:hover': {
+                        color: '#000000',
+                      }
+                    }}
+                  >
+                    <FaCommentDots />
+                  </IconButton>
+                </Tooltip>
 
-                <Link
-                  to="/wallet"
-                  className="relative group p-0.5 focus:outline-none z-10 cursor-pointer"
-                  title="Ví điện tử"
-                >
-                  <div className="absolute inset-0 rounded-full -z-10"></div>
-                  <span className="p-1">
-                    <FaWallet className="w-6 h-6 text-gray-700" />
-                  </span>
-                </Link>
+                {/* Wallet Icon - Updated to use IconButton */}
+                <Tooltip title="Ví điện tử" arrow>
+                  <IconButton
+                    color="inherit"
+                    onClick={() => navigate('/wallet')}
+                    aria-label="show wallet"
+                    size="large"
+                    className="no-focus-outline"
+                    sx={{
+                      position: 'relative',
+                      color: '#333333',
+                      outline: 'none',
+                      '&:hover': {
+                        color: '#000000',
+                      }
+                    }}
+                  >
+                    <FaWallet />
+                  </IconButton>
+                </Tooltip>
 
                 <div className="relative" ref={dropdownRef}>
                   <div
