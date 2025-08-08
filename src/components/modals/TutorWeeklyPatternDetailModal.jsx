@@ -1,11 +1,25 @@
 // src/components/modals/ReadOnlyWeeklyPatternDialog.jsx
 import React, { useEffect, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, IconButton } from "@mui/material";
+import { 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  Button, 
+  Box, 
+  Typography, 
+  IconButton,
+  Card,
+  CardContent,
+  Divider
+} from "@mui/material";
 import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot } from "../api/auth";
 import Skeleton from "@mui/material/Skeleton";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FiTrash2 } from "react-icons/fi";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import { motion, AnimatePresence } from "framer-motion";
 
 const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // API: 2=Mon, ..., 7=Sat, 1=Sun
@@ -39,6 +53,28 @@ const hasRole = (user, roleName) => {
 const isLearner = (user) => hasRole(user, "Learner");
 const isTutor = (user) => hasRole(user, "Tutor");
 
+// Local storage utilities for selected slots
+const getSelectedSlotsKey = (weekStart, tutorId, learnerId) => {
+  const weekStartStr = weekStart.toISOString().split('T')[0];
+  return `selectedSlots_${tutorId}_${learnerId}_${weekStartStr}`;
+};
+
+const saveSelectedSlots = (weekStart, tutorId, learnerId, slots) => {
+  const key = getSelectedSlotsKey(weekStart, tutorId, learnerId);
+  localStorage.setItem(key, JSON.stringify(slots));
+};
+
+const loadSelectedSlots = (weekStart, tutorId, learnerId) => {
+  const key = getSelectedSlotsKey(weekStart, tutorId, learnerId);
+  const saved = localStorage.getItem(key);
+  return saved ? JSON.parse(saved) : [];
+};
+
+const clearSelectedSlots = (weekStart, tutorId, learnerId) => {
+  const key = getSelectedSlotsKey(weekStart, tutorId, learnerId);
+  localStorage.removeItem(key);
+};
+
 const TutorWeeklyPatternDetailModal = ({
   open,
   onClose,
@@ -69,12 +105,28 @@ const TutorWeeklyPatternDetailModal = ({
       .then((data) => setPatterns(data || []))
       .finally(() => setLoading(false));
     setWeekStart(initialWeekStart); // Reset week when dialog opens
-  }, [open, tutorId, initialWeekStart]);
+    
+    // Load saved selected slots for this week and tutor
+    if (learnerPermission && currentUser?.id) {
+      const savedSlots = loadSelectedSlots(initialWeekStart, tutorId, currentUser.id);
+      setSelectedSlots(savedSlots);
+    }
+  }, [open, tutorId, initialWeekStart, learnerPermission, currentUser?.id]);
 
   // Calculate week range
   const monday = weekStart ? new Date(weekStart) : null;
   const sunday = monday ? new Date(monday) : null;
   if (sunday) sunday.setDate(monday.getDate() + 6);
+
+  // Generate week dates for display
+  const weekDates = [];
+  if (monday) {
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      weekDates.push(d.getDate());
+    }
+  }
 
   // Utility: Get the current week's Monday
   const getCurrentMonday = () => {
@@ -98,26 +150,36 @@ const TutorWeeklyPatternDetailModal = ({
     prevMonday.setDate(monday.getDate() - 7);
     if (prevMonday < currentMonday) return; // Block navigation
     setWeekStart(prevMonday);
+    
+    // Load saved slots for the new week
+    if (learnerPermission && currentUser?.id) {
+      const savedSlots = loadSelectedSlots(prevMonday, tutorId, currentUser.id);
+      setSelectedSlots(savedSlots);
+    }
   };
+
   const handleNextWeek = () => {
     if (!monday) return;
     const nextMonday = new Date(monday);
     nextMonday.setDate(monday.getDate() + 7);
     setWeekStart(nextMonday);
+    
+    // Load saved slots for the new week
+    if (learnerPermission && currentUser?.id) {
+      const savedSlots = loadSelectedSlots(nextMonday, tutorId, currentUser.id);
+      setSelectedSlots(savedSlots);
+    }
   };
 
-  // Find the pattern for this week
-  const pattern = getPatternForWeek(patterns, monday);
-
-  // Helper: check if a slot is available
+  // Check if slot is available based on pattern
   const isSlotAvailable = (dayInWeek, slotIndex) => {
     if (!pattern || !pattern.slots) return false;
     return pattern.slots.some(
-      (slot) => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIndex && slot.type === 0
+      (slot) => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIndex
     );
   };
 
-  // Helper: format time label for each slot
+  // Get time label for slot index
   const getTimeLabel = (slotIdx) => {
     const hour = Math.floor(slotIdx / 2);
     const minute = slotIdx % 2 === 0 ? "00" : "30";
@@ -126,25 +188,16 @@ const TutorWeeklyPatternDetailModal = ({
     return `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
   };
 
-  // Get week dates for header
-  const weekDates = [];
-  if (monday) {
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      weekDates.push(d.getDate());
-    }
-  }
+  // Get pattern for current week
+  const pattern = getPatternForWeek(patterns, weekStart);
 
-  // Disable previous week button if at current week or earlier
-  const isAtCurrentWeek =
-    monday &&
+  // Check if we're at the current week
+  const isAtCurrentWeek = monday && currentMonday && 
     monday.getFullYear() === currentMonday.getFullYear() &&
     monday.getMonth() === currentMonday.getMonth() &&
     monday.getDate() === currentMonday.getDate();
 
-  const isCurrentWeek =
-    monday &&
+  const isCurrentWeek = monday && currentMonday && 
     monday.getFullYear() === currentMonday.getFullYear() &&
     monday.getMonth() === currentMonday.getMonth() &&
     monday.getDate() === currentMonday.getDate();
@@ -152,11 +205,19 @@ const TutorWeeklyPatternDetailModal = ({
   const handleSlotClick = (dayInWeek, slotIndex, isAvailable) => {
     // Only allow selection if learner, slot is available, and it's the current week
     if (!learnerPermission || !isAvailable || !isCurrentWeek) return;
-    setSelectedSlots((prev) =>
-      prev.some((s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIndex)
+    
+    setSelectedSlots((prev) => {
+      const newSlots = prev.some((s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIndex)
         ? prev.filter((s) => !(s.dayInWeek === dayInWeek && s.slotIndex === slotIndex))
-        : [...prev, { dayInWeek, slotIndex }]
-    );
+        : [...prev, { dayInWeek, slotIndex }];
+      
+      // Save to localStorage
+      if (currentUser?.id) {
+        saveSelectedSlots(weekStart, tutorId, currentUser.id, newSlots);
+      }
+      
+      return newSlots;
+    });
   };
 
   // Optional: clear selected slots when not in current week
@@ -180,7 +241,7 @@ const TutorWeeklyPatternDetailModal = ({
     console.log("📦 Booking Details:", {
       tutorId,
       lessonId,
-      expectedStartDateToday,
+      expectedStartDate: expectedStartDate || expectedStartDateToday, // Use passed expectedStartDate or current
       selectedSlots,
       currentUser: {
         id: currentUser?.id,
@@ -191,10 +252,14 @@ const TutorWeeklyPatternDetailModal = ({
 
     try {
       console.log("📦 TutorWeeklyPatternDetailModal - Calling updateLearnerBookingTimeSlot...");
+      
+      // Use the expectedStartDate parameter if provided, otherwise use current date
+      const finalExpectedStartDate = expectedStartDate || expectedStartDateToday;
+      
       await updateLearnerBookingTimeSlot(
         tutorId,
         lessonId,
-        expectedStartDateToday,
+        finalExpectedStartDate,
         selectedSlots
       );
       console.log("✅ TutorWeeklyPatternDetailModal - Booking slot updated successfully");
@@ -204,6 +269,12 @@ const TutorWeeklyPatternDetailModal = ({
 
       setSubmitSuccess(true);
       setSelectedSlots([]);
+      
+      // Clear saved slots after successful submission
+      if (currentUser?.id) {
+        clearSelectedSlots(weekStart, tutorId, currentUser.id);
+      }
+      
       if (onBookingSuccess) onBookingSuccess();
       onClose();
     } catch (err) {
@@ -251,51 +322,65 @@ const TutorWeeklyPatternDetailModal = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
-      <DialogTitle>
-        Chi tiết lịch trình khả dụng
-        {monday && sunday && (
-          <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 400 }}>
-            Tuần: {formatDateRangeVN(monday, sunday)}
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth={false}
+      fullWidth={false}
+      PaperProps={{
+        sx: {
+          width: "100%",
+          height: "90%",
+          maxWidth: "none",
+          maxHeight: "none",
+          top: "5%",
+          left: "0%",
+          right: "0%",
+          margin: "0 auto",
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="h6">
+            Chi tiết lịch trình khả dụng
           </Typography>
-        )}
-      </DialogTitle>
-      <DialogContent>
-        {/* Week navigation UI */}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", mb: 2, gap: 1 }}>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           {/* Only render the left arrow if not at the current week */}
           {!isAtCurrentWeek && (
             <IconButton
               onClick={handlePrevWeek}
               sx={{
-                p: 1,
-                borderRadius: "50%",
-                backgroundColor: "#f3f4f6",
-                "&:hover": { backgroundColor: "#e5e7eb" },
-                boxShadow: "none",
+                color: "primary.main",
+                "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
               }}
-              aria-label="Previous week"
             >
-              <FaChevronLeft size={20} color="#333" />
+              <FaChevronLeft />
             </IconButton>
           )}
-          <Typography variant="body2" sx={{ fontWeight: 600, mx: 1 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {monday && sunday ? formatDateRangeVN(monday, sunday) : ""}
           </Typography>
           <IconButton
             onClick={handleNextWeek}
             sx={{
-              p: 1,
-              borderRadius: "50%",
-              backgroundColor: "#f3f4f6",
-              "&:hover": { backgroundColor: "#e5e7eb" },
-              boxShadow: "none",
+              color: "primary.main",
+              "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
             }}
-            aria-label="Next week"
           >
-            <FaChevronRight size={20} color="#333" />
+            <FaChevronRight />
           </IconButton>
         </Box>
+      </DialogTitle>
+      <DialogContent>
         {loading ? (
           <Box
             sx={{
@@ -396,68 +481,258 @@ const TutorWeeklyPatternDetailModal = ({
         ) : !pattern ? (
           <Typography>Không có lịch trình khả dụng cho tuần này.</Typography>
         ) : (
-          <Box sx={{ overflowX: "auto" }}>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "140px repeat(7, 1fr)",
-                minWidth: "900px",
-              }}
-            >
-              {/* Header row with day label and date */}
-              <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>Thời gian</Box>
-              {dayLabels.map((label, i) => (
-                <Box key={i} sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
-                  <div>{label}</div>
-                  <div style={{ fontSize: 13, color: "#64748b" }}>{weekDates[i]}</div>
-                </Box>
-              ))}
-              {/* 48 slots (30-min each) */}
-              {Array.from({ length: 48 }).map((_, slotIdx) => (
-                <React.Fragment key={slotIdx}>
-                  {/* Time label cell */}
-                  <Box
-                    sx={{
-                      p: 1,
-                      textAlign: "center",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderBottom: "1px solid #e2e8f0",
-                      borderRight: "1px solid #e2e8f0",
-                      minHeight: 32,
-                    }}
-                  >
-                    {getTimeLabel(slotIdx)}
+          <Box sx={{ display: 'flex', gap: 3, height: '100%' }}>
+            {/* Left side - Calendar table */}
+            <Box sx={{ flex: 1, overflowX: "auto" }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "140px repeat(7, 1fr)",
+                  minWidth: "900px",
+                }}
+              >
+                {/* Header row with day label and date */}
+                <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>Thời gian</Box>
+                {dayLabels.map((label, i) => (
+                  <Box key={i} sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
+                    <div>{label}</div>
+                    <div style={{ fontSize: 13, color: "#64748b" }}>{weekDates[i]}</div>
                   </Box>
-                  {/* For each day, render a cell for this 30-min slot */}
-                  {dayInWeekOrder.map((dayInWeek, dayIdx) => {
-                    const isActive = isSlotAvailable(dayInWeek, slotIdx);
-                    const isSelected = selectedSlots.some(
-                      (s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIdx
-                    );
-                    return (
-                      <Box
-                        key={dayIdx}
-                        sx={{
-                          backgroundColor: isSelected
-                            ? "#2563eb"
-                            : isActive
-                            ? "#98D45F"
-                            : "#f1f5f9",
-                          border: "1px solid #e2e8f0",
-                          minHeight: 32,
-                          cursor: learnerPermission && isActive && isCurrentWeek ? "pointer" : "default",
-                          opacity: isActive && isCurrentWeek ? 1 : 0.5,
-                          transition: "background 0.2s",
-                        }}
-                        onClick={() => handleSlotClick(dayInWeek, slotIdx, isActive)}
-                      />
-                    );
-                  })}
-                </React.Fragment>
-              ))}
+                ))}
+                {/* 48 slots (30-min each) */}
+                {Array.from({ length: 48 }).map((_, slotIdx) => (
+                  <React.Fragment key={slotIdx}>
+                    {/* Time label cell */}
+                    <Box
+                      sx={{
+                        p: 1,
+                        textAlign: "center",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderBottom: "1px solid #e2e8f0",
+                        borderRight: "1px solid #e2e8f0",
+                        minHeight: 32,
+                      }}
+                    >
+                      {getTimeLabel(slotIdx)}
+                    </Box>
+                    {/* For each day, render a cell for this 30-min slot */}
+                    {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                      const isActive = isSlotAvailable(dayInWeek, slotIdx);
+                      const isSelected = selectedSlots.some(
+                        (s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIdx
+                      );
+                      return (
+                        <Box
+                          key={dayIdx}
+                          sx={{
+                            backgroundColor: isSelected
+                              ? "#2563eb"
+                              : isActive
+                              ? "#98D45F"
+                              : "#f1f5f9",
+                            border: "1px solid #e2e8f0",
+                            minHeight: 32,
+                            cursor: learnerPermission && isActive && isCurrentWeek ? "pointer" : "default",
+                            opacity: isActive && isCurrentWeek ? 1 : 0.5,
+                            transition: "background 0.2s",
+                          }}
+                          onClick={() => handleSlotClick(dayInWeek, slotIdx, isActive)}
+                        />
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </Box>
             </Box>
+
+            {/* Right side - Selected slots card */}
+            <AnimatePresence>
+              {selectedSlots.length > 0 && learnerPermission && (
+                <motion.div
+                  initial={{ 
+                    opacity: 0, 
+                    x: 50,
+                    scale: 0.9
+                  }}
+                  animate={{ 
+                    opacity: 1, 
+                    x: 0,
+                    scale: 1
+                  }}
+                  exit={{ 
+                    opacity: 0, 
+                    x: 50,
+                    scale: 0.9
+                  }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 300, 
+                    damping: 30,
+                    duration: 0.4
+                  }}
+                  style={{ width: 300, flexShrink: 0 }}
+                >
+                  <Card sx={{ height: '100%', position: 'sticky', top: 0 }}>
+                    <CardContent>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1, duration: 0.3 }}
+                      >
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                          Khung giờ đã chọn
+                        </Typography>
+                      </motion.div>
+                      
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.3 }}
+                      >
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="textSecondary">
+                            Gia sư: {tutorName || 'N/A'}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            Số slot đã chọn để đặt lịch: {selectedSlots.length}
+                          </Typography>
+                        </Box>
+                      </motion.div>
+
+                      <Divider sx={{ my: 2 }} />
+
+                      <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                        <AnimatePresence>
+                          {selectedSlots.map((slot, index) => {
+                            // Map dayInWeek to the correct day label
+                            const dayIndexMap = {
+                              1: 6, // Sun -> index 6
+                              2: 0, // Mon -> index 0
+                              3: 1, // Tue -> index 1
+                              4: 2, // Wed -> index 2
+                              5: 3, // Thu -> index 3
+                              6: 4, // Fri -> index 4
+                              7: 5, // Sat -> index 5
+                            };
+                            const dayLabel = dayLabels[dayIndexMap[slot.dayInWeek]];
+                            const dayDate = weekDates[dayIndexMap[slot.dayInWeek]];
+                            
+                            const hour = Math.floor(slot.slotIndex / 2);
+                            const minute = slot.slotIndex % 2 === 0 ? "00" : "30";
+                            const nextHour = slot.slotIndex % 2 === 0 ? hour : hour + 1;
+                            const nextMinute = slot.slotIndex % 2 === 0 ? "30" : "00";
+                            const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+
+                            return (
+                              <motion.div
+                                key={`${slot.dayInWeek}-${slot.slotIndex}`}
+                                initial={{ 
+                                  opacity: 0, 
+                                  x: 30,
+                                  scale: 0.95
+                                }}
+                                animate={{ 
+                                  opacity: 1, 
+                                  x: 0,
+                                  scale: 1
+                                }}
+                                exit={{ 
+                                  opacity: 0, 
+                                  x: -30,
+                                  scale: 0.95
+                                }}
+                                transition={{ 
+                                  type: "spring", 
+                                  stiffness: 400, 
+                                  damping: 25,
+                                  delay: index * 0.1
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    p: 1.5,
+                                    mb: 1,
+                                    borderRadius: 1,
+                                    backgroundColor: '#f8f9fa',
+                                    border: '1px solid #e9ecef',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}
+                                >
+                                  <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                      {dayLabel}
+                                    </Typography>
+                                    <Typography variant="body2" color="textSecondary">
+                                      {dayDate}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 'medium' }}>
+                                      {timeLabel}
+                                    </Typography>
+                                  </Box>
+                                  <motion.div
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleSlotClick(slot.dayInWeek, slot.slotIndex, true)}
+                                      sx={{
+                                        color: '#dc3545',
+                                        '&:hover': {
+                                          backgroundColor: 'rgba(220, 53, 69, 0.1)'
+                                        }
+                                      }}
+                                    >
+                                      <FiTrash2 size={16} />
+                                    </IconButton>
+                                  </motion.div>
+                                </Box>
+                              </motion.div>
+                            );
+                          })}
+                        </AnimatePresence>
+                      </Box>
+
+                      <Divider sx={{ my: 2 }} />
+
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.3 }}
+                      >
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                            Tổng cộng: {selectedSlots.length} slot
+                          </Typography>
+                          <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setSelectedSlots([]);
+                                if (currentUser?.id) {
+                                  clearSelectedSlots(weekStart, tutorId, currentUser.id);
+                                }
+                              }}
+                              sx={{ color: '#dc3545', borderColor: '#dc3545' }}
+                            >
+                              Xóa tất cả
+                            </Button>
+                          </motion.div>
+                        </Box>
+                      </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Box>
         )}
         {submitError && (
@@ -474,11 +749,12 @@ const TutorWeeklyPatternDetailModal = ({
       <DialogActions
         sx={{
           display: "flex",
-          justifyContent: "space-between", // Change to flex-end for right alignment
+          justifyContent: "space-between",
           alignItems: "center",
-          width: "100%",
+          flexWrap: "wrap",
+          gap: 2,
           px: 3,
-          pb: 2,
+          py: 2,
         }}
       >
         {/* Legend */}

@@ -79,6 +79,7 @@ import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 import formatPriceInputWithCommas from "../../utils/formatPriceInputWithCommas";
 import getWeekDates from "../../utils/getWeekDates";
 import ConfirmDeleteWeeklyPattern from "../modals/ConfirmDeleteWeeklyPattern";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Global styles to remove focus borders and improve UI
 const globalStyles = (
@@ -413,13 +414,13 @@ function buildAvailabilityData(pattern, timeRanges) {
         .toString()
         .padStart(2, "0")}:00 - ${endHour.toString().padStart(2, "0")}:00`;
       const dayMap = {
-        1: "sun",
-        2: "mon",
-        3: "tue",
-        4: "wed",
-        5: "thu",
-        6: "fri",
-        7: "sat",
+        1: "CN",
+        2: "T2",
+        3: "T3",
+        4: "T4",
+        5: "T5",
+        6: "T6",
+        7: "T7",
       };
       const dayKey = dayMap[slot.dayInWeek];
       if (
@@ -894,14 +895,6 @@ const TutorProfile = ({
   const [availabilityDays, setAvailabilityDays] = useState([]);
   const [availabilityDates, setAvailabilityDates] = useState([]);
   const [weeklyPatternLoading, setWeeklyPatternLoading] = useState(false);
-
-  // Add new state for dialog table data - move this up
-  const [dialogAvailabilityData, setDialogAvailabilityData] = useState({});
-  const [dialogPatternLoading, setDialogPatternLoading] = useState(false);
-
-  // Move editWeekMonday state declaration up here
-  const [editWeekMonday, setEditWeekMonday] = useState(getWeekRange().monday);
-
   // Update the time ranges to be hourly instead of 4-hour blocks
   const timeRanges = [
     "00:00 - 01:00",
@@ -967,11 +960,52 @@ const TutorProfile = ({
   const [allOffers, setAllOffers] = useState([]);
   const [offersLoading, setOffersLoading] = useState(false);
 
+  // Add new state variables after line 962 (after offerDetail state)
+  const [lessonSelectionDialogOpen, setLessonSelectionDialogOpen] = useState(false);
+  const [availableLessons, setAvailableLessons] = useState([]);
+  const [selectedLesson, setSelectedLesson] = useState(null);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+
+  // Add new state for temporarily selected slots
+  const [temporarilySelectedSlots, setTemporarilySelectedSlots] = useState([]);
+
+  // Helper function to get localStorage key for a specific week
+  const getTemporarySlotsKey = (weekStart, learnerId) => {
+    const weekKey = weekStart.toISOString().split('T')[0]; // YYYY-MM-DD format
+    return `temporary_slots_${learnerId}_${weekKey}`;
+  };
+
+  // Helper function to save temporarily selected slots to localStorage
+  const saveTemporarySlots = (weekStart, learnerId, slots) => {
+    const key = getTemporarySlotsKey(weekStart, learnerId);
+    localStorage.setItem(key, JSON.stringify(slots));
+  };
+
+  // Helper function to load temporarily selected slots from localStorage
+  const loadTemporarySlots = (weekStart, learnerId) => {
+    const key = getTemporarySlotsKey(weekStart, learnerId);
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
+  };
+
+  // Helper function to clear temporarily selected slots for a week
+  const clearTemporarySlots = (weekStart, learnerId) => {
+    const key = getTemporarySlotsKey(weekStart, learnerId);
+    localStorage.removeItem(key);
+  };
+
   const handleDialogPrevWeek = () => {
     setDialogWeekStart((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() - 7);
       newDate.setHours(0, 0, 0, 0);
+      
+      // Load temporary slots for the new week
+      if (selectedLearner) {
+        const tempSlots = loadTemporarySlots(newDate, selectedLearner);
+        setTemporarilySelectedSlots(tempSlots);
+      }
+      
       return newDate;
     });
   };
@@ -980,6 +1014,13 @@ const TutorProfile = ({
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() + 7);
       newDate.setHours(0, 0, 0, 0);
+      
+      // Load temporary slots for the new week
+      if (selectedLearner) {
+        const tempSlots = loadTemporarySlots(newDate, selectedLearner);
+        setTemporarilySelectedSlots(tempSlots);
+      }
+      
       return newDate;
     });
   };
@@ -1310,13 +1351,13 @@ const TutorProfile = ({
 
                 if (timeRangeKey && blockAvailability[timeRangeKey]) {
                   const dayMap = {
-                    1: "sun", // Sunday
-                    2: "mon", // Monday
-                    3: "tue", // Tuesday
-                    4: "wed", // Wednesday
-                    5: "thu", // Thursday
-                    6: "fri", // Friday
-                    7: "sat", // Saturday
+                    1: "CN", // Sunday
+                    2: "T2", // Monday
+                    3: "T3", // Tuesday
+                    4: "T4", // Wednesday
+                    5: "T5", // Thursday
+                    6: "T6", // Friday
+                    7: "T7", // Saturday
                   };
 
                   const dayKey = dayMap[slot.dayInWeek];
@@ -1340,7 +1381,7 @@ const TutorProfile = ({
           const monday = new Date(today);
           monday.setDate(today.getDate() + daysUntilMonday);
 
-          const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          const daysOfWeek = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
           const next7Days = [];
           const next7Dates = [];
 
@@ -1479,7 +1520,10 @@ const TutorProfile = ({
   const handleOpenBookingDetail = async (learnerId) => {
     setBookingDetailLoading(true);
     setBookingDetailDialogOpen(true);
-    setSelectedLearner(learnerId);
+    
+    // Find the learner object from learnerRequests
+    const learner = learnerRequests.find(req => req.learnerId === learnerId);
+    setSelectedLearner(learner); // Set the full learner object instead of just the ID
 
     try {
       const res = await tutorBookingTimeSlotFromLearnerDetail(learnerId);
@@ -1501,6 +1545,10 @@ const TutorProfile = ({
       setSelectedOfferSlots([]);
       setOfferDetail(null);
 
+      // Load temporarily selected slots for this week and learner
+      const tempSlots = loadTemporarySlots(initialWeekStart, learnerId);
+      setTemporarilySelectedSlots(tempSlots);
+
       setLearnerRequests((prev) =>
         prev.map((req) =>
           req.learnerId === learnerId ? { ...req, hasUnviewed: false } : req
@@ -1511,6 +1559,109 @@ const TutorProfile = ({
     } finally {
       setBookingDetailLoading(false);
     }
+  };
+
+  // Add function to fetch lessons
+  const fetchTutorLessons = async () => {
+    setLessonsLoading(true);
+    try {
+      const lessons = await fetchTutorLesson(id);
+      console.log("Fetched lessons:", lessons); // Debug log
+      if (lessons && Array.isArray(lessons)) {
+        setAvailableLessons(lessons);
+      } else {
+        setAvailableLessons([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch tutor lessons:", error);
+      setAvailableLessons([]);
+      toast.error("Không thể tải danh sách bài học");
+    } finally {
+      setLessonsLoading(false);
+    }
+  };
+
+  // Function to handle lesson selection and proceed with offer
+  const handleProceedWithOffer = async () => {
+    if (!selectedLesson || !selectedLearner) {
+      return;
+    }
+    
+    try {
+      const offeredSlots = temporarilySelectedSlots.map((slot) => ({
+        slotDateTime: getSlotDateTime(
+          dialogWeekStart,
+          slot.dayInWeek,
+          slot.slotIndex
+        ),
+        slotIndex: slot.slotIndex,
+      }));
+
+      if (offerDetail && offerDetail.id) {
+        // Update existing offer
+        await updateTutorBookingOfferByOfferId(offerDetail.id, {
+          lessonId: selectedLesson.id,
+          offeredSlots,
+        });
+        toast.success("Đã cập nhật đề nghị thành công!");
+      } else {
+        // Create new offer with lessonId
+        await createTutorBookingOffer({
+          learnerId: selectedLearner,
+          lessonId: selectedLesson.id,
+          offeredSlots,
+        });
+        toast.success("Đã gửi đề xuất thành công!");
+      }
+
+      // Clear temporary slots for this week after successful offer
+      clearTemporarySlots(dialogWeekStart, selectedLearner);
+
+      // Close all dialogs and reset state
+      setLessonSelectionDialogOpen(false);
+      setBookingDetailDialogOpen(false);
+      setSelectedOfferSlots([]);
+      setTemporarilySelectedSlots([]);
+      setSelectedLearner(null);
+      setSelectedLesson(null);
+      
+    } catch (err) {
+      toast.error("Gửi đề nghị thất bại: " + err.message);
+    }
+  };
+
+  // Add the missing handleSlotClick function here
+  const handleSlotClick = (dayInWeek, slotIdx) => {
+    if (!selectedLearner) return;
+
+    setTemporarilySelectedSlots((prev) => {
+      const exists = prev.some(
+        (slot) =>
+          slot.dayInWeek === dayInWeek &&
+          slot.slotIndex === slotIdx
+      );
+      
+      let newSlots;
+      if (exists) {
+        newSlots = prev.filter(
+          (slot) =>
+            !(
+              slot.dayInWeek === dayInWeek &&
+              slot.slotIndex === slotIdx
+            )
+        );
+      } else {
+        newSlots = [
+          ...prev,
+          { dayInWeek, slotIndex: slotIdx },
+        ];
+      }
+      
+      // Save to localStorage
+      saveTemporarySlots(dialogWeekStart, selectedLearner, newSlots);
+      
+      return newSlots;
+    });
   };
 
   if (loading) {
@@ -2279,7 +2430,9 @@ const TutorProfile = ({
                                       key={req.learnerId}
                                       hover
                                       sx={{ cursor: "pointer" }}
-                                      onClick={() => handleOpenBookingDetail(req.learnerId)}
+                                      onClick={() =>
+                                        handleOpenBookingDetail(req.learnerId)
+                                      }
                                     >
                                       <TableCell>{req.learnerName}</TableCell>
                                       <TableCell>
@@ -2786,147 +2939,6 @@ const TutorProfile = ({
                             Đang tải danh sách chứng chỉ...
                           </Typography>
                         </Box>
-                      ) : uploadedCertificates.length > 0 ? (
-                        <Box sx={{ mb: 3 }}>
-                          <Typography
-                            variant="h6"
-                            sx={{ mb: 2, fontWeight: 600, color: "#1e293b" }}
-                          >
-                            Chứng chỉ đã tải lên ({uploadedCertificates.length})
-                          </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 2,
-                            }}
-                          >
-                            {uploadedCertificates.map((cert) => (
-                              <Box
-                                key={cert.id}
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  p: 2,
-                                  backgroundColor: "#f8fafc",
-                                  borderRadius: "12px",
-                                  border: "1px solid #e2e8f0",
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 2,
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      width: 40,
-                                      height: 40,
-                                      borderRadius: "8px",
-                                      backgroundColor: cert.type.includes("pdf")
-                                        ? "#dc2626"
-                                        : "#3b82f6",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      color: "white",
-                                      fontWeight: 600,
-                                      fontSize: "12px",
-                                    }}
-                                  >
-                                    {cert.type.includes("pdf") ? "PDF" : "IMG"}
-                                  </Box>
-                                  <Box>
-                                    <Typography
-                                      variant="body2"
-                                      sx={{ fontWeight: 600, color: "#1e293b" }}
-                                    >
-                                      {cert.name}
-                                    </Typography>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{ color: "#64748b" }}
-                                    >
-                                      {cert.size > 0
-                                        ? `${(cert.size / 1024 / 1024).toFixed(
-                                            2
-                                          )} MB`
-                                        : "Không xác định"}{" "}
-                                      •{" "}
-                                      {new Date(
-                                        cert.uploadedAt
-                                      ).toLocaleDateString("vi-VN")}
-                                    </Typography>
-                                    {cert.description && (
-                                      <Typography
-                                        variant="caption"
-                                        sx={{
-                                          color: "#64748b",
-                                          display: "block",
-                                          mt: 0.5,
-                                        }}
-                                      >
-                                        {cert.description}
-                                      </Typography>
-                                    )}
-                                  </Box>
-                                </Box>
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                  }}
-                                >
-                                  {cert.url && (
-                                    <IconButton
-                                      onClick={() =>
-                                        window.open(cert.url, "_blank")
-                                      }
-                                      sx={{ color: "#3b82f6" }}
-                                      size="small"
-                                      title="Xem file"
-                                    >
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                        />
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                        />
-                                      </svg>
-                                    </IconButton>
-                                  )}
-                                  <IconButton
-                                    onClick={() =>
-                                      handleRemoveCertificate(cert)
-                                    }
-                                    sx={{ color: "#dc2626" }}
-                                    size="small"
-                                    title="Xóa file"
-                                  >
-                                    <FiTrash2 size={16} />
-                                  </IconButton>
-                                </Box>
-                              </Box>
-                            ))}
-                          </Box>
-                        </Box>
                       ) : (
                         <Box sx={{ mb: 3, textAlign: "center", py: 2 }}>
                           <Typography
@@ -3413,41 +3425,42 @@ const TutorProfile = ({
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <IconButton
-              onClick={handleDialogPrevWeek}
-              disabled={isDialogAtCurrentWeek}
-              sx={{
-                p: 1,
-                borderRadius: "50%",
-                backgroundColor: isDialogAtCurrentWeek ? "#f3f4f6" : "#e5e7eb",
-                "&:hover": { backgroundColor: "#e5e7eb" },
-                boxShadow: "none",
-              }}
-              aria-label="Previous week"
-            >
-              <FaChevronLeft
-                size={20}
-                color={isDialogAtCurrentWeek ? "#ccc" : "#333"}
-              />
-            </IconButton>
             <span>
               {dialogWeekInfo.length > 0
-                ? `Chọn khung giờ để đề nghị cho học viên (${dialogWeekInfo[0].label} ${dialogWeekInfo[0].date} - ${dialogWeekInfo[6].label} ${dialogWeekInfo[6].date})`
-                : "Chọn khung giờ để đề nghị cho học viên"}
+                ? `Chọn khung giờ gia sư có thể dạy`
+                : "Chọn khung giờ gia sư có thể dạy"}
             </span>
-            <IconButton
-              onClick={handleDialogNextWeek}
-              sx={{
-                p: 1,
-                borderRadius: "50%",
-                backgroundColor: "#f3f4f6",
-                "&:hover": { backgroundColor: "#e5e7eb" },
-                boxShadow: "none",
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              fontSize: "14px",
+              color: "#666",
+            }}
+          >
+            <span
+              style={{
+                minWidth: "150px",
+                textAlign: "center",
+                fontSize: "14px",
+                color: "#000000",
               }}
-              aria-label="Next week"
             >
-              <FaChevronRight size={20} color="#333" />
-            </IconButton>
+              {(() => {
+                const currentWeekRange = getWeekRange(currentWeekStart);
+                const formatDate = (date) => {
+                  const day = String(date.getDate()).padStart(2, "0");
+                  const month = String(date.getMonth() + 1).padStart(2, "0");
+                  const year = date.getFullYear();
+                  return `${day}/${month}/${year}`;
+                };
+                return `${formatDate(currentWeekRange.monday)} - ${formatDate(
+                  currentWeekRange.sunday
+                )}`;
+              })()}
+            </span>
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -3578,19 +3591,30 @@ const TutorProfile = ({
                   }
                 );
 
-                // Always use Monday 00:00:00 UTC
-                const localMonday = currentWeekStart; // e.g., 2025-07-07T00:00:00+07:00
+                // Ensure appliedFrom is always tomorrow or later
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+                tomorrow.setHours(0, 0, 0, 0);
+
+                // Use the later date between currentWeekStart and tomorrow
+                const selectedDate = new Date(currentWeekStart);
+                selectedDate.setHours(0, 0, 0, 0);
+
+                const effectiveDate =
+                  selectedDate > tomorrow ? selectedDate : tomorrow;
+
                 const appliedFromUTC = new Date(
                   Date.UTC(
-                    localMonday.getFullYear(),
-                    localMonday.getMonth(),
-                    localMonday.getDate(),
+                    effectiveDate.getFullYear(),
+                    effectiveDate.getMonth(),
+                    effectiveDate.getDate(),
                     0,
                     0,
                     0,
                     0
                   )
-                ); // This is 2025-07-07T00:00:00.000Z
+                );
 
                 console.log("appliedFrom (UTC):", appliedFromUTC.toISOString());
                 await editTutorWeeklyPattern({
@@ -3658,15 +3682,13 @@ const TutorProfile = ({
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            
             <Typography variant="h6">
-              Chọn khung giờ để đề nghị cho học viên
+              Chọn khung giờ để đề xuất cho học viên
             </Typography>
-            
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
+            <IconButton
               onClick={handleDialogPrevWeek}
               sx={{
                 color: "primary.main",
@@ -3698,166 +3720,333 @@ const TutorProfile = ({
           {bookingDetailLoading ? (
             <BookingDetailSkeleton />
           ) : (
-            <Box sx={{ overflowX: "auto" }}>
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "140px repeat(7, 1fr)",
-                  minWidth: "900px",
-                }}
-              >
-                {/* Header row */}
-                <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
-                  Thời gian
-                </Box>
-                {dialogWeekInfo.map((d, i) => (
-                  <Box
-                    key={i}
-                    sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}
-                  >
-                    <div style={{ fontSize: 14 }}>{d.label}</div>
-                    <div style={{ fontSize: 13, color: "#64748b" }}>
-                      {d.date}
-                    </div>
+            <Box sx={{ display: 'flex', gap: 3, height: '100%' }}>
+              {/* Left side - Calendar table */}
+              <Box sx={{ flex: 1, overflowX: "auto" }}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "140px repeat(7, 1fr)",
+                    minWidth: "900px",
+                  }}
+                >
+                  {/* Header row */}
+                  <Box sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}>
+                    Thời gian
                   </Box>
-                ))}
-                {/* Time slots */}
-                {Array.from({ length: 48 }).map((_, slotIdx) => {
-                  const hour = Math.floor(slotIdx / 2);
-                  const minute = slotIdx % 2 === 0 ? "00" : "30";
-                  const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
-                  const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
-                  const timeLabel = `${hour
-                    .toString()
-                    .padStart(2, "0")}:${minute} - ${nextHour
-                    .toString()
-                    .padStart(2, "0")}:${nextMinute}`;
-                  return (
-                    <React.Fragment key={slotIdx}>
-                      {/* Time label cell */}
-                      <Box
-                        sx={{
-                          p: 1,
-                          textAlign: "center",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderBottom: "1px solid #e2e8f0",
-                          borderRight: "1px solid #e2e8f0",
-                          minHeight: 32,
-                        }}
-                      >
-                        {timeLabel}
-                      </Box>
-                      {/* For each day, render a cell for this 30-min slot */}
-                      {dayInWeekOrder.map((dayInWeek, dayIdx) => {
-                        const isRequested =
-                          Array.isArray(bookingDetailSlots) &&
-                          bookingDetailSlots.some(
+                  {dialogWeekInfo.map((d, i) => (
+                    <Box
+                      key={i}
+                      sx={{ p: 1.5, fontWeight: 600, textAlign: "center" }}
+                    >
+                      <div style={{ fontSize: 14 }}>{d.label}</div>
+                      <div style={{ fontSize: 13, color: "#64748b" }}>
+                        {d.date}
+                      </div>
+                    </Box>
+                  ))}
+                  {/* Time slots */}
+                  {Array.from({ length: 48 }).map((_, slotIdx) => {
+                    const hour = Math.floor(slotIdx / 2);
+                    const minute = slotIdx % 2 === 0 ? "00" : "30";
+                    const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
+                    const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
+                    const timeLabel = `${hour
+                      .toString()
+                      .padStart(2, "0")}:${minute} - ${nextHour
+                      .toString()
+                      .padStart(2, "0")}:${nextMinute}`;
+                    return (
+                      <React.Fragment key={slotIdx}>
+                        {/* Time label cell */}
+                        <Box
+                          sx={{
+                            p: 1,
+                            textAlign: "center",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderBottom: "1px solid #e2e8f0",
+                            borderRight: "1px solid #e2e8f0",
+                            minHeight: 32,
+                          }}
+                        >
+                          {timeLabel}
+                        </Box>
+                        {/* For each day, render a cell for this 30-min slot */}
+                        {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                          const isRequested =
+                            Array.isArray(bookingDetailSlots) &&
+                            bookingDetailSlots.some(
+                              (slot) =>
+                                slot.dayInWeek === dayInWeek &&
+                                slot.slotIndex === slotIdx
+                            );
+                          const isSelected = temporarilySelectedSlots.some(
                             (slot) =>
                               slot.dayInWeek === dayInWeek &&
                               slot.slotIndex === slotIdx
                           );
-                        const isSelected = selectedOfferSlots.some(
-                          (slot) =>
-                            slot.dayInWeek === dayInWeek &&
-                            slot.slotIndex === slotIdx
-                        );
-                        const isOffered = offerDetail?.offeredSlots?.some(
-                          (slot) => {
-                            const date = new Date(slot.slotDateTime);
-                            let jsDay = date.getDay();
-                            let apiDayInWeek = jsDay === 0 ? 1 : jsDay + 1;
+                          const isOffered = offerDetail?.offeredSlots?.some(
+                            (slot) => {
+                              const date = new Date(slot.slotDateTime);
+                              let jsDay = date.getDay();
+                              let apiDayInWeek = jsDay === 0 ? 1 : jsDay + 1;
 
-                            // Week check
-                            const weekStart = new Date(dialogWeekStart);
-                            weekStart.setHours(0, 0, 0, 0);
-                            const weekEnd = new Date(weekStart);
-                            weekEnd.setDate(weekEnd.getDate() + 6);
-                            weekEnd.setHours(23, 59, 59, 999);
+                              // Week check
+                              const weekStart = new Date(dialogWeekStart);
+                              weekStart.setHours(0, 0, 0, 0);
+                              const weekEnd = new Date(weekStart);
+                              weekEnd.setDate(weekEnd.getDate() + 6);
+                              weekEnd.setHours(23, 59, 59, 999);
 
-                            return (
-                              apiDayInWeek === dayInWeek &&
-                              slot.slotIndex === slotIdx &&
-                              date >= weekStart &&
-                              date <= weekEnd
-                            );
+                              return (
+                                apiDayInWeek === dayInWeek &&
+                                slot.slotIndex === slotIdx &&
+                                date >= weekStart &&
+                                date <= weekEnd
+                              );
+                            }
+                          );
+
+                          // Purple if both requested and offered
+                          const isRequestedAndOffered = isRequested && isOffered;
+
+                          let bgColor = "#f1f5f9";
+                          if (isRequestedAndOffered) {
+                            bgColor = "#a259e6"; // purple
+                          } else if (isSelected) {
+                            bgColor = "#98D45F"; // green for selected
+                          } else if (isOffered) {
+                            bgColor = "#3b82f6"; // blue for offered
+                          } else if (isRequested) {
+                            bgColor = "#FFD700"; // yellow for requested
                           }
-                        );
+                          let textColor =
+                            isSelected || isOffered || isRequestedAndOffered
+                              ? "#fff"
+                              : isRequested
+                              ? "#333"
+                              : "inherit";
+                          let fontWeight =
+                            isSelected || isOffered || isRequestedAndOffered
+                              ? 700
+                              : isRequested
+                              ? 600
+                              : 400;
 
-                        // NEW: Purple if both requested and offered
-                        const isRequestedAndOffered = isRequested && isOffered;
-
-                        let bgColor = "#f1f5f9";
-                        if (isRequestedAndOffered) {
-                          bgColor = "#a259e6"; // purple
-                        } else if (isSelected) {
-                          bgColor = "#98D45F"; // green for selected
-                        } else if (isOffered) {
-                          bgColor = "#3b82f6"; // blue for offered
-                        } else if (isRequested) {
-                          bgColor = "#FFD700"; // yellow for requested
-                        }
-                        let textColor =
-                          isSelected || isOffered || isRequestedAndOffered
-                            ? "#fff"
-                            : isRequested
-                            ? "#333"
-                            : "inherit";
-                        let fontWeight =
-                          isSelected || isOffered || isRequestedAndOffered
-                            ? 700
-                            : isRequested
-                            ? 600
-                            : 400;
-
-                        return (
-                          <Box
-                            key={dayIdx}
-                            sx={{
-                              backgroundColor: bgColor,
-                              border: "1px solid #e2e8f0",
-                              minHeight: 32,
-                              textAlign: "center",
-                              color: textColor,
-                              fontWeight: fontWeight,
-                              fontSize: 14,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                              opacity: 1,
-                            }}
-                            onClick={() => {
-                              setSelectedOfferSlots((prev) => {
-                                const exists = prev.some(
-                                  (slot) =>
-                                    slot.dayInWeek === dayInWeek &&
-                                    slot.slotIndex === slotIdx
-                                );
-                                if (exists) {
-                                  return prev.filter(
-                                    (slot) =>
-                                      !(
-                                        slot.dayInWeek === dayInWeek &&
-                                        slot.slotIndex === slotIdx
-                                      )
-                                  );
-                                } else {
-                                  return [
-                                    ...prev,
-                                    { dayInWeek, slotIndex: slotIdx },
-                                  ];
-                                }
-                              });
-                            }}
-                          />
-                        );
-                      })}
-                    </React.Fragment>
-                  );
-                })}
+                          return (
+                            <Box
+                              key={dayIdx}
+                              sx={{
+                                backgroundColor: bgColor,
+                                border: "1px solid #e2e8f0",
+                                minHeight: 32,
+                                textAlign: "center",
+                                color: textColor,
+                                fontWeight: fontWeight,
+                                fontSize: 14,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                opacity: 1,
+                              }}
+                              onClick={() => handleSlotClick(dayInWeek, slotIdx)}
+                            />
+                          );
+                        })}
+                      </React.Fragment>
+                    );
+                  })}
+                </Box>
               </Box>
+
+              {/* Right side - Selected slots card */}
+              <AnimatePresence>
+                {temporarilySelectedSlots.length > 0 && (
+                  <motion.div
+                    initial={{ 
+                      opacity: 0, 
+                      x: 50,
+                      scale: 0.9
+                    }}
+                    animate={{ 
+                      opacity: 1, 
+                      x: 0,
+                      scale: 1
+                    }}
+                    exit={{ 
+                      opacity: 0, 
+                      x: 50,
+                      scale: 0.9
+                    }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 300, 
+                      damping: 30,
+                      duration: 0.4
+                    }}
+                    style={{ width: 300, flexShrink: 0 }}
+                  >
+                    <Card sx={{ height: '100%', position: 'sticky', top: 0 }}>
+                      <CardContent>
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1, duration: 0.3 }}
+                        >
+                          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                            Khung giờ đã chọn
+                          </Typography>
+                        </motion.div>
+                        
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2, duration: 0.3 }}
+                        >
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="textSecondary">
+                              Học viên: {selectedLearner?.learnerName || 'N/A'}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              Số slot đã chọn đề đề xuất: {temporarilySelectedSlots.length}
+                            </Typography>
+                          </Box>
+                        </motion.div>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                          <AnimatePresence>
+                            {temporarilySelectedSlots.map((slot, index) => {
+                              // Map dayInWeek to the correct index in dialogWeekInfo
+                              // dayInWeek: 1=Sun, 2=Mon, ..., 7=Sat
+                              // dialogWeekInfo: [MON, TUE, WED, THU, FRI, SAT, SUN] (index 0-6)
+                              const dayIndexMap = {
+                                1: 6, // Sun -> index 6
+                                2: 0, // Mon -> index 0
+                                3: 1, // Tue -> index 1
+                                4: 2, // Wed -> index 2
+                                5: 3, // Thu -> index 3
+                                6: 4, // Fri -> index 4
+                                7: 5, // Sat -> index 5
+                              };
+                              const dayInfo = dialogWeekInfo[dayIndexMap[slot.dayInWeek]];
+                              
+                              const hour = Math.floor(slot.slotIndex / 2);
+                              const minute = slot.slotIndex % 2 === 0 ? "00" : "30";
+                              const nextHour = slot.slotIndex % 2 === 0 ? hour : hour + 1;
+                              const nextMinute = slot.slotIndex % 2 === 0 ? "30" : "00";
+                              const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+
+                              return (
+                                <motion.div
+                                  key={`${slot.dayInWeek}-${slot.slotIndex}`}
+                                  initial={{ 
+                                    opacity: 0, 
+                                    x: 30,
+                                    scale: 0.95
+                                  }}
+                                  animate={{ 
+                                    opacity: 1, 
+                                    x: 0,
+                                    scale: 1
+                                  }}
+                                  exit={{ 
+                                    opacity: 0, 
+                                    x: -30,
+                                    scale: 0.95
+                                  }}
+                                  transition={{ 
+                                    type: "spring", 
+                                    stiffness: 400, 
+                                    damping: 25,
+                                    delay: index * 0.1
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      p: 1.5,
+                                      mb: 1,
+                                      borderRadius: 1,
+                                      backgroundColor: '#f8f9fa',
+                                      border: '1px solid #e9ecef',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center'
+                                    }}
+                                  >
+                                    <Box>
+                                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                        {dayInfo?.label || `Thứ ${slot.dayInWeek}`}
+                                      </Typography>
+                                      <Typography variant="body2" color="textSecondary">
+                                        {dayInfo?.date || ''}
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 'medium' }}>
+                                        {timeLabel}
+                                      </Typography>
+                                    </Box>
+                                    <motion.div
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
+                                    >
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => handleSlotClick(slot.dayInWeek, slot.slotIndex)}
+                                        sx={{
+                                          color: '#dc3545',
+                                          '&:hover': {
+                                            backgroundColor: 'rgba(220, 53, 69, 0.1)'
+                                          }
+                                        }}
+                                      >
+                                        <FiTrash2 size={16} />
+                                      </IconButton>
+                                    </motion.div>
+                                  </Box>
+                                </motion.div>
+                              );
+                            })}
+                          </AnimatePresence>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3, duration: 0.3 }}
+                        >
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                              Tổng cộng: {temporarilySelectedSlots.length} slot
+                            </Typography>
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={() => {
+                                  setTemporarilySelectedSlots([]);
+                                  clearTemporarySlots(dialogWeekStart, selectedLearner);
+                                }}
+                                sx={{ color: '#dc3545', borderColor: '#dc3545' }}
+                              >
+                                Xóa tất cả
+                              </Button>
+                            </motion.div>
+                          </Box>
+                        </motion.div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </Box>
           )}
         </DialogContent>
@@ -3938,6 +4127,7 @@ const TutorProfile = ({
               onClick={() => {
                 setBookingDetailDialogOpen(false);
                 setSelectedLearner(null);
+                setTemporarilySelectedSlots([]); // Clear temporary slots when closing
               }}
             >
               Đóng
@@ -3945,47 +4135,19 @@ const TutorProfile = ({
             <Button
               variant="contained"
               color="primary"
-              disabled={selectedOfferSlots.length === 0 || !selectedLearner}
+              disabled={temporarilySelectedSlots.length === 0 || !selectedLearner}
               onClick={async () => {
                 if (!selectedLearner) {
                   return;
                 }
-                try {
-                  const offeredSlots = selectedOfferSlots.map((slot) => ({
-                    slotDateTime: getSlotDateTime(
-                      dialogWeekStart,
-                      slot.dayInWeek,
-                      slot.slotIndex
-                    ),
-                    slotIndex: slot.slotIndex,
-                  }));
-
-                  if (offerDetail && offerDetail.id) {
-                    // Update existing offer
-                    await updateTutorBookingOfferByOfferId(offerDetail.id, {
-                      offeredSlots,
-                    });
-                    alert("Đã cập nhật đề nghị thành công!");
-                  } else {
-                    // Create new offer
-                    await createTutorBookingOffer({
-                      learnerId: selectedLearner,
-                      offeredSlots,
-                    });
-                    alert("Đã gửi đề nghị thành công!");
-                  }
-
-                  setBookingDetailDialogOpen(false);
-                  setSelectedOfferSlots([]);
-                  setSelectedLearner(null);
-                } catch (err) {
-                  alert("Gửi đề nghị thất bại: " + err.message);
-                }
+                // First, fetch lessons and open lesson selection dialog
+                await fetchTutorLessons();
+                setLessonSelectionDialogOpen(true);
               }}
             >
               {offerDetail && offerDetail.id
                 ? "Cập nhật đề xuất"
-                : "Gửi đề xuất"}
+                : "Chọn bài học"}
             </Button>
           </Box>
         </DialogActions>
@@ -4008,6 +4170,109 @@ const TutorProfile = ({
         cancelText="Hủy"
         confirmColor="error"
       />
+
+      <Dialog
+        open={lessonSelectionDialogOpen}
+        onClose={() => {
+          setLessonSelectionDialogOpen(false);
+          setSelectedLesson(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Chọn bài học cho đề xuất
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Vui lòng chọn bài học bạn muốn đề xuất cho học viên:
+          </Typography>
+          
+          {lessonsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : availableLessons.length === 0 ? (
+            <Alert severity="warning">
+              Bạn chưa có bài học nào. Vui lòng tạo bài học trước khi gửi đề xuất.
+            </Alert>
+          ) : (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Chọn bài học</InputLabel>
+              <Select
+                value={selectedLesson?.id || ''}
+                onChange={(e) => {
+                  const lesson = availableLessons.find(l => l.id === e.target.value);
+                  setSelectedLesson(lesson);
+                }}
+                label="Chọn bài học"
+              >
+                {availableLessons.map((lesson) => (
+                  <MenuItem key={lesson.id} value={lesson.id}>
+                    <Box>
+                      <Typography variant="subtitle1">
+                        {lesson.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {formatLanguageCode(lesson.languageCode)} 
+                        {lesson.category && ` | ${lesson.category}`}
+                        {' | '}
+                        {typeof lesson.price === "number" || typeof lesson.price === "string"
+                          ? formatPriceWithCommas(lesson.price)
+                          : "Không có"}{" "}
+                        VND
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          
+          {selectedLesson && (
+            <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Bài học đã chọn:
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                {selectedLesson.name}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                {formatLanguageCode(selectedLesson.languageCode)}
+                {selectedLesson.category && ` | ${selectedLesson.category}`}
+              </Typography>
+              <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
+                {typeof selectedLesson.price === "number" || typeof selectedLesson.price === "string"
+                  ? formatPriceWithCommas(selectedLesson.price)
+                  : "Không có"}{" "}
+                VND
+              </Typography>
+              {selectedLesson.description && (
+                <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+                  {selectedLesson.description}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setLessonSelectionDialogOpen(false);
+              setSelectedLesson(null);
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleProceedWithOffer}
+            disabled={!selectedLesson || availableLessons.length === 0}
+          >
+            Gửi đề xuất
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <ToastContainer
         position="top-right"

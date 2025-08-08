@@ -139,16 +139,6 @@ export function useNotificationHub() {
     };
   }, []); // Empty dependency array means this runs once on mount
 
-  // Log connection state changes
-  useEffect(() => {
-    console.log(" useNotificationHub - Connection state updated:", {
-      state: connectionState,
-      stateName: HubConnectionState[connectionState],
-      connected: connected,
-      error: error
-    });
-  }, [connectionState, connected, error]);
-
   // Add the markAsRead function
   const markAsRead = async (notificationId) => {
     if (!connectionRef.current || connectionRef.current.state !== HubConnectionState.Connected) {
