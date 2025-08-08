@@ -993,6 +993,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         currentUser={user}
         onBookingSuccess={handleBookingSuccess}
         lessonId={bookingLessonId}
+        expectedStartDate={new Date().toISOString()} // Truyền expectedStartDate cho current week và future weeks
       />
     </div>
   );
