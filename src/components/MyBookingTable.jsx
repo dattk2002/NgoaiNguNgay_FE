@@ -15,13 +15,15 @@ import {
   TableCell,
   TableBody,
   Paper,
+  Tooltip,
 } from "@mui/material";
 import { LuMessageCircleMore } from "react-icons/lu";
-import { FiTrash2, FiXCircle, FiCheckCircle } from "react-icons/fi";
+import { FiTrash2, FiXCircle, FiCheckCircle, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import {
   learnerBookingTimeSlotByTutorId,
   learnerBookingOfferDetail,
   acceptLearnerBookingOffer,
+  rejectLearnerBookingOffer,
 } from "./api/auth"; // add acceptLearnerBookingOffer
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -37,12 +39,23 @@ const toastConfig = {
   draggable: true,
 };
 
-function getWeekInfoForDialog() {
-  const today = new Date();
-  const day = today.getDay();
+function getWeekInfoForDialog(expectedStartDate = null, weekOffset = 0) {
+  let baseDate;
+  
+  if (expectedStartDate) {
+    // Use expectedStartDate as base and add week offset
+    baseDate = new Date(expectedStartDate);
+    baseDate.setDate(baseDate.getDate() + (weekOffset * 7));
+  } else {
+    // Fallback to current date with week offset
+    baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + (weekOffset * 7));
+  }
+  
+  const day = baseDate.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diff);
+  const monday = new Date(baseDate);
+  monday.setDate(baseDate.getDate() + diff);
 
   const weekInfo = [];
   const dayLabels = [
@@ -54,12 +67,16 @@ function getWeekInfoForDialog() {
     "Thứ 7",
     "CN",
   ];
+  
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     weekInfo.push({
       label: dayLabels[i],
       date: d.getDate(),
+      month: d.getMonth() + 1,
+      year: d.getFullYear(),
+      fullDate: new Date(d), // Store full date for comparison
     });
   }
   return weekInfo;
@@ -86,9 +103,12 @@ export default function MyBookingTable({
   const [tutorOfferedSlots, setTutorOfferedSlots] = React.useState([]);
   const [acceptingOffer, setAcceptingOffer] = React.useState(false);
   const [confirmAcceptOpen, setConfirmAcceptOpen] = React.useState(false);
+  const [rejectingOffer, setRejectingOffer] = React.useState(false);
+  const [confirmRejectOpen, setConfirmRejectOpen] = React.useState(false);
   const [errorDialogOpen, setErrorDialogOpen] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
   const [isInsufficientFunds, setIsInsufficientFunds] = React.useState(false);
+  const [currentWeekOffset, setCurrentWeekOffset] = React.useState(0); // 0 = current week, -1 = previous week, +1 = next week
 
   // Handler to open dialog and fetch booking detail
   const handleOpenBookingDetail = async (tutorId, tutorBookingOfferId) => {
@@ -96,6 +116,7 @@ export default function MyBookingTable({
     setBookingDetailDialogOpen(true);
     setSelectedTutor(tutorId);
     setTutorOfferedSlots([]); // reset
+    setCurrentWeekOffset(0); // reset to show the week containing expectedStartDate
     try {
       const res = await learnerBookingTimeSlotByTutorId(tutorId);
       // Support both { data: { ... } } and { ... }
@@ -114,9 +135,8 @@ export default function MyBookingTable({
       if (tutorBookingOfferId) {
         const offer = await learnerBookingOfferDetail(tutorBookingOfferId);
         setOfferDetail(offer);
-        setTutorOfferedSlots(
-          Array.isArray(offer?.offeredSlots) ? offer.offeredSlots : []
-        );
+        const offeredSlots = Array.isArray(offer?.offeredSlots) ? offer.offeredSlots : [];
+        setTutorOfferedSlots(offeredSlots);
       }
     } catch (err) {
       setBookingDetailSlots([]);
@@ -197,9 +217,76 @@ export default function MyBookingTable({
     }
   };
 
+  // Handle rejecting offer
+  const handleRejectOffer = () => {
+    setConfirmRejectOpen(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!offerDetail?.id) return;
+    
+    setRejectingOffer(true);
+    try {
+      await rejectLearnerBookingOffer(offerDetail.id);
+      toast.success("Đã từ chối đề xuất thành công!", toastConfig);
+      handleCloseDialog();
+      // Optionally refresh the data
+      window.location.reload();
+    } catch (error) {
+      console.error("Error rejecting offer:", error);
+      
+      // Check for specific error messages
+      let message = "Không thể từ chối đề xuất. Vui lòng thử lại!";
+      
+      // Check if offer is expired
+      const errorString = JSON.stringify(error).toLowerCase();
+      const errorMessage = error.message ? error.message.toLowerCase() : "";
+      const detailMessage = error.details?.errorMessage ? error.details.errorMessage.toLowerCase() : "";
+      
+      if (errorString.includes("expired") || 
+          errorMessage.includes("expired") || 
+          detailMessage.includes("expired")) {
+        message = "Đề xuất đã hết hạn, không thể từ chối!";
+      } else if (errorString.includes("already rejected") || 
+                 errorMessage.includes("already rejected") || 
+                 detailMessage.includes("already rejected")) {
+        message = "Đề xuất đã được từ chối trước đó!";
+      }
+      
+      setErrorMessage(message);
+      setErrorDialogOpen(true);
+    } finally {
+      setRejectingOffer(false);
+      setConfirmRejectOpen(false);
+    }
+  };
+
   const handleGoToWallet = () => {
     setErrorDialogOpen(false);
     navigate("/wallet");
+  };
+
+  // Week navigation handlers
+  const handlePreviousWeek = () => {
+    setCurrentWeekOffset(prev => prev - 1);
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeekOffset(prev => prev + 1);
+  };
+
+  const getCurrentWeekInfo = () => {
+    return getWeekInfoForDialog(bookingDetailExpectedStartDate, currentWeekOffset);
+  };
+
+  const getWeekDisplayText = () => {
+    const weekInfo = getCurrentWeekInfo();
+    if (weekInfo.length > 0) {
+      const firstDay = weekInfo[0];
+      const lastDay = weekInfo[6];
+      return `${firstDay.date}/${firstDay.month} - ${lastDay.date}/${lastDay.month}/${lastDay.year}`;
+    }
+    return "";
   };
 
   return (
@@ -409,12 +496,45 @@ export default function MyBookingTable({
           PaperProps={{ sx: { minWidth: 1100 } }}
         >
           <DialogTitle>
-            Chi tiết khung giờ đã đặt{" "}
-            {selectedTutor &&
-              `- Gia sư: ${
-                sentRequests.find((t) => t.tutorId === selectedTutor)
-                  ?.tutorName || ""
-              }`}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pr: 2 }}>
+              <Box>
+                <Typography variant="h6" component="div">
+                  Chi tiết khung giờ đã đặt{" "}
+                  {selectedTutor &&
+                    `- Gia sư: ${
+                      sentRequests.find((t) => t.tutorId === selectedTutor)
+                        ?.tutorName || ""
+                    }`}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Tooltip title="Tuần trước">
+                  <Button
+                    onClick={handlePreviousWeek}
+                    variant="outlined"
+                    size="small"
+                    sx={{ minWidth: "40px", px: 1 }}
+                  >
+                    <FiChevronLeft />
+                  </Button>
+                </Tooltip>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography variant="body2" sx={{ minWidth: "120px", fontWeight: 600 }}>
+                    {getWeekDisplayText()}
+                  </Typography>
+                </Box>
+                <Tooltip title="Tuần sau">
+                  <Button
+                    onClick={handleNextWeek}
+                    variant="outlined"
+                    size="small"
+                    sx={{ minWidth: "40px", px: 1 }}
+                  >
+                    <FiChevronRight />
+                  </Button>
+                </Tooltip>
+              </Box>
+            </Box>
           </DialogTitle>
           <DialogContent>
             {/* Show expectedStartDate if available */}
@@ -524,8 +644,8 @@ export default function MyBookingTable({
                     Thời gian
                   </Box>
                   {(() => {
-                    // You need to generate weekInfo for the header
-                    const weekInfo = getWeekInfoForDialog();
+                    // Use current week info based on expectedStartDate and offset
+                    const weekInfo = getCurrentWeekInfo();
                     return weekInfo.map((d, i) => (
                       <Box
                         key={i}
@@ -533,7 +653,7 @@ export default function MyBookingTable({
                       >
                         <div style={{ fontSize: 14 }}>{d.label}</div>
                         <div style={{ fontSize: 13, color: "#64748b" }}>
-                          {d.date}
+                          {d.date}/{d.month}
                         </div>
                       </Box>
                     ));
@@ -569,24 +689,46 @@ export default function MyBookingTable({
                         </Box>
                         {/* For each day, render a cell for this 30-min slot */}
                         {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                          const weekInfo = getCurrentWeekInfo();
+                          const currentDayInfo = weekInfo[dayIdx];
+                          
+                          // Check if this slot is booked - only show when viewing the expected week (offset = 0)
                           const isBooked =
+                            currentWeekOffset === 0 &&
                             Array.isArray(bookingDetailSlots) &&
                             bookingDetailSlots.some(
                               (slot) =>
                                 slot.dayInWeek === dayInWeek &&
                                 slot.slotIndex === slotIdx
-                            );
+                                                        );
+
                           const isOffered =
                             Array.isArray(tutorOfferedSlots) &&
                             tutorOfferedSlots.some((slot) => {
+                              if (!slot.slotDateTime || slot.slotIndex === undefined) return false;
+                              
+                              // Parse the slot date from API (UTC)
                               const slotDate = new Date(slot.slotDateTime);
-                              const jsDay = slotDate.getDay();
-                              const slotDayInWeek = jsDay === 0 ? 1 : jsDay + 1;
-                              return (
-                                slot.slotIndex === slotIdx &&
-                                slotDayInWeek === dayInWeek
+                              
+                              // Get UTC date parts to avoid timezone issues
+                              const slotYear = slotDate.getUTCFullYear();
+                              const slotMonth = slotDate.getUTCMonth() + 1; // getUTCMonth() returns 0-11, we need 1-12
+                              const slotDay = slotDate.getUTCDate();
+                              
+                              // Check if this slot matches the current cell
+                              const dateMatches = (
+                                slotYear === currentDayInfo.year &&
+                                slotMonth === currentDayInfo.month &&
+                                slotDay === currentDayInfo.date
                               );
+                              
+                              const slotIndexMatches = slot.slotIndex === slotIdx;
+                              
+                              const isMatching = dateMatches && slotIndexMatches;
+                              
+                              return isMatching;
                             });
+
                           let bgColor = "#f1f5f9";
                           let color = "#333";
                           let fontWeight = 400;
@@ -603,6 +745,7 @@ export default function MyBookingTable({
                             color = "#fff";
                             fontWeight = 700;
                           }
+
                           return (
                             <Box
                               key={dayIdx}
@@ -686,19 +829,41 @@ export default function MyBookingTable({
             </Box>
             <Box sx={{ display: "flex", gap: 2 }}>
               {offerDetail && (
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  onClick={handleAcceptOffer}
-                  disabled={acceptingOffer}
-                  sx={{ 
-                    bgcolor: "#10b981", 
-                    "&:hover": { bgcolor: "#059669" },
-                    fontWeight: 600
-                  }}
-                >
-                  {acceptingOffer ? "Đang xử lý..." : "Chấp nhận đề xuất"}
-                </Button>
+                <>
+                  <Button 
+                    variant="contained" 
+                    color="primary" 
+                    onClick={handleAcceptOffer}
+                    disabled={acceptingOffer || rejectingOffer}
+                    sx={{ 
+                      bgcolor: "#10b981", 
+                      "&:hover": { bgcolor: "#059669" },
+                      fontWeight: 600
+                    }}
+                  >
+                    {acceptingOffer ? "Đang xử lý..." : "Chấp nhận đề xuất"}
+                  </Button>
+                  <Tooltip 
+                    title={offerDetail?.isExpired ? "Đề xuất đã hết hạn, không thể từ chối" : ""}
+                    placement="top"
+                  >
+                    <span>
+                      <Button 
+                        variant="contained" 
+                        color="error" 
+                        onClick={handleRejectOffer}
+                        disabled={acceptingOffer || rejectingOffer || offerDetail?.isExpired}
+                        sx={{ 
+                          bgcolor: "#dc2626", 
+                          "&:hover": { bgcolor: "#b91c1c" },
+                          fontWeight: 600
+                        }}
+                      >
+                        {rejectingOffer ? "Đang xử lý..." : offerDetail?.isExpired ? "Đã hết hạn" : "Từ chối đề xuất"}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </>
               )}
               <Button onClick={handleCloseDialog} variant="outlined">
                 Đóng
@@ -752,6 +917,61 @@ export default function MyBookingTable({
             }}
           >
             {acceptingOffer ? "Đang xử lý..." : "Chấp nhận"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirm Reject Offer Dialog */}
+      <Dialog open={confirmRejectOpen} onClose={() => setConfirmRejectOpen(false)}>
+        <DialogTitle>Xác nhận từ chối đề xuất</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn từ chối đề xuất này không?
+          </Typography>
+          {offerDetail?.isExpired && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: "#fef2f2", borderRadius: 1, border: "1px solid #fecaca" }}>
+              <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                ⚠️ Lưu ý: Đề xuất này đã hết hạn
+              </Typography>
+            </Box>
+          )}
+          {offerDetail && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: "#fef2f2", borderRadius: 1, border: "1px solid #fecaca" }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#dc2626" }}>
+                Thông tin đề xuất:
+              </Typography>
+              {offerDetail.lessonName && (
+                <Typography variant="body2">
+                  • Bài học: {offerDetail.lessonName}
+                </Typography>
+              )}
+              {offerDetail.totalPrice && (
+                <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                  • Tổng giá: {offerDetail.totalPrice?.toLocaleString()} VND
+                </Typography>
+              )}
+              {offerDetail.slotCount && (
+                <Typography variant="body2">
+                  • Số slots: {offerDetail.slotCount}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmRejectOpen(false)} disabled={rejectingOffer}>
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleConfirmReject} 
+            variant="contained"
+            disabled={rejectingOffer}
+            sx={{ 
+              bgcolor: "#dc2626", 
+              "&:hover": { bgcolor: "#b91c1c" }
+            }}
+          >
+            {rejectingOffer ? "Đang xử lý..." : "Từ chối"}
           </Button>
         </DialogActions>
       </Dialog>
