@@ -1052,6 +1052,28 @@ export async function updateTutorBookingOfferByOfferId(offerId, offerData) {
 }
 
 /**
+ * Delete a tutor's booking offer by offerId.
+ * @param {string} offerId
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteTutorBookingOfferByOfferId(offerId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      `/api/tutor-bookings/offers/${offerId}`,
+      "DELETE",
+      null,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to delete tutor booking offer:", error.message);
+    throw error;
+  }
+}
+
+/**
  * Get all booking offers sent to the learner.
  * @returns {Promise<Array>} List of booking offers.
  */
@@ -1120,6 +1142,28 @@ export async function acceptLearnerBookingOffer(offerId) {
     return response;
   } catch (error) {
     console.error("Failed to accept booking offer:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Reject a booking offer from tutor.
+ * @param {string} offerId
+ * @returns {Promise<Object>} API response
+ */
+export async function rejectLearnerBookingOffer(offerId) {
+  try {
+    const token = getAccessToken();
+    if (!token) throw new Error("Authentication token is required");
+    const response = await callApi(
+      `/api/learner-bookings/offers/${offerId}/reject`,
+      "POST",
+      null,
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to reject booking offer:", error.message);
     throw error;
   }
 }

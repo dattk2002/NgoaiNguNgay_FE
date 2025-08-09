@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchPendingApplications, fetchTutorApplicationById, reviewTutorApplication } from '../api/auth';
 import { toast } from 'react-toastify';
+import StudentRequests from '../tutorManagement/StudentRequests';
 
 const TutorManagement = () => {
     const [activeTab, setActiveTab] = useState('pending');
@@ -48,6 +49,16 @@ const TutorManagement = () => {
             icon: (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            )
+        },
+        {
+            id: 'student-requests',
+            title: 'Yêu cầu từ học viên',
+            count: 0,
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
             )
         }
@@ -732,210 +743,219 @@ const TutorManagement = () => {
                 </nav>
             </div>
 
-            {/* Search and Filter */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between">
-                <div className="relative flex-1 max-w-md">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+            {/* Search and Filter - Only show for non-student-requests tabs */}
+            {activeTab !== 'student-requests' && (
+                <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                    <div className="relative flex-1 max-w-md">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 outline-none text-sm text-black"
+                            placeholder="Tìm kiếm gia sư..."
+                        />
                     </div>
-                    <input
-                        type="text"
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 outline-none text-sm text-black"
-                        placeholder="Tìm kiếm gia sư..."
-                    />
-                </div>
-                <div className="flex space-x-3">
-                    <select className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black">
-                        <option>Tất cả môn học</option>
-                        <option>Toán học</option>
-                        <option>Tiếng Anh</option>
-                        <option>Vật lý</option>
-                        <option>Hóa học</option>
-                    </select>
-                    <select className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black">
-                        <option>Sắp xếp theo</option>
-                        <option>Ngày nộp</option>
-                        <option>Tên</option>
-                        <option>Môn học</option>
-                    </select>
-                </div>
-            </div>
-
-            {/* Loading and Error States */}
-            {loading && (
-                <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                    <span className="ml-2">Đang tải thông tin gia sư...</span>
+                    <div className="flex space-x-3">
+                        <select className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black">
+                            <option>Tất cả môn học</option>
+                            <option>Toán học</option>
+                            <option>Tiếng Anh</option>
+                            <option>Vật lý</option>
+                            <option>Hóa học</option>
+                        </select>
+                        <select className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black">
+                            <option>Sắp xếp theo</option>
+                            <option>Ngày nộp</option>
+                            <option>Tên</option>
+                            <option>Môn học</option>
+                        </select>
+                    </div>
                 </div>
             )}
 
-            {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                    <strong className="font-bold">Error! </strong>
-                    <span className="block sm:inline">{error}</span>
-                </div>
-            )}
+            {/* Tab Content */}
+            {activeTab === 'student-requests' ? (
+                <StudentRequests />
+            ) : (
+                <>
+                    {/* Loading and Error States */}
+                    {loading && (
+                        <div className="flex justify-center items-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            <span className="ml-2">Đang tải thông tin gia sư...</span>
+                        </div>
+                    )}
 
-            {/* Tutors List */}
-            {!loading && !error && (
-                <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                    <ul className="divide-y divide-gray-200">
-                        {currentTutors.map((tutor) => (
-                            <li key={tutor.id} className="px-6 py-4 hover:bg-gray-50">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 h-16 w-16">
-                                            {tutor.tutor?.profileImageUrl ? (
-                                                <img
-                                                    src={tutor.tutor.profileImageUrl}
-                                                    alt={tutor.tutor?.fullName || 'Tutor'}
-                                                    className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
-                                                />
-                                            ) : (
-                                                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                                                    {(tutor.tutor?.fullName || tutor.tutor?.nickName || 'T').charAt(0).toUpperCase()}
+                    {error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                            <strong className="font-bold">Error! </strong>
+                            <span className="block sm:inline">{error}</span>
+                        </div>
+                    )}
+
+                                        {/* Tutors List */}
+                    {!loading && !error && (
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                            <ul className="divide-y divide-gray-200">
+                                {currentTutors.map((tutor) => (
+                                    <li key={tutor.id} className="px-6 py-4 hover:bg-gray-50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0 h-16 w-16">
+                                                    {tutor.tutor?.profileImageUrl ? (
+                                                        <img
+                                                            src={tutor.tutor.profileImageUrl}
+                                                            alt={tutor.tutor?.fullName || 'Tutor'}
+                                                            className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                                                            {(tutor.tutor?.fullName || tutor.tutor?.nickName || 'T').charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="ml-4 flex-1">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <div className="flex items-center">
-                                                        <h3 className="text-lg font-semibold text-gray-900">
-                                                            {tutor.tutor?.fullName || tutor.tutor?.nickName || 'Không có tên'}
-                                                        </h3>
-                                                        <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${tutor.status === 1 ? 'bg-yellow-100 text-yellow-800' :
-                                                            tutor.status === 2 ? 'bg-green-100 text-green-800' :
-                                                                tutor.status === 3 ? 'bg-red-100 text-red-800' :
-                                                                    'bg-gray-100 text-gray-800'
-                                                            }`}>
-                                                            {tutor.status === 1 ? 'Chờ duyệt' :
-                                                                tutor.status === 2 ? 'Đã duyệt' :
-                                                                    tutor.status === 3 ? 'Từ chối' : 'Không xác định'}
-                                                        </span>
+                                                <div className="ml-4 flex-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <div className="flex items-center">
+                                                                <h3 className="text-lg font-semibold text-gray-900">
+                                                                    {tutor.tutor?.fullName || tutor.tutor?.nickName || 'Không có tên'}
+                                                                </h3>
+                                                                <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${tutor.status === 1 ? 'bg-yellow-100 text-yellow-800' :
+                                                                    tutor.status === 2 ? 'bg-green-100 text-green-800' :
+                                                                        tutor.status === 3 ? 'bg-red-100 text-red-800' :
+                                                                            'bg-gray-100 text-gray-800'
+                                                                    }`}>
+                                                                    {tutor.status === 1 ? 'Chờ duyệt' :
+                                                                        tutor.status === 2 ? 'Đã duyệt' :
+                                                                            tutor.status === 3 ? 'Từ chối' : 'Không xác định'}
+                                                                </span>
+                                                            </div>
+                                                            {tutor.tutor?.fullName && tutor.tutor?.nickName && tutor.tutor.fullName !== tutor.tutor.nickName && (
+                                                                <p className="text-sm text-gray-600 mt-1">Biệt danh: {tutor.tutor.nickName}</p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    {tutor.tutor?.fullName && tutor.tutor?.nickName && tutor.tutor.fullName !== tutor.tutor.nickName && (
-                                                        <p className="text-sm text-gray-600 mt-1">Biệt danh: {tutor.tutor.nickName}</p>
+
+                                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                                                        <div className="flex items-center">
+                                                            <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <span>{tutor.tutor?.email || 'Không có email'}</span>
+                                                        </div>
+                                                        <div className="flex items-center">
+                                                            <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-3h14a2 2 0 002-2v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <span>
+                                                                {tutor.submittedAt ?
+                                                                    `Nộp: ${new Date(tutor.submittedAt).toLocaleDateString('vi-VN')}` :
+                                                                    'Chưa xác định'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Languages */}
+                                                    {tutor.tutor?.languages && tutor.tutor.languages.length > 0 && (
+                                                        <div className="mt-3 flex flex-wrap gap-1">
+                                                            {tutor.tutor.languages.slice(0, 3).map((lang, index) => (
+                                                                <span key={index} className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${lang.isPrimary ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'
+                                                                    }`}>
+                                                                    {lang.languageCode}
+                                                                    {lang.isPrimary && <span className="ml-1">★</span>}
+                                                                </span>
+                                                            ))}
+                                                            {tutor.tutor.languages.length > 3 && (
+                                                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                                                                    +{tutor.tutor.languages.length - 3} khác
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Brief description */}
+                                                    {tutor.tutor?.brief && (
+                                                        <div className="mt-2">
+                                                            <p className="text-sm text-gray-700 italic overflow-hidden" style={{
+                                                                display: '-webkit-box',
+                                                                WebkitLineClamp: 2,
+                                                                WebkitBoxOrient: 'vertical'
+                                                            }}>
+                                                                "{tutor.tutor.brief}"
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Hashtags */}
+                                                    {tutor.tutor?.hashtags && tutor.tutor.hashtags.length > 0 && (
+                                                        <div className="mt-2 flex flex-wrap gap-1">
+                                                            {tutor.tutor.hashtags.slice(0, 4).map((tag, index) => (
+                                                                <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                                    #{tag.name}
+                                                                </span>
+                                                            ))}
+                                                            {tutor.tutor.hashtags.length > 4 && (
+                                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                                                    +{tutor.tutor.hashtags.length - 4}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
-
-                                            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-                                                <div className="flex items-center">
-                                                    <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={() => handleViewProfile(tutor)}
+                                                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 outline-none"
+                                                >
+                                                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
-                                                    <span>{tutor.tutor?.email || 'Không có email'}</span>
-                                                </div>
-                                                <div className="flex items-center">
-                                                    <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-3h14a2 2 0 002-2v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                                                    </svg>
-                                                    <span>
-                                                        {tutor.submittedAt ?
-                                                            `Nộp: ${new Date(tutor.submittedAt).toLocaleDateString('vi-VN')}` :
-                                                            'Chưa xác định'}
-                                                    </span>
-                                                </div>
+                                                    Xem
+                                                </button>
+                                                {activeTab === 'pending' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleApprove(tutor)}
+                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 outline-none">
+                                                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            Duyệt
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleRequestInfo(tutor)}
+                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 outline-none"
+                                                        >
+                                                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            Yêu cầu TT
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleReject(tutor)}
+                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 outline-none"
+                                                        >
+                                                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                            Từ chối
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
-
-                                            {/* Languages */}
-                                            {tutor.tutor?.languages && tutor.tutor.languages.length > 0 && (
-                                                <div className="mt-3 flex flex-wrap gap-1">
-                                                    {tutor.tutor.languages.slice(0, 3).map((lang, index) => (
-                                                        <span key={index} className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${lang.isPrimary ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'
-                                                            }`}>
-                                                            {lang.languageCode}
-                                                            {lang.isPrimary && <span className="ml-1">★</span>}
-                                                        </span>
-                                                    ))}
-                                                    {tutor.tutor.languages.length > 3 && (
-                                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                                                            +{tutor.tutor.languages.length - 3} khác
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* Brief description */}
-                                            {tutor.tutor?.brief && (
-                                                <div className="mt-2">
-                                                    <p className="text-sm text-gray-700 italic overflow-hidden" style={{
-                                                        display: '-webkit-box',
-                                                        WebkitLineClamp: 2,
-                                                        WebkitBoxOrient: 'vertical'
-                                                    }}>
-                                                        "{tutor.tutor.brief}"
-                                                    </p>
-                                                </div>
-                                            )}
-
-                                            {/* Hashtags */}
-                                            {tutor.tutor?.hashtags && tutor.tutor.hashtags.length > 0 && (
-                                                <div className="mt-2 flex flex-wrap gap-1">
-                                                    {tutor.tutor.hashtags.slice(0, 4).map((tag, index) => (
-                                                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                                            #{tag.name}
-                                                        </span>
-                                                    ))}
-                                                    {tutor.tutor.hashtags.length > 4 && (
-                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                                            +{tutor.tutor.hashtags.length - 4}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            )}
                                         </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <button
-                                            onClick={() => handleViewProfile(tutor)}
-                                            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 outline-none"
-                                        >
-                                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                            Xem
-                                        </button>
-                                        {activeTab === 'pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => handleApprove(tutor)}
-                                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 outline-none">
-                                                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                    Duyệt
-                                                </button>
-                                                <button
-                                                    onClick={() => handleRequestInfo(tutor)}
-                                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 outline-none"
-                                                >
-                                                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    Yêu cầu TT
-                                                </button>
-                                                <button
-                                                    onClick={() => handleReject(tutor)}
-                                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 outline-none"
-                                                >
-                                                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                    Từ chối
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Pagination */}
