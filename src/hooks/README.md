@@ -6,14 +6,14 @@
 
 ```
 src/hooks/
-├── useNotificationHub.jsx    # SignalR notification hub connection
+├── use-google-script.jsx     # Google Script integration
 └── use-google-script.jsx     # Dynamic Google Scripts loading
 ```
 
 ## 🔧 Chi tiết hooks
 
-### 🔔 useNotificationHub.jsx
-**Mục đích**: Custom hook quản lý SignalR connection để nhận real-time notifications
+### 🔔 Notification System (Migrated to Context)
+**Mục đích**: Hệ thống thông báo đã được chuyển từ hook sang Context Provider để cải thiện hiệu suất
 
 **Core Features**:
 - 🔗 **Real-time Connection**: SignalR WebSocket connection

@@ -976,15 +976,29 @@ export async function createTutorBookingOffer(offerData) {
   try {
     const token = getAccessToken();
     if (!token) throw new Error("Authentication token is required");
+    
+    // Clean the payload to only include required fields per API spec
+    const cleanPayload = {
+      learnerId: offerData.learnerId,
+      lessonId: offerData.lessonId,
+      offeredSlots: offerData.offeredSlots
+    };
+    
+    console.log("Creating tutor booking offer with clean data:", cleanPayload);
+    console.log("Token exists:", !!token);
+    
     const response = await callApi(
       "/api/tutor-bookings/offers",
       "POST",
-      offerData,
+      cleanPayload,
       token
     );
+    
+    console.log("Offer creation response:", response);
     return response;
   } catch (error) {
     console.error("Failed to offer booking slots:", error.message);
+    console.error("Error details:", error);
     throw error;
   }
 }
@@ -1038,15 +1052,29 @@ export async function updateTutorBookingOfferByOfferId(offerId, offerData) {
   try {
     const token = getAccessToken();
     if (!token) throw new Error("Authentication token is required");
+    
+    // Clean the payload to only include required fields per API spec
+    const cleanPayload = {
+      lessonId: offerData.lessonId,
+      offeredSlots: offerData.offeredSlots
+    };
+    
+    console.log("Updating tutor booking offer with ID:", offerId);
+    console.log("Clean update data:", cleanPayload);
+    console.log("Token exists:", !!token);
+    
     const response = await callApi(
       `/api/tutor-bookings/offers/${offerId}`,
       "PUT",
-      offerData,
+      cleanPayload,
       token
     );
+    
+    console.log("Update offer response:", response);
     return response;
   } catch (error) {
     console.error("Failed to update tutor booking offer:", error.message);
+    console.error("Error details:", error);
     throw error;
   }
 }
