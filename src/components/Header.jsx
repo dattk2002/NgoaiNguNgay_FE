@@ -18,7 +18,7 @@ import {
 import { toast } from "react-toastify";
 import logo from "../assets/logo.png";
 import NoFocusOutLineButton from '../utils/noFocusOutlineButton';
-import { useNotificationHub } from "../hooks/useNotificationHub";
+import { useNotification } from "../contexts/NotificationContext";
 import { getNotification } from "./api/auth";
 import { getSenderProfile } from "./api/auth";
 import { 
@@ -93,8 +93,8 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const [anchorNotif, setAnchorNotif] = useState(null);
   const [senderProfiles, setSenderProfiles] = useState({});
 
-  // Use the notification hub
-  const { connected, notification } = useNotificationHub();
+  // Use the notification context
+  const { connected, notification } = useNotification();
 
   // Function to add a new notification
   const addNotification = useCallback((notificationData) => {

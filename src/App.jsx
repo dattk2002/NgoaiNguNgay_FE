@@ -54,7 +54,7 @@ import ManagerDashboardPage from "./pages/ManagerDashboardPage";
 import ProtectedRoute, { AdminRoute, StaffRoute, ManagerRoute, BlockedRoute, TutorRoute } from "./components/rbac/ProtectedRoute";
 import RoleBasedRedirect from "./components/rbac/RoleBasedRedirect";
 import RoleBasedRouteGuard from "./components/rbac/RoleBasedRouteGuard";
-import { useNotificationHub } from "./hooks/useNotificationHub";
+import { NotificationProvider, useNotification } from "./contexts/NotificationContext";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
 
@@ -409,7 +409,8 @@ function AppContent({
   );
 }
 
-function App() {
+// AppWithNotifications component that uses the notification context
+function AppWithNotifications() {
   const [user, setUser] = useState(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
@@ -429,8 +430,8 @@ function App() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarContent, setSnackbarContent] = useState(null);
 
-  // Use the notification hub at the top level
-  const { notification, connected, error, connectionState, connectionStateName } = useNotificationHub();
+  // Use the notification context at the top level
+  const { notification, connected, error, connectionState, connectionStateName } = useNotification();
 
   // Debug: Log connection status with state details
   useEffect(() => {
@@ -914,6 +915,15 @@ function App() {
         style={{ zIndex: 99999 }}
       />
     </Router>
+  );
+}
+
+// Main App component wrapped with NotificationProvider
+function App() {
+  return (
+    <NotificationProvider>
+      <AppWithNotifications />
+    </NotificationProvider>
   );
 }
 
