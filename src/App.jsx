@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import './utils/notFocusOutline.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -692,11 +692,11 @@ function AppWithNotifications() {
     fetchMostRecentTutorId();
   }, [user]);
 
-  const openLoginModal = (message = "", onLoginSuccess = null, onCloseWithoutLogin = null) => {
+  const openLoginModal = useCallback((message = "", onLoginSuccess = null, onCloseWithoutLogin = null) => {
     setLoginPromptMessage(message);
     setLoginModalCallbacks({ onLoginSuccess, onCloseWithoutLogin }); // Store callbacks
     setIsLoginModalOpen(true);
-  };
+  }, []);
 
   const closeLoginModal = () => {
     setIsLoginModalOpen(false);
