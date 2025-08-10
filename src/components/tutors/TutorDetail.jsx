@@ -234,7 +234,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     };
 
     loadData();
-  }, [id, user, navigate, onRequireLogin]); 
+  }, [id, user, navigate]); 
 
   useEffect(() => {
     if (!weekStartDate) return;

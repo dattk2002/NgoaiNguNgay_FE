@@ -1424,7 +1424,7 @@ const TutorProfile = ({
     };
 
     fetchTutorData();
-  }, [id, fetchTutorDetail, onRequireLogin]);
+  }, [id, fetchTutorDetail]);
 
   // Fetch lessons when component mounts and when id changes
   useEffect(() => {
