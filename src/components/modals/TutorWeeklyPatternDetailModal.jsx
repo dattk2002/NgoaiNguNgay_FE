@@ -523,22 +523,63 @@ const TutorWeeklyPatternDetailModal = ({
                       const isSelected = selectedSlots.some(
                         (s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIdx
                       );
+                      
+                      // Check if slot is in the past
+                      const isPastSlot = isSlotInPast(dayInWeek, slotIdx);
+                      
+                      // Determine background color based on past status and selection
+                      let backgroundColor;
+                      if (isPastSlot) {
+                        // Past slots - muted colors
+                        if (isSelected) {
+                          backgroundColor = "#6d9e46"; // muted green for selected past slots
+                        } else if (isActive) {
+                          backgroundColor = "#6d9e46"; // muted green for available past slots
+                        } else {
+                          backgroundColor = "#B8B8B8"; // muted gray for unavailable past slots
+                        }
+                      } else {
+                        // Current/future slots - normal colors
+                        if (isSelected) {
+                          backgroundColor = "#2563eb";
+                        } else if (isActive) {
+                          backgroundColor = "#98D45F";
+                        } else {
+                          backgroundColor = "#f1f5f9";
+                        }
+                      }
+
                       return (
                         <Box
                           key={dayIdx}
                           sx={{
-                            backgroundColor: isSelected
-                              ? "#2563eb"
-                              : isActive
-                              ? "#98D45F"
-                              : "#f1f5f9",
+                            backgroundColor,
                             border: "1px solid #e2e8f0",
                             minHeight: 32,
-                            cursor: learnerPermission && isActive && isCurrentWeek ? "pointer" : "default",
-                            opacity: isActive && isCurrentWeek ? 1 : 0.5,
+                            cursor: learnerPermission && isActive && isCurrentWeek && !isPastSlot ? "pointer" : "default",
+                            opacity: isPastSlot ? 0.7 : 1,
                             transition: "background 0.2s",
+                            position: "relative",
+                            "&:hover": !isPastSlot && learnerPermission && isActive && isCurrentWeek ? {
+                              backgroundColor: isSelected ? "#1d4ed8" : "#7bbf3f",
+                            } : {},
+                            // Add a subtle pattern or overlay for past slots
+                            "&::after": isPastSlot ? {
+                              content: '""',
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              background: "repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.3) 4px)",
+                              pointerEvents: "none"
+                            } : {},
                           }}
-                          onClick={() => handleSlotClick(dayInWeek, slotIdx, isActive)}
+                          onClick={() => {
+                            // Don't allow clicking on past slots
+                            if (isPastSlot) return;
+                            handleSlotClick(dayInWeek, slotIdx, isActive);
+                          }}
                         />
                       );
                     })}
