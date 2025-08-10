@@ -39,6 +39,7 @@ import {
   GlobalStyles,
   Skeleton, // Add Skeleton import
   Tooltip,
+  Autocomplete,
 } from "@mui/material";
 import {
   FiPlusCircle,
@@ -57,6 +58,7 @@ import { styled } from "@mui/material/styles";
 import {
   getAccessToken,
   fetchTutorLesson,
+  fetchTutorLessonDetailById, // Add this import
   createLesson,
   updateLesson,
   deleteLesson,
@@ -67,7 +69,7 @@ import {
   tutorBookingTimeSlotFromLearnerDetail,
   createTutorBookingOffer,
   tutorBookingOfferDetail,
-  getAllTutorBookingOffer, // <-- add this import
+  getAllTutorBookingOffer,
   updateTutorBookingOfferByOfferId,
   fetchDocumentsByTutorId,
   deleteDocument,
@@ -230,7 +232,7 @@ const LargeAvatar = styled(Avatar)(({ theme }) => ({
   border: "4px solid #ffffff",
   boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
   fontSize: "4rem",
-  backgroundColor: "#e5e7eb",
+  backgroundColor: "#B8B8B8",
   color: "#6b7280",
   transition: "all 0.3s ease",
   "&:hover": {
@@ -961,20 +963,24 @@ const TutorProfile = ({
   const [offersLoading, setOffersLoading] = useState(false);
 
   // Add new state variables after line 962 (after offerDetail state)
-  const [lessonSelectionDialogOpen, setLessonSelectionDialogOpen] = useState(false);
+  const [lessonSelectionDialogOpen, setLessonSelectionDialogOpen] =
+    useState(false);
   const [availableLessons, setAvailableLessons] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [lessonsLoading, setLessonsLoading] = useState(false);
 
+  // Add state for learner's selected lesson details
+  const [learnerLessonDetails, setLearnerLessonDetails] = useState(null);
+
   // Add new state for temporarily selected slots
   const [temporarilySelectedSlots, setTemporarilySelectedSlots] = useState([]);
-  
-  // Add states for lessons management  
+
+  // Add states for lessons management
   const [lessons, setLessons] = useState([]);
 
   // Helper function to get localStorage key for a specific week
   const getTemporarySlotsKey = (weekStart, learnerId) => {
-    const weekKey = weekStart.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const weekKey = weekStart.toISOString().split("T")[0]; // YYYY-MM-DD format
     return `temporary_slots_${learnerId}_${weekKey}`;
   };
 
@@ -1002,13 +1008,13 @@ const TutorProfile = ({
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() - 7);
       newDate.setHours(0, 0, 0, 0);
-      
+
       // Load temporary slots for the new week
       if (selectedLearner) {
         const tempSlots = loadTemporarySlots(newDate, selectedLearner);
         setTemporarilySelectedSlots(tempSlots);
       }
-      
+
       return newDate;
     });
   };
@@ -1017,13 +1023,13 @@ const TutorProfile = ({
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() + 7);
       newDate.setHours(0, 0, 0, 0);
-      
+
       // Load temporary slots for the new week
       if (selectedLearner) {
         const tempSlots = loadTemporarySlots(newDate, selectedLearner);
         setTemporarilySelectedSlots(tempSlots);
       }
-      
+
       return newDate;
     });
   };
@@ -1424,7 +1430,7 @@ const TutorProfile = ({
   useEffect(() => {
     const fetchLessons = async () => {
       if (!id) return;
-      
+
       setLessonsLoading(true);
       try {
         const response = await fetchTutorLesson(id);
@@ -1546,17 +1552,37 @@ const TutorProfile = ({
     return learnerOffers[0].id;
   }
 
+  // Modified handleOpenBookingDetail to open slot selection dialog first, then lesson selection
   const handleOpenBookingDetail = async (learnerId) => {
-    setBookingDetailLoading(true);
-    setBookingDetailDialogOpen(true);
-    
     // Find the learner object from learnerRequests
-    const learner = learnerRequests.find(req => req.learnerId === learnerId);
+    const learner = learnerRequests.find((req) => req.learnerId === learnerId);
     setSelectedLearner(learner); // Set the full learner object instead of just the ID
 
+    // First, open the booking detail dialog (slot selection)
+    setBookingDetailLoading(true);
+    setBookingDetailDialogOpen(true);
+
     try {
-      const res = await tutorBookingTimeSlotFromLearnerDetail(learnerId);
-      const { expectedStartDate, timeSlots } = res?.data || {};
+      const res = await tutorBookingTimeSlotFromLearnerDetail(
+        learner.learnerId
+      );
+      const { expectedStartDate, timeSlots, lessonId } = res?.data || {};
+
+      // Fetch lesson details for the learner's selected lesson
+      if (lessonId) {
+        try {
+          const lessonDetails = await fetchTutorLessonDetailById(lessonId);
+          setLearnerLessonDetails(lessonDetails);
+        } catch (lessonError) {
+          console.error(
+            "Failed to fetch learner's lesson details:",
+            lessonError
+          );
+          setLearnerLessonDetails(null);
+        }
+      } else {
+        setLearnerLessonDetails(null);
+      }
 
       let initialWeekStart = getWeekRange().monday;
       if (expectedStartDate) {
@@ -1575,19 +1601,39 @@ const TutorProfile = ({
       setOfferDetail(null);
 
       // Load temporarily selected slots for this week and learner
-      const tempSlots = loadTemporarySlots(initialWeekStart, learnerId);
+      const tempSlots = loadTemporarySlots(
+        initialWeekStart,
+        learner.learnerId
+      );
       setTemporarilySelectedSlots(tempSlots);
 
       setLearnerRequests((prev) =>
         prev.map((req) =>
-          req.learnerId === learnerId ? { ...req, hasUnviewed: false } : req
+          req.learnerId === learner.learnerId
+            ? { ...req, hasUnviewed: false }
+            : req
         )
       );
+
+      // After setting up the booking detail dialog, immediately show lesson selection
+      await fetchTutorLessons();
+      setLessonSelectionDialogOpen(true);
     } catch (err) {
       setBookingDetailSlots([]);
+      setLearnerLessonDetails(null);
     } finally {
       setBookingDetailLoading(false);
     }
+  };
+
+  // Modified handleLessonSelected to just close lesson selection dialog
+  const handleLessonSelected = async () => {
+    if (!selectedLesson || !selectedLearner) {
+      return;
+    }
+
+    // Just close lesson selection dialog - booking detail is already open
+    setLessonSelectionDialogOpen(false);
   };
 
   // Add function to fetch lessons
@@ -1615,7 +1661,7 @@ const TutorProfile = ({
     if (!selectedLesson || !selectedLearner) {
       return;
     }
-    
+
     try {
       const offeredSlots = temporarilySelectedSlots.map((slot) => {
         const slotDateTime = getSlotDateTime(
@@ -1623,7 +1669,10 @@ const TutorProfile = ({
           slot.dayInWeek,
           slot.slotIndex
         );
-        console.log("Generated slot:", { slotDateTime, slotIndex: slot.slotIndex });
+        console.log("Generated slot:", {
+          slotDateTime,
+          slotIndex: slot.slotIndex,
+        });
         return {
           slotDateTime,
           slotIndex: slot.slotIndex,
@@ -1634,42 +1683,48 @@ const TutorProfile = ({
         // Update existing offer - Clean payload to match API spec exactly
         const cleanUpdateData = {
           lessonId: selectedLesson.id,
-          offeredSlots: offeredSlots.map(slot => ({
+          offeredSlots: offeredSlots.map((slot) => ({
             slotDateTime: slot.slotDateTime,
-            slotIndex: slot.slotIndex
-          }))
+            slotIndex: slot.slotIndex,
+          })),
         };
-        
+
         console.log("Clean update offer data being sent:", cleanUpdateData);
         console.log("offerDetail.id:", offerDetail.id);
-        console.log("cleaned update offeredSlots:", cleanUpdateData.offeredSlots);
-        
+        console.log(
+          "cleaned update offeredSlots:",
+          cleanUpdateData.offeredSlots
+        );
+
         // Validate required fields for update
         if (!selectedLesson?.id) {
           throw new Error("Lesson ID is required for update");
         }
-        if (!cleanUpdateData.offeredSlots || cleanUpdateData.offeredSlots.length === 0) {
+        if (
+          !cleanUpdateData.offeredSlots ||
+          cleanUpdateData.offeredSlots.length === 0
+        ) {
           throw new Error("At least one offered slot is required for update");
         }
-        
+
         await updateTutorBookingOfferByOfferId(offerDetail.id, cleanUpdateData);
         toast.success("Đã cập nhật đề nghị thành công!");
       } else {
         // Create new offer with lessonId - Clean payload to match API spec exactly
         const cleanOfferData = {
-          learnerId: selectedLearner,
+          learnerId: selectedLearner.learnerId,
           lessonId: selectedLesson.id,
-          offeredSlots: offeredSlots.map(slot => ({
+          offeredSlots: offeredSlots.map((slot) => ({
             slotDateTime: slot.slotDateTime,
-            slotIndex: slot.slotIndex
-          }))
+            slotIndex: slot.slotIndex,
+          })),
         };
-        
+
         console.log("Clean offer data being sent:", cleanOfferData);
         console.log("selectedLearner:", selectedLearner);
         console.log("selectedLesson:", selectedLesson);
         console.log("cleaned offeredSlots:", cleanOfferData.offeredSlots);
-        
+
         // Validate required fields
         if (!selectedLearner) {
           throw new Error("Learner ID is required");
@@ -1677,7 +1732,10 @@ const TutorProfile = ({
         if (!selectedLesson?.id) {
           throw new Error("Lesson ID is required");
         }
-        if (!cleanOfferData.offeredSlots || cleanOfferData.offeredSlots.length === 0) {
+        if (
+          !cleanOfferData.offeredSlots ||
+          cleanOfferData.offeredSlots.length === 0
+        ) {
           throw new Error("At least one offered slot is required");
         }
         await createTutorBookingOffer(cleanOfferData);
@@ -1694,54 +1752,99 @@ const TutorProfile = ({
       setTemporarilySelectedSlots([]);
       setSelectedLearner(null);
       setSelectedLesson(null);
-      
     } catch (err) {
       console.error("Error in handleProceedWithOffer:", err);
       console.error("Error message:", err.message);
       console.error("Error stack:", err.stack);
-      
+
       // Check if error has more details
       if (err.details) {
         console.error("Error details:", err.details);
       }
-      
-      toast.error("Gửi đề nghị thất bại: " + (err.message || "Unexpected error"));
+
+      toast.error(
+        "Gửi đề nghị thất bại: " + (err.message || "Unexpected error")
+      );
     }
   };
 
-  // Add the missing handleSlotClick function here
+  // Helper function to check if a slot is in the past
+  const isSlotInPast = (weekStart, dayInWeek, slotIndex) => {
+    const slotDateTime = new Date(
+      getSlotDateTime(weekStart, dayInWeek, slotIndex)
+    );
+    const now = new Date();
+    return slotDateTime < now;
+  };
+
+  // Modified handleSlotClick function with past slot checking
   const handleSlotClick = (dayInWeek, slotIdx) => {
     if (!selectedLearner) return;
 
+    // Check if the slot is in the past
+    if (isSlotInPast(dialogWeekStart, dayInWeek, slotIdx)) {
+      return; // Don't allow clicking on past slots
+    }
+
     setTemporarilySelectedSlots((prev) => {
       const exists = prev.some(
-        (slot) =>
-          slot.dayInWeek === dayInWeek &&
-          slot.slotIndex === slotIdx
+        (slot) => slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx
       );
-      
+
       let newSlots;
       if (exists) {
         newSlots = prev.filter(
           (slot) =>
-            !(
-              slot.dayInWeek === dayInWeek &&
-              slot.slotIndex === slotIdx
-            )
+            !(slot.dayInWeek === dayInWeek && slot.slotIndex === slotIdx)
         );
       } else {
-        newSlots = [
-          ...prev,
-          { dayInWeek, slotIndex: slotIdx },
-        ];
+        newSlots = [...prev, { dayInWeek, slotIndex: slotIdx }];
       }
-      
+
       // Save to localStorage
       saveTemporarySlots(dialogWeekStart, selectedLearner, newSlots);
-      
+
       return newSlots;
     });
   };
+
+  // Add this useEffect to clean up past slots from temporarilySelectedSlots
+  useEffect(() => {
+    if (dialogWeekStart && selectedLearner) {
+      setTemporarilySelectedSlots((prev) => {
+        const filtered = prev.filter(
+          (slot) =>
+            !isSlotInPast(dialogWeekStart, slot.dayInWeek, slot.slotIndex)
+        );
+        if (filtered.length !== prev.length) {
+          // Save the filtered slots back to localStorage
+          saveTemporarySlots(dialogWeekStart, selectedLearner, filtered);
+        }
+        return filtered;
+      });
+    }
+  }, [dialogWeekStart, selectedLearner]); // Run when dialog week or learner changes
+
+  // Also add a periodic cleanup effect (optional, for real-time updates)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (dialogWeekStart && selectedLearner) {
+        setTemporarilySelectedSlots((prev) => {
+          const filtered = prev.filter(
+            (slot) =>
+              !isSlotInPast(dialogWeekStart, slot.dayInWeek, slot.slotIndex)
+          );
+          if (filtered.length !== prev.length) {
+            saveTemporarySlots(dialogWeekStart, selectedLearner, filtered);
+            return filtered;
+          }
+          return prev;
+        });
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [dialogWeekStart, selectedLearner]);
 
   if (loading) {
     return <TutorProfileSkeleton />;
@@ -2141,7 +2244,7 @@ const TutorProfile = ({
                               p: 1,
                               borderRadius: "50%",
                               backgroundColor: "#f3f4f6",
-                              "&:hover": { backgroundColor: "#e5e7eb" },
+                              "&:hover": { backgroundColor: "#B8B8B8" },
                               boxShadow: "none",
                             }}
                             aria-label="Previous week"
@@ -2160,7 +2263,7 @@ const TutorProfile = ({
                               p: 1,
                               borderRadius: "50%",
                               backgroundColor: "#f3f4f6",
-                              "&:hover": { backgroundColor: "#e5e7eb" },
+                              "&:hover": { backgroundColor: "#B8B8B8" },
                               boxShadow: "none",
                             }}
                             aria-label="Next week"
@@ -2469,15 +2572,17 @@ const TutorProfile = ({
                                         height={24}
                                       />
                                     </TableCell>
-                                    {Array.from({ length: 7 }).map((__, dayIdx) => (
-                                      <TableCell key={dayIdx}>
-                                        <Skeleton
-                                          variant="rectangular"
-                                          width="80%"
-                                          height={24}
-                                        />
-                                      </TableCell>
-                                    ))}
+                                    {Array.from({ length: 7 }).map(
+                                      (__, dayIdx) => (
+                                        <TableCell key={dayIdx}>
+                                          <Skeleton
+                                            variant="rectangular"
+                                            width="80%"
+                                            height={24}
+                                          />
+                                        </TableCell>
+                                      )
+                                    )}
                                   </TableRow>
                                 ))}
                               </TableBody>
@@ -2592,8 +2697,6 @@ const TutorProfile = ({
                         )}
                       </Box>
                     </Box>
-
-
 
                     <Box
                       sx={{
@@ -2978,6 +3081,147 @@ const TutorProfile = ({
                             Đang tải danh sách chứng chỉ...
                           </Typography>
                         </Box>
+                      ) : uploadedCertificates.length > 0 ? (
+                        <Box sx={{ mb: 3 }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ mb: 2, fontWeight: 600, color: "#1e293b" }}
+                          >
+                            Chứng chỉ đã tải lên ({uploadedCertificates.length})
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 2,
+                            }}
+                          >
+                            {uploadedCertificates.map((cert) => (
+                              <Box
+                                key={cert.id}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  p: 2,
+                                  backgroundColor: "#f8fafc",
+                                  borderRadius: "12px",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 2,
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: "8px",
+                                      backgroundColor: cert.type.includes("pdf")
+                                        ? "#dc2626"
+                                        : "#3b82f6",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontWeight: 600,
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    {cert.type.includes("pdf") ? "PDF" : "IMG"}
+                                  </Box>
+                                  <Box>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ fontWeight: 600, color: "#1e293b" }}
+                                    >
+                                      {cert.name}
+                                    </Typography>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ color: "#64748b" }}
+                                    >
+                                      {cert.size > 0
+                                        ? `${(cert.size / 1024 / 1024).toFixed(
+                                            2
+                                          )} MB`
+                                        : "Không xác định"}{" "}
+                                      •{" "}
+                                      {new Date(
+                                        cert.uploadedAt
+                                      ).toLocaleDateString("vi-VN")}
+                                    </Typography>
+                                    {cert.description && (
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          color: "#64748b",
+                                          display: "block",
+                                          mt: 0.5,
+                                        }}
+                                      >
+                                        {cert.description}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </Box>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  {cert.url && (
+                                    <IconButton
+                                      onClick={() =>
+                                        window.open(cert.url, "_blank")
+                                      }
+                                      sx={{ color: "#3b82f6" }}
+                                      size="small"
+                                      title="Xem file"
+                                    >
+                                      <svg
+                                        width="16"
+                                        height="16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                        />
+                                      </svg>
+                                    </IconButton>
+                                  )}
+                                  <IconButton
+                                    onClick={() =>
+                                      handleRemoveCertificate(cert)
+                                    }
+                                    sx={{ color: "#dc2626" }}
+                                    size="small"
+                                    title="Xóa file"
+                                  >
+                                    <FiTrash2 size={16} />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                            ))}
+                          </Box>
+                        </Box>
                       ) : (
                         <Box sx={{ mb: 3, textAlign: "center", py: 2 }}>
                           <Typography
@@ -3219,8 +3463,8 @@ const TutorProfile = ({
                         )}
                       </Box>
                     </Box>
-                                      </Box>
-                  )}
+                  </Box>
+                )}
 
                 {selectedTab === 2 && (
                   <Box
@@ -3255,9 +3499,7 @@ const TutorProfile = ({
                           mb: 3,
                         }}
                       >
-                        <SectionTitle variant="h6">
-                          Tạo bài học
-                        </SectionTitle>
+                        <SectionTitle variant="h6">Tạo bài học</SectionTitle>
                         <StyledButton
                           variant="contained"
                           onClick={() => {
@@ -3307,7 +3549,10 @@ const TutorProfile = ({
                       </Box>
 
                       {/* Lessons Table */}
-                      <TableContainer component={Paper} sx={{ borderRadius: "16px" }}>
+                      <TableContainer
+                        component={Paper}
+                        sx={{ borderRadius: "16px" }}
+                      >
                         <Table>
                           <TableHead>
                             <TableRow sx={{ backgroundColor: "#f8fafc" }}>
@@ -3323,7 +3568,10 @@ const TutorProfile = ({
                               <TableCell sx={{ fontWeight: 600 }}>
                                 Mô tả
                               </TableCell>
-                              <TableCell align="center" sx={{ fontWeight: 600 }}>
+                              <TableCell
+                                align="center"
+                                sx={{ fontWeight: 600 }}
+                              >
                                 Hành động
                               </TableCell>
                             </TableRow>
@@ -3333,25 +3581,49 @@ const TutorProfile = ({
                               Array.from({ length: 3 }).map((_, index) => (
                                 <TableRow key={index}>
                                   <TableCell>
-                                    <Skeleton variant="text" width="80%" height={24} />
+                                    <Skeleton
+                                      variant="text"
+                                      width="80%"
+                                      height={24}
+                                    />
                                   </TableCell>
                                   <TableCell>
-                                    <Skeleton variant="text" width="60%" height={24} />
+                                    <Skeleton
+                                      variant="text"
+                                      width="60%"
+                                      height={24}
+                                    />
                                   </TableCell>
                                   <TableCell>
-                                    <Skeleton variant="text" width="50%" height={24} />
+                                    <Skeleton
+                                      variant="text"
+                                      width="50%"
+                                      height={24}
+                                    />
                                   </TableCell>
                                   <TableCell>
-                                    <Skeleton variant="text" width="90%" height={24} />
+                                    <Skeleton
+                                      variant="text"
+                                      width="90%"
+                                      height={24}
+                                    />
                                   </TableCell>
                                   <TableCell align="center">
-                                    <Skeleton variant="circular" width={32} height={32} />
+                                    <Skeleton
+                                      variant="circular"
+                                      width={32}
+                                      height={32}
+                                    />
                                   </TableCell>
                                 </TableRow>
                               ))
                             ) : lessons.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                                <TableCell
+                                  colSpan={5}
+                                  align="center"
+                                  sx={{ py: 4 }}
+                                >
                                   <Box
                                     sx={{
                                       display: "flex",
@@ -3382,7 +3654,10 @@ const TutorProfile = ({
                                         />
                                       </svg>
                                     </Box>
-                                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                    <Typography
+                                      variant="body1"
+                                      sx={{ fontWeight: 500 }}
+                                    >
                                       Chưa có bài học nào
                                     </Typography>
                                     <Typography variant="body2">
@@ -3426,20 +3701,32 @@ const TutorProfile = ({
                                     </Typography>
                                   </TableCell>
                                   <TableCell align="center">
-                                    <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        gap: 1,
+                                        justifyContent: "center",
+                                      }}
+                                    >
                                       <IconButton
                                         size="small"
                                         onClick={() => {
                                           setEditLesson(lesson);
                                           setLessonForm({
                                             name: lesson.name || "",
-                                            description: lesson.description || "",
+                                            description:
+                                              lesson.description || "",
                                             note: lesson.note || "",
-                                            targetAudience: lesson.targetAudience || "",
-                                            prerequisites: lesson.prerequisites || "",
-                                            languageCode: lesson.languageCode || "",
+                                            targetAudience:
+                                              lesson.targetAudience || "",
+                                            prerequisites:
+                                              lesson.prerequisites || "",
+                                            languageCode:
+                                              lesson.languageCode || "",
                                             category: lesson.category || "",
-                                            price: formatPriceInputWithCommas(lesson.price?.toString() || "0"),
+                                            price: formatPriceInputWithCommas(
+                                              lesson.price?.toString() || "0"
+                                            ),
                                             currency: lesson.currency || "",
                                           });
                                           setShowValidation(false);
@@ -3448,11 +3735,14 @@ const TutorProfile = ({
                                         sx={{
                                           color: "#3b82f6",
                                           "&:hover": {
-                                            backgroundColor: "rgba(59, 130, 246, 0.1)",
+                                            backgroundColor:
+                                              "rgba(59, 130, 246, 0.1)",
                                           },
                                         }}
                                       >
-                                        <Box sx={{ width: "16px", height: "16px" }}>
+                                        <Box
+                                          sx={{ width: "16px", height: "16px" }}
+                                        >
                                           <svg
                                             fill="none"
                                             stroke="currentColor"
@@ -3470,15 +3760,20 @@ const TutorProfile = ({
                                       </IconButton>
                                       <IconButton
                                         size="small"
-                                        onClick={() => handleDeleteLesson(lesson.id)}
+                                        onClick={() =>
+                                          handleDeleteLesson(lesson.id)
+                                        }
                                         sx={{
                                           color: "#ef4444",
                                           "&:hover": {
-                                            backgroundColor: "rgba(239, 68, 68, 0.1)",
+                                            backgroundColor:
+                                              "rgba(239, 68, 68, 0.1)",
                                           },
                                         }}
                                       >
-                                        <Box sx={{ width: "16px", height: "16px" }}>
+                                        <Box
+                                          sx={{ width: "16px", height: "16px" }}
+                                        >
                                           <svg
                                             fill="none"
                                             stroke="currentColor"
@@ -3505,8 +3800,8 @@ const TutorProfile = ({
                     </Box>
                   </Box>
                 )}
-                </Box>
-              </StyledPaper>
+              </Box>
+            </StyledPaper>
           </Grid>
         </Grid>
       </Container>
@@ -3857,22 +4152,47 @@ const TutorProfile = ({
                         editPatternSlots[dayInWeek] &&
                         editPatternSlots[dayInWeek].has(slotIdx);
 
+                      // Check if this slot is in the past
+                      const isPastSlot = isSlotInPast(currentWeekStart, dayInWeek, slotIdx);
+
                       return (
                         <Box
                           key={dayIdx}
                           sx={{
-                            backgroundColor: isSelected ? "#98D45F" : "#f1f5f9",
+                            backgroundColor: isPastSlot 
+                              ? isSelected 
+                                ? "#6d9e46" // Muted green for past available slots
+                                : "#B8B8B8" // Gray for past unavailable slots
+                              : isSelected 
+                                ? "#98D45F" // Bright green for current/future available slots
+                                : "#f1f5f9", // Light gray for current/future unavailable slots
                             border: "1px solid #e2e8f0",
                             minHeight: 32,
-                            cursor: "pointer",
+                            cursor: isPastSlot ? "not-allowed" : "pointer",
+                            opacity: isPastSlot ? 0.7 : 1,
                             transition: "background 0.2s",
-                            "&:hover": {
+                            position: "relative",
+                            "&:hover": isPastSlot ? {} : {
                               backgroundColor: isSelected
                                 ? "#7bbf3f"
                                 : "#e0e7ef",
                             },
+                            // Add a subtle pattern or overlay for past slots
+                            "&::after": isPastSlot ? {
+                              content: '""',
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              background: "repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.3) 4px)",
+                              pointerEvents: "none"
+                            } : {},
                           }}
                           onClick={() => {
+                            // Don't allow clicking on past slots
+                            if (isPastSlot) return;
+                            
                             setEditPatternSlots((prev) => {
                               const newSlots = { ...prev };
                               if (!newSlots[dayInWeek])
@@ -4011,6 +4331,51 @@ const TutorProfile = ({
             <Typography variant="h6">
               Chọn khung giờ để đề xuất cho học viên
             </Typography>
+            {learnerLessonDetails && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  p: 2,
+                  backgroundColor: "#f8f9fa",
+                  borderRadius: 1,
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  color="primary"
+                  sx={{ fontWeight: "bold" }}
+                >
+                  Bài học học viên đã chọn:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: "bold", fontSize: "32px" }}
+                >
+                  {learnerLessonDetails.title}
+                </Typography>
+                {learnerLessonDetails.description && (
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ fontSize: "0.875rem" }}
+                  >
+                    {learnerLessonDetails.description}
+                  </Typography>
+                )}
+                {learnerLessonDetails.price && (
+                  <Typography
+                    variant="body2"
+                    color="primary"
+                    sx={{ fontWeight: 500 }}
+                  >
+                    Giá: {formatPriceWithCommas(learnerLessonDetails.price)}{" "}
+                    VND/slot
+                  </Typography>
+                )}
+              </Box>
+            )}
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -4046,7 +4411,7 @@ const TutorProfile = ({
           {bookingDetailLoading ? (
             <BookingDetailSkeleton />
           ) : (
-            <Box sx={{ display: 'flex', gap: 3, height: '100%' }}>
+            <Box sx={{ display: "flex", gap: 3, height: "100%" }}>
               {/* Left side - Calendar table */}
               <Box sx={{ flex: 1, overflowX: "auto" }}>
                 <Box
@@ -4135,31 +4500,85 @@ const TutorProfile = ({
                             }
                           );
 
-                          // Purple if both requested and offered
-                          const isRequestedAndOffered = isRequested && isOffered;
+                          // Check if slot is in the past
+                          const isPastSlot = isSlotInPast(
+                            dialogWeekStart,
+                            dayInWeek,
+                            slotIdx
+                          );
 
-                          let bgColor = "#f1f5f9";
-                          if (isRequestedAndOffered) {
-                            bgColor = "#a259e6"; // purple
-                          } else if (isSelected) {
-                            bgColor = "#98D45F"; // green for selected
-                          } else if (isOffered) {
-                            bgColor = "#3b82f6"; // blue for offered
-                          } else if (isRequested) {
-                            bgColor = "#FFD700"; // yellow for requested
+                          // Purple if both requested and offered
+                          const isRequestedAndOffered =
+                            isRequested && isOffered;
+
+                          let bgColor = "#f1f5f9"; // Default background
+                          let textColor = "inherit";
+                          let fontWeight = 400;
+                          let opacity = 1;
+                          let cursor = "pointer";
+                          let overlayPattern = {};
+
+                          if (isPastSlot) {
+                            // Past slots: show their status but muted and disabled
+                            opacity = 0.7;
+                            cursor = "not-allowed";
+                            
+                            // Add diagonal stripe pattern for past slots
+                            overlayPattern = {
+                              position: "relative",
+                              "&::after": {
+                                content: '""',
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: "repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.3) 4px)",
+                                pointerEvents: "none"
+                              }
+                            };
+                            
+                            // Apply muted versions of the original colors for past slots
+                            if (isRequestedAndOffered) {
+                              bgColor = "#c9b3e6"; // muted purple
+                              textColor = "#fff";
+                              fontWeight = 700;
+                            } else if (isSelected) {
+                              bgColor = "#b8e0a3"; // muted green for selected
+                              textColor = "#fff";
+                              fontWeight = 700;
+                            } else if (isOffered) {
+                              bgColor = "#8bb3f0"; // muted blue for offered
+                              textColor = "#fff";
+                              fontWeight = 700;
+                            } else if (isRequested) {
+                              bgColor = "#fae632"; // muted yellow for requested
+                              textColor = "#333";
+                              fontWeight = 600;
+                            } else {
+                              bgColor = "#B8B8B8"; // muted gray for default
+                              textColor = "#999";
+                            }
+                          } else {
+                            // Only apply these styles if slot is NOT in the past
+                            if (isRequestedAndOffered) {
+                              bgColor = "#a259e6"; // purple
+                              textColor = "#fff";
+                              fontWeight = 700;
+                            } else if (isSelected) {
+                              bgColor = "#98D45F"; // green for selected
+                              textColor = "#fff";
+                              fontWeight = 700;
+                            } else if (isOffered) {
+                              bgColor = "#3b82f6"; // blue for offered
+                              textColor = "#fff";
+                              fontWeight = 700;
+                            } else if (isRequested) {
+                              bgColor = "#FFD700"; // yellow for requested
+                              textColor = "#333";
+                              fontWeight = 600;
+                            }
                           }
-                          let textColor =
-                            isSelected || isOffered || isRequestedAndOffered
-                              ? "#fff"
-                              : isRequested
-                              ? "#333"
-                              : "inherit";
-                          let fontWeight =
-                            isSelected || isOffered || isRequestedAndOffered
-                              ? 700
-                              : isRequested
-                              ? 600
-                              : 400;
 
                           return (
                             <Box
@@ -4175,10 +4594,18 @@ const TutorProfile = ({
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                cursor: "pointer",
-                                opacity: 1,
+                                cursor: cursor,
+                                opacity: opacity,
+                                transition: "background 0.2s",
+                                "&:hover": isPastSlot ? {} : {
+                                  filter: "brightness(0.9)",
+                                },
+                                ...overlayPattern,
                               }}
-                              onClick={() => handleSlotClick(dayInWeek, slotIdx)}
+                              onClick={() =>
+                                !isPastSlot &&
+                                handleSlotClick(dayInWeek, slotIdx)
+                              }
                             />
                           );
                         })}
@@ -4192,41 +4619,44 @@ const TutorProfile = ({
               <AnimatePresence>
                 {temporarilySelectedSlots.length > 0 && (
                   <motion.div
-                    initial={{ 
-                      opacity: 0, 
+                    initial={{
+                      opacity: 0,
                       x: 50,
-                      scale: 0.9
+                      scale: 0.9,
                     }}
-                    animate={{ 
-                      opacity: 1, 
+                    animate={{
+                      opacity: 1,
                       x: 0,
-                      scale: 1
+                      scale: 1,
                     }}
-                    exit={{ 
-                      opacity: 0, 
+                    exit={{
+                      opacity: 0,
                       x: 50,
-                      scale: 0.9
+                      scale: 0.9,
                     }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 300, 
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
                       damping: 30,
-                      duration: 0.4
+                      duration: 0.4,
                     }}
                     style={{ width: 300, flexShrink: 0 }}
                   >
-                    <Card sx={{ height: '100%', position: 'sticky', top: 0 }}>
+                    <Card sx={{ height: "100%", position: "sticky", top: 0 }}>
                       <CardContent>
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.1, duration: 0.3 }}
                         >
-                          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ mb: 2, fontWeight: "bold" }}
+                          >
                             Khung giờ đã chọn
                           </Typography>
                         </motion.div>
-                        
+
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -4234,17 +4664,14 @@ const TutorProfile = ({
                         >
                           <Box sx={{ mb: 2 }}>
                             <Typography variant="body2" color="textSecondary">
-                              Học viên: {selectedLearner?.learnerName || 'N/A'}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              Số slot đã chọn đề đề xuất: {temporarilySelectedSlots.length}
+                              Học viên: {selectedLearner?.learnerName || "N/A"}
                             </Typography>
                           </Box>
                         </motion.div>
 
                         <Divider sx={{ my: 2 }} />
 
-                        <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                        <Box sx={{ maxHeight: 400, overflowY: "auto" }}>
                           <AnimatePresence>
                             {temporarilySelectedSlots.map((slot, index) => {
                               // Map dayInWeek to the correct index in dialogWeekInfo
@@ -4259,37 +4686,45 @@ const TutorProfile = ({
                                 6: 4, // Fri -> index 4
                                 7: 5, // Sat -> index 5
                               };
-                              const dayInfo = dialogWeekInfo[dayIndexMap[slot.dayInWeek]];
-                              
+                              const dayInfo =
+                                dialogWeekInfo[dayIndexMap[slot.dayInWeek]];
+
                               const hour = Math.floor(slot.slotIndex / 2);
-                              const minute = slot.slotIndex % 2 === 0 ? "00" : "30";
-                              const nextHour = slot.slotIndex % 2 === 0 ? hour : hour + 1;
-                              const nextMinute = slot.slotIndex % 2 === 0 ? "30" : "00";
-                              const timeLabel = `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+                              const minute =
+                                slot.slotIndex % 2 === 0 ? "00" : "30";
+                              const nextHour =
+                                slot.slotIndex % 2 === 0 ? hour : hour + 1;
+                              const nextMinute =
+                                slot.slotIndex % 2 === 0 ? "30" : "00";
+                              const timeLabel = `${hour
+                                .toString()
+                                .padStart(2, "0")}:${minute} - ${nextHour
+                                .toString()
+                                .padStart(2, "0")}:${nextMinute}`;
 
                               return (
                                 <motion.div
                                   key={`${slot.dayInWeek}-${slot.slotIndex}`}
-                                  initial={{ 
-                                    opacity: 0, 
+                                  initial={{
+                                    opacity: 0,
                                     x: 30,
-                                    scale: 0.95
+                                    scale: 0.95,
                                   }}
-                                  animate={{ 
-                                    opacity: 1, 
+                                  animate={{
+                                    opacity: 1,
                                     x: 0,
-                                    scale: 1
+                                    scale: 1,
                                   }}
-                                  exit={{ 
-                                    opacity: 0, 
+                                  exit={{
+                                    opacity: 0,
                                     x: -30,
-                                    scale: 0.95
+                                    scale: 0.95,
                                   }}
-                                  transition={{ 
-                                    type: "spring", 
-                                    stiffness: 400, 
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 400,
                                     damping: 25,
-                                    delay: index * 0.1
+                                    delay: index * 0.1,
                                   }}
                                 >
                                   <Box
@@ -4297,23 +4732,49 @@ const TutorProfile = ({
                                       p: 1.5,
                                       mb: 1,
                                       borderRadius: 1,
-                                      backgroundColor: '#f8f9fa',
-                                      border: '1px solid #e9ecef',
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center'
+                                      backgroundColor: "#f8f9fa",
+                                      border: "1px solid #e9ecef",
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
                                     }}
                                   >
                                     <Box>
-                                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                        {dayInfo?.label || `Thứ ${slot.dayInWeek}`}
+                                      <Typography
+                                        variant="body2"
+                                        sx={{ fontWeight: "medium" }}
+                                      >
+                                        {dayInfo?.label ||
+                                          `Thứ ${slot.dayInWeek}`}
                                       </Typography>
-                                      <Typography variant="body2" color="textSecondary">
-                                        {dayInfo?.date || ''}
+                                      <Typography
+                                        variant="body2"
+                                        color="textSecondary"
+                                      >
+                                        {dayInfo?.date || ""}
                                       </Typography>
-                                      <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 'medium' }}>
+                                      <Typography
+                                        variant="body2"
+                                        sx={{
+                                          color: "#3b82f6",
+                                          fontWeight: "medium",
+                                        }}
+                                      >
                                         {timeLabel}
                                       </Typography>
+                                      {/* Add lesson name display */}
+                                      {selectedLesson && (
+                                        <Typography
+                                          variant="body2"
+                                          sx={{
+                                            color: "#16a34a",
+                                            fontWeight: "medium",
+                                            mt: 0.5,
+                                          }}
+                                        >
+                                          📚 {selectedLesson.name}
+                                        </Typography>
+                                      )}
                                     </Box>
                                     <motion.div
                                       whileHover={{ scale: 1.1 }}
@@ -4321,12 +4782,18 @@ const TutorProfile = ({
                                     >
                                       <IconButton
                                         size="small"
-                                        onClick={() => handleSlotClick(slot.dayInWeek, slot.slotIndex)}
+                                        onClick={() =>
+                                          handleSlotClick(
+                                            slot.dayInWeek,
+                                            slot.slotIndex
+                                          )
+                                        }
                                         sx={{
-                                          color: '#dc3545',
-                                          '&:hover': {
-                                            backgroundColor: 'rgba(220, 53, 69, 0.1)'
-                                          }
+                                          color: "#dc3545",
+                                          "&:hover": {
+                                            backgroundColor:
+                                              "rgba(220, 53, 69, 0.1)",
+                                          },
                                         }}
                                       >
                                         <FiTrash2 size={16} />
@@ -4346,8 +4813,12 @@ const TutorProfile = ({
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.3, duration: 0.3 }}
                         >
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                          <Box sx={{ textAlign: "center" }}>
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ mb: 1 }}
+                            >
                               Tổng cộng: {temporarilySelectedSlots.length} slot
                             </Typography>
                             <motion.div
@@ -4359,9 +4830,15 @@ const TutorProfile = ({
                                 size="small"
                                 onClick={() => {
                                   setTemporarilySelectedSlots([]);
-                                  clearTemporarySlots(dialogWeekStart, selectedLearner);
+                                  clearTemporarySlots(
+                                    dialogWeekStart,
+                                    selectedLearner
+                                  );
                                 }}
-                                sx={{ color: '#dc3545', borderColor: '#dc3545' }}
+                                sx={{
+                                  color: "#dc3545",
+                                  borderColor: "#dc3545",
+                                }}
                               >
                                 Xóa tất cả
                               </Button>
@@ -4453,7 +4930,9 @@ const TutorProfile = ({
               onClick={() => {
                 setBookingDetailDialogOpen(false);
                 setSelectedLearner(null);
-                setTemporarilySelectedSlots([]); // Clear temporary slots when closing
+                setSelectedLesson(null);
+                setLearnerLessonDetails(null); // Clear learner lesson details
+                setTemporarilySelectedSlots([]);
               }}
             >
               Đóng
@@ -4461,19 +4940,16 @@ const TutorProfile = ({
             <Button
               variant="contained"
               color="primary"
-              disabled={temporarilySelectedSlots.length === 0 || !selectedLearner}
-              onClick={async () => {
-                if (!selectedLearner) {
-                  return;
-                }
-                // First, fetch lessons and open lesson selection dialog
-                await fetchTutorLessons();
-                setLessonSelectionDialogOpen(true);
-              }}
+              disabled={
+                temporarilySelectedSlots.length === 0 ||
+                !selectedLearner ||
+                !selectedLesson
+              }
+              onClick={handleProceedWithOffer} // Direct proceed since lesson is already selected
             >
               {offerDetail && offerDetail.id
                 ? "Cập nhật đề xuất"
-                : "Chọn bài học"}
+                : "Gửi đề xuất"}
             </Button>
           </Box>
         </DialogActions>
@@ -4502,65 +4978,84 @@ const TutorProfile = ({
         onClose={() => {
           setLessonSelectionDialogOpen(false);
           setSelectedLesson(null);
+          setSelectedLearner(null);
+          setLearnerLessonDetails(null);
+          setBookingDetailDialogOpen(false);
         }}
-        maxWidth="sm"
-        fullWidth
+        maxWidth={false} // Remove width constraint
+        PaperProps={{
+          sx: {
+            width: '800px', // Set custom width
+            maxWidth: '90vw', // Don't exceed 90% of viewport width
+            minHeight: '400px', // Set minimum height
+            maxHeight: '80vh', // Don't exceed 80% of viewport height
+          }
+        }}
+        style={{ zIndex: 1500 }}
       >
-        <DialogTitle>
-          Chọn bài học cho đề xuất
-        </DialogTitle>
-        <DialogContent>
+        <DialogTitle>Chọn bài học cho đề xuất</DialogTitle>
+        <DialogContent sx={{ minHeight: '400px' }}>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Vui lòng chọn bài học bạn muốn đề xuất cho học viên:
+            Vui lòng chọn bài học bạn muốn đề xuất cho học viên trước khi chọn khung giờ:
           </Typography>
-          
+
           {lessonsLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
               <CircularProgress />
             </Box>
           ) : availableLessons.length === 0 ? (
             <Alert severity="warning">
-              Bạn chưa có bài học nào. Vui lòng tạo bài học trước khi gửi đề xuất.
+              Bạn chưa có bài học nào. Vui lòng tạo bài học trước khi gửi đề
+              xuất.
             </Alert>
           ) : (
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Chọn bài học</InputLabel>
-              <Select
-                value={selectedLesson?.id || ''}
-                onChange={(e) => {
-                  const lesson = availableLessons.find(l => l.id === e.target.value);
-                  setSelectedLesson(lesson);
-                }}
-                label="Chọn bài học"
-              >
-                {availableLessons.map((lesson) => (
-                  <MenuItem key={lesson.id} value={lesson.id}>
-                    <Box>
-                      <Typography variant="subtitle1">
-                        {lesson.name}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {formatLanguageCode(lesson.languageCode)} 
-                        {lesson.category && ` | ${lesson.category}`}
-                        {' | '}
-                        {typeof lesson.price === "number" || typeof lesson.price === "string"
-                          ? formatPriceWithCommas(lesson.price)
-                          : "Không có"}{" "}
-                        VND
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              options={availableLessons}
+              getOptionLabel={(option) => option.name || ''}
+              value={selectedLesson}
+              onChange={(event, newValue) => {
+                setSelectedLesson(newValue);
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Chọn bài học"
+                  variant="outlined"
+                  fullWidth
+                />
+              )}
+              renderOption={(props, option) => (
+                <Box component="li" {...props}>
+                  <Box>
+                    <Typography variant="subtitle1">{option.name}</Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {formatLanguageCode(option.languageCode)}
+                      {option.category && ` | ${option.category}`}
+                      {" | "}
+                      {typeof option.price === "number" ||
+                      typeof option.price === "string"
+                        ? formatPriceWithCommas(option.price)
+                        : "Không có"}{" "}
+                      VND
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+              PopperComponent={(props) => (
+                <div {...props} style={{ ...props.style, zIndex: 9999 }} />
+              )}
+            />
           )}
-          
+
           {selectedLesson && (
-            <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+            <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: "bold", mb: 1 }}
+              >
                 Bài học đã chọn:
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+              <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                 {selectedLesson.name}
               </Typography>
               <Typography variant="body2" color="textSecondary">
@@ -4568,13 +5063,14 @@ const TutorProfile = ({
                 {selectedLesson.category && ` | ${selectedLesson.category}`}
               </Typography>
               <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
-                {typeof selectedLesson.price === "number" || typeof selectedLesson.price === "string"
+                {typeof selectedLesson.price === "number" ||
+                typeof selectedLesson.price === "string"
                   ? formatPriceWithCommas(selectedLesson.price)
                   : "Không có"}{" "}
                 VND
               </Typography>
               {selectedLesson.description && (
-                <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+                <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
                   {selectedLesson.description}
                 </Typography>
               )}
@@ -4586,16 +5082,20 @@ const TutorProfile = ({
             onClick={() => {
               setLessonSelectionDialogOpen(false);
               setSelectedLesson(null);
+              setSelectedLearner(null); // Also clear selected learner
+              setLearnerLessonDetails(null); // Clear learner lesson details
+              // Also close the booking detail dialog if lesson selection is cancelled
+              setBookingDetailDialogOpen(false);
             }}
           >
             Hủy
           </Button>
           <Button
             variant="contained"
-            onClick={handleProceedWithOffer}
+            onClick={handleLessonSelected} // Use new handler
             disabled={!selectedLesson || availableLessons.length === 0}
           >
-            Gửi đề xuất
+            Tiếp tục chọn khung giờ
           </Button>
         </DialogActions>
       </Dialog>
