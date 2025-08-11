@@ -1,52 +1,53 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  FaCommentDots, 
-  FaWallet, 
-  FaBell, 
-  FaCheck, 
-  FaCheckDouble, 
-  FaTimes, 
-  FaInfoCircle, 
-  FaExclamationTriangle, 
+import {
+  FaCommentDots,
+  FaWallet,
+  FaBell,
+  FaCheck,
+  FaCheckDouble,
+  FaTimes,
+  FaInfoCircle,
+  FaExclamationTriangle,
   FaExclamationCircle,
   FaBellSlash,
   FaClock,
-  FaRegBell
+  FaRegBell,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import logo from "../assets/logo.png";
-import NoFocusOutLineButton from '../utils/noFocusOutlineButton';
+import NoFocusOutLineButton from "../utils/noFocusOutlineButton";
 import { useNotification } from "../contexts/NotificationContext";
 import { getNotification } from "./api/auth";
 import { getSenderProfile } from "./api/auth";
-import { 
-  Badge, 
-  Menu, 
-  MenuItem, 
-  List, 
-  ListItem, 
-  ListItemText, 
-  ListItemAvatar, 
-  Avatar, 
-  Typography, 
-  IconButton, 
-  CircularProgress, 
-  Box, 
-  Divider, 
+import {
+  Badge,
+  Menu,
+  MenuItem,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Avatar,
+  Typography,
+  IconButton,
+  CircularProgress,
+  Box,
+  Divider,
   Button,
   Chip,
   Tooltip,
   Fade,
-  Skeleton
-} from '@mui/material';
-import { 
-  getNotificationTitle, 
-  getNotificationContent, 
+  Skeleton,
+} from "@mui/material";
+import {
+  getNotificationTitle,
+  getNotificationContent,
   getNotificationMessage,
-  isSupportedNotificationType
+  isSupportedNotificationType,
 } from "../utils/notificationMessages";
+import ChangePasswordPage from "../pages/ChangePasswordPage";
 
 // Utility functions for role checking
 const hasRole = (user, roleName) => {
@@ -56,8 +57,8 @@ const hasRole = (user, roleName) => {
   const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
 
   // Handle case variations and string matching
-  return roles.some(role => {
-    if (typeof role === 'string') {
+  return roles.some((role) => {
+    if (typeof role === "string") {
       return role.toLowerCase() === roleName.toLowerCase();
     }
     // Handle object format if roles are objects with name property
@@ -97,39 +98,47 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const { connected, notification } = useNotification();
 
   // Function to add a new notification
-  const addNotification = useCallback((notificationData) => {
-    const newNotification = {
-      id: Date.now(),
-      title: notificationData.title || "Thông báo mới",
-      message: notificationData.message || "Bạn có thông báo mới",
-      timestamp: new Date().toISOString(),
-      isRead: false,
-      type: notificationData.type || "success",
-      senderProfile: notificationData.senderProfile || null
-    };
-    
-    setNotifications(prev => [newNotification, ...prev]);
-    setUnreadCount(prev => prev + 1);
-    
-    // Save to local storage
-    try {
-      const storageKey = `notifications_${user?.id || 'anonymous'}`;
-      const existingNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      const updatedNotifications = [newNotification, ...existingNotifications];
-      
-      // Keep only the last 100 notifications to prevent storage bloat
-      const trimmedNotifications = updatedNotifications.slice(0, 100);
-      
-      localStorage.setItem(storageKey, JSON.stringify(trimmedNotifications));
-    } catch (error) {
-      console.error("Error saving notification to local storage:", error);
-    }
-  }, [user?.id]);
+  const addNotification = useCallback(
+    (notificationData) => {
+      const newNotification = {
+        id: Date.now(),
+        title: notificationData.title || "Thông báo mới",
+        message: notificationData.message || "Bạn có thông báo mới",
+        timestamp: new Date().toISOString(),
+        isRead: false,
+        type: notificationData.type || "success",
+        senderProfile: notificationData.senderProfile || null,
+      };
+
+      setNotifications((prev) => [newNotification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+
+      // Save to local storage
+      try {
+        const storageKey = `notifications_${user?.id || "anonymous"}`;
+        const existingNotifications = JSON.parse(
+          localStorage.getItem(storageKey) || "[]"
+        );
+        const updatedNotifications = [
+          newNotification,
+          ...existingNotifications,
+        ];
+
+        // Keep only the last 100 notifications to prevent storage bloat
+        const trimmedNotifications = updatedNotifications.slice(0, 100);
+
+        localStorage.setItem(storageKey, JSON.stringify(trimmedNotifications));
+      } catch (error) {
+        console.error("Error saving notification to local storage:", error);
+      }
+    },
+    [user?.id]
+  );
 
   // Expose the addNotification function globally
   useEffect(() => {
     window.addNotification = addNotification;
-    
+
     return () => {
       delete window.addNotification;
     };
@@ -243,127 +252,140 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   // Fetch notifications from API
   const fetchNotifications = async () => {
     if (!user) return;
-    
+
     try {
       setLoadingNotifications(true);
-      
+
       // Load notifications from local storage first
       const storageKey = `notifications_${user.id}`;
-      const localNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      
+      const localNotifications = JSON.parse(
+        localStorage.getItem(storageKey) || "[]"
+      );
+
       // Fetch from API
       const response = await getNotification(1, 50, false); // Fetch all notifications
-      
+
       if (response && response.data) {
         const fetchedNotifications = response.data.items || response.data || [];
-        
+
         // Transform API response to match our notification format
-        const transformedNotifications = await Promise.all(fetchedNotifications.map(async (notif) => {
-          // Extract sender information from additionalData
-          let senderId = null;
-          let senderProfile = null;
-          
-          if (notif.additionalData) {
-            try {
-              const additionalData = JSON.parse(notif.additionalData);
-              senderId = additionalData.SenderId;
-              
-              // Fetch sender profile if we have a senderId and haven't fetched it yet
-              if (senderId && !senderProfiles[senderId]) {
-                try {
-                  const senderResponse = await getSenderProfile(senderId);
-                  if (senderResponse) {
-                    setSenderProfiles(prev => ({
-                      ...prev,
-                      [senderId]: senderResponse
-                    }));
-                    senderProfile = senderResponse;
+        const transformedNotifications = await Promise.all(
+          fetchedNotifications.map(async (notif) => {
+            // Extract sender information from additionalData
+            let senderId = null;
+            let senderProfile = null;
+
+            if (notif.additionalData) {
+              try {
+                const additionalData = JSON.parse(notif.additionalData);
+                senderId = additionalData.SenderId;
+
+                // Fetch sender profile if we have a senderId and haven't fetched it yet
+                if (senderId && !senderProfiles[senderId]) {
+                  try {
+                    const senderResponse = await getSenderProfile(senderId);
+                    if (senderResponse) {
+                      setSenderProfiles((prev) => ({
+                        ...prev,
+                        [senderId]: senderResponse,
+                      }));
+                      senderProfile = senderResponse;
+                    }
+                  } catch (error) {
+                    console.error(
+                      `Failed to fetch sender profile for ${senderId}:`,
+                      error
+                    );
                   }
-                } catch (error) {
-                  console.error(`Failed to fetch sender profile for ${senderId}:`, error);
+                } else if (senderId && senderProfiles[senderId]) {
+                  senderProfile = senderProfiles[senderId];
                 }
-              } else if (senderId && senderProfiles[senderId]) {
-                senderProfile = senderProfiles[senderId];
-              }
-            } catch (error) {
-              console.error("Failed to parse additionalData:", error);
-            }
-          }
-          
-          // Check if title needs conversion (is a notification key)
-          const titleNeedsConversion = notif.title && (
-            notif.title.startsWith('PUSH_ON_') || 
-            notif.title.includes('_BODY')
-          );
-          
-          // Check if content needs conversion (is a notification key)
-          const contentNeedsConversion = notif.content && (
-            notif.content.startsWith('PUSH_ON_') || 
-            notif.content.includes('_BODY')
-          );
-          
-          // Convert title
-          let convertedTitle;
-          if (titleNeedsConversion) {
-            convertedTitle = getNotificationTitle(notif.title.trim());
-          } else {
-            convertedTitle = notif.title; // Use original if already user-friendly
-          }
-          
-          // Convert content and include sender name if available
-          let convertedContent;
-          if (contentNeedsConversion) {
-            convertedContent = getNotificationContent(notif.content.trim());
-            
-            // Customize content based on notification type and sender info
-            if (notif.title === 'PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST' || 
-                notif.title === 'PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST_BODY') {
-              if (senderProfile && senderProfile.fullName) {
-                convertedContent = `${senderProfile.fullName} đã gửi cho bạn một yêu cầu`;
-              } else {
-                convertedContent = "1 học viên đã gửi cho bạn một yêu cầu";
+              } catch (error) {
+                console.error("Failed to parse additionalData:", error);
               }
             }
-          } else {
-            convertedContent = notif.content; // Use original if already user-friendly
-          }
-          
-          return {
-            id: notif.id,
-            title: convertedTitle,
-            message: convertedContent,
-            timestamp: notif.createdTime || notif.createdAt || new Date().toISOString(),
-            isRead: notif.isRead || false,
-            type: notif.type || "info",
-            senderId: senderId,
-            senderProfile: senderProfile
-          };
-        }));
-        
+
+            // Check if title needs conversion (is a notification key)
+            const titleNeedsConversion =
+              notif.title &&
+              (notif.title.startsWith("PUSH_ON_") ||
+                notif.title.includes("_BODY"));
+
+            // Check if content needs conversion (is a notification key)
+            const contentNeedsConversion =
+              notif.content &&
+              (notif.content.startsWith("PUSH_ON_") ||
+                notif.content.includes("_BODY"));
+
+            // Convert title
+            let convertedTitle;
+            if (titleNeedsConversion) {
+              convertedTitle = getNotificationTitle(notif.title.trim());
+            } else {
+              convertedTitle = notif.title; // Use original if already user-friendly
+            }
+
+            // Convert content and include sender name if available
+            let convertedContent;
+            if (contentNeedsConversion) {
+              convertedContent = getNotificationContent(notif.content.trim());
+
+              // Customize content based on notification type and sender info
+              if (
+                notif.title === "PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST" ||
+                notif.title === "PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST_BODY"
+              ) {
+                if (senderProfile && senderProfile.fullName) {
+                  convertedContent = `${senderProfile.fullName} đã gửi cho bạn một yêu cầu`;
+                } else {
+                  convertedContent = "1 học viên đã gửi cho bạn một yêu cầu";
+                }
+              }
+            } else {
+              convertedContent = notif.content; // Use original if already user-friendly
+            }
+
+            return {
+              id: notif.id,
+              title: convertedTitle,
+              message: convertedContent,
+              timestamp:
+                notif.createdTime ||
+                notif.createdAt ||
+                new Date().toISOString(),
+              isRead: notif.isRead || false,
+              type: notif.type || "info",
+              senderId: senderId,
+              senderProfile: senderProfile,
+            };
+          })
+        );
+
         // Merge API notifications with local notifications
         // Use a Map to avoid duplicates based on ID
         const notificationMap = new Map();
-        
+
         // Add API notifications first (they have priority)
-        transformedNotifications.forEach(notif => {
+        transformedNotifications.forEach((notif) => {
           notificationMap.set(notif.id, notif);
         });
-        
+
         // Add local notifications (only if not already present)
-        localNotifications.forEach(notif => {
+        localNotifications.forEach((notif) => {
           if (!notificationMap.has(notif.id)) {
             notificationMap.set(notif.id, notif);
           }
         });
-        
+
         // Convert back to array and sort by timestamp (newest first)
-        const mergedNotifications = Array.from(notificationMap.values())
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
+        const mergedNotifications = Array.from(notificationMap.values()).sort(
+          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        );
+
         setNotifications(mergedNotifications);
-        
+
         // Calculate unread count
-        const unread = mergedNotifications.filter(n => !n.isRead).length;
+        const unread = mergedNotifications.filter((n) => !n.isRead).length;
         setUnreadCount(unread);
       }
     } catch (error) {
@@ -387,24 +409,32 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       const newNotification = {
         id: Date.now(),
         title: notification.title || "Thông báo mới",
-        message: notification.message || notification.content || "Bạn có thông báo mới",
+        message:
+          notification.message ||
+          notification.content ||
+          "Bạn có thông báo mới",
         timestamp: new Date().toISOString(),
         isRead: false,
-        type: notification.type || "info"
+        type: notification.type || "info",
       };
-      
-      setNotifications(prev => [newNotification, ...prev]);
-      setUnreadCount(prev => prev + 1);
-      
+
+      setNotifications((prev) => [newNotification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+
       // Save to local storage
       try {
-        const storageKey = `notifications_${user?.id || 'anonymous'}`;
-        const existingNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        const updatedNotifications = [newNotification, ...existingNotifications];
-        
+        const storageKey = `notifications_${user?.id || "anonymous"}`;
+        const existingNotifications = JSON.parse(
+          localStorage.getItem(storageKey) || "[]"
+        );
+        const updatedNotifications = [
+          newNotification,
+          ...existingNotifications,
+        ];
+
         // Keep only the last 100 notifications to prevent storage bloat
         const trimmedNotifications = updatedNotifications.slice(0, 100);
-        
+
         localStorage.setItem(storageKey, JSON.stringify(trimmedNotifications));
       } catch (error) {
         console.error("Error saving hub notification to local storage:", error);
@@ -426,7 +456,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
     setIsNotificationOpen(!isNotificationOpen);
     setIsDropdownOpen(false);
     setIsMenuOpen(false);
-    
+
     // Refresh notifications when opening dropdown
     if (!isNotificationOpen && user) {
       fetchNotifications();
@@ -436,18 +466,15 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const markAsRead = async (notificationId) => {
     try {
       // Update local state immediately for better UX
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, isRead: true }
-            : notif
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === notificationId ? { ...notif, isRead: true } : notif
         )
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+
       // TODO: Add API call to mark notification as read
       // await markNotificationAsRead(notificationId);
-      
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
       toast.error("Không thể cập nhật trạng thái thông báo");
@@ -457,14 +484,13 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const markAllAsRead = async () => {
     try {
       // Update local state immediately for better UX
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, isRead: true }))
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, isRead: true }))
       );
       setUnreadCount(0);
-      
+
       // TODO: Add API call to mark all notifications as read
       // await markAllNotificationsAsRead();
-      
     } catch (error) {
       console.error("Failed to mark all notifications as read:", error);
       toast.error("Không thể cập nhật trạng thái thông báo");
@@ -476,7 +502,10 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
         setIsNotificationOpen(false);
       }
     }
@@ -515,19 +544,19 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const getNotificationIcon = (type, isRead) => {
     const iconProps = {
       size: 20,
-      style: { 
-        color: isRead ? '#9e9e9e' : '#1976d2'
-      }
+      style: {
+        color: isRead ? "#9e9e9e" : "#1976d2",
+      },
     };
 
     switch (type?.toLowerCase()) {
-      case 'success':
+      case "success":
         return <FaCheck {...iconProps} />;
-      case 'warning':
+      case "warning":
         return <FaExclamationTriangle {...iconProps} />;
-      case 'error':
+      case "error":
         return <FaExclamationCircle {...iconProps} />;
-      case 'info':
+      case "info":
       default:
         return <FaInfoCircle {...iconProps} />;
     }
@@ -535,18 +564,18 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
 
   // Get notification color based on type
   const getNotificationColor = (type, isRead) => {
-    if (isRead) return '#e0e0e0';
-    
+    if (isRead) return "#e0e0e0";
+
     switch (type?.toLowerCase()) {
-      case 'success':
-        return '#4caf50';
-      case 'warning':
-        return '#ff9800';
-      case 'error':
-        return '#f44336';
-      case 'info':
+      case "success":
+        return "#4caf50";
+      case "warning":
+        return "#ff9800";
+      case "error":
+        return "#f44336";
+      case "info":
       default:
-        return '#333333'
+        return "#333333";
     }
   };
 
@@ -558,9 +587,9 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
     const diffInMinutes = (now - notifDate) / (1000 * 60);
 
     // Format the date part
-    const dateStr = notifDate.toLocaleDateString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit'
+    const dateStr = notifDate.toLocaleDateString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     if (diffInMinutes < 1) {
@@ -706,25 +735,25 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                     size="large"
                     className="no-focus-outline"
                     sx={{
-                      position: 'relative',
-                      color: '#333333',
-                      outline: 'none',
-                      '&:hover': {
-                        color: '#000000',
-                      }
+                      position: "relative",
+                      color: "#333333",
+                      outline: "none",
+                      "&:hover": {
+                        color: "#000000",
+                      },
                     }}
                   >
-                    <Badge 
-                      badgeContent={unreadCount > 9 ? '9+' : unreadCount} 
+                    <Badge
+                      badgeContent={unreadCount > 9 ? "9+" : unreadCount}
                       color="error"
                       max={99}
                       sx={{
-                        '& .MuiBadge-badge': {
-                          fontSize: '0.75rem',
-                          fontWeight: 'bold',
-                          minWidth: '20px',
-                          height: '20px',
-                        }
+                        "& .MuiBadge-badge": {
+                          fontSize: "0.75rem",
+                          fontWeight: "bold",
+                          minWidth: "20px",
+                          height: "20px",
+                        },
                       }}
                     >
                       {unreadCount > 0 ? <FaBell /> : <FaRegBell />}
@@ -738,71 +767,90 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                   open={Boolean(anchorNotif)}
                   onClose={handleNotifClose}
                   PaperProps={{
-                    sx: { 
+                    sx: {
                       width: 500, // Increased from 400 to 500
                       maxHeight: 600, // Increased from 500 to 600
                       p: 0,
                       borderRadius: 2,
-                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-                      border: '1px solid rgba(0, 0, 0, 0.08)',
-                      overflow: 'hidden' // Prevent horizontal scroll
-                    }
+                      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
+                      border: "1px solid rgba(0, 0, 0, 0.08)",
+                      overflow: "hidden", // Prevent horizontal scroll
+                    },
                   }}
                   anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'right',
+                    vertical: "bottom",
+                    horizontal: "right",
                   }}
                   transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
+                    vertical: "top",
+                    horizontal: "right",
                   }}
                   TransitionComponent={Fade}
                   transitionDuration={200}
                 >
                   {/* Header */}
-                  <Box sx={{ 
-                    px: 3, 
-                    py: 2, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                    minWidth: 0 // Prevent horizontal scroll
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
-                      <FaBell style={{ color: '#1976d2', fontSize: 20, flexShrink: 0 }} />
-                      <Typography 
-                        variant="h6" 
-                        fontWeight="bold" 
+                  <Box
+                    sx={{
+                      px: 3,
+                      py: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
+                      backgroundColor: "rgba(0, 0, 0, 0.02)",
+                      minWidth: 0, // Prevent horizontal scroll
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        minWidth: 0,
+                        flex: 1,
+                      }}
+                    >
+                      <FaBell
+                        style={{
+                          color: "#1976d2",
+                          fontSize: 20,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Typography
+                        variant="h6"
+                        fontWeight="bold"
                         color="text.primary"
-                        sx={{ 
+                        sx={{
                           flex: 1,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         Thông báo
                       </Typography>
                       {unreadCount > 0 && (
-                        <Chip 
-                          label={unreadCount} 
-                          size="small" 
-                          color="primary" 
+                        <Chip
+                          label={unreadCount}
+                          size="small"
+                          color="primary"
                           sx={{ ml: 1, flexShrink: 0 }}
                         />
                       )}
                     </Box>
                     {unreadCount > 0 && (
                       <Tooltip title="Đánh dấu đã đọc tất cả" arrow>
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={markAllAsRead}
-                          sx={{ 
-                            color: 'primary.main',
+                          sx={{
+                            color: "primary.main",
                             flexShrink: 0,
-                            '&:hover': { backgroundColor: 'primary.light', color: 'white' }
+                            "&:hover": {
+                              backgroundColor: "primary.light",
+                              color: "white",
+                            },
                           }}
                         >
                           <FaCheckDouble />
@@ -812,54 +860,62 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                   </Box>
 
                   {/* Content */}
-                  <Box sx={{ 
-                    maxHeight: 500,
-                    overflow: 'auto',
-                    overflowX: 'hidden'
-                  }}>
+                  <Box
+                    sx={{
+                      maxHeight: 500,
+                      overflow: "auto",
+                      overflowX: "hidden",
+                    }}
+                  >
                     {loadingNotifications ? (
                       <Box sx={{ p: 2 }}>
                         {/* Skeleton for notification items */}
                         {[1, 2, 3, 4].map((index) => (
                           <Box key={index} sx={{ mb: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: 2,
+                              }}
+                            >
                               {/* Avatar skeleton */}
-                              <Skeleton 
-                                variant="circular" 
-                                width={40} 
-                                height={40} 
+                              <Skeleton
+                                variant="circular"
+                                width={40}
+                                height={40}
                                 sx={{ flexShrink: 0 }}
                               />
-                              
+
                               {/* Content skeleton */}
                               <Box sx={{ flex: 1, minWidth: 0 }}>
                                 {/* Title skeleton */}
-                                <Skeleton 
-                                  variant="text" 
-                                  width="60%" 
-                                  height={20} 
+                                <Skeleton
+                                  variant="text"
+                                  width="60%"
+                                  height={20}
                                   sx={{ mb: 1 }}
                                 />
-                                
+
                                 {/* Message skeleton */}
-                                <Skeleton 
-                                  variant="text" 
-                                  width="100%" 
-                                  height={16} 
+                                <Skeleton
+                                  variant="text"
+                                  width="100%"
+                                  height={16}
                                   sx={{ mb: 0.5 }}
                                 />
-                                <Skeleton 
-                                  variant="text" 
-                                  width="80%" 
-                                  height={16} 
+                                <Skeleton
+                                  variant="text"
+                                  width="80%"
+                                  height={16}
                                   sx={{ mb: 1 }}
                                 />
-                                
+
                                 {/* Timestamp skeleton */}
-                                <Skeleton 
-                                  variant="text" 
-                                  width="40%" 
-                                  height={14} 
+                                <Skeleton
+                                  variant="text"
+                                  width="40%"
+                                  height={14}
                                 />
                               </Box>
                             </Box>
@@ -867,34 +923,38 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                         ))}
                       </Box>
                     ) : notifications.length === 0 ? (
-                      <Box sx={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        py: 6,
-                        px: 3
-                      }}>
-                        <FaBellSlash style={{ 
-                          fontSize: 48, 
-                          color: '#e0e0e0', 
-                          marginBottom: 16,
-                          display: 'block'
-                        }} />
-                        <Typography 
-                          variant="body1" 
-                          color="text.secondary" 
-                          sx={{ 
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          py: 6,
+                          px: 3,
+                        }}
+                      >
+                        <FaBellSlash
+                          style={{
+                            fontSize: 48,
+                            color: "#e0e0e0",
+                            marginBottom: 16,
+                            display: "block",
+                          }}
+                        />
+                        <Typography
+                          variant="body1"
+                          color="text.secondary"
+                          sx={{
                             mb: 1,
-                            textAlign: 'center'
+                            textAlign: "center",
                           }}
                         >
                           Không có thông báo nào
                         </Typography>
-                        <Typography 
-                          variant="body2" 
+                        <Typography
+                          variant="body2"
                           color="text.disabled"
-                          sx={{ textAlign: 'center' }}
+                          sx={{ textAlign: "center" }}
                         >
                           Bạn sẽ thấy thông báo mới ở đây
                         </Typography>
@@ -910,75 +970,101 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                             sx={{
                               py: 2,
                               px: 3,
-                              borderBottom: index < notifications.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                              backgroundColor: !notif.isRead ? 'rgba(25, 118, 210, 0.04)' : 'inherit',
-                              borderLeft: !notif.isRead ? '4px solid #1976d2' : '4px solid transparent',
-                              '&:hover': {
-                                backgroundColor: !notif.isRead ? 'rgba(25, 118, 210, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                              borderBottom:
+                                index < notifications.length - 1
+                                  ? "1px solid rgba(0, 0, 0, 0.04)"
+                                  : "none",
+                              backgroundColor: !notif.isRead
+                                ? "rgba(25, 118, 210, 0.04)"
+                                : "inherit",
+                              borderLeft: !notif.isRead
+                                ? "4px solid #1976d2"
+                                : "4px solid transparent",
+                              "&:hover": {
+                                backgroundColor: !notif.isRead
+                                  ? "rgba(25, 118, 210, 0.08)"
+                                  : "rgba(0, 0, 0, 0.04)",
                               },
-                              transition: 'all 0.2s ease-in-out',
+                              transition: "all 0.2s ease-in-out",
                               minWidth: 0,
-                              width: '100%'
+                              width: "100%",
                             }}
                           >
                             <ListItemAvatar sx={{ flexShrink: 0 }}>
-                              {notif.senderProfile && notif.senderProfile.profilePictureUrl ? (
-                                <Avatar 
+                              {notif.senderProfile &&
+                              notif.senderProfile.profilePictureUrl ? (
+                                <Avatar
                                   src={notif.senderProfile.profilePictureUrl}
-                                  sx={{ 
-                                    width: 40, 
+                                  sx={{
+                                    width: 40,
                                     height: 40,
-                                    opacity: notif.isRead ? 0.6 : 1
+                                    opacity: notif.isRead ? 0.6 : 1,
                                   }}
                                 />
                               ) : (
-                                <Avatar 
-                                  sx={{ 
-                                    bgcolor: getNotificationColor(notif.type, notif.isRead),
-                                    width: 40, 
+                                <Avatar
+                                  sx={{
+                                    bgcolor: getNotificationColor(
+                                      notif.type,
+                                      notif.isRead
+                                    ),
+                                    width: 40,
                                     height: 40,
-                                    opacity: notif.isRead ? 0.6 : 1
+                                    opacity: notif.isRead ? 0.6 : 1,
                                   }}
                                 >
-                                  {getNotificationIcon(notif.type, notif.isRead)}
+                                  {getNotificationIcon(
+                                    notif.type,
+                                    notif.isRead
+                                  )}
                                 </Avatar>
                               )}
                             </ListItemAvatar>
-                            
+
                             <ListItemText
-                              sx={{ 
+                              sx={{
                                 minWidth: 0,
-                                flex: 1
+                                flex: 1,
                               }}
                               primary={
-                                <Box sx={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: 1, 
-                                  mb: 0.5,
-                                  minWidth: 0
-                                }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                    mb: 0.5,
+                                    minWidth: 0,
+                                  }}
+                                >
                                   <Typography
                                     variant="subtitle2"
-                                    fontWeight={notif.isRead ? 'normal' : 'bold'}
-                                    color={notif.isRead ? 'text.primary' : 'primary.main'}
-                                    sx={{ 
+                                    fontWeight={
+                                      notif.isRead ? "normal" : "bold"
+                                    }
+                                    color={
+                                      notif.isRead
+                                        ? "text.primary"
+                                        : "primary.main"
+                                    }
+                                    sx={{
                                       flex: 1,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
                                     }}
                                   >
                                     {notif.title}
                                   </Typography>
                                   {!notif.isRead && (
-                                    <Box sx={{ 
-                                      width: 8, 
-                                      height: 8, 
-                                      borderRadius: '50%', 
-                                      bgcolor: 'error.main',
-                                      flexShrink: 0
-                                    }} />
+                                    <Box
+                                      sx={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: "50%",
+                                        bgcolor: "error.main",
+                                        flexShrink: 0,
+                                      }}
+                                    />
                                   )}
                                 </Box>
                               }
@@ -987,32 +1073,40 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                                   <Typography
                                     variant="body2"
                                     color="text.secondary"
-                                    sx={{ 
+                                    sx={{
                                       mb: 1,
-                                      display: '-webkit-box',
+                                      display: "-webkit-box",
                                       WebkitLineClamp: 3,
-                                      WebkitBoxOrient: 'vertical',
-                                      overflow: 'hidden',
+                                      WebkitBoxOrient: "vertical",
+                                      overflow: "hidden",
                                       lineHeight: 1.4,
-                                      wordBreak: 'break-word'
+                                      wordBreak: "break-word",
                                     }}
                                   >
                                     {notif.message}
                                   </Typography>
-                                  <Box sx={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: 1,
-                                    minWidth: 0
-                                  }}>
-                                    <FaClock style={{ fontSize: 14, color: '#9e9e9e', flexShrink: 0 }} />
-                                    <Typography 
-                                      variant="caption" 
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 1,
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <FaClock
+                                      style={{
+                                        fontSize: 14,
+                                        color: "#9e9e9e",
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <Typography
+                                      variant="caption"
                                       color="text.disabled"
                                       sx={{
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap'
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
                                       }}
                                     >
                                       {formatTimestamp(notif.timestamp)}
@@ -1029,14 +1123,16 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
 
                   {/* Footer */}
                   {notifications.length > 0 && (
-                    <Box sx={{ 
-                      px: 3, 
-                      py: 1.5, 
-                      borderTop: '1px solid rgba(0, 0, 0, 0.08)',
-                      backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                      textAlign: 'center',
-                      minWidth: 0 // Prevent horizontal scroll
-                    }}>
+                    <Box
+                      sx={{
+                        px: 3,
+                        py: 1.5,
+                        borderTop: "1px solid rgba(0, 0, 0, 0.08)",
+                        backgroundColor: "rgba(0, 0, 0, 0.02)",
+                        textAlign: "center",
+                        minWidth: 0, // Prevent horizontal scroll
+                      }}
+                    >
                       <Typography variant="caption" color="text.disabled">
                         {notifications.length} thông báo
                       </Typography>
@@ -1048,24 +1144,24 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                 <Tooltip title="Tin nhắn" arrow>
                   <IconButton
                     color="inherit"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (firstTutorId) {
-                      navigate(`/message/${firstTutorId}`);
-                    } else {
-                      toast.info("Bạn chưa từng nhắn tin với gia sư nào.");
-                    }
-                  }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (firstTutorId) {
+                        navigate(`/message/${firstTutorId}`);
+                      } else {
+                        toast.info("Bạn chưa từng nhắn tin với gia sư nào.");
+                      }
+                    }}
                     aria-label="show messages"
                     size="large"
                     className="no-focus-outline"
                     sx={{
-                      position: 'relative',
-                      color: '#333333',
-                      outline: 'none',
-                      '&:hover': {
-                        color: '#000000',
-                      }
+                      position: "relative",
+                      color: "#333333",
+                      outline: "none",
+                      "&:hover": {
+                        color: "#000000",
+                      },
                     }}
                   >
                     <FaCommentDots />
@@ -1076,17 +1172,17 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                 <Tooltip title="Ví điện tử" arrow>
                   <IconButton
                     color="inherit"
-                    onClick={() => navigate('/wallet')}
+                    onClick={() => navigate("/wallet")}
                     aria-label="show wallet"
                     size="large"
                     className="no-focus-outline"
                     sx={{
-                      position: 'relative',
-                      color: '#333333',
-                      outline: 'none',
-                      '&:hover': {
-                        color: '#000000',
-                      }
+                      position: "relative",
+                      color: "#333333",
+                      outline: "none",
+                      "&:hover": {
+                        color: "#000000",
+                      },
                     }}
                   >
                     <FaWallet />
@@ -1149,8 +1245,9 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                         exit="exit"
                         variants={dropdownVariants}
                       >
-                        <div className="block px-4 py-2 text-sm text-gray-700 font-bold">{`${user.name || user.fullName
-                          }`}</div>
+                        <div className="block px-4 py-2 text-sm text-gray-700 font-bold">{`${
+                          user.name || user.fullName
+                        }`}</div>
                         <Link
                           to="/dashboard"
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
@@ -1207,7 +1304,13 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                             Hồ sơ gia sư
                           </Link>
                         )}
-
+                        <Link
+                          to={`/change-password/${user?.id}`}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Đổi mật khẩu
+                        </Link>
                         <button
                           onClick={() => {
                             onLogout();
@@ -1224,10 +1327,16 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
               </>
             ) : (
               <>
-                <NoFocusOutLineButton onClick={onLoginClick} className="text-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold border border-gray-300 hover:bg-gray-100">
+                <NoFocusOutLineButton
+                  onClick={onLoginClick}
+                  className="text-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold border border-gray-300 hover:bg-gray-100"
+                >
                   Đăng nhập
                 </NoFocusOutLineButton>
-                <NoFocusOutLineButton onClick={onSignUpClick} className="bg-black text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold hover:bg-[#333333]">
+                <NoFocusOutLineButton
+                  onClick={onSignUpClick}
+                  className="bg-black text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold hover:bg-[#333333]"
+                >
                   Đăng ký
                 </NoFocusOutLineButton>
               </>

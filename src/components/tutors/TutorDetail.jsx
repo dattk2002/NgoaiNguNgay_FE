@@ -234,7 +234,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     };
 
     loadData();
-  }, [id, user, navigate, onRequireLogin]); 
+  }, [id, user, navigate]); 
 
   useEffect(() => {
     if (!weekStartDate) return;
@@ -994,6 +994,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         onBookingSuccess={handleBookingSuccess}
         lessonId={bookingLessonId}
         expectedStartDate={new Date().toISOString()} // Truyền expectedStartDate cho current week và future weeks
+        isReadOnly={!bookingLessonId} // Read-only when no lessonId (from "Chi tiết lịch trình" button)
       />
     </div>
   );

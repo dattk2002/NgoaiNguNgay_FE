@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import './utils/notFocusOutline.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -11,7 +11,6 @@ import {
 } from "react-router-dom";
 import Header from "./components/Header";
 import FooterHandler from "./components/FooterHandler";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import HomePage from "./pages/HomePage";
 import RecommendTutorList from "./components/tutors/RecommendTutorList";
 import TutorDetail from "./components/tutors/TutorDetail";
@@ -31,6 +30,8 @@ import MyBookingPage from "./pages/MyBookingPage"; // Import at the top
 import WalletPage from "./pages/WalletPage"; // Import WalletPage
 import HowItWork from "./components/HowItWork";
 import TutorManagementPage from "./pages/TutorManagementPage"; // Import TutorManagementPage
+import ChangePasswordPage from "./pages/ChangePasswordPage";
+import ForgotPasswordModal from "./components/modals/ForgotPasswordModal";
 
 // Import the tutor API functions
 import {
@@ -110,7 +111,12 @@ function AppContent({
   handleUpdateInfoSubmit,
   getUserById,
   triggerRoleRedirect,
-  setTriggerRoleRedirect
+  setTriggerRoleRedirect,
+  isForgotPasswordModalOpen,
+  setIsForgotPasswordModalOpen,
+  handleBackToLogin,
+  shouldAutoOpenLogin,
+  setShouldAutoOpenLogin,
 }) {
   const location = useLocation();
   const isStaffRoute = location.pathname.startsWith('/staff');
@@ -119,7 +125,13 @@ function AppContent({
 
   const [firstTutorId, setFirstTutorId] = useState(null);
 
-  // Remove notification handling from here - it will be in the main App component
+  // Effect to handle auto-opening login modal after logout from change password page
+  useEffect(() => {
+    if (shouldAutoOpenLogin && !user) {
+      openLoginModal("Vui lòng đăng nhập để tiếp tục.");
+      setShouldAutoOpenLogin(false);
+    }
+  }, [shouldAutoOpenLogin, user, openLoginModal]);
 
   useEffect(() => {
     const fetchMostRecentTutorId = async () => {
@@ -162,10 +174,6 @@ function AppContent({
         />
         <RoleBasedRouteGuard user={user} />
         <Routes>
-          <Route
-            path="/forgot-password"
-            element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
-          />
           <Route path="/" element={
             <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
               <HomePage user={user} onRequireLogin={openLoginModal} />
@@ -371,6 +379,24 @@ function AppContent({
             }
           />
 
+          {/* NEW ROUTE for Change Password */}
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/change-password/:userId"
+            element={
+              <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
+                <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
+
           {/* This route catches all other paths and renders the NotFoundPage */}
           <Route path="*" element={<NotFoundPage />} />
 
@@ -385,6 +411,10 @@ function AppContent({
         onLogin={handleLogin}
         onSwitchToSignup={switchToSignup}
         promptMessage={loginPromptMessage}
+        onForgotPassword={() => {
+          closeLoginModal();
+          setIsForgotPasswordModalOpen(true);
+        }}
       />
       <SignUpModal
         isOpen={isSignUpModalOpen}
@@ -403,6 +433,11 @@ function AppContent({
         onClose={() => setIsUpdateInfoModalOpen(false)}
         onSubmit={handleUpdateInfoSubmit}
         user={user}
+      />
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordModalOpen}
+        onClose={() => setIsForgotPasswordModalOpen(false)}
+        onBackToLogin={handleBackToLogin}
       />
       {/* Remove the Snackbar from here */}
     </div>
@@ -425,6 +460,10 @@ function AppWithNotifications() {
   });
   const [firstTutorId, setFirstTutorId] = useState(null);
   const [triggerRoleRedirect, setTriggerRoleRedirect] = useState(false);
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
+  
+  // Add the missing shouldAutoOpenLogin state
+  const [shouldAutoOpenLogin, setShouldAutoOpenLogin] = useState(false);
 
   // Add notification state here
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -597,17 +636,14 @@ function AppWithNotifications() {
         const userData = {
           id: matchedAccount.id || Date.now().toString(),
           name: matchedAccount.name,
+          email: matchedAccount.email,
           phone: matchedAccount.phone,
-          avatarUrl: matchedAccount.avatarUrl || "",
           // Include other relevant user data from storage here
           fullName: matchedAccount.fullName || '',
           dateOfBirth: matchedAccount.dateOfBirth || '',
           gender: matchedAccount.gender || '',
           bio: matchedAccount.bio || '',
           learningLanguages: matchedAccount.learningLanguages || [],
-          interestsType: matchedAccount.interestsType || '',
-          languageSkills: matchedAccount.languageSkills || [],
-          interests: matchedAccount.interests || [],
         };
         setUser(userData);
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
@@ -652,7 +688,6 @@ function AppWithNotifications() {
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
           if (parsedUser && parsedUser.profileImageUrl !== user?.profileImageUrl) {
-            console.log("Updated user from storage in App:", parsedUser.profileImageUrl);
             setUser(parsedUser);
           }
         }
@@ -692,11 +727,11 @@ function AppWithNotifications() {
     fetchMostRecentTutorId();
   }, [user]);
 
-  const openLoginModal = (message = "", onLoginSuccess = null, onCloseWithoutLogin = null) => {
+  const openLoginModal = useCallback((message = "", onLoginSuccess = null, onCloseWithoutLogin = null) => {
     setLoginPromptMessage(message);
     setLoginModalCallbacks({ onLoginSuccess, onCloseWithoutLogin }); // Store callbacks
     setIsLoginModalOpen(true);
-  };
+  }, []);
 
   const closeLoginModal = () => {
     setIsLoginModalOpen(false);
@@ -716,17 +751,13 @@ function AppWithNotifications() {
     const fullUserData = {
       id: userData.id || Date.now().toString(),
       name: userData.name,
+      email: userData.email,
       phone: userData.phone,
-      avatarUrl: userData.avatarUrl || "",
       // Include all other relevant user data here
       fullName: userData.fullName || '',
       dateOfBirth: userData.dateOfBirth || '',
       gender: userData.gender || '',
       bio: userData.bio || '',
-      learningLanguages: userData.learningLanguages || [],
-      interestsType: userData.interestsType || '',
-      languageSkills: userData.languageSkills || [],
-      interests: userData.interests || [],
       profileImageUrl: userData.profileImageUrl || '',
       roles: userData.roles || [], // Make sure roles are included
     };
@@ -747,14 +778,20 @@ function AppWithNotifications() {
   };
 
   const handleLogout = () => {
+    const currentPath = window.location.pathname;
+    
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
     localStorage.removeItem("user");
     localStorage.removeItem("hasUpdatedProfile");
-    // Remove any other keys you use for login/session
     sessionStorage.clear();
-    deleteAllCookies(); // <-- Add this line
+    deleteAllCookies();
     setTriggerRoleRedirect(false);
+    
+    // If user was on change password page, redirect to home and open login modal
+    if (currentPath.startsWith('/change-password')) {
+      setShouldAutoOpenLogin(true);
+    }
   };
 
   const switchToSignup = () => {
@@ -813,6 +850,11 @@ function AppWithNotifications() {
     }
   };
 
+  const handleBackToLogin = () => {
+    setIsForgotPasswordModalOpen(false);
+    openLoginModal();
+  };
+
   if (isLoadingAuth) {
     return <div>Loading...</div>;
   }
@@ -842,6 +884,11 @@ function AppWithNotifications() {
         getUserById={getUserById}
         triggerRoleRedirect={triggerRoleRedirect}
         setTriggerRoleRedirect={setTriggerRoleRedirect}
+        isForgotPasswordModalOpen={isForgotPasswordModalOpen}
+        setIsForgotPasswordModalOpen={setIsForgotPasswordModalOpen}
+        handleBackToLogin={handleBackToLogin}
+        shouldAutoOpenLogin={shouldAutoOpenLogin}
+        setShouldAutoOpenLogin={setShouldAutoOpenLogin}
       />
       
       {/* Global Snackbar with enhanced content */}

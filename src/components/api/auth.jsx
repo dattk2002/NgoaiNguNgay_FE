@@ -155,22 +155,22 @@ export async function forgotPassword(email) {
   }
 }
 
-export async function confirmResetPassword(email, otp) {
-  const body = { email, otp };
-  try {
-    return await callApi("/api/auth/confirm-reset-password", "PATCH", body);
-  } catch (error) {
-    console.error("Confirm Reset Password Failed:", error.message);
-    throw error;
-  }
-}
-
-export async function resetPassword(email, password, confirmPassword) {
-  const body = { email, password, confirmPassword };
+export async function resetPassword(email, otp, password) {
+  const body = { email, otp, password };
   try {
     return await callApi("/api/auth/reset-password", "PATCH", body);
   } catch (error) {
     console.error("Reset Password Failed:", error.message);
+    throw error;
+  }
+}
+
+export async function changePassword(email, otp, password) {
+  const body = { email, otp, password };
+  try {
+    return await callApi("/api/auth/reset-password", "PATCH", body);
+  } catch (error) {
+    console.error("Change Password Failed:", error.message);
     throw error;
   }
 }
