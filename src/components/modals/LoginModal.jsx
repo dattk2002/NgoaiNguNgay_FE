@@ -88,6 +88,7 @@ const LoginModal = ({
   onLogin,
   onSwitchToSignup,
   promptMessage,
+  onForgotPassword, // Add this prop
 }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -376,6 +377,17 @@ const LoginModal = ({
       });
   };
 
+  const handleForgotPasswordClick = (e) => {
+    e.preventDefault();
+    onForgotPassword(); // Use the prop instead of local state
+  };
+
+  const handleBackToLogin = () => {
+    // Reopen login modal
+    // You might need to pass this callback up to the parent component
+    // For now, we'll just close the forgot password modal
+  };
+
   const modalVariants = {
     hidden: { opacity: 0, scale: 1 },
     visible: { opacity: 1, scale: 1 },
@@ -556,12 +568,12 @@ const LoginModal = ({
 
               <div className="flex items-center justify-between mb-6 text-sm">
                 <div className="flex-grow"></div>
-                <a
-                  href="#"
+                <NoFocusOutLineButton
+                  onClick={handleForgotPasswordClick}
                   className="font-medium text-[#333333] hover:text-black"
                 >
                   Quên mật khẩu?
-                </a>
+                </NoFocusOutLineButton>
               </div>
 
               <NoFocusOutLineButton
