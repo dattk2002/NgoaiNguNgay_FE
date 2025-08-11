@@ -1,321 +1,515 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import { 
+  Box, 
+  Card, 
+  CardContent, 
+  Typography, 
+  TextField, 
+  Button, 
+  IconButton, 
+  InputAdornment,
+  CircularProgress,
+  Alert,
+  Divider
+} from "@mui/material";
+import { 
+  FaEye, 
+  FaEyeSlash, 
+  FaLock, 
+  FaEnvelope, 
+  FaKey,
+  FaArrowLeft,
+  FaCheckCircle
+} from "react-icons/fa";
+import { forgotPassword, resetPassword } from "../components/api/auth";
 
-// List of countries with E.164 codes (partial list for demo)
-const countryCodes = [
-  { name: "Vietnam", code: "+84" },
-  { name: "United States", code: "+1" },
-  { name: "United Kingdom", code: "+44" },
-  { name: "India", code: "+91" },
-  { name: "Australia", code: "+61" },
-  { name: "Canada", code: "+1" },
-  { name: "Test", code: "+19" },
-  // Add more countries as needed
-];
+// Password validation constants (same as SignUpModal)
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+const PASSWORD_STRENGTH_MESSAGE = "Mật khẩu phải có ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, và 1 ký tự đặc biệt.";
+const PASSWORD_MISMATCH_MESSAGE = "Mật khẩu xác nhận không khớp.";
 
 function ForgotPasswordPage() {
-  const [email, setEmail] = useState(""); // Separate state for email
-  const [phone, setPhone] = useState(""); // Separate state for phone number
-  const [countryCode, setCountryCode] = useState("+19"); // Default to Vietnam (+84)
+  const { userId } = useParams();
+  const navigate = useNavigate();
+  
+  // State management
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [error, setError] = useState("");
-  const [step, setStep] = useState(1); // 1: Enter email/phone, 2: Enter OTP, 3: Enter new password
-  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(1); // 1: Request OTP, 2: Enter OTP, 3: Enter new password
+  const [countdown, setCountdown] = useState(0);
+  const [canResend, setCanResend] = useState(true);
+  
+  // Error states
+  const [emailError, setEmailError] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  const handleIdentifierSubmit = async (e) => {
-    e.preventDefault();
-
-    // Validation
-    if (!email && !phone) {
-      setError("Please provide either an email or a phone number");
-      return;
-    }
-
-    if (email && phone) {
-      setError("Please provide only one: either email or phone number");
-      return;
-    }
-
-    // Determine the identifier (email or phone)
-    const isEmail = !!email;
-    let identifier = email;
-    let cleanPhone = phone;
-
-    if (!isEmail) {
-      // Clean phone number by removing non-digits
-      cleanPhone = phone.replace(/\D/g, "");
-      if (!/^\d{7,15}$/.test(cleanPhone)) {
-        setError("Phone number must be between 7 and 15 digits");
-        return;
-      }
-      identifier = cleanPhone;
-    }
-
-    // Retrieve accounts from localStorage
-    const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
-
-    // Check if the entered identifier (email or phone) exists
-    const matchedAccount = accounts.find(
-      (account) =>
-        (isEmail && account.email && account.email === identifier) ||
-        (!isEmail &&
-          account.phone &&
-          account.phone === cleanPhone &&
-          account.countryCode === countryCode)
-    );
-
-    if (!matchedAccount) {
-      setError("No account found with this email or phone number");
-      return;
-    }
-
-    if (!isEmail) {
-      // Combine country code with phone number for backend (E.164 format)
-      const fullIdentifier = `${countryCode}${cleanPhone}`;
-      // Check if identifier is a phone number (basic validation for backend)
-      const isPhoneNumber = /^\+?[1-9]\d{1,14}$/.test(fullIdentifier);
-      if (!isPhoneNumber) {
-        setError(
-          "Please provide a valid phone number in E.164 format (e.g., +840983564074)"
-        );
-        return;
-      }
-
-      try {
-        // Call backend API to send OTP
-        const response = await fetch("http://localhost:5000/send-otp", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ identifier: fullIdentifier }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          setError("");
-          setStep(2); // Move to OTP step
-        } else {
-          setError(data.error || "Failed to send OTP");
-        }
-      } catch (err) {
-        setError("An error occurred while sending OTP");
-      }
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     } else {
-      // For email, we’d send an OTP via email (not implemented in this demo)
-      setError("Email-based OTP sending is not implemented in this demo");
+      setCanResend(true);
     }
-  };
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-
-    // Validation
-    if (!otp) {
-      setError("OTP is required");
+  // Handle request OTP
+  const handleRequestOtp = async () => {
+    // Validate email
+    if (!email) {
+      setEmailError("Email không được để trống");
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError("Email không hợp lệ");
       return;
     }
 
-    // Determine if the identifier is an email or phone number
-    const isEmail = !!email;
-    const identifier = isEmail ? email : phone;
-    const fullIdentifier = isEmail
-      ? email
-      : `${countryCode}${phone.replace(/\D/g, "")}`;
+    setEmailError("");
+    setIsLoading(true);
 
     try {
-      // Call backend API to verify OTP
-      const response = await fetch("http://localhost:5000/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ identifier: fullIdentifier, otp }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setError("");
-        setStep(3); // Move to password reset step
+      const response = await forgotPassword(email);
+      
+      if (response && response.statusCode === 200) {
+        toast.success(response.message || "Đã gửi OTP đến email của bạn");
+        setStep(2);
+        setCountdown(60); // Start 60 second countdown
+        setCanResend(false);
       } else {
-        setError(data.error || "Invalid OTP");
+        toast.error(response?.message || "Có lỗi xảy ra khi gửi OTP");
       }
-    } catch (err) {
-      setError("An error occurred while verifying OTP");
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      toast.error(error.message || "Có lỗi xảy ra khi gửi OTP");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-
-    // Validation
-    if (!newPassword || !confirmNewPassword) {
-      setError("New password and confirm password are required");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    // Determine if the identifier is an email or phone number
-    const isEmail = !!email;
-    const identifier = isEmail ? email : phone;
-    const cleanPhone = isEmail ? null : phone.replace(/\D/g, "");
-    const fullIdentifier = isEmail ? email : `${countryCode}${cleanPhone}`;
-
-    // Retrieve accounts from localStorage
-    const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
-
-    // Find the account and update the password
-    const updatedAccounts = accounts.map((account) => {
-      if (
-        (isEmail && account.email && account.email === identifier) ||
-        (!isEmail &&
-          account.phone &&
-          account.phone === cleanPhone &&
-          account.countryCode === countryCode)
-      ) {
-        return { ...account, password: newPassword };
+  // Handle resend OTP
+  const handleResendOtp = async () => {
+    if (!canResend) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await forgotPassword(email);
+      
+      if (response && response.statusCode === 200) {
+        toast.success("Đã gửi lại OTP đến email của bạn");
+        setCountdown(60);
+        setCanResend(false);
+      } else {
+        toast.error(response?.message || "Có lỗi xảy ra khi gửi lại OTP");
       }
-      return account;
-    });
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      toast.error(error.message || "Có lỗi xảy ra khi gửi lại OTP");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    // Save updated accounts back to localStorage
-    localStorage.setItem("accounts", JSON.stringify(updatedAccounts));
+  // Handle verify OTP and proceed to password reset
+  const handleVerifyOtp = async () => {
+    if (!otp) {
+      setOtpError("OTP không được để trống");
+      return;
+    }
+    
+    if (otp.length !== 6) {
+      setOtpError("OTP phải có 6 chữ số");
+      return;
+    }
 
-    // Redirect to login page
-    navigate("/login");
+    setOtpError("");
+    setStep(3); // Proceed to password reset step
+  };
+
+  // Handle password validation
+  const validatePassword = (password) => {
+    if (!password) return "Mật khẩu không được để trống";
+    if (!PASSWORD_REGEX.test(password)) return PASSWORD_STRENGTH_MESSAGE;
+    return "";
+  };
+
+  const validateConfirmPassword = (confirmPassword, password) => {
+    if (!confirmPassword) return "Xác nhận mật khẩu không được để trống";
+    if (confirmPassword !== password) return PASSWORD_MISMATCH_MESSAGE;
+    return "";
+  };
+
+  // Handle reset password
+  const handleResetPassword = async () => {
+    const passwordValidation = validatePassword(newPassword);
+    const confirmPasswordValidation = validateConfirmPassword(confirmNewPassword, newPassword);
+
+    setPasswordError(passwordValidation);
+    setConfirmPasswordError(confirmPasswordValidation);
+
+    if (passwordValidation || confirmPasswordValidation) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Call resetPassword with correct parameters: email, otp, password
+      const response = await resetPassword(email, otp, newPassword);
+      
+      if (response && response.statusCode === 200) {
+        toast.success("Đổi mật khẩu thành công");
+        navigate("/");
+      } else {
+        toast.error(response?.message || "Có lỗi xảy ra khi đổi mật khẩu");
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      toast.error(error.message || "Có lỗi xảy ra khi đổi mật khẩu");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle input changes
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    setEmailError("");
+  };
+
+  const handleOtpChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setOtp(value);
+    setOtpError("");
+  };
+
+  const handlePasswordChange = (e) => {
+    setNewPassword(e.target.value);
+    setPasswordError("");
+  };
+
+  const handleConfirmPasswordChange = (e) => {
+    setConfirmNewPassword(e.target.value);
+    setConfirmPasswordError("");
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-60px)] flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
-        <h2 className="text-center text-lg font-semibold mb-4">
-          Reset Your Password
-        </h2>
-        {error && (
-          <div className="bg-red-50 border border-red-500 text-red-600 p-2 rounded text-sm text-center mb-4">
-            {error}
-          </div>
-        )}
-        {step === 1 && (
-          <div className="flex flex-col gap-4">
-            <input
-              type="text"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setPhone(""); // Clear phone number when email is being used
-              }}
-              className="p-3 text-base border border-gray-300 rounded focus:outline-none focus:border-gray-500"
-            />
-            <div className="flex gap-2">
-              <select
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                className="w-24 p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-gray-500"
-              >
-                {countryCodes.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.code}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="tel"
-                placeholder="Phone Number"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
-                  setEmail(""); // Clear email when phone number is being used
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'flex-start', // Changed from 'center' to 'flex-start'
+        justifyContent: 'center',
+        bgcolor: 'grey.50',
+        py: 4, // Increased padding to move card down from very top
+        px: 2,
+        pt: 6 // Added specific top padding to position card higher than center
+      }}
+    >
+      <Card
+        sx={{
+          width: '100%',
+          maxWidth: 600, // Increased from 450 to 600
+          mx: 2,
+          boxShadow: 3,
+          borderRadius: 2,
+          minHeight: 'fit-content'
+        }}
+      >
+        <CardContent sx={{ p: 5 }}> {/* Increased padding from 4 to 5 */}
+          {/* Header */}
+          <Box sx={{ textAlign: 'center', mb: 5 }}> {/* Increased margin from 4 to 5 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}> {/* Increased margin from 2 to 3 */}
+              <FaLock sx={{ fontSize: 40, color: 'primary.main', mr: 1 }} /> {/* Increased font size from 32 to 40 */}
+            </Box>
+            <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom> {/* Changed from h5 to h4 */}
+              Quên mật khẩu
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}> {/* Increased font size */}
+              {step === 1 && "Nhập email để nhận mã OTP"}
+              {step === 2 && "Nhập mã OTP đã được gửi đến email"}
+              {step === 3 && "Nhập mật khẩu mới"}
+            </Typography>
+          </Box>
+
+          {/* Step 1: Request OTP */}
+          {step === 1 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}> {/* Increased gap from 3 to 4 */}
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={email}
+                onChange={handleEmailChange}
+                error={!!emailError}
+                helperText={emailError}
+                size="large" // Added size prop
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <FaEnvelope color="action" />
+                    </InputAdornment>
+                  ),
                 }}
-                className="flex-1 p-3 text-base border border-gray-300 rounded focus:outline-none focus:border-gray-500"
+                disabled={isLoading}
+                sx={{ 
+                  '& .MuiInputBase-root': { 
+                    fontSize: '1.1rem',
+                    padding: '12px 16px'
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '1.1rem'
+                  }
+                }}
               />
-            </div>
-            <button
-              onClick={handleIdentifierSubmit}
-              className="bg-black text-white p-3 rounded font-semibold text-base hover:bg-gray-800"
-            >
-              Send OTP
-            </button>
-            <div className="text-center text-sm mt-4">
-              Remember your password?{" "}
-              <Link to="/login" className="text-black hover:underline">
-                Log in
+              
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                onClick={handleRequestOtp}
+                disabled={isLoading}
+                startIcon={isLoading ? <CircularProgress size={24} /> : <FaKey />}
+                sx={{ 
+                  py: 2, // Increased padding
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                {isLoading ? "Đang gửi..." : "Gửi OTP"}
+              </Button>
+            </Box>
+          )}
+
+          {/* Step 2: Enter OTP */}
+          {step === 2 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}> {/* Increased gap from 3 to 4 */}
+              <Alert severity="info" sx={{ mb: 3, fontSize: '1rem' }}> {/* Increased margin and font size */}
+                Mã OTP đã được gửi đến <strong>{email}</strong>
+              </Alert>
+              
+              <TextField
+                fullWidth
+                label="Mã OTP (6 chữ số)"
+                value={otp}
+                onChange={handleOtpChange}
+                error={!!otpError}
+                helperText={otpError}
+                size="large" // Added size prop
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <FaKey color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                disabled={isLoading}
+                sx={{ 
+                  '& .MuiInputBase-root': { 
+                    fontSize: '1.1rem',
+                    padding: '12px 16px'
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '1.1rem'
+                  }
+                }}
+              />
+              
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                onClick={handleVerifyOtp}
+                disabled={isLoading || !otp || otp.length !== 6}
+                startIcon={isLoading ? <CircularProgress size={24} /> : <FaCheckCircle />}
+                sx={{ 
+                  py: 2, // Increased padding
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                {isLoading ? "Đang xác thực..." : "Tiếp tục"}
+              </Button>
+              
+              <Divider sx={{ my: 3 }}> {/* Increased margin from 2 to 3 */}
+                <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem' }}> {/* Increased font size */}
+                  Hoặc
+                </Typography>
+              </Divider>
+              
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={handleResendOtp}
+                disabled={!canResend || isLoading}
+                startIcon={canResend ? <FaEnvelope /> : <CircularProgress size={24} />}
+                sx={{ 
+                  py: 2, // Increased padding
+                  fontSize: '1.1rem'
+                }}
+              >
+                {canResend 
+                  ? "Gửi lại OTP" 
+                  : `Gửi lại OTP (${countdown}s)`
+                }
+              </Button>
+            </Box>
+          )}
+
+          {/* Step 3: Enter new password */}
+          {step === 3 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}> {/* Increased gap from 3 to 4 */}
+              <Alert severity="info" sx={{ mb: 3, fontSize: '1rem' }}> {/* Increased margin and font size */}
+                Nhập mật khẩu mới cho tài khoản <strong>{email}</strong>
+              </Alert>
+              
+              <TextField
+                fullWidth
+                label="Mật khẩu mới"
+                type={showPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={handlePasswordChange}
+                error={!!passwordError}
+                helperText={passwordError}
+                size="large" // Added size prop
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <FaLock color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="large" // Added size prop
+                      >
+                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                disabled={isLoading}
+                sx={{ 
+                  '& .MuiInputBase-root': { 
+                    fontSize: '1.1rem',
+                    padding: '12px 16px'
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '1.1rem'
+                  }
+                }}
+              />
+              
+              <TextField
+                fullWidth
+                label="Xác nhận mật khẩu mới"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmNewPassword}
+                onChange={handleConfirmPasswordChange}
+                error={!!confirmPasswordError}
+                helperText={confirmPasswordError}
+                size="large" // Added size prop
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <FaLock color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        edge="end"
+                        size="large" // Added size prop
+                      >
+                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                disabled={isLoading}
+                sx={{ 
+                  '& .MuiInputBase-root': { 
+                    fontSize: '1.1rem',
+                    padding: '12px 16px'
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: '1.1rem'
+                  }
+                }}
+              />
+              
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                onClick={handleResetPassword}
+                disabled={isLoading || !newPassword || !confirmNewPassword}
+                startIcon={isLoading ? <CircularProgress size={24} /> : <FaCheckCircle />}
+                sx={{ 
+                  py: 2, // Increased padding
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                {isLoading ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}
+              </Button>
+            </Box>
+          )}
+
+          {/* Back button */}
+          {(step === 2 || step === 3) && (
+            <Box sx={{ mt: 4, textAlign: 'center' }}> {/* Increased margin from 3 to 4 */}
+              <Button
+                variant="text"
+                startIcon={<FaArrowLeft />}
+                onClick={() => setStep(step - 1)}
+                disabled={isLoading}
+                sx={{ fontSize: '1rem' }} // Added font size
+              >
+                Quay lại
+              </Button>
+            </Box>
+          )}
+
+          {/* Footer */}
+          <Box sx={{ mt: 5, textAlign: 'center' }}> {/* Increased margin from 4 to 5 */}
+            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem' }}> {/* Increased font size */}
+              Nhớ mật khẩu?{" "}
+              <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <Typography
+                  component="span"
+                  variant="body1"
+                  sx={{ 
+                    color: 'primary.main', 
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    '&:hover': { color: 'primary.dark' }
+                  }}
+                >
+                  Đăng nhập
+                </Typography>
               </Link>
-            </div>
-          </div>
-        )}
-        {step === 2 && (
-          <div className="flex flex-col gap-4">
-            <p className="text-center text-sm mb-2">
-              An OTP has been sent to {email || phone}
-            </p>
-            <input
-              type="text"
-              placeholder="Enter 6-digit OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="p-3 text-base border border-gray-300 rounded focus:outline-none focus:border-gray-500"
-            />
-            <button
-              onClick={handleOtpSubmit}
-              className="bg-black text-white p-3 rounded font-semibold text-base hover:bg-gray-800"
-            >
-              Verify OTP
-            </button>
-            <div className="text-center text-sm mt-4">
-              <button
-                onClick={() => setStep(1)}
-                className="text-black hover:underline"
-              >
-                Back
-              </button>
-            </div>
-          </div>
-        )}
-        {step === 3 && (
-          <div className="flex flex-col gap-4">
-            <p className="text-center text-sm mb-2">Enter your new password</p>
-            <input
-              type="password"
-              placeholder="New Password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="p-3 text-base border border-gray-300 rounded focus:outline-none focus:border-gray-500"
-            />
-            <input
-              type="password"
-              placeholder="Confirm New Password"
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-              className="p-3 text-base border border-gray-300 rounded focus:outline-none focus:border-gray-500"
-            />
-            <button
-              onClick={handlePasswordSubmit}
-              className="bg-black text-white p-3 rounded font-semibold text-base hover:bg-gray-800"
-            >
-              Reset Password
-            </button>
-            <div className="text-center text-sm mt-4">
-              <button
-                onClick={() => setStep(2)}
-                className="text-black hover:underline"
-              >
-                Back
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
 

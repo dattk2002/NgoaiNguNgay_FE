@@ -1498,6 +1498,13 @@ const TutorProfile = ({
   // Helper to get week info for the edit week
   const weekInfo = getWeekDates(currentWeekStart);
 
+  // Helper function to check if a pattern exists for the current week
+  const isPatternExistsForCurrentWeek = () => {
+    if (!weeklyPatterns || !currentWeekStart) return false;
+    const pattern = getPatternForWeek(weeklyPatterns, currentWeekStart);
+    return pattern !== null;
+  };
+
   // Function to open the delete confirmation dialog
   const openDeletePatternDialog = (patternId) => {
     setPatternToDelete(patternId);
@@ -4268,6 +4275,10 @@ const TutorProfile = ({
                   slots,
                 });
                 setEditPatternDialogOpen(false);
+                
+                // Show success toast
+                toast.success("Cập nhật lịch trình thành công");
+                
                 // Refresh weekly patterns after update
                 const updatedPatterns = await fetchTutorWeeklyPattern(id);
                 setWeeklyPatterns(updatedPatterns);
@@ -4279,7 +4290,7 @@ const TutorProfile = ({
             }}
             disabled={patternLoading}
           >
-            Lưu thay đổi
+            {isPatternExistsForCurrentWeek() ? "Cập nhật lịch trình" : "Tạo lịch trình"}
           </Button>
         </DialogActions>
       </Dialog>

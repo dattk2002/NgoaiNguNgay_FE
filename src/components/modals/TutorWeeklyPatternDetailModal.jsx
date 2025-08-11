@@ -85,6 +85,7 @@ const TutorWeeklyPatternDetailModal = ({
   onBookingSuccess,
   lessonId, 
   expectedStartDate, 
+  isReadOnly = false, // Add new prop for read-only mode
 }) => {
   const [loading, setLoading] = useState(true);
   const [patterns, setPatterns] = useState([]);
@@ -95,8 +96,8 @@ const TutorWeeklyPatternDetailModal = ({
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
-  // Only allow slot selection for learners
-  const learnerPermission = isLearner(currentUser);
+  // Only allow slot selection for learners and when not in read-only mode
+  const learnerPermission = isLearner(currentUser) && !isReadOnly;
 
   useEffect(() => {
     if (!open) return;
@@ -106,12 +107,15 @@ const TutorWeeklyPatternDetailModal = ({
       .finally(() => setLoading(false));
     setWeekStart(initialWeekStart); // Reset week when dialog opens
     
-    // Load saved selected slots for this week and tutor
-    if (learnerPermission && currentUser?.id) {
+    // Load saved selected slots for this week and tutor (only if not read-only)
+    if (learnerPermission && currentUser?.id && !isReadOnly) {
       const savedSlots = loadSelectedSlots(initialWeekStart, tutorId, currentUser.id);
       setSelectedSlots(savedSlots);
+    } else {
+      // Clear selected slots in read-only mode
+      setSelectedSlots([]);
     }
-  }, [open, tutorId, initialWeekStart, learnerPermission, currentUser?.id]);
+  }, [open, tutorId, initialWeekStart, learnerPermission, currentUser?.id, isReadOnly]);
 
   // Calculate week range
   const monday = weekStart ? new Date(weekStart) : null;
@@ -203,8 +207,12 @@ const TutorWeeklyPatternDetailModal = ({
     monday.getDate() === currentMonday.getDate();
 
   const handleSlotClick = (dayInWeek, slotIndex, isAvailable) => {
-    // Only allow selection if learner, slot is available, and it's the current week
-    if (!learnerPermission || !isAvailable || !isCurrentWeek) return;
+    // Don't allow selection in read-only mode
+    if (isReadOnly || !learnerPermission || !isAvailable) return;
+    
+    // Check if slot is in the past for the current week being viewed
+    const isPastSlot = isSlotInPast(dayInWeek, slotIndex);
+    if (isPastSlot) return;
     
     setSelectedSlots((prev) => {
       const newSlots = prev.some((s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIndex)
@@ -220,19 +228,16 @@ const TutorWeeklyPatternDetailModal = ({
     });
   };
 
-  // Optional: clear selected slots when not in current week
-  useEffect(() => {
-    if (!isCurrentWeek) setSelectedSlots([]);
-  }, [isCurrentWeek]);
-
   // Always get the current UTC date (YYYY-MM-DD)
   const now = new Date();
   const expectedStartDateToday = now.toISOString();
 
   const handleSubmit = async () => {
-    if (!isCurrentWeek) {
+    // Remove the restriction that only allows submission for current week
+    if (selectedSlots.length === 0) {
       return;
     }
+    
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
@@ -347,9 +352,9 @@ const TutorWeeklyPatternDetailModal = ({
           justifyContent: "space-between",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap:2 }}>
           <Typography variant="h6">
-            Chi tiết lịch trình khả dụng
+            {isReadOnly ? "Lịch trình khả dụng" : "Chi tiết lịch trình khả dụng"}
           </Typography>
         </Box>
 
@@ -556,11 +561,11 @@ const TutorWeeklyPatternDetailModal = ({
                             backgroundColor,
                             border: "1px solid #e2e8f0",
                             minHeight: 32,
-                            cursor: learnerPermission && isActive && isCurrentWeek && !isPastSlot ? "pointer" : "default",
+                            cursor: learnerPermission && isActive && !isPastSlot ? "pointer" : "default",
                             opacity: isPastSlot ? 0.7 : 1,
                             transition: "background 0.2s",
                             position: "relative",
-                            "&:hover": !isPastSlot && learnerPermission && isActive && isCurrentWeek ? {
+                            "&:hover": !isPastSlot && learnerPermission && isActive ? {
                               backgroundColor: isSelected ? "#1d4ed8" : "#7bbf3f",
                             } : {},
                             // Add a subtle pattern or overlay for past slots
@@ -576,8 +581,8 @@ const TutorWeeklyPatternDetailModal = ({
                             } : {},
                           }}
                           onClick={() => {
-                            // Don't allow clicking on past slots
-                            if (isPastSlot) return;
+                            // Don't allow clicking on past slots or in read-only mode
+                            if (isPastSlot || isReadOnly) return;
                             handleSlotClick(dayInWeek, slotIdx, isActive);
                           }}
                         />
@@ -588,9 +593,9 @@ const TutorWeeklyPatternDetailModal = ({
               </Box>
             </Box>
 
-            {/* Right side - Selected slots card */}
+            {/* Right side - Selected slots card (only show if not read-only) */}
             <AnimatePresence>
-              {selectedSlots.length > 0 && learnerPermission && (
+              {selectedSlots.length > 0 && learnerPermission && !isReadOnly && (
                 <motion.div
                   initial={{ 
                     opacity: 0, 
@@ -814,20 +819,23 @@ const TutorWeeklyPatternDetailModal = ({
               Lịch có sẵn
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box
-              sx={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                backgroundColor: "#2563eb",
-                mr: 1,
-              }}
-            />
-            <Typography variant="body2" sx={{ color: "#2563eb" }}>
-              Lịch bạn đang chọn
-            </Typography>
-          </Box>
+          {/* Only show "Lịch bạn đang chọn" legend when not in read-only mode */}
+          {!isReadOnly && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  backgroundColor: "#2563eb",
+                  mr: 1,
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#2563eb" }}>
+                Lịch bạn đang chọn
+              </Typography>
+            </Box>
+          )}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box
               sx={{
@@ -846,13 +854,13 @@ const TutorWeeklyPatternDetailModal = ({
         </Box>
         {/* Buttons aligned to the right */}
         <Box sx={{ display: "flex", gap: 1 }}>
-          {learnerPermission && (
+          {/* Only show submit button if not in read-only mode */}
+          {learnerPermission && !isReadOnly && (
             <Button
               onClick={handleSubmit}
               disabled={
                 selectedSlots.length === 0 ||
                 submitting ||
-                !isCurrentWeek ||
                 isTutor(currentUser)
               }
               variant="contained"
