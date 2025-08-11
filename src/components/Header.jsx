@@ -47,6 +47,7 @@ import {
   getNotificationMessage,
   isSupportedNotificationType,
 } from "../utils/notificationMessages";
+import ChangePasswordPage from "../pages/ChangePasswordPage";
 
 // Utility functions for role checking
 const hasRole = (user, roleName) => {
@@ -1304,11 +1305,11 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                           </Link>
                         )}
                         <Link
-                          to={`/forgot-password/${user?.id}`}
+                          to={`/change-password/${user?.id}`}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           onClick={() => setIsDropdownOpen(false)}
                         >
-                          Quên mật khẩu
+                          Đổi mật khẩu
                         </Link>
                         <button
                           onClick={() => {

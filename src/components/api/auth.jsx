@@ -165,6 +165,16 @@ export async function resetPassword(email, otp, password) {
   }
 }
 
+export async function changePassword(email, otp, password) {
+  const body = { email, otp, password };
+  try {
+    return await callApi("/api/auth/reset-password", "PATCH", body);
+  } catch (error) {
+    console.error("Change Password Failed:", error.message);
+    throw error;
+  }
+}
+
 export async function refreshToken(refreshTokenValue) {
   const body = { refreshToken: refreshTokenValue };
   try {
