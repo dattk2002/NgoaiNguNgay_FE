@@ -166,6 +166,10 @@ function AppContent({
             path="/forgot-password"
             element={user ? <Navigate to="/" /> : <ForgotPasswordPage />}
           />
+          <Route
+            path="/forgot-password/:userId"
+            element={<ForgotPasswordPage />}
+          />
           <Route path="/" element={
             <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
               <HomePage user={user} onRequireLogin={openLoginModal} />
