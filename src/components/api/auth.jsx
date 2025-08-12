@@ -1954,3 +1954,36 @@ export async function rejectWithdrawal(withdrawalId, rejectionReason) {
     throw error;
   }
 }
+
+/**
+ * Get tutor ratings and reviews
+ * @param {string} tutorId - The tutor ID to get ratings for
+ * @param {number} page - Page number (default: 1)
+ * @param {number} size - Number of items per page (default: 10)
+ * @returns {Promise<Object>} Tutor rating data with averages and reviews
+ */
+export async function fetchTutorRating(tutorId, page = 1, size = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/booking-slot-rating/tutor/${tutorId}?page=${page}&size=${size}`,
+      "GET",
+      null,
+      token
+    );
+    
+    if (response && response.data) {
+      console.log("✅ Tutor rating fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for tutor rating.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor rating:", error.message);
+    throw error;
+  }
+}

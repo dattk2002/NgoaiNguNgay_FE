@@ -54,7 +54,7 @@ const WithdrawalManagement = () => {
     };
 
     const maskAccountNumber = (accountNumber) => {
-        if (!accountNumber || accountNumber.length <= 4) return accountNumber;
+        if (!accountNumber || accountNumber.length <= 4) return accountNumber || 'N/A';
         return '****' + accountNumber.slice(-4);
     };
 
@@ -261,9 +261,9 @@ const WithdrawalManagement = () => {
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     <div className="text-sm">
-                                                        <div className="font-medium text-gray-900">{request.bankAccount?.bankName}</div>
-                                                        <div className="text-gray-500">{maskAccountNumber(request.bankAccount?.accountNumber)}</div>
-                                                        <div className="text-gray-500 text-xs">{request.bankAccount?.accountHolderName}</div>
+                                                        <div className="font-medium text-gray-900">{request.storedBankAccountInfo?.bankName || 'N/A'}</div>
+                                                        <div className="text-gray-500">{maskAccountNumber(request.storedBankAccountInfo?.accountNumber) || 'N/A'}</div>
+                                                        <div className="text-gray-500 text-xs">{request.storedBankAccountInfo?.accountHolderName || 'N/A'}</div>
                                                     </div>
                                                 </td>
                                                 <td className="py-3 px-4">
