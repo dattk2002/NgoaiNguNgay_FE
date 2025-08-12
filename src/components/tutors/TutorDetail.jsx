@@ -6,6 +6,7 @@ import {
   fetchTutorLesson,
   fetchTutorLessonDetailById,
   fetchTutorWeekSchedule,
+  fetchTutorRating,
 } from "../api/auth";
 import { formatTutorDate } from "../../utils/formatTutorDate";
 import {
@@ -85,6 +86,11 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   const [isPatternDialogOpen, setIsPatternDialogOpen] = useState(false);
   const [bookingLessonId, setBookingLessonId] = useState(null);
+
+  // Rating states
+  const [tutorRating, setTutorRating] = useState(null);
+  const [tutorReviews, setTutorReviews] = useState([]);
+  const [loadingRating, setLoadingRating] = useState(false);
 
   // Handler to show toast and add notification
   const handleBookingSuccess = () => {
@@ -225,6 +231,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         setWeeklySchedule(scheduleData);
 
         console.log("Weekly Schedule Data:", scheduleData);
+
+        // Fetch tutor rating data
+        await fetchTutorRatingData(id);
       } catch (err) {
         console.error("Failed to fetch data:", err);
         setError(err.message || "Could not load data.");
@@ -234,7 +243,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     };
 
     loadData();
-  }, [id, user, navigate]); 
+  }, [id, user, navigate, onRequireLogin]); 
 
   useEffect(() => {
     if (!weekStartDate) return;
@@ -305,6 +314,21 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     setIsLessonModalOpen(false);
     setLessonDetail(null);
     setLessonDetailError(null);
+  };
+
+  // Fetch tutor rating data
+  const fetchTutorRatingData = async (tutorId) => {
+    try {
+      setLoadingRating(true);
+      const ratingData = await fetchTutorRating(tutorId);
+      setTutorRating(ratingData);
+      setTutorReviews(ratingData.reviews || []);
+    } catch (error) {
+      console.error("Failed to fetch tutor rating:", error);
+      // Don't show error toast, just log it
+    } finally {
+      setLoadingRating(false);
+    }
   };
 
   const handleBookNowFromLesson = (lessonId) => {
@@ -486,6 +510,54 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         },
       },
     ],
+  };
+
+  // Component to display detailed rating breakdown
+  const DetailedRatingDisplay = ({ rating, label, icon, loading = false }) => {
+    const starCount = Math.round(rating || 0);
+    const averageRating = rating ? rating.toFixed(1) : "N/A";
+    
+    if (loading) {
+      return (
+        <div className="bg-white p-4 rounded-xl shadow-md">
+          <div className="animate-pulse">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="w-5 h-5 bg-gray-200 rounded"></div>
+              <div className="h-6 bg-gray-200 rounded w-12"></div>
+            </div>
+            <div className="flex justify-center gap-1 mb-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="w-4 h-4 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+            <div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="bg-white p-4 rounded-xl shadow-md">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          {icon}
+          <span className="text-lg font-semibold text-gray-800">{averageRating}</span>
+        </div>
+        <div className="flex justify-center gap-1 mb-2">
+          {[...Array(5)].map((_, i) => (
+            <FaStar
+              key={i}
+              className={`w-4 h-4 ${
+                i < starCount ? "text-yellow-400" : "text-gray-300"
+              }`}
+            />
+          ))}
+        </div>
+        <p className="text-center text-sm text-gray-600">{label}</p>
+        {tutorRating && tutorReviews.length > 0 && (
+          <p className="text-xs text-gray-500 mt-1">({tutorReviews.length} đánh giá)</p>
+        )}
+      </div>
+    );
   };
 
   // Define the labels for the tabs
@@ -727,26 +799,79 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       </div>
 
       <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        {/* Overall Rating */}
         <div className="bg-white p-6 rounded-xl shadow-md">
-          <p className="text-2xl font-bold text-gray-800">
-            {teacher.rating !== undefined && teacher.rating !== null
-              ? teacher.rating.toFixed(1)
-              : "N/A"}
-          </p>
-          <div className="flex justify-center gap-1 mt-1">
-            {[...Array(5)].map((_, i) => (
-              <FaStar
-                key={i}
-                className={
-                  teacher.rating && i < Math.round(teacher.rating)
-                    ? "text-yellow-400"
-                    : "text-gray-300"
-                }
-              />
-            ))}
-          </div>
-          <p className="text-gray-600 mt-2">Đánh giá</p>
+          {loadingRating ? (
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-16 mx-auto mb-2"></div>
+              <div className="flex justify-center gap-1 mb-2">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="w-4 h-4 bg-gray-200 rounded"></div>
+                ))}
+              </div>
+              <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-bold text-gray-800">
+                {tutorRating && tutorRating.averageTeachingQuality !== undefined
+                  ? ((tutorRating.averageTeachingQuality + tutorRating.averageAttitude + tutorRating.averageCommitment) / 3).toFixed(1)
+                  : teacher.rating !== undefined && teacher.rating !== null
+                  ? teacher.rating.toFixed(1)
+                  : "N/A"}
+              </p>
+              <div className="flex justify-center gap-1 mt-1">
+                {[...Array(5)].map((_, i) => {
+                  const overallRating = tutorRating 
+                    ? (tutorRating.averageTeachingQuality + tutorRating.averageAttitude + tutorRating.averageCommitment) / 3
+                    : teacher.rating;
+                  return (
+                    <FaStar
+                      key={i}
+                      className={
+                        overallRating && i < Math.round(overallRating)
+                          ? "text-yellow-400"
+                          : "text-gray-300"
+                      }
+                    />
+                  );
+                })}
+              </div>
+              <p className="text-gray-600 mt-2">Đánh giá tổng quan</p>
+              {tutorRating && tutorReviews.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">({tutorReviews.length} đánh giá)</p>
+              )}
+            </>
+          )}
         </div>
+        
+        {/* Teaching Quality Rating */}
+        <DetailedRatingDisplay
+          rating={tutorRating?.averageTeachingQuality}
+          label="Chất lượng giảng dạy"
+          icon={<FaBook className="text-blue-500 w-5 h-5" />}
+          loading={loadingRating}
+        />
+        
+        {/* Attitude Rating */}
+        <DetailedRatingDisplay
+          rating={tutorRating?.averageAttitude}
+          label="Thái độ"
+          icon={<FaUsers className="text-green-500 w-5 h-5" />}
+          loading={loadingRating}
+        />
+        
+        {/* Commitment Rating */}
+        <DetailedRatingDisplay
+          rating={tutorRating?.averageCommitment}
+          label="Cam kết"
+          icon={<FaClock className="text-purple-500 w-5 h-5" />}
+          loading={loadingRating}
+        />
+      </div>
+
+      {/* Additional Statistics */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
         <div className="bg-white p-6 rounded-xl shadow-md">
           <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
             <FaUsers className="text-blue-500" /> {teacher.students || 0}
@@ -921,7 +1046,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         </div>
       </div>
 
-      <ReviewsSection teacher={teacher} />
+      <ReviewsSection teacher={teacher} tutorReviews={tutorReviews} />
 
       <div className="mt-10">
         <h2 className="text-2xl font-semibold text-gray-800 mb-6">
@@ -994,7 +1119,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         onBookingSuccess={handleBookingSuccess}
         lessonId={bookingLessonId}
         expectedStartDate={new Date().toISOString()} // Truyền expectedStartDate cho current week và future weeks
-        isReadOnly={!bookingLessonId} // Read-only when no lessonId (from "Chi tiết lịch trình" button)
       />
     </div>
   );

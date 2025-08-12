@@ -166,15 +166,15 @@ const WithdrawalDetailModal = ({ isOpen, onClose, withdrawal }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Tên ngân hàng</label>
-                      <p className="mt-1 text-sm text-gray-900">{withdrawal.bankAccount?.bankName || 'N/A'}</p>
+                      <p className="mt-1 text-sm text-gray-900">{withdrawal.storedBankAccountInfo?.bankName || 'N/A'}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Số tài khoản</label>
-                      <p className="mt-1 text-sm text-gray-900 font-mono">{withdrawal.bankAccount?.accountNumber || 'N/A'}</p>
-                    </div>
+                                         <div>
+                       <label className="block text-sm font-medium text-gray-700">Số tài khoản</label>
+                       <p className="mt-1 text-sm text-gray-900 font-mono">{withdrawal.storedBankAccountInfo?.accountNumber || 'N/A'}</p>
+                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700">Chủ tài khoản</label>
-                      <p className="mt-1 text-sm text-gray-900">{withdrawal.bankAccount?.accountHolderName || 'N/A'}</p>
+                      <p className="mt-1 text-sm text-gray-900">{withdrawal.storedBankAccountInfo?.accountHolderName || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
