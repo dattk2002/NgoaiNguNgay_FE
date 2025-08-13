@@ -4,6 +4,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating } from "./api/auth";
 import { formatCentralTimestamp } from "../utils/formatCentralTimestamp";
+import { formatSlotDateTime } from "../utils/formatSlotTime";
 import { Skeleton } from "@mui/material";
 
 const LessonManagement = () => {
@@ -688,7 +689,7 @@ const LessonManagement = () => {
                                             Slot {slot.slotIndex}
                                           </span>
                                           <div className="text-xs text-gray-500 mt-1">
-                                            Ngày học: {slot.bookedDate ? formatCentralTimestamp(slot.bookedDate) : 'N/A'}
+                                            Ngày học: {slot.slotIndex !== undefined ? formatSlotDateTime(slot.slotIndex, slot.bookedDate) : (slot.bookedDate ? formatCentralTimestamp(slot.bookedDate) : 'N/A')}
                                           </div>
                                           {slot.slotNote && (
                                             <div className="text-xs text-gray-600 mt-1">

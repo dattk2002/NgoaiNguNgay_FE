@@ -8,11 +8,12 @@ import {
   CardContent, 
   Container 
 } from '@mui/material';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { fetchTutorBookings, fetchBookingDetail, completeBookedSlot } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatCentralTimestamp } from '../../utils/formatCentralTimestamp';
+import { formatSlotDateTime } from '../../utils/formatSlotTime';
 
 // Skeleton Component for Booking Items
 const BookingTrackingSkeleton = () => (
@@ -230,8 +231,46 @@ const ScheduleTracking = () => {
     loadBookings(newPage);
   };
 
-  const handleCompleteSlot = async (bookedSlotId) => {
+  const handleCompleteSlot = async (bookedSlotId, event) => {
+    // Prevent default form submission behavior
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     try {
+      // Validate sequential completion
+      if (!bookingDetail || !bookingDetail.bookedSlots) {
+        toast.error("Không thể xác thực thông tin slot. Vui lòng thử lại.");
+        return;
+      }
+
+      // Find the slot being completed
+      const targetSlot = bookingDetail.bookedSlots.find(slot => slot.id === bookedSlotId);
+      if (!targetSlot) {
+        toast.error("Không tìm thấy thông tin slot. Vui lòng thử lại.");
+        return;
+      }
+
+      // Check if this slot is in "awaiting confirmation" status
+      if (targetSlot.status !== 1) {
+        toast.error("Slot này không thể hoàn thành. Vui lòng kiểm tra trạng thái slot.");
+        return;
+      }
+
+      // Find the first slot with status 1 (awaiting confirmation)
+      const firstAwaitingSlot = bookingDetail.bookedSlots.find(slot => slot.status === 1);
+      if (!firstAwaitingSlot) {
+        toast.error("Không có slot nào đang chờ xác nhận.");
+        return;
+      }
+
+      // Check if the target slot is the first one that can be completed
+      if (firstAwaitingSlot.id !== bookedSlotId) {
+        toast.error("Bạn phải hoàn thành các slot theo thứ tự. Vui lòng hoàn thành slot trước đó trước.");
+        return;
+      }
+
       // Add slot ID to completing set to show loading state
       setCompletingSlots(prev => new Set([...prev, bookedSlotId]));
       
@@ -356,6 +395,7 @@ const ScheduleTracking = () => {
                   {/* Right side - Action button */}
                   <div className="flex-shrink-0 ml-auto">
                     <button
+                      type="button"
                       onClick={() => handleViewDetail(booking)}
                       className="no-focus-outline flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                     >
@@ -394,6 +434,7 @@ const ScheduleTracking = () => {
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
               <button
+                type="button"
                 onClick={() => handlePageChange(pagination.pageIndex - 1)}
                 disabled={!pagination.hasPreviousPage}
                 className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -406,6 +447,7 @@ const ScheduleTracking = () => {
               </span>
               
               <button
+                type="button"
                 onClick={() => handlePageChange(pagination.pageIndex + 1)}
                 disabled={!pagination.hasNextPage}
                 className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -442,6 +484,7 @@ const ScheduleTracking = () => {
                   <p className="text-gray-500 mt-1">{selectedBooking?.lessonName}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={closeDetailModal}
                   className="no-focus-outline p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -548,7 +591,7 @@ const ScheduleTracking = () => {
                                       <div className="flex items-center gap-4 text-sm text-gray-600">
                                         <span className="flex items-center gap-1">
                                           <FaCalendarAlt className="w-3 h-3" />
-                                          {formatCentralTimestamp(slot.bookedDate)}
+                                          {formatSlotDateTime(slot.slotIndex, slot.bookedDate)}
                                         </span>
                                         {slot.slotNote && (
                                           <span className="text-xs text-gray-500">
@@ -571,7 +614,8 @@ const ScheduleTracking = () => {
                                     </div>
                                     {slot.status === 1 && ( // Show complete button only for "Chờ xác nhận" status
                                       <button
-                                        onClick={() => handleCompleteSlot(slot.id)}
+                                        type="button"
+                                        onClick={(e) => handleCompleteSlot(slot.id, e)}
                                         disabled={completingSlots.has(slot.id)}
                                         className="no-focus-outline flex items-center gap-1 px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                       >
@@ -618,6 +662,19 @@ const ScheduleTracking = () => {
         )}
       </AnimatePresence>
 
+      {/* Toast Container for notifications */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
 
     </div>
   );

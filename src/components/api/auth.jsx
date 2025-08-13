@@ -1378,6 +1378,27 @@ export async function fetchTutorApplicationById(applicationId) {
   }
 }
 
+// New API function to fetch tutor application by application ID
+export async function fetchTutorApplicationByApplicationId(applicationId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(`/api/tutorapplication/staff/${applicationId}`, "GET", null, token);
+
+    if (response && response.data) {
+      return response.data;
+    } else {
+      throw new Error("No tutor application data found for this application ID.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch tutor application by application ID:", error.message);
+    throw error;
+  }
+}
+
 export async function reviewTutorApplication(applicationId, action, notes = "") {
   try {
     const token = getAccessToken();
@@ -1387,7 +1408,7 @@ export async function reviewTutorApplication(applicationId, action, notes = "") 
 
     const requestBody = {
       applicationId: applicationId,
-      action: action, // 1 = approve, 2 = reject, 3 = request more info
+      action: action, // 0 = request more info, 1 = approve, 2 = reject
       notes: notes
     };
 

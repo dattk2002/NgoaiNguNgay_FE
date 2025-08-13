@@ -6,6 +6,7 @@ import {
 } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatTutorDate } from '../../utils/formatTutorDate';
+import { formatSlotDateTimeFromTimestamp } from '../../utils/formatSlotTime';
 import OfferDetailModal from './OfferDetailModal';
 
 
@@ -66,15 +67,7 @@ const OfferManagement = () => {
 
 
 
-  const formatSlotDateTime = (dateTime) => {
-    return new Date(dateTime).toLocaleString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+
 
   if (loading) {
     return (
@@ -191,7 +184,7 @@ const OfferManagement = () => {
                         Slot {slot.slotIndex + 1}
                       </p>
                       <p className="text-xs text-gray-600">
-                        {formatSlotDateTime(slot.slotDateTime)}
+                                                 {formatSlotDateTimeFromTimestamp(slot.slotDateTime)}
                       </p>
                     </div>
                   ))}
