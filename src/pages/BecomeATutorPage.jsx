@@ -390,20 +390,75 @@ const BecomeATutorPage = ({
     const validateCurrentStep = () => {
         switch (activeStep) {
             case 1: // Basic Information
-                // Ảnh hồ sơ và múi giờ đã thành read-only, không cần validate
+                // Validate required profile information
+                if (!formData.fullName || formData.fullName.trim() === "") {
+                    toast.error("Vui lòng cập nhật họ và tên đầy đủ trong hồ sơ cá nhân");
+                    return false;
+                }
+                if (!formData.dateOfBirth) {
+                    toast.error("Vui lòng cập nhật ngày sinh trong hồ sơ cá nhân");
+                    return false;
+                }
+                if (formData.gender === undefined || formData.gender === null) {
+                    toast.error("Vui lòng cập nhật giới tính trong hồ sơ cá nhân");
+                    return false;
+                }
+                if (!formData.timezone) {
+                    toast.error("Vui lòng cập nhật múi giờ trong hồ sơ cá nhân");
+                    return false;
+                }
                 return true;
 
             case 2: // Tutor Information
-                if (formData.brief && (formData.brief.length < 10 || formData.brief.length > 300)) {
-                    toast.error("Giới thiệu ngắn gọn phải từ 10 đến 300 ký tự");
+                // Validate nickName (optional but if provided, must be valid)
+                if (formData.nickName && formData.nickName.trim() !== "") {
+                    if (formData.nickName.trim().length < 2) {
+                        toast.error("Biệt danh phải có ít nhất 2 ký tự");
+                        return false;
+                    }
+                    if (formData.nickName.trim().length > 50) {
+                        toast.error("Biệt danh không được vượt quá 50 ký tự");
+                        return false;
+                    }
+                }
+                
+                // Validate brief (optional but if provided, must be valid)
+                if (formData.brief && formData.brief.trim() !== "") {
+                    if (formData.brief.trim().length < 10) {
+                        toast.error("Giới thiệu ngắn gọn phải có ít nhất 10 ký tự");
+                        return false;
+                    }
+                    if (formData.brief.trim().length > 300) {
+                        toast.error("Giới thiệu ngắn gọn không được vượt quá 300 ký tự");
+                        return false;
+                    }
+                }
+                
+                // Validate description (required)
+                if (!formData.description || formData.description.trim() === "") {
+                    toast.error("Mô tả đầy đủ là bắt buộc");
                     return false;
                 }
-                if (!formData.description || formData.description.length < 100 || formData.description.length > 3000) {
-                    toast.error("Mô tả phải từ 100 đến 3000 ký tự");
+                if (formData.description.trim().length < 100) {
+                    toast.error("Mô tả phải có ít nhất 100 ký tự");
                     return false;
                 }
-                if (!formData.teachingMethod || formData.teachingMethod.length < 10 || formData.teachingMethod.length > 300) {
-                    toast.error("Phương pháp giảng dạy phải từ 10 đến 300 ký tự");
+                if (formData.description.trim().length > 3000) {
+                    toast.error("Mô tả không được vượt quá 3000 ký tự");
+                    return false;
+                }
+                
+                // Validate teachingMethod (required)
+                if (!formData.teachingMethod || formData.teachingMethod.trim() === "") {
+                    toast.error("Phương pháp giảng dạy là bắt buộc");
+                    return false;
+                }
+                if (formData.teachingMethod.trim().length < 10) {
+                    toast.error("Phương pháp giảng dạy phải có ít nhất 10 ký tự");
+                    return false;
+                }
+                if (formData.teachingMethod.trim().length > 300) {
+                    toast.error("Phương pháp giảng dạy không được vượt quá 300 ký tự");
                     return false;
                 }
                 return true;
@@ -620,6 +675,25 @@ const BecomeATutorPage = ({
                 return (
                     <div className="space-y-6">
                         <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Thông tin cơ bản</h2>
+                        
+                        {/* Warning message for incomplete profile */}
+                        {(!formData.fullName || !formData.dateOfBirth || formData.gender === undefined || formData.gender === null || !formData.timezone) && (
+                            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                                <div className="flex">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm text-red-800">
+                                            <strong>Thông tin hồ sơ chưa đầy đủ!</strong> Vui lòng cập nhật thông tin còn thiếu trong hồ sơ cá nhân trước khi tiếp tục.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
                         <div className="space-y-5">
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -718,10 +792,38 @@ const BecomeATutorPage = ({
                                     name="nickName"
                                     value={formData.nickName}
                                     onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black"
+                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${
+                                        formData.nickName && formData.nickName.trim() !== "" && 
+                                        (formData.nickName.trim().length < 2 || formData.nickName.trim().length > 50)
+                                            ? 'border-red-500 focus:ring-red-500' 
+                                            : 'border-gray-300 focus:ring-blue-500'
+                                    }`}
                                     style={formControlStyle}
-                                    placeholder="Nhập biệt danh bạn muốn (tùy chọn)"
+                                    placeholder="Nhập biệt danh bạn muốn (tùy chọn, 2-50 ký tự)"
                                 />
+                                <div className="flex justify-between mt-1">
+                                    <p className="text-xs text-gray-500">
+                                        Tối thiểu 2 ký tự, tối đa 50 ký tự (tùy chọn)
+                                    </p>
+                                    <p className={`text-xs ${
+                                        formData.nickName && formData.nickName.trim() !== "" && 
+                                        (formData.nickName.trim().length < 2 || formData.nickName.trim().length > 50)
+                                            ? 'text-red-500' 
+                                            : 'text-gray-500'
+                                    }`}>
+                                        {formData.nickName.length}/50 ký tự
+                                    </p>
+                                </div>
+                                {formData.nickName && formData.nickName.trim() !== "" && formData.nickName.trim().length < 2 && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Biệt danh phải có ít nhất 2 ký tự
+                                    </p>
+                                )}
+                                {formData.nickName && formData.nickName.trim() !== "" && formData.nickName.trim().length > 50 && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Biệt danh không được vượt quá 50 ký tự
+                                    </p>
+                                )}
                                 <p className="text-xs text-gray-500 mt-1">
                                     Biệt danh này sẽ được hiển thị cho học viên. Để trống để sử dụng tên đầy đủ của bạn.
                                 </p>
@@ -735,19 +837,39 @@ const BecomeATutorPage = ({
                                     name="brief"
                                     value={formData.brief}
                                     onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${
+                                        formData.brief && formData.brief.trim() !== "" && 
+                                        (formData.brief.trim().length < 10 || formData.brief.trim().length > 300)
+                                            ? 'border-red-500 focus:ring-red-500' 
+                                            : 'border-gray-300 focus:ring-blue-500'
+                                    }`}
                                     rows="2"
                                     style={formControlStyle}
-                                    placeholder="Giới thiệu ngắn gọn về bản thân (0-300 ký tự)"
+                                    placeholder="Giới thiệu ngắn gọn về bản thân (tùy chọn, 10-300 ký tự)"
                                 ></textarea>
                                 <div className="flex justify-between mt-1">
                                     <p className="text-xs text-gray-500">
-                                        Tối đa 300 ký tự
+                                        Tối thiểu 10 ký tự, tối đa 300 ký tự (tùy chọn)
                                     </p>
-                                    <p className={`text-xs ${formData.brief.length > 300 ? 'text-red-500' : 'text-gray-500'}`}>
+                                    <p className={`text-xs ${
+                                        formData.brief && formData.brief.trim() !== "" && 
+                                        (formData.brief.trim().length < 10 || formData.brief.trim().length > 300)
+                                            ? 'text-red-500' 
+                                            : 'text-gray-500'
+                                    }`}>
                                         {formData.brief.length}/300 ký tự
                                     </p>
                                 </div>
+                                {formData.brief && formData.brief.trim() !== "" && formData.brief.trim().length < 10 && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Giới thiệu ngắn gọn phải có ít nhất 10 ký tự
+                                    </p>
+                                )}
+                                {formData.brief && formData.brief.trim() !== "" && formData.brief.trim().length > 300 && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Giới thiệu ngắn gọn không được vượt quá 300 ký tự
+                                    </p>
+                                )}
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
@@ -758,7 +880,12 @@ const BecomeATutorPage = ({
                                     name="description"
                                     value={formData.description}
                                     onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${
+                                        formData.description && 
+                                        (formData.description.trim().length < 100 || formData.description.trim().length > 3000)
+                                            ? 'border-red-500 focus:ring-red-500' 
+                                            : 'border-gray-300 focus:ring-blue-500'
+                                    }`}
                                     rows="6"
                                     style={formControlStyle}
                                     placeholder="Cung cấp mô tả chi tiết về bản thân, bao gồm trình độ học vấn, kinh nghiệm làm việc và triết lý giảng dạy (100-3000 ký tự)"
@@ -768,10 +895,25 @@ const BecomeATutorPage = ({
                                     <p className="text-xs text-gray-500">
                                         Tối thiểu 100 ký tự, tối đa 3000 ký tự
                                     </p>
-                                    <p className={`text-xs ${formData.description.length < 100 || formData.description.length > 3000 ? 'text-red-500' : 'text-gray-500'}`}>
+                                    <p className={`text-xs ${
+                                        formData.description && 
+                                        (formData.description.trim().length < 100 || formData.description.trim().length > 3000)
+                                            ? 'text-red-500' 
+                                            : 'text-gray-500'
+                                    }`}>
                                         {formData.description.length}/3000 ký tự
                                     </p>
                                 </div>
+                                {formData.description && formData.description.trim().length < 100 && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Mô tả phải có ít nhất 100 ký tự
+                                    </p>
+                                )}
+                                {formData.description && formData.description.trim().length > 3000 && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Mô tả không được vượt quá 3000 ký tự
+                                    </p>
+                                )}
                             </div>
 
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
@@ -782,7 +924,12 @@ const BecomeATutorPage = ({
                                     name="teachingMethod"
                                     value={formData.teachingMethod}
                                     onChange={handleChange}
-                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${
+                                        formData.teachingMethod && 
+                                        (formData.teachingMethod.trim().length < 10 || formData.teachingMethod.trim().length > 300)
+                                            ? 'border-red-500 focus:ring-red-500' 
+                                            : 'border-gray-300 focus:ring-blue-500'
+                                    }`}
                                     rows="3"
                                     style={formControlStyle}
                                     placeholder="Mô tả phương pháp và cách tiếp cận giảng dạy của bạn (10-300 ký tự)"
@@ -792,10 +939,25 @@ const BecomeATutorPage = ({
                                     <p className="text-xs text-gray-500">
                                         Tối thiểu 10 ký tự, tối đa 300 ký tự
                                     </p>
-                                    <p className={`text-xs ${formData.teachingMethod.length < 10 || formData.teachingMethod.length > 300 ? 'text-red-500' : 'text-gray-500'}`}>
+                                    <p className={`text-xs ${
+                                        formData.teachingMethod && 
+                                        (formData.teachingMethod.trim().length < 10 || formData.teachingMethod.trim().length > 300)
+                                            ? 'text-red-500' 
+                                            : 'text-gray-500'
+                                    }`}>
                                         {formData.teachingMethod.length}/300 ký tự
                                     </p>
                                 </div>
+                                {formData.teachingMethod && formData.teachingMethod.trim().length < 10 && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Phương pháp giảng dạy phải có ít nhất 10 ký tự
+                                    </p>
+                                )}
+                                {formData.teachingMethod && formData.teachingMethod.trim().length > 300 && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        Phương pháp giảng dạy không được vượt quá 300 ký tự
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>

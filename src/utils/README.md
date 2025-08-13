@@ -17,7 +17,8 @@ src/utils/
 ├── googleLoginCallback.jsx        # Handle Google OAuth callback
 ├── notificationMessages.jsx       # Centralized notification messages
 ├── noFocusOutlineButton.jsx       # Utility for button focus styles
-└── notFocusOutline.css           # CSS cho no-focus-outline styling
+├── notFocusOutline.css           # CSS cho no-focus-outline styling
+└── formatSlotTime.jsx            # Format slot times for 48-slot system
 ```
 
 ## 🔧 Chi tiết utilities
@@ -562,6 +563,99 @@ export const showInfo = (message) => {
     pauseOnHover: true
   });
 };
+```
+
+### ⏰ formatSlotTime.jsx
+**Mục đích**: Format slot times trong hệ thống 48 slot/ngày (mỗi slot 30 phút)
+
+**Functions**:
+```javascript
+// Format slot time range based on slotIndex (0-47)
+export const formatSlotTime = (slotIndex) => {
+  if (slotIndex === undefined || slotIndex === null || slotIndex < 0 || slotIndex > 47) {
+    return "Thời gian không hợp lệ";
+  }
+  
+  const hour = Math.floor(slotIndex / 2);
+  const minute = slotIndex % 2 === 0 ? "00" : "30";
+  const nextHour = slotIndex % 2 === 0 ? hour : hour + 1;
+  const nextMinute = slotIndex % 2 === 0 ? "30" : "00";
+  
+  return `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+};
+
+// Format slot time with date based on slotIndex and bookedDate
+export const formatSlotDateTime = (slotIndex, bookedDate) => {
+  if (!bookedDate) {
+    return formatSlotTime(slotIndex);
+  }
+  
+  try {
+    const date = new Date(bookedDate);
+    if (isNaN(date)) {
+      return formatSlotTime(slotIndex);
+    }
+    
+    // Format date as DD/MM/YYYY
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    
+    const timeRange = formatSlotTime(slotIndex);
+    
+    return `${day}/${month}/${year} ${timeRange}`;
+  } catch (error) {
+    console.error("Lỗi định dạng thời gian slot:", error);
+    return formatSlotTime(slotIndex);
+  }
+};
+
+// Format slot date time from full timestamp (for offers)
+export const formatSlotDateTimeFromTimestamp = (slotDateTime) => {
+  if (!slotDateTime) {
+    return "Thời gian không hợp lệ";
+  }
+  
+  try {
+    const date = new Date(slotDateTime);
+    if (isNaN(date)) {
+      return "Thời gian không hợp lệ";
+    }
+    
+    // Format as DD/MM/YYYY HH:mm
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch (error) {
+    console.error("Lỗi định dạng thời gian slot:", error);
+    return "Thời gian không hợp lệ";
+  }
+};
+```
+
+**Slot Index Mapping**:
+```javascript
+// 48 slots per day (30 minutes each)
+// Slot 0: 00:00 - 00:30
+// Slot 1: 00:30 - 01:00
+// Slot 2: 01:00 - 01:30
+// Slot 3: 01:30 - 02:00
+// Slot 4: 02:00 - 02:30  // Example from user query
+// Slot 5: 02:30 - 03:00
+// ...
+// Slot 47: 23:30 - 24:00
+```
+
+**Usage Examples**:
+```javascript
+formatSlotTime(4)                                    // "02:00 - 02:30"
+formatSlotTime(10)                                   // "05:00 - 05:30"
+formatSlotDateTime(4, "2025-08-16")                 // "16/08/2025 02:00 - 02:30"
+formatSlotDateTimeFromTimestamp("2025-08-16T14:00:00Z") // "16/08/2025 14:00"
 ```
 
 ### 🎨 noFocusOutlineButton.jsx & notFocusOutline.css

@@ -35,16 +35,88 @@ import ForgotPasswordModal from "./components/modals/ForgotPasswordModal";
 
 // Import the tutor API functions
 import {
-  fetchTutorRegisterProfile,
-  fetchAllHashtags,
+  login,
+  register,
+  confirmEmail,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+  refreshToken,
+  logout,
+  getStoredUser,
+  getAccessToken,
+  getRefreshToken,
+  fetchTutors,
+  fetchTutorById,
+  fetchTutorsBySubject,
+  fetchTutorList,
+  isUserAuthenticated,
+  editUserProfile,
+  fetchUserById,
+  fetchUserProfileById,
   uploadProfileImage,
   deleteProfileImage,
+  fetchTutorRegisterProfile,
+  fetchAllHashtags,
   registerAsTutor,
   fetchTutorDetail,
+  fetchAllTutor,
+  fetchRecommendTutor,
   fetchChatConversationsByUserId,
+  fetchConversationList,
+  fetchTutorLesson,
+  fetchTutorLessonDetailById,
+  createLesson,
+  updateLesson,
+  deleteLesson,
+  fetchTutorWeeklyPattern,
+  editTutorWeeklyPattern,
+  deleteTutorWeeklyPattern,
+  fetchTutorWeekSchedule,
+  tutorBookingTimeSlotFromLearner,
+  tutorBookingTimeSlotFromLearnerDetail,
+  getAllLearnerBookingTimeSlot,
+  learnerBookingTimeSlotByTutorId,
+  updateLearnerBookingTimeSlot,
+  deleteLearnerBookingTimeSlot,
+  createTutorBookingOffer,
+  tutorBookingOfferDetail,
+  getAllTutorBookingOffer,
+  updateTutorBookingOfferByOfferId,
+  deleteTutorBookingOfferByOfferId,
+  getAllLearnerBookingOffer,
+  learnerBookingOfferDetail,
+  acceptLearnerBookingOffer,
+  rejectLearnerBookingOffer,
   requestTutorVerification,
   uploadCertificate,
-  getNotification
+  fetchPendingApplications,
+  fetchDocumentsByTutorId,
+  deleteDocument,
+  fetchTutorApplicationById,
+  fetchTutorApplicationByApplicationId,
+  reviewTutorApplication,
+  createDepositRequest,
+  fetchWalletInfo,
+  fetchWalletTransactions,
+  fetchDepositHistory,
+  fetchLearnerBookings,
+  fetchBookingDetail,
+  getNotification,
+  getSenderProfile,
+  loginGoogleToFirebase,
+  getBookingRating,
+  submitBookingRating,
+  createBankAccount,
+  deleteBankAccount,
+  fetchBankAccounts,
+  fetchWithdrawalRequests,
+  createWithdrawalRequest,
+  completeBookedSlot,
+  fetchTutorBookings,
+  processWithdrawal,
+  rejectWithdrawal,
+  fetchTutorRating,
 } from "./components/api/auth";
 
 // Import the NotFoundPage component
@@ -272,7 +344,14 @@ function AppContent({
             element={
               <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
                 <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
-                  <UserProfile loggedInUser={user} getUserById={getUserById} />
+                  <UserProfile 
+                    loggedInUser={user} 
+                    getUserById={getUserById}
+                    requestTutorVerification={requestTutorVerification}
+                    uploadCertificate={uploadCertificate}
+                    fetchTutorDetail={fetchTutorDetail}
+                    fetchTutorApplicationByApplicationId={fetchTutorApplicationByApplicationId}
+                  />
                 </ProtectedRoute>
               </BlockedRoute>
             }
