@@ -538,7 +538,8 @@ export async function fetchAllTutor(
   daysInWeek = null, 
   slotIndexes = null, 
   minPrice = null, 
-  maxPrice = null
+  maxPrice = null,
+  fullName = null
 ) {
   try {
     // Build query parameters
@@ -571,6 +572,10 @@ export async function fetchAllTutor(
     
     if (maxPrice !== null && maxPrice !== undefined) {
       params.append('maxPrice', maxPrice.toString());
+    }
+
+    if (fullName) {
+      params.append('fullName', fullName);
     }
 
     const response = await callApi(`/api/tutor/all?${params.toString()}`, "GET");
@@ -995,7 +1000,12 @@ export async function createTutorBookingOffer(offerData) {
     );
     
     console.log("Offer creation response:", response);
-    return response;
+    
+    // Convert response from UTC+0 to UTC+7
+    const convertedResponse = convertBookingOfferResponseToUTC7(response);
+    console.log("Converted response to UTC+7:", convertedResponse);
+    
+    return convertedResponse;
   } catch (error) {
     console.error("Failed to offer booking slots:", error.message);
     console.error("Error details:", error);
@@ -1141,8 +1151,15 @@ export async function learnerBookingOfferDetail(offerId) {
       null,
       token
     );
+    
+    console.log("🔍 Raw learner booking offer response:", response);
+    
     if (response && response.data) {
-      return response.data;
+      // Convert response from UTC+0 to UTC+7 for proper display
+      const convertedResponse = convertBookingOfferResponseToUTC7(response);
+      console.log(" Converted response to UTC+7:", convertedResponse);
+      
+      return convertedResponse.data;
     } else {
       throw new Error("Invalid response format for learner booking offer detail.");
     }
@@ -1605,6 +1622,7 @@ export async function getNotification(page = 1, size = 10, isUnreadOnly = false)
     const url = `/api/notification/user?page=${page}&size=${size}&isUnreadOnly=${isUnreadOnly}`;
     const response = await callApi(url, "GET", null, token);
     return response;
+    
   } catch (error) {
     console.error("Failed to fetch notifications:", error.message);
     throw error;
@@ -2018,3 +2036,5 @@ export async function fetchTutorRating(tutorId, page = 1, size = 10) {
     throw error;
   }
 }
+
+import { formatCentralTimestamp, convertUTC0ToUTC7, convertBookingOfferResponseToUTC7 } from '../../utils/formatCentralTimestamp';

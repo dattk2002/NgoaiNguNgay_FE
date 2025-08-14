@@ -95,7 +95,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   const [senderProfiles, setSenderProfiles] = useState({});
 
   // Use the notification context
-  const { connected, notification } = useNotification();
+  const { connected, notification, markAsRead: markAsReadFromContext, markAllAsRead: markAllAsReadFromContext } = useNotification();
 
   // Function to add a new notification
   const addNotification = useCallback(
@@ -464,6 +464,10 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   };
 
   const markAsRead = async (notificationId) => {
+    console.log("Header - markAsRead called with ID:", notificationId);
+    console.log("Header - Connected state:", connected);
+    console.log("Header - markAsReadFromContext available:", !!markAsReadFromContext);
+    
     try {
       // Update local state immediately for better UX
       setNotifications((prev) =>
@@ -473,15 +477,51 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
 
-      // TODO: Add API call to mark notification as read
-      // await markNotificationAsRead(notificationId);
+      // Call the SignalR hub method through context
+      if (markAsReadFromContext) {
+        try {
+          await markAsReadFromContext(notificationId);
+          console.log("✅ Header - Notification marked as read via SignalR:", notificationId);
+        } catch (signalRError) {
+          console.error("Header - SignalR error:", signalRError);
+          // Don't throw here, just log the error but continue with local updates
+        }
+      } else {
+        console.warn("Header - markAsReadFromContext not available");
+      }
+
+      // Update local storage
+      try {
+        const storageKey = `notifications_${user?.id || "anonymous"}`;
+        const existingNotifications = JSON.parse(
+          localStorage.getItem(storageKey) || "[]"
+        );
+        const updatedNotifications = existingNotifications.map((notif) =>
+          notif.id === notificationId ? { ...notif, isRead: true } : notif
+        );
+        localStorage.setItem(storageKey, JSON.stringify(updatedNotifications));
+      } catch (error) {
+        console.error("Error updating notification in local storage:", error);
+      }
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
       toast.error("Không thể cập nhật trạng thái thông báo");
+      
+      // Revert local state on error
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === notificationId ? { ...notif, isRead: false } : notif
+        )
+      );
+      setUnreadCount((prev) => prev + 1);
     }
   };
 
   const markAllAsRead = async () => {
+    console.log("Header - markAllAsRead called");
+    console.log("Header - Connected state:", connected);
+    console.log("Header - markAllAsReadFromContext available:", !!markAllAsReadFromContext);
+    
     try {
       // Update local state immediately for better UX
       setNotifications((prev) =>
@@ -489,11 +529,43 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       );
       setUnreadCount(0);
 
-      // TODO: Add API call to mark all notifications as read
-      // await markAllNotificationsAsRead();
+      // Call the SignalR hub method through context
+      if (markAllAsReadFromContext) {
+        try {
+          await markAllAsReadFromContext();
+          console.log("✅ Header - All notifications marked as read via SignalR");
+        } catch (signalRError) {
+          console.error("Header - SignalR error:", signalRError);
+          // Don't throw here, just log the error but continue with local updates
+        }
+      } else {
+        console.warn("Header - markAllAsReadFromContext not available");
+      }
+
+      // Update local storage
+      try {
+        const storageKey = `notifications_${user?.id || "anonymous"}`;
+        const existingNotifications = JSON.parse(
+          localStorage.getItem(storageKey) || "[]"
+        );
+        const updatedNotifications = existingNotifications.map((notif) => ({
+          ...notif,
+          isRead: true,
+        }));
+        localStorage.setItem(storageKey, JSON.stringify(updatedNotifications));
+      } catch (error) {
+        console.error("Error updating notifications in local storage:", error);
+      }
     } catch (error) {
       console.error("Failed to mark all notifications as read:", error);
       toast.error("Không thể cập nhật trạng thái thông báo");
+      
+      // Revert local state on error
+      const originalUnreadCount = notifications.filter((n) => !n.isRead).length;
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, isRead: false }))
+      );
+      setUnreadCount(originalUnreadCount);
     }
   };
 
