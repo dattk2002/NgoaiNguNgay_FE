@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { fetchPendingApplications, fetchTutorApplicationById, reviewTutorApplication } from '../api/auth';
 import { toast } from 'react-toastify';
 import StudentRequests from '../tutorManagement/StudentRequests';
+import { motion, AnimatePresence } from "framer-motion";
+import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 
 const TutorManagement = () => {
     const [activeTab, setActiveTab] = useState('pending');
@@ -20,6 +22,28 @@ const TutorManagement = () => {
     const [pageSize] = useState(20);
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [detailsCache, setDetailsCache] = useState({});
+
+    const getStatusText = (status) => {
+        switch (status) {
+            case 0: return "Chưa nộp";
+            case 1: return "Chờ xác minh";
+            case 2: return "Yêu cầu chỉnh sửa";
+            case 3: return "Chờ xác minh lại";
+            case 4: return "Đã xác minh";
+            default: return "Không xác định";
+        }
+    };
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 0: return "bg-gray-100 text-gray-800"; // gray - chưa nộp
+            case 1: return "bg-yellow-100 text-yellow-800"; // amber - chờ xác minh
+            case 2: return "bg-blue-100 text-blue-800"; // blue - yêu cầu chỉnh sửa
+            case 3: return "bg-yellow-100 text-yellow-800"; // amber - chờ xác minh lại
+            case 4: return "bg-green-100 text-green-800"; // green - đã xác minh
+            default: return "bg-gray-100 text-gray-800";
+        }
+    };
 
     const tabs = [
         {
@@ -181,7 +205,7 @@ const TutorManagement = () => {
     const confirmApprove = async () => {
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, 1, reviewNotes);
+            await reviewTutorApplication(reviewingTutor.id, 4, reviewNotes); // Status 4 = Verified
 
             // Update local state
             setPendingApplications(prev =>
@@ -210,7 +234,7 @@ const TutorManagement = () => {
 
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, 2, reviewNotes);
+            await reviewTutorApplication(reviewingTutor.id, 2, reviewNotes); // Status 2 = RevisionRequested
 
             // Update local state
             setPendingApplications(prev =>
@@ -239,7 +263,7 @@ const TutorManagement = () => {
 
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, 3, reviewNotes);
+            await reviewTutorApplication(reviewingTutor.id, 0, reviewNotes); // Status 0 = UnSubmitted
 
             // Update local state
             setPendingApplications(prev =>
@@ -274,13 +298,8 @@ const TutorManagement = () => {
                         </span>
                     </div>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-semibold ${tutor.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    tutor.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                    }`}>
-                    {tutor.status === 'pending' && 'Chờ duyệt'}
-                    {tutor.status === 'approved' && 'Đã duyệt'}
-                    {tutor.status === 'need_info' && 'Cần thông tin'}
+                <div className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(tutor.status)}`}>
+                    {getStatusText(tutor.status)}
                 </div>
             </div>
 
@@ -300,7 +319,7 @@ const TutorManagement = () => {
             </div>
 
             <div className="flex gap-2 flex-wrap">
-                <button
+                <NoFocusOutLineButton
                     className="bg-blue-500 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-600 transition-colors flex items-center gap-1"
                     onClick={() => handleViewProfile(tutor)}
                 >
@@ -309,11 +328,11 @@ const TutorManagement = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                     Xem hồ sơ
-                </button>
+                </NoFocusOutLineButton>
 
-                {tutor.status === 'pending' && (
+                {tutor.status === 1 && (
                     <>
-                        <button
+                        <NoFocusOutLineButton
                             className="bg-green-500 text-white px-3 py-2 rounded-md text-sm hover:bg-green-600 transition-colors flex items-center gap-1"
                             onClick={() => handleApprove(tutor)}
                         >
@@ -321,8 +340,8 @@ const TutorManagement = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                             Phê duyệt
-                        </button>
-                        <button
+                        </NoFocusOutLineButton>
+                        <NoFocusOutLineButton
                             className="bg-red-500 text-white px-3 py-2 rounded-md text-sm hover:bg-red-600 transition-colors flex items-center gap-1"
                             onClick={() => handleReject(tutor)}
                         >
@@ -330,8 +349,8 @@ const TutorManagement = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                             Từ chối
-                        </button>
-                        <button
+                        </NoFocusOutLineButton>
+                        <NoFocusOutLineButton
                             className="bg-yellow-500 text-white px-3 py-2 rounded-md text-sm hover:bg-yellow-600 transition-colors flex items-center gap-1"
                             onClick={() => handleRequestInfo(tutor)}
                         >
@@ -339,32 +358,62 @@ const TutorManagement = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             Yêu cầu thông tin
-                        </button>
+                        </NoFocusOutLineButton>
                     </>
                 )}
             </div>
         </div>
     );
 
-    const renderTutorProfile = () => (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center p-6 border-b border-gray-200">
-                    <h3 className="text-2xl font-semibold text-gray-800">Chi tiết hồ sơ gia sư</h3>
-                    <button
-                        className="text-gray-500 hover:text-gray-700 p-2"
-                        onClick={() => {
-                            setSelectedTutor(null);
-                            setSelectedTutorDetails(null);
-                        }}
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
+    const renderTutorProfile = () => {
+        const modalVariants = {
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 },
+            exit: { opacity: 0, scale: 0.95 },
+        };
 
-                <div className="p-6">
+        const backdropVariants = {
+            hidden: { opacity: 0 },
+            visible: { opacity: 1 },
+            exit: { opacity: 0 },
+        };
+
+        return (
+            <AnimatePresence>
+                <motion.div
+                    className="fixed inset-0 bg-black/50 flex justify-center items-center z-[1000] p-4"
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    variants={backdropVariants}
+                    onClick={() => {
+                        setSelectedTutor(null);
+                        setSelectedTutorDetails(null);
+                    }}
+                >
+                    <motion.div
+                        className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[95vh] overflow-y-auto relative"
+                        variants={modalVariants}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                            <h3 className="text-2xl font-semibold text-gray-800">Chi tiết hồ sơ gia sư</h3>
+                            <NoFocusOutLineButton
+                                className="text-gray-500 hover:text-gray-700 p-2"
+                                onClick={() => {
+                                    setSelectedTutor(null);
+                                    setSelectedTutorDetails(null);
+                                }}
+                                aria-label="Close modal"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </NoFocusOutLineButton>
+                        </div>
+
+                        <div className="p-6">
                     {detailsLoading ? (
                         <div className="flex justify-center items-center py-8">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -403,12 +452,8 @@ const TutorManagement = () => {
                                                 selectedTutorDetails.tutor?.nickName && selectedTutorDetails.tutor.fullName !== selectedTutorDetails.tutor.nickName && (
                                                     <p className="text-gray-600">Biệt danh: {selectedTutorDetails.tutor.nickName}</p>
                                                 )}
-                                            <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${selectedTutorDetails.status === 1 ? 'bg-yellow-100 text-yellow-800' :
-                                                selectedTutorDetails.status === 2 ? 'bg-green-100 text-green-800' :
-                                                    'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                {selectedTutorDetails.status === 1 ? 'Chờ duyệt' :
-                                                    selectedTutorDetails.status === 2 ? 'Đã duyệt' : 'Không xác định'}
+                                            <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedTutorDetails.status)}`}>
+                                                {getStatusText(selectedTutorDetails.status)}
                                             </span>
                                         </div>
                                     </div>
@@ -610,29 +655,31 @@ const TutorManagement = () => {
                     )}
 
                     <div className="flex gap-4 justify-center pt-6 border-t border-gray-200 mt-6">
-                        <button
-                            className="bg-green-500 text-white px-6 py-3 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2 outline-none"
+                        <NoFocusOutLineButton
+                            className="bg-green-500 text-white px-6 py-3 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2"
                             onClick={() => handleApprove(selectedTutor)}
                         >
                             ✅ Phê duyệt
-                        </button>
-                        <button
-                            className="bg-yellow-500 text-white px-6 py-3 rounded-md hover:bg-yellow-600 transition-colors flex items-center gap-2 outline-none"
+                        </NoFocusOutLineButton>
+                        <NoFocusOutLineButton
+                            className="bg-yellow-500 text-white px-6 py-3 rounded-md hover:bg-yellow-600 transition-colors flex items-center gap-2"
                             onClick={() => handleRequestInfo(selectedTutor)}
                         >
                             📝 Yêu cầu thông tin bổ sung
-                        </button>
-                        <button
-                            className="bg-red-500 text-white px-6 py-3 rounded-md hover:bg-red-600 transition-colors flex items-center gap-2 outline-none"
+                        </NoFocusOutLineButton>
+                        <NoFocusOutLineButton
+                            className="bg-red-500 text-white px-6 py-3 rounded-md hover:bg-red-600 transition-colors flex items-center gap-2"
                             onClick={() => handleReject(selectedTutor)}
                         >
                             ❌ Từ chối
-                        </button>
+                        </NoFocusOutLineButton>
                     </div>
-                </div>
-            </div>
-        </div>
-    );
+                        </div>
+                    </motion.div>
+                </motion.div>
+            </AnimatePresence>
+        );
+    };
 
     return (
         <div className="space-y-6" style={{ outline: 'none' }}>
@@ -818,29 +865,19 @@ const TutorManagement = () => {
                                                     )}
                                                 </div>
                                                 <div className="ml-4 flex-1">
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <div className="flex items-center">
-                                                                <h3 className="text-lg font-semibold text-gray-900">
-                                                                    {tutor.tutor?.fullName || tutor.tutor?.nickName || 'Không có tên'}
-                                                                </h3>
-                                                                <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${tutor.status === 1 ? 'bg-yellow-100 text-yellow-800' :
-                                                                    tutor.status === 2 ? 'bg-green-100 text-green-800' :
-                                                                        tutor.status === 3 ? 'bg-red-100 text-red-800' :
-                                                                            'bg-gray-100 text-gray-800'
-                                                                    }`}>
-                                                                    {tutor.status === 1 ? 'Chờ duyệt' :
-                                                                        tutor.status === 2 ? 'Đã duyệt' :
-                                                                            tutor.status === 3 ? 'Từ chối' : 'Không xác định'}
-                                                                </span>
-                                                            </div>
-                                                            {tutor.tutor?.fullName && tutor.tutor?.nickName && tutor.tutor.fullName !== tutor.tutor.nickName && (
-                                                                <p className="text-sm text-gray-600 mt-1">Biệt danh: {tutor.tutor.nickName}</p>
-                                                            )}
-                                                        </div>
+                                                    <div className="flex items-center">
+                                                        <h3 className="text-lg font-semibold text-gray-900">
+                                                            {tutor.tutor?.fullName || tutor.tutor?.nickName || 'Không có tên'}
+                                                        </h3>
+                                                        <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tutor.status)}`}>
+                                                            {getStatusText(tutor.status)}
+                                                        </span>
                                                     </div>
+                                                    {tutor.tutor?.fullName && tutor.tutor?.nickName && tutor.tutor.fullName !== tutor.tutor.nickName && (
+                                                        <p className="text-sm text-gray-600 mt-1">Biệt danh: {tutor.tutor.nickName}</p>
+                                                    )}
 
-                                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                                                    <div className="mt-2 space-y-1 text-sm text-gray-600">
                                                         <div className="flex items-center">
                                                             <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -859,93 +896,55 @@ const TutorManagement = () => {
                                                         </div>
                                                     </div>
 
-                                                    {/* Languages */}
-                                                    {tutor.tutor?.languages && tutor.tutor.languages.length > 0 && (
-                                                        <div className="mt-3 flex flex-wrap gap-1">
-                                                            {tutor.tutor.languages.slice(0, 3).map((lang, index) => (
-                                                                <span key={index} className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${lang.isPrimary ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'
-                                                                    }`}>
-                                                                    {lang.languageCode}
-                                                                    {lang.isPrimary && <span className="ml-1">★</span>}
-                                                                </span>
-                                                            ))}
-                                                            {tutor.tutor.languages.length > 3 && (
-                                                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                                                                    +{tutor.tutor.languages.length - 3} khác
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-
                                                     {/* Brief description */}
                                                     {tutor.tutor?.brief && (
                                                         <div className="mt-2">
-                                                            <p className="text-sm text-gray-700 italic overflow-hidden" style={{
-                                                                display: '-webkit-box',
-                                                                WebkitLineClamp: 2,
-                                                                WebkitBoxOrient: 'vertical'
-                                                            }}>
+                                                            <p className="text-sm text-gray-700 italic">
                                                                 "{tutor.tutor.brief}"
                                                             </p>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Hashtags */}
-                                                    {tutor.tutor?.hashtags && tutor.tutor.hashtags.length > 0 && (
-                                                        <div className="mt-2 flex flex-wrap gap-1">
-                                                            {tutor.tutor.hashtags.slice(0, 4).map((tag, index) => (
-                                                                <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                                                    #{tag.name}
-                                                                </span>
-                                                            ))}
-                                                            {tutor.tutor.hashtags.length > 4 && (
-                                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                                                    +{tutor.tutor.hashtags.length - 4}
-                                                                </span>
-                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
                                             <div className="flex items-center space-x-2">
-                                                <button
+                                                <NoFocusOutLineButton
                                                     onClick={() => handleViewProfile(tutor)}
-                                                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 outline-none"
+                                                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                                 >
                                                     <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                     Xem
-                                                </button>
-                                                {activeTab === 'pending' && (
+                                                </NoFocusOutLineButton>
+                                                {activeTab === 'pending' && tutor.status === 1 && (
                                                     <>
-                                                        <button
+                                                        <NoFocusOutLineButton
                                                             onClick={() => handleApprove(tutor)}
-                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 outline-none">
+                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
                                                             <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                             </svg>
                                                             Duyệt
-                                                        </button>
-                                                        <button
+                                                        </NoFocusOutLineButton>
+                                                        <NoFocusOutLineButton
                                                             onClick={() => handleRequestInfo(tutor)}
-                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 outline-none"
+                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700"
                                                         >
                                                             <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                             </svg>
                                                             Yêu cầu TT
-                                                        </button>
-                                                        <button
+                                                        </NoFocusOutLineButton>
+                                                        <NoFocusOutLineButton
                                                             onClick={() => handleReject(tutor)}
-                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 outline-none"
+                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
                                                         >
                                                             <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                             </svg>
                                                             Từ chối
-                                                        </button>
+                                                        </NoFocusOutLineButton>
                                                     </>
                                                 )}
                                             </div>
@@ -1001,190 +1000,238 @@ const TutorManagement = () => {
 
             {/* Approve Modal */}
             {showApproveModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl w-full max-w-md p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800">Xác nhận phê duyệt</h3>
-                            <button
-                                className="text-gray-500 hover:text-gray-700"
-                                onClick={() => setShowApproveModal(false)}
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="mb-4">
-                            <p className="text-gray-700 mb-4">
-                                Bạn có chắc chắn muốn phê duyệt hồ sơ của <strong>{reviewingTutor?.tutor?.fullName || reviewingTutor?.tutor?.nickName || 'Người dùng'}</strong>?
-                            </p>
-                            <p className="text-sm text-gray-600 mb-4">
-                                Sau khi phê duyệt, tài khoản sẽ được chuyển từ learner thành tutor.
-                            </p>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Ghi chú (tùy chọn):
-                                </label>
-                                <textarea
-                                    value={reviewNotes}
-                                    onChange={(e) => setReviewNotes(e.target.value)}
-                                    rows={3}
-                                    className="w-full p-2 border border-gray-300 rounded-md outline-none text-black"
-                                    placeholder="Nhập ghi chú về việc phê duyệt..."
-                                />
+                <AnimatePresence>
+                    <motion.div
+                        className="fixed inset-0 bg-black/50 flex justify-center items-center z-[1000] p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowApproveModal(false)}
+                    >
+                        <motion.div
+                            className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-semibold text-gray-800">Xác nhận phê duyệt</h3>
+                                <NoFocusOutLineButton
+                                    className="text-gray-500 hover:text-gray-700"
+                                    onClick={() => setShowApproveModal(false)}
+                                    aria-label="Close modal"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </NoFocusOutLineButton>
                             </div>
-                        </div>
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                                onClick={() => setShowApproveModal(false)}
-                                disabled={reviewLoading}
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center gap-2"
-                                onClick={confirmApprove}
-                                disabled={reviewLoading}
-                            >
-                                {reviewLoading ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        Đang xử lý...
-                                    </>
-                                ) : (
-                                    <>
-                                        ✅ Phê duyệt
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                            <div className="mb-4">
+                                <p className="text-gray-700 mb-4">
+                                    Bạn có chắc chắn muốn phê duyệt hồ sơ của <strong>{reviewingTutor?.tutor?.fullName || reviewingTutor?.tutor?.nickName || 'Người dùng'}</strong>?
+                                </p>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Sau khi phê duyệt, tài khoản sẽ được chuyển từ learner thành tutor.
+                                </p>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Ghi chú (tùy chọn):
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        rows={3}
+                                        className="w-full p-2 border border-gray-300 rounded-md text-black"
+                                        placeholder="Nhập ghi chú về việc phê duyệt..."
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 justify-end">
+                                <NoFocusOutLineButton
+                                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                                    onClick={() => setShowApproveModal(false)}
+                                    disabled={reviewLoading}
+                                >
+                                    Hủy
+                                </NoFocusOutLineButton>
+                                <NoFocusOutLineButton
+                                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center gap-2"
+                                    onClick={confirmApprove}
+                                    disabled={reviewLoading}
+                                >
+                                    {reviewLoading ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Đang xử lý...
+                                        </>
+                                    ) : (
+                                        <>
+                                            ✅ Phê duyệt
+                                        </>
+                                    )}
+                                </NoFocusOutLineButton>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                </AnimatePresence>
             )}
 
             {/* Reject Modal */}
             {showRejectModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl w-full max-w-md p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800">Xác nhận từ chối</h3>
-                            <button
-                                className="text-gray-500 hover:text-gray-700"
-                                onClick={() => setShowRejectModal(false)}
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="mb-4">
-                            <p className="text-gray-700 mb-4">
-                                Bạn có chắc chắn muốn từ chối hồ sơ của <strong>{reviewingTutor?.tutor?.fullName || reviewingTutor?.tutor?.nickName || 'Người dùng'}</strong>?
-                            </p>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Lý do từ chối <span className="text-red-500">*</span>:
-                                </label>
-                                <textarea
-                                    value={reviewNotes}
-                                    onChange={(e) => setReviewNotes(e.target.value)}
-                                    rows={4}
-                                    className="w-full p-2 border border-gray-300 rounded-md outline-none text-black"
-                                    placeholder="Nhập lý do từ chối hồ sơ..."
-                                    required
-                                />
+                <AnimatePresence>
+                    <motion.div
+                        className="fixed inset-0 bg-black/50 flex justify-center items-center z-[1000] p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowRejectModal(false)}
+                    >
+                        <motion.div
+                            className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-semibold text-gray-800">Xác nhận từ chối</h3>
+                                <NoFocusOutLineButton
+                                    className="text-gray-500 hover:text-gray-700"
+                                    onClick={() => setShowRejectModal(false)}
+                                    aria-label="Close modal"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </NoFocusOutLineButton>
                             </div>
-                        </div>
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                                onClick={() => setShowRejectModal(false)}
-                                disabled={reviewLoading}
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors flex items-center gap-2"
-                                onClick={confirmReject}
-                                disabled={reviewLoading}
-                            >
-                                {reviewLoading ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        Đang xử lý...
-                                    </>
-                                ) : (
-                                    <>
-                                        ❌ Từ chối
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                            <div className="mb-4">
+                                <p className="text-gray-700 mb-4">
+                                    Bạn có chắc chắn muốn từ chối hồ sơ của <strong>{reviewingTutor?.tutor?.fullName || reviewingTutor?.tutor?.nickName || 'Người dùng'}</strong>?
+                                </p>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Lý do từ chối <span className="text-red-500">*</span>:
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        rows={4}
+                                        className="w-full p-2 border border-gray-300 rounded-md text-black"
+                                        placeholder="Nhập lý do từ chối hồ sơ..."
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 justify-end">
+                                <NoFocusOutLineButton
+                                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                                    onClick={() => setShowRejectModal(false)}
+                                    disabled={reviewLoading}
+                                >
+                                    Hủy
+                                </NoFocusOutLineButton>
+                                <NoFocusOutLineButton
+                                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors flex items-center gap-2"
+                                    onClick={confirmReject}
+                                    disabled={reviewLoading}
+                                >
+                                    {reviewLoading ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Đang xử lý...
+                                        </>
+                                    ) : (
+                                        <>
+                                            ❌ Từ chối
+                                        </>
+                                    )}
+                                </NoFocusOutLineButton>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                </AnimatePresence>
             )}
 
             {/* Request Info Modal */}
             {showInfoRequestModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl w-full max-w-md p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800">Yêu cầu thông tin bổ sung</h3>
-                            <button
-                                className="text-gray-500 hover:text-gray-700"
-                                onClick={() => setShowInfoRequestModal(false)}
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="mb-4">
-                            <p className="text-gray-700 mb-4">
-                                Yêu cầu <strong>{reviewingTutor?.tutor?.fullName || reviewingTutor?.tutor?.nickName || 'Người dùng'}</strong> bổ sung thông tin:
-                            </p>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Thông tin cần bổ sung <span className="text-red-500">*</span>:
-                                </label>
-                                <textarea
-                                    value={reviewNotes}
-                                    onChange={(e) => setReviewNotes(e.target.value)}
-                                    rows={4}
-                                    className="w-full p-2 border border-gray-300 rounded-md outline-none text-black"
-                                    placeholder="Nhập thông tin cần bổ sung..."
-                                    required
-                                />
+                <AnimatePresence>
+                    <motion.div
+                        className="fixed inset-0 bg-black/50 flex justify-center items-center z-[1000] p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowInfoRequestModal(false)}
+                    >
+                        <motion.div
+                            className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-semibold text-gray-800">Yêu cầu thông tin bổ sung</h3>
+                                <NoFocusOutLineButton
+                                    className="text-gray-500 hover:text-gray-700"
+                                    onClick={() => setShowInfoRequestModal(false)}
+                                    aria-label="Close modal"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </NoFocusOutLineButton>
                             </div>
-                        </div>
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                                onClick={() => setShowInfoRequestModal(false)}
-                                disabled={reviewLoading}
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors flex items-center gap-2"
-                                onClick={confirmRequestInfo}
-                                disabled={reviewLoading}
-                            >
-                                {reviewLoading ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        Đang xử lý...
-                                    </>
-                                ) : (
-                                    <>
-                                        📝 Gửi yêu cầu
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                            <div className="mb-4">
+                                <p className="text-gray-700 mb-4">
+                                    Yêu cầu <strong>{reviewingTutor?.tutor?.fullName || reviewingTutor?.tutor?.nickName || 'Người dùng'}</strong> bổ sung thông tin:
+                                </p>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Thông tin cần bổ sung <span className="text-red-500">*</span>:
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        rows={4}
+                                        className="w-full p-2 border border-gray-300 rounded-md text-black"
+                                        placeholder="Nhập thông tin cần bổ sung..."
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 justify-end">
+                                <NoFocusOutLineButton
+                                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                                    onClick={() => setShowInfoRequestModal(false)}
+                                    disabled={reviewLoading}
+                                >
+                                    Hủy
+                                </NoFocusOutLineButton>
+                                <NoFocusOutLineButton
+                                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors flex items-center gap-2"
+                                    onClick={confirmRequestInfo}
+                                    disabled={reviewLoading}
+                                >
+                                    {reviewLoading ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Đang xử lý...
+                                        </>
+                                    ) : (
+                                        <>
+                                            📝 Gửi yêu cầu
+                                        </>
+                                    )}
+                                </NoFocusOutLineButton>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                </AnimatePresence>
             )}
         </div>
     );

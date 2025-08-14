@@ -156,24 +156,83 @@ export const NotificationProvider = ({ children }) => {
 
   // Mark notification as read function
   const markAsRead = async (notificationId) => {
-    if (!connectionRef.current || connectionRef.current.state !== HubConnectionState.Connected) {
-      console.error("NotificationProvider - Cannot mark as read: connection not established");
-      throw new Error("Connection not established");
+    console.log("NotificationProvider - markAsRead called with ID:", notificationId);
+    console.log("NotificationProvider - Connection state:", HubConnectionState[connectionState]);
+    console.log("NotificationProvider - Connected state:", connected);
+    console.log("NotificationProvider - Connection ref:", connectionRef.current);
+    
+    if (!connectionRef.current) {
+      console.error("NotificationProvider - No connection reference available");
+      throw new Error("Connection not available");
+    }
+    
+    if (connectionRef.current.state !== HubConnectionState.Connected) {
+      console.error("NotificationProvider - Connection not established. Current state:", HubConnectionState[connectionRef.current.state]);
+      
+      // Try to reconnect if not connected
+      try {
+        console.log("NotificationProvider - Attempting to reconnect...");
+        await connectionRef.current.start();
+        console.log("NotificationProvider - Reconnection successful");
+      } catch (reconnectError) {
+        console.error("NotificationProvider - Reconnection failed:", reconnectError);
+        throw new Error("Connection not established and reconnection failed");
+      }
     }
 
     try {
-      const result = await connectionRef.current.invoke("MarkAsRead", notificationId);
+      console.log("NotificationProvider - Marking notification as read:", notificationId);
       
-      if (result && result.statusCode === 200 && result.data === "SUCCESS") {
-        console.log("✅ NotificationProvider - Notification marked as read:", notificationId);
-        return { success: true, message: "Notification marked as read" };
-      } else {
-        console.warn("NotificationProvider - Unexpected response from MarkAsRead:", result);
-        return { success: false, message: "Unexpected response from server" };
-      }
+      // Call the SignalR hub method
+      const result = await connectionRef.current.invoke("MarkAsRead", notificationId);
+      console.log("NotificationProvider - MarkAsRead result:", result);
+      
+      console.log("✅ NotificationProvider - MarkAsRead invoked successfully for:", notificationId);
+      return { success: true, message: "Notification marked as read" };
     } catch (error) {
       console.error("NotificationProvider - Error marking notification as read:", error);
       throw new Error(`Failed to mark notification as read: ${error.message}`);
+    }
+  };
+
+  // Mark all notifications as read function
+  const markAllAsRead = async () => {
+    console.log("NotificationProvider - markAllAsRead called");
+    console.log("NotificationProvider - Connection state:", HubConnectionState[connectionState]);
+    console.log("NotificationProvider - Connected state:", connected);
+    console.log("NotificationProvider - Connection ref:", connectionRef.current);
+    
+    if (!connectionRef.current) {
+      console.error("NotificationProvider - No connection reference available");
+      throw new Error("Connection not available");
+    }
+    
+    if (connectionRef.current.state !== HubConnectionState.Connected) {
+      console.error("NotificationProvider - Connection not established. Current state:", HubConnectionState[connectionRef.current.state]);
+      
+      // Try to reconnect if not connected
+      try {
+        console.log("NotificationProvider - Attempting to reconnect...");
+        await connectionRef.current.start();
+        console.log("NotificationProvider - Reconnection successful");
+      } catch (reconnectError) {
+        console.error("NotificationProvider - Reconnection failed:", reconnectError);
+        throw new Error("Connection not established and reconnection failed");
+      }
+    }
+
+    try {
+      console.log("NotificationProvider - Marking all notifications as read");
+      
+      // Call the SignalR hub method
+      const result = await connectionRef.current.invoke("MarkAllAsRead");
+      console.log("NotificationProvider - MarkAllAsRead result:", result);
+      
+      console.log("✅ NotificationProvider - MarkAllAsRead invoked successfully");
+      return { success: true, message: "All notifications marked as read" };
+    } catch (error) {
+      console.error("NotificationProvider - Error marking all notifications as read:", error);
+      throw new Error(`Failed to mark all notifications as read: ${error.message}`);
     }
   };
 
@@ -190,6 +249,7 @@ export const NotificationProvider = ({ children }) => {
     connectionState,
     connectionStateName: HubConnectionState[connectionState],
     markAsRead,
+    markAllAsRead,
     clearNotification
   };
 

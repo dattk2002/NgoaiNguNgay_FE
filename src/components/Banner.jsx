@@ -137,9 +137,22 @@ const Banner = () => {
 
     if (subject) {
       // Route to /tutor/{languageName}
+      console.log("🔍 Banner Search - Language Search:", {
+        searchInput: trimmed,
+        matchedSubject: subject.name,
+        route: `/tutor/${subject.name.toLowerCase()}`,
+        timestamp: new Date().toISOString()
+      });
       navigate(`/tutor/${subject.name.toLowerCase()}`);
     } else {
-      // Always route to /tutor?search={TutorName} for non-language input
+      // Route to /tutor?search={TutorName} for non-language input
+      console.log("🔍 Banner Search - Tutor Name Search:", {
+        searchInput: trimmed,
+        searchType: "tutor_name",
+        route: `/tutor?search=${encodeURIComponent(trimmed)}`,
+        encodedSearch: encodeURIComponent(trimmed),
+        timestamp: new Date().toISOString()
+      });
       navigate(`/tutor?search=${encodeURIComponent(trimmed)}`);
     }
   };

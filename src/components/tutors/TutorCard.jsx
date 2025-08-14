@@ -2,7 +2,7 @@ import React, { memo, useState, useEffect } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import Button from "@mui/material/Button";
 import StarIconRender from "../../utils/starIconRender";
-import { fetchTutorWeekSchedule, fetchTutorLesson } from "../api/auth";
+import { fetchTutorWeekSchedule, fetchTutorLesson, fetchTutorRating } from "../api/auth";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 
 const TutorCard = memo(
@@ -28,6 +28,8 @@ const TutorCard = memo(
     const [lowestLessonName, setLowestLessonName] = useState("");
     const [lessons, setLessons] = useState([]);
     const [loadingLessons, setLoadingLessons] = useState(true);
+    const [tutorReviews, setTutorReviews] = useState([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
 
     // Helper to get current week's Monday
     function getCurrentWeekMondayString() {
@@ -123,6 +125,24 @@ const TutorCard = memo(
       fetchLessons();
     }, [teacher.id]);
 
+    // Fetch tutor rating data
+    useEffect(() => {
+      const fetchTutorRatingData = async () => {
+        try {
+          setLoadingReviews(true);
+          const ratingData = await fetchTutorRating(teacher.id);
+          setTutorReviews(ratingData.reviews || []);
+        } catch (error) {
+          console.error(`Failed to fetch tutor rating for ${teacher.id}:`, error);
+          setTutorReviews([]);
+        } finally {
+          setLoadingReviews(false);
+        }
+      };
+
+      fetchTutorRatingData();
+    }, [teacher.id]);
+
     // Fetch schedule when hover
     useEffect(() => {
       if (isHovered && teacher.id) {
@@ -161,7 +181,7 @@ const TutorCard = memo(
           setAvailabilityText(availableBlocks.join(", "));
         }
       } else {
-        setAvailabilityText("Đang tải...");
+        setAvailabilityText("Không có lịch");
       }
     }, [weeklySchedule]);
 
@@ -194,7 +214,7 @@ const TutorCard = memo(
             <span className="text-xs text-gray-500 pt-5">
               {!teacher.rating
                 ? "Chưa có đánh giá"
-                : `${teacher.rating} (${teacher.lessons} Buổi học)`}
+                : `${Number(teacher.rating).toFixed(2)} (${tutorReviews.length} đánh giá)`}
             </span>
           </div>
           {/* Right Part: Details */}

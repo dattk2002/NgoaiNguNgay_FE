@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt, FaEye, FaTimes, FaGraduationCap, FaCheck } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt, FaEye, FaTimes, FaGraduationCap, FaCheck, FaExclamationTriangle } from 'react-icons/fa';
 import { 
   Skeleton, 
   Box, 
@@ -8,11 +8,13 @@ import {
   CardContent, 
   Container 
 } from '@mui/material';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { fetchTutorBookings, fetchBookingDetail, completeBookedSlot } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatCentralTimestamp } from '../../utils/formatCentralTimestamp';
+import { formatSlotDateTime } from '../../utils/formatSlotTime';
+
 
 // Skeleton Component for Booking Items
 const BookingTrackingSkeleton = () => (
@@ -102,13 +104,15 @@ const BookingTrackingSkeleton = () => (
 const getSlotStatusInfo = (status) => {
   switch (status) {
     case 0: // Pending
-      return { text: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' };
+      return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
     case 1: // AwaitingConfirmation  
-      return { text: 'Chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
+      return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
     case 2: // Completed
       return { text: 'Đã hoàn thành', color: 'bg-green-100 text-green-700' };
     case 3: // Cancelled
       return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
+    case 4: // CancelledDisputed
+      return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
     default:
       return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
   }
@@ -125,6 +129,7 @@ const getBookingOverallStatus = (booking) => {
   const totalSlots = slots.length;
   const completedSlots = slots.filter(slot => slot.status === 2).length;
   const cancelledSlots = slots.filter(slot => slot.status === 3).length;
+  const cancelledDisputedSlots = slots.filter(slot => slot.status === 4).length;
   const pendingSlots = slots.filter(slot => slot.status === 0).length;
   const awaitingSlots = slots.filter(slot => slot.status === 1).length;
 
@@ -138,26 +143,29 @@ const getBookingOverallStatus = (booking) => {
     return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
   }
   
-  // If there are mixed statuses (some completed, some not) - show as in progress
-  if (completedSlots > 0 && completedSlots < totalSlots) {
-    return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
+  // If all slots are cancelled due to dispute
+  if (cancelledDisputedSlots === totalSlots) {
+    return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
+  }
+  
+  // If there are completed slots or cancelled disputed slots, consider as completed
+  if (completedSlots > 0 || cancelledDisputedSlots > 0) {
+    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
   }
   
   // If all slots are pending
   if (pendingSlots === totalSlots) {
-    return { text: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' };
+    return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
   }
   
   // If all slots are awaiting confirmation
   if (awaitingSlots === totalSlots) {
-    return { text: 'Chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
+    return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
   }
   
   // Mixed status without completed slots - show as in progress
   return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
 };
-
-
 
 const ScheduleTracking = () => {
   const [bookings, setBookings] = useState([]);
@@ -175,6 +183,7 @@ const ScheduleTracking = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [completingSlots, setCompletingSlots] = useState(new Set());
+
 
   useEffect(() => {
     loadBookings();
@@ -224,14 +233,50 @@ const ScheduleTracking = () => {
     setCompletingSlots(new Set()); // Clear completing slots state when closing modal
   };
 
-
-
   const handlePageChange = (newPage) => {
     loadBookings(newPage);
   };
 
-  const handleCompleteSlot = async (bookedSlotId) => {
+  const handleCompleteSlot = async (bookedSlotId, event) => {
+    // Prevent default form submission behavior
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     try {
+      // Validate sequential completion
+      if (!bookingDetail || !bookingDetail.bookedSlots) {
+        toast.error("Không thể xác thực thông tin slot. Vui lòng thử lại.");
+        return;
+      }
+
+      // Find the slot being completed
+      const targetSlot = bookingDetail.bookedSlots.find(slot => slot.id === bookedSlotId);
+      if (!targetSlot) {
+        toast.error("Không tìm thấy thông tin slot. Vui lòng thử lại.");
+        return;
+      }
+
+      // Check if this slot is in "awaiting confirmation" status
+      if (targetSlot.status !== 1) {
+        toast.error("Slot này không thể hoàn thành. Vui lòng kiểm tra trạng thái slot.");
+        return;
+      }
+
+      // Find the first slot with status 1 (awaiting confirmation)
+      const firstAwaitingSlot = bookingDetail.bookedSlots.find(slot => slot.status === 1);
+      if (!firstAwaitingSlot) {
+        toast.error("Không có slot nào đang chờ xác nhận.");
+        return;
+      }
+
+      // Check if the target slot is the first one that can be completed
+      if (firstAwaitingSlot.id !== bookedSlotId) {
+        toast.error("Bạn phải hoàn thành các slot theo thứ tự. Vui lòng hoàn thành slot trước đó trước.");
+        return;
+      }
+
       // Add slot ID to completing set to show loading state
       setCompletingSlots(prev => new Set([...prev, bookedSlotId]));
       
@@ -261,6 +306,8 @@ const ScheduleTracking = () => {
       });
     }
   };
+
+
 
   if (loading) {
     return <BookingTrackingSkeleton />;
@@ -356,6 +403,7 @@ const ScheduleTracking = () => {
                   {/* Right side - Action button */}
                   <div className="flex-shrink-0 ml-auto">
                     <button
+                      type="button"
                       onClick={() => handleViewDetail(booking)}
                       className="no-focus-outline flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                     >
@@ -394,6 +442,7 @@ const ScheduleTracking = () => {
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
               <button
+                type="button"
                 onClick={() => handlePageChange(pagination.pageIndex - 1)}
                 disabled={!pagination.hasPreviousPage}
                 className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -406,6 +455,7 @@ const ScheduleTracking = () => {
               </span>
               
               <button
+                type="button"
                 onClick={() => handlePageChange(pagination.pageIndex + 1)}
                 disabled={!pagination.hasNextPage}
                 className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -442,6 +492,7 @@ const ScheduleTracking = () => {
                   <p className="text-gray-500 mt-1">{selectedBooking?.lessonName}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={closeDetailModal}
                   className="no-focus-outline p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -496,14 +547,18 @@ const ScheduleTracking = () => {
                     <div className="bg-blue-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-gray-900">Thông tin đặt lịch</h4>
-                        {bookingDetail && (() => {
-                          const overallStatus = getBookingOverallStatus(bookingDetail);
-                          return overallStatus ? (
-                            <span className={`px-3 py-1 text-sm rounded-full font-medium ${overallStatus.color}`}>
-                              {overallStatus.text}
-                            </span>
-                          ) : null;
-                        })()}
+                        <div className="flex items-center gap-3">
+                          {bookingDetail && (() => {
+                            const overallStatus = getBookingOverallStatus(bookingDetail);
+                            return overallStatus ? (
+                              <span className={`px-3 py-1 text-sm rounded-full font-medium ${overallStatus.color}`}>
+                                {overallStatus.text}
+                              </span>
+                            ) : null;
+                          })()}
+                          
+
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
@@ -548,7 +603,7 @@ const ScheduleTracking = () => {
                                       <div className="flex items-center gap-4 text-sm text-gray-600">
                                         <span className="flex items-center gap-1">
                                           <FaCalendarAlt className="w-3 h-3" />
-                                          {formatCentralTimestamp(slot.bookedDate)}
+                                          {formatSlotDateTime(slot.slotIndex, slot.bookedDate)}
                                         </span>
                                         {slot.slotNote && (
                                           <span className="text-xs text-gray-500">
@@ -571,7 +626,8 @@ const ScheduleTracking = () => {
                                     </div>
                                     {slot.status === 1 && ( // Show complete button only for "Chờ xác nhận" status
                                       <button
-                                        onClick={() => handleCompleteSlot(slot.id)}
+                                        type="button"
+                                        onClick={(e) => handleCompleteSlot(slot.id, e)}
                                         disabled={completingSlots.has(slot.id)}
                                         className="no-focus-outline flex items-center gap-1 px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                       >
@@ -618,6 +674,21 @@ const ScheduleTracking = () => {
         )}
       </AnimatePresence>
 
+
+
+      {/* Toast Container for notifications */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
 
     </div>
   );

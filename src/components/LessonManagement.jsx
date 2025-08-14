@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating } from "./api/auth";
+import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating, fetchLearnerDisputes } from "./api/auth";
 import { formatCentralTimestamp } from "../utils/formatCentralTimestamp";
+import { formatSlotDateTime } from "../utils/formatSlotTime";
 import { Skeleton } from "@mui/material";
+import CreateDisputeModal from "./modals/CreateDisputeModal";
 
 const LessonManagement = () => {
   const [lessons, setLessons] = useState([]);
@@ -31,6 +33,14 @@ const LessonManagement = () => {
   
   // Existing ratings data
   const [bookingRatings, setBookingRatings] = useState(new Map());
+  
+  // Dispute modal states
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [selectedBookingForDispute, setSelectedBookingForDispute] = useState(null);
+  
+  // Disputes data
+  const [disputes, setDisputes] = useState([]);
+  const [disputesLoading, setDisputesLoading] = useState(false);
 
   // Helper function to get booking overall status based on all slots in a group
   const getGroupOverallStatus = (group) => {
@@ -41,44 +51,66 @@ const LessonManagement = () => {
         allSlots.push(...booking.bookedSlots);
       }
     });
+    
+    if (allSlots.length === 0) return 0; // Pending if no slots
+    
+    // Check if all slots are completed
+    const allCompleted = allSlots.every(slot => slot.status === 2);
+    if (allCompleted) return 2; // Completed
+    
+    // Check if any slot is completed
+    const anyCompleted = allSlots.some(slot => slot.status === 2);
+    if (anyCompleted) return 2; // Completed (partial completion is still considered completed)
+    
+    // Check if all slots are cancelled due to dispute
+    const allCancelledDisputed = allSlots.every(slot => slot.status === 4);
+    if (allCancelledDisputed) return 4; // CancelledDisputed
+    
+    // Check if any slot is cancelled
+    const anyCancelled = allSlots.some(slot => slot.status === 3);
+    if (anyCancelled) return 3; // Cancelled
+    
+    return 0; // Pending
+  };
 
-    if (allSlots.length === 0) {
-      return null;
-    }
+  // Helper function to check if a booking has a dispute
+  const hasDispute = (bookingId) => {
+    console.log("🔍 Checking dispute for bookingId:", bookingId);
+    console.log("🔍 Current disputes:", disputes);
+    const hasDispute = disputes.some(dispute => dispute.bookingId === bookingId);
+    console.log("🔍 Has dispute:", hasDispute);
+    return hasDispute;
+  };
 
-    const totalSlots = allSlots.length;
-    const completedSlots = allSlots.filter(slot => slot.status === 2).length;
-    const cancelledSlots = allSlots.filter(slot => slot.status === 3).length;
-    const pendingSlots = allSlots.filter(slot => slot.status === 0).length;
-    const awaitingSlots = allSlots.filter(slot => slot.status === 1).length;
+  // Helper function to check if any booking in a group has a dispute
+  const hasGroupDispute = (group) => {
+    console.log("🔍 Checking group dispute for group:", group.id);
+    console.log("🔍 Group bookings:", group.bookings.map(b => ({ id: b.id, name: b.lessonSnapshot?.name })));
+    const hasGroupDispute = group.bookings.some(booking => hasDispute(booking.id));
+    console.log("🔍 Group has dispute:", hasGroupDispute);
+    return hasGroupDispute;
+  };
 
-    // If all slots are completed
-    if (completedSlots === totalSlots) {
-      return { label: 'Hoàn thành', class: 'bg-green-50 text-green-700 border border-green-200' };
+  // Fetch disputes
+  const fetchDisputes = async () => {
+    setDisputesLoading(true);
+    try {
+      console.log("🔍 Fetching disputes...");
+      const response = await fetchLearnerDisputes(false); // Get all disputes, not just active ones
+      console.log("🔍 Disputes response:", response);
+      if (response && response.data) {
+        console.log("🔍 Setting disputes:", response.data);
+        setDisputes(response.data);
+      } else {
+        console.log("🔍 No disputes data, setting empty array");
+        setDisputes([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch disputes:", error);
+      setDisputes([]);
+    } finally {
+      setDisputesLoading(false);
     }
-    
-    // If all slots are cancelled
-    if (cancelledSlots === totalSlots) {
-      return { label: 'Đã hủy', class: 'bg-red-50 text-red-700 border border-red-200' };
-    }
-    
-    // If there are mixed statuses (some completed, some not) - show as in progress
-    if (completedSlots > 0 && completedSlots < totalSlots) {
-      return { label: 'Đang diễn ra', class: 'bg-blue-50 text-blue-700 border border-blue-200' };
-    }
-    
-    // If all slots are pending
-    if (pendingSlots === totalSlots) {
-      return { label: 'Đang chờ', class: 'bg-yellow-50 text-yellow-700 border border-yellow-200' };
-    }
-    
-    // If all slots are awaiting confirmation
-    if (awaitingSlots === totalSlots) {
-      return { label: 'Chờ xác nhận', class: 'bg-blue-50 text-blue-700 border border-blue-200' };
-    }
-    
-    // Mixed status without completed slots - show as in progress
-    return { label: 'Đang diễn ra', class: 'bg-blue-50 text-blue-700 border border-blue-200' };
   };
 
   // Helper function to check if group has at least one completed slot
@@ -214,6 +246,7 @@ const LessonManagement = () => {
 
   useEffect(() => {
     fetchLessons();
+    fetchDisputes(); // Call fetchDisputes here
   }, [currentPage]);
 
   const fetchLessons = async () => {
@@ -318,12 +351,13 @@ const LessonManagement = () => {
 
   const getStatusBadge = (status) => {
     // Based on backend SlotStatus enum:
-    // Pending = 0, AwaitingConfirmation = 1, Completed = 2, Cancelled = 3
+    // Pending = 0, AwaitingConfirmation = 1, Completed = 2, Cancelled = 3, CancelledDisputed = 4
     const statusMap = {
       0: { label: "Đang chờ", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-      1: { label: "Chờ xác nhận", class: "bg-blue-50 text-blue-700 border border-blue-200" },
+      1: { label: "Đang chờ xác nhận", class: "bg-blue-50 text-blue-700 border border-blue-200" },
       2: { label: "Hoàn thành", class: "bg-green-50 text-green-700 border border-green-200" },
-      3: { label: "Đã hủy", class: "bg-red-50 text-red-700 border border-red-200" }
+      3: { label: "Đã hủy", class: "bg-red-50 text-red-700 border border-red-200" },
+      4: { label: "Đã hủy do tranh chấp", class: "bg-orange-50 text-orange-700 border border-orange-200" }
     };
     const statusInfo = statusMap[status] || { label: "Không xác định", class: "bg-gray-50 text-gray-700 border border-gray-200" };
     
@@ -448,6 +482,42 @@ const LessonManagement = () => {
     } finally {
       setSubmittingRating(false);
     }
+  };
+
+  // Handle creating dispute
+  const handleCreateDispute = (group) => {
+    // Find the first booking that has completed slots to get bookingId for dispute
+    let validBookingId = null;
+    
+    // Look through all bookings in the group to find one with completed slots
+    for (const booking of group.bookings) {
+      if (booking.bookedSlots && Array.isArray(booking.bookedSlots)) {
+        const hasCompletedSlot = booking.bookedSlots.some(slot => slot.status === 2); // Status 2 = Completed
+        if (hasCompletedSlot) {
+          validBookingId = booking.id;
+          break;
+        }
+      }
+    }
+    
+    if (!validBookingId) {
+      toast.error("Không tìm thấy booking có slot đã hoàn thành để khiếu nại!");
+      return;
+    }
+    
+    setSelectedBookingForDispute({
+      bookingId: validBookingId,
+      lessonName: group.lessonName,
+      tutorName: group.tutorName,
+      group: group
+    });
+    setShowDisputeModal(true);
+  };
+
+  const handleDisputeSuccess = () => {
+    // Refresh disputes list after successful creation
+    fetchDisputes();
+    toast.success("Khiếu nại đã được gửi thành công!");
   };
 
   // Modal animation variants
@@ -578,8 +648,8 @@ const LessonManagement = () => {
                           {(() => {
                             const overallStatus = getGroupOverallStatus(group);
                             return overallStatus ? (
-                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${overallStatus.class}`}>
-                                {overallStatus.label}
+                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${overallStatus === 2 ? 'bg-green-50 text-green-700 border border-green-200' : overallStatus === 3 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                                {overallStatus === 2 ? 'Hoàn thành' : overallStatus === 3 ? 'Đã hủy' : 'Đang diễn ra'}
                               </span>
                             ) : getStatusBadge(group.latestStatus);
                           })()}
@@ -639,6 +709,37 @@ const LessonManagement = () => {
                           <span>Đã đánh giá</span>
                         </div>
                       )}
+                      
+                      {/* Dispute button - only show when at least one slot is completed */}
+                      {(() => {
+                        const hasCompleted = hasCompletedSlots(group);
+                        const hasDispute = hasGroupDispute(group);
+                        console.log("🔍 Render debug for group:", group.id);
+                        console.log("🔍 Has completed slots:", hasCompleted);
+                        console.log("🔍 Has group dispute:", hasDispute);
+                        
+                        if (!hasCompleted) return null;
+                        
+                        return hasDispute ? (
+                          <div className="px-3 py-2 text-sm rounded-lg bg-gray-100 text-gray-600 flex items-center space-x-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Đã khiếu nại</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleCreateDispute(group)}
+                            className="px-3 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 flex items-center space-x-1"
+                            title="Tạo khiếu nại"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <span>Khiếu nại</span>
+                          </button>
+                        );
+                      })()}
                       <button
                         onClick={() => toggleExpanded(group.id)}
                         className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
@@ -688,7 +789,7 @@ const LessonManagement = () => {
                                             Slot {slot.slotIndex}
                                           </span>
                                           <div className="text-xs text-gray-500 mt-1">
-                                            Ngày học: {slot.bookedDate ? formatCentralTimestamp(slot.bookedDate) : 'N/A'}
+                                            Ngày học: {slot.slotIndex !== undefined ? formatSlotDateTime(slot.slotIndex, slot.bookedDate) : (slot.bookedDate ? formatCentralTimestamp(slot.bookedDate) : 'N/A')}
                                           </div>
                                           {slot.slotNote && (
                                             <div className="text-xs text-gray-600 mt-1">
@@ -1035,11 +1136,7 @@ const LessonManagement = () => {
                         <span className="text-blue-600 font-medium">Trạng thái:</span>
                         <span className="ml-2">{(() => {
                           const overallStatus = getGroupOverallStatus(selectedLessonInfo.group);
-                          return overallStatus ? (
-                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${overallStatus.class}`}>
-                              {overallStatus.label}
-                            </span>
-                          ) : getStatusBadge(selectedLessonInfo.group.latestStatus);
+                          return overallStatus === 2 ? 'Hoàn thành' : overallStatus === 3 ? 'Đã hủy' : 'Đang diễn ra';
                         })()}</span>
                       </div>
                     </div>
@@ -1222,6 +1319,14 @@ const LessonManagement = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Create Dispute Modal */}
+      <CreateDisputeModal
+        isOpen={showDisputeModal}
+        onClose={() => setShowDisputeModal(false)}
+        booking={selectedBookingForDispute}
+        onSuccess={handleDisputeSuccess}
+      />
 
       {/* ToastContainer for notifications */}
       <ToastContainer 

@@ -4,6 +4,7 @@ import ScheduleTracking from './ScheduleTracking';
 import StudentRequests from './StudentRequests';
 import TeachingHistory from './TeachingHistory';
 import OfferManagement from './OfferManagement';
+import TutorDisputes from './TutorDisputes';
 
 const TutorManagementDashboard = () => {
   const [activeTab, setActiveTab] = useState('schedule');
@@ -11,7 +12,8 @@ const TutorManagementDashboard = () => {
   const tabs = [
     { id: 'schedule', label: 'Theo dõi lịch dạy', component: ScheduleTracking },
     { id: 'requests', label: 'Yêu cầu từ học viên', component: StudentRequests },
-    { id: 'offers', label: 'Quản lý Offers', component: OfferManagement },
+    { id: 'offers', label: 'Quản lý yêu cầu', component: OfferManagement },
+    { id: 'disputes', label: 'Quản lý khiếu nại', component: TutorDisputes },
     { id: 'history', label: 'Lịch sử dạy học', component: TeachingHistory },
   ];
 

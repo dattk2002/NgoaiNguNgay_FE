@@ -1,17 +1,10 @@
 import React from 'react';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatTutorDate } from '../../utils/formatTutorDate';
+import { formatSlotDateTimeFromTimestamp } from '../../utils/formatSlotTime';
 
 const OfferDetailModal = ({ offer, onClose }) => {
-  const formatSlotDateTime = (dateTime) => {
-    return new Date(dateTime).toLocaleString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+
 
      const getStatusColor = (status) => {
      switch (status) {
@@ -123,7 +116,7 @@ const OfferDetailModal = ({ offer, onClose }) => {
                        <div className="flex justify-between items-center">
                          <span className="font-medium text-sm text-gray-900">Slot {slot.slotIndex + 1}</span>
                          <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">
-                           {formatSlotDateTime(slot.slotDateTime)}
+                           {formatSlotDateTimeFromTimestamp(slot.slotDateTime)}
                          </span>
                        </div>
                      </div>
