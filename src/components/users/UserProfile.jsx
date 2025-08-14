@@ -55,6 +55,7 @@ import {
   uploadCertificate,
   fetchTutorApplicationByApplicationId,
 } from "../api/auth";
+import { formatLanguageCode, formatProficiencyLevel } from "../../utils/formatLanguageCode";
 import ConfirmDialog from "../modals/ConfirmDialog";
 
 // Global styles to remove focus borders
@@ -532,15 +533,7 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
     return "Khác";
   };
 
-  // Helper function to format learning proficiency level
-  const formatProficiencyLevel = (level) => {
-    switch (level) {
-      case 1: return "Sơ cấp";
-      case 2: return "Trung cấp";
-      case 3: return "Cao cấp";
-      default: return "Chưa xác định";
-    }
-  };
+
 
   // Helper function to format timezone
   const formatTimezone = (timezone) => {
@@ -729,6 +722,9 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
     setApplicationLoading(true);
     try {
       const response = await fetchTutorApplicationByApplicationId(tutorData.applicationId);
+      console.log("🔍 Fetched tutor application data:", response);
+      console.log("🔍 Languages data:", response?.languages);
+      console.log("🔍 Hashtags data:", response?.hashtags);
       setTutorApplication(response);
     } catch (error) {
       console.log("User is not a tutor or no application found");
@@ -1325,13 +1321,15 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Chi tiết đơn đăng ký gia sư
-          </Typography>
-          <IconButton onClick={() => setApplicationDetailDialogOpen(false)}>
-            <FiX />
-          </IconButton>
+        <DialogTitle>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Chi tiết đơn đăng ký gia sư
+            </Typography>
+            <IconButton onClick={() => setApplicationDetailDialogOpen(false)}>
+              <FiX />
+            </IconButton>
+          </Box>
         </DialogTitle>
         
         <DialogContent>
@@ -1344,38 +1342,38 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                     Thông tin cơ bản
                   </Typography>
                   
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                        <FiCalendar size={16} style={{ marginRight: 8, color: "#64748b" }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
-                          Ngày nộp:
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
-                          {new Date(tutorApplication.submittedAt).toLocaleDateString('vi-VN')}
-                        </Typography>
-                      </Box>
+                                      <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <FiCalendar size={16} style={{ marginRight: 8, color: "#64748b" }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
+                            Ngày nộp:
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
+                            {new Date(tutorApplication.submittedAt).toLocaleDateString('vi-VN')}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <FiUser size={16} style={{ marginRight: 8, color: "#64748b" }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
+                            Trạng thái:
+                          </Typography>
+                          <Chip
+                            label={getStatusText(tutorApplication.status)}
+                            size="small"
+                            sx={{
+                              ml: 1,
+                              backgroundColor: getStatusColor(tutorApplication.status),
+                              color: "white",
+                              fontWeight: 600,
+                            }}
+                          />
+                        </Box>
+                      </Grid>
                     </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                        <FiUser size={16} style={{ marginRight: 8, color: "#64748b" }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
-                          Trạng thái:
-                        </Typography>
-                        <Chip
-                          label={getStatusText(tutorApplication.status)}
-                          size="small"
-                          sx={{
-                            ml: 1,
-                            backgroundColor: getStatusColor(tutorApplication.status),
-                            color: "white",
-                            fontWeight: 600,
-                          }}
-                        />
-                      </Box>
-                    </Grid>
-                  </Grid>
                 </CardContent>
               </Card>
 
@@ -1388,7 +1386,7 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                     </Typography>
                     
                     <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={12} md={6}>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
                           Họ tên:
                         </Typography>
@@ -1397,7 +1395,7 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                         </Typography>
                       </Grid>
                       
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={12} md={6}>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
                           Biệt danh:
                         </Typography>
@@ -1437,6 +1435,83 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                 </Card>
               )}
 
+              {/* Languages */}
+              <Card sx={{ mb: 3, backgroundColor: "#f8fafc" }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: "#1e293b" }}>
+                    Ngôn ngữ
+                  </Typography>
+                  
+                  {(() => {
+                    console.log("🔍 UserProfile Modal - Languages data:", tutorApplication.languages);
+                    return tutorApplication.languages && tutorApplication.languages.length > 0 ? (
+                      <Grid container spacing={2}>
+                        {tutorApplication.languages.map((lang, index) => (
+                          <Grid item xs={12} key={index}>
+                            <Box sx={{ 
+                              display: "flex", 
+                              justifyContent: "space-between", 
+                              alignItems: "center",
+                              p: 2,
+                              backgroundColor: "white",
+                              borderRadius: 1,
+                              border: "1px solid #e5e7eb"
+                            }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
+                                {formatLanguageCode(lang.languageCode)} {lang.isPrimary && '(Chính)'}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Trình độ: {formatProficiencyLevel(lang.proficiency)}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    ) : (
+                      <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                        Chưa có thông tin ngôn ngữ
+                      </Typography>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+
+              {/* Hashtags */}
+              <Card sx={{ mb: 3, backgroundColor: "#f8fafc" }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: "#1e293b" }}>
+                    Kỹ năng & Chứng chỉ
+                  </Typography>
+                  
+                  {(() => {
+                    console.log("🔍 UserProfile Modal - Hashtags data:", tutorApplication.hashtags);
+                    return tutorApplication.hashtags && tutorApplication.hashtags.length > 0 ? (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {tutorApplication.hashtags.map((tag, index) => (
+                          <Chip
+                            key={index}
+                            label={tag.name || tag.value || tag}
+                            size="small"
+                            sx={{
+                              backgroundColor: "#dbeafe",
+                              color: "#1e40af",
+                              fontWeight: 500,
+                              "&:hover": {
+                                backgroundColor: "#bfdbfe",
+                              }
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                        Chưa có thông tin kỹ năng và chứng chỉ
+                      </Typography>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+
               {/* Application Revisions */}
               {tutorApplication.applicationRevisions && tutorApplication.applicationRevisions.length > 0 && (
                 <Card sx={{ mb: 3, backgroundColor: "#f8fafc" }}>
@@ -1451,18 +1526,18 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                           <ListItem sx={{ px: 0 }}>
                             <ListItemText
                               primary={
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
+                                <Box component="div" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }} component="div">
                                     {getStatusText(revision.status)}
                                   </Typography>
-                                  <Typography variant="caption" color="textSecondary">
+                                  <Typography variant="caption" color="textSecondary" component="div">
                                     {new Date(revision.createdTime).toLocaleDateString('vi-VN')}
                                   </Typography>
                                 </Box>
                               }
                               secondary={
-                                <Box sx={{ mt: 1 }}>
-                                  <Typography variant="body2" color="textSecondary">
+                                <Box component="div" sx={{ mt: 1 }}>
+                                  <Typography variant="body2" color="textSecondary" component="div">
                                     {revision.revisionNotes}
                                   </Typography>
                                 </Box>
@@ -1491,15 +1566,16 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                           <ListItem sx={{ px: 0 }}>
                             <ListItemText
                               primary={
-                                <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }} component="div">
                                   {doc.description}
                                 </Typography>
                               }
                               secondary={
-                                <Box>
+                                <Box component="div">
                                   {doc.files && doc.files.map((file) => (
-                                    <Box key={file.id} sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                                    <Box key={file.id} component="div" sx={{ display: "flex", alignItems: "center", mt: 1 }}>
                                       <Box
+                                        component="div"
                                         sx={{
                                           width: 32,
                                           height: 32,
@@ -1516,11 +1592,11 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                                       >
                                         {file.contentType.includes("pdf") ? "PDF" : "IMG"}
                                       </Box>
-                                      <Box sx={{ flex: 1 }}>
-                                        <Typography variant="body2" color="textSecondary">
+                                      <Box component="div" sx={{ flex: 1 }}>
+                                        <Typography variant="body2" color="textSecondary" component="div">
                                           {file.originalFileName}
                                         </Typography>
-                                        <Typography variant="caption" color="textSecondary">
+                                        <Typography variant="caption" color="textSecondary" component="div">
                                           {(file.fileSize / 1024 / 1024).toFixed(2)} MB
                                         </Typography>
                                       </Box>

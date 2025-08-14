@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt, FaEye, FaTimes, FaGraduationCap, FaCheck, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt, FaEye, FaTimes, FaGraduationCap, FaCheck, FaExclamationTriangle, FaStar } from 'react-icons/fa';
 import { 
   Skeleton, 
   Box, 
@@ -148,11 +148,6 @@ const getBookingOverallStatus = (booking) => {
     return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
   }
   
-  // If there are completed slots or cancelled disputed slots, consider as completed
-  if (completedSlots > 0 || cancelledDisputedSlots > 0) {
-    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
-  }
-  
   // If all slots are pending
   if (pendingSlots === totalSlots) {
     return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
@@ -163,7 +158,21 @@ const getBookingOverallStatus = (booking) => {
     return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
   }
   
-  // Mixed status without completed slots - show as in progress
+  // If there are any awaiting confirmation slots (status = 1), the booking is still in progress
+  if (awaitingSlots > 0) {
+    return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
+  }
+
+  if (completedSlots > 0 && cancelledDisputedSlots > 0) {
+    return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
+  }
+  
+  // If there are completed slots but no awaiting slots, consider as completed
+  if (completedSlots > 0 && awaitingSlots === 0) {
+    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
+  }
+  
+  // Mixed status without completed slots or awaiting slots - show as in progress
   return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
 };
 
@@ -183,6 +192,8 @@ const ScheduleTracking = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [completingSlots, setCompletingSlots] = useState(new Set());
+  const [bookingStatuses, setBookingStatuses] = useState({});
+  const [statusLoading, setStatusLoading] = useState(new Set());
 
 
   useEffect(() => {
@@ -193,7 +204,8 @@ const ScheduleTracking = () => {
     try {
       setLoading(true);
       const response = await fetchTutorBookings(page, 10);
-      setBookings(response.items || []);
+      const bookingsList = response.items || [];
+      setBookings(bookingsList);
       setPagination({
         pageIndex: response.pageIndex,
         pageSize: response.pageSize,
@@ -202,11 +214,76 @@ const ScheduleTracking = () => {
         hasNextPage: response.hasNextPage,
         hasPreviousPage: response.hasPreviousPage
       });
+
+      // Load status for each booking
+      loadBookingStatuses(bookingsList);
     } catch (error) {
       console.error("Error loading bookings:", error);
       setBookings([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBookingStatuses = async (bookingsList) => {
+    const newStatuses = {};
+    const loadingSet = new Set();
+
+    // Add all booking IDs to loading set
+    bookingsList.forEach(booking => {
+      loadingSet.add(booking.id);
+    });
+    setStatusLoading(loadingSet);
+
+    try {
+      // Load status for each booking in parallel
+      const statusPromises = bookingsList.map(async (booking) => {
+        try {
+          console.log(`Loading status for booking ${booking.id}...`);
+          const detail = await fetchBookingDetail(booking.id);
+          console.log(`Booking ${booking.id} detail:`, detail);
+          
+          // Check if detail has the expected structure
+          if (!detail || !detail.bookedSlots || !Array.isArray(detail.bookedSlots)) {
+            console.warn(`Booking ${booking.id} has invalid detail structure:`, detail);
+            // Try to create a fallback status based on booking data
+            const fallbackStatus = {
+              text: 'Đang chờ',
+              color: 'bg-yellow-100 text-yellow-700'
+            };
+            return { bookingId: booking.id, status: fallbackStatus };
+          }
+          
+          const status = getBookingOverallStatus(detail);
+          console.log(`Booking ${booking.id} status:`, status);
+          
+          return { bookingId: booking.id, status };
+        } catch (error) {
+          console.error(`Error loading status for booking ${booking.id}:`, error);
+          // Return a fallback status instead of null
+          const fallbackStatus = {
+            text: 'Đang chờ',
+            color: 'bg-yellow-100 text-yellow-700'
+          };
+          return { bookingId: booking.id, status: fallbackStatus };
+        }
+      });
+
+      const statusResults = await Promise.all(statusPromises);
+      console.log('All status results:', statusResults);
+      
+      // Update statuses
+      statusResults.forEach(({ bookingId, status }) => {
+        newStatuses[bookingId] = status;
+      });
+
+      console.log('New statuses object:', newStatuses);
+      setBookingStatuses(prev => ({ ...prev, ...newStatuses }));
+    } catch (error) {
+      console.error("Error loading booking statuses:", error);
+    } finally {
+      // Remove all booking IDs from loading set
+      setStatusLoading(new Set());
     }
   };
 
@@ -288,7 +365,7 @@ const ScheduleTracking = () => {
         setBookingDetail(updatedDetail);
       }
       
-      // Also refresh the main bookings list
+      // Also refresh the main bookings list and statuses
       loadBookings(pagination.pageIndex);
       
       // Show success message
@@ -333,110 +410,134 @@ const ScheduleTracking = () => {
         </div>
       ) : (
         <>
-          {/* Booking List - Row Layout */}
-          <div className="space-y-4 mb-6">
-            {bookings.map((booking) => (
-              <motion.div
-                key={booking.id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="flex items-center gap-4">
-                  {/* Left side - Avatar & Lesson Info */}
-                  <div className="flex items-center gap-4 min-w-0" style={{width: '320px'}}>
-                    {/* Student Avatar */}
-                    <div className="flex-shrink-0">
-                      <img
-                        src={booking.learnerAvatarUrl || 'https://via.placeholder.com/56?text=L'}
-                        alt={booking.learnerName}
-                        className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
-                      />
-                    </div>
-                    
-                    {/* Student & Lesson Info */}
-                    <div className="flex-grow min-w-0">
-                      <div className="space-y-1">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate">
-                          {booking.lessonName}
-                        </h3>
-                        <div className="flex items-center text-gray-600">
-                          <FaUser className="w-4 h-4 mr-2 text-blue-500" />
-                          <span className="font-medium">{booking.learnerName}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Center - Info Fields Grid */}
-                  <div className="hidden md:grid grid-cols-3 gap-6 flex-shrink-0" style={{width: '450px'}}>
-                    {/* Date Created */}
-                    <div className="flex items-center text-gray-600 justify-center">
-                      <FaCalendarAlt className="w-4 h-4 mr-2 text-purple-500" />
-                      <div className="text-center">
-                        <div className="text-sm font-medium">Ngày tạo</div>
-                        <div className="text-sm">{formatCentralTimestamp(booking.createdTime)}</div>
-                      </div>
-                    </div>
-                    
-                    {/* Slots Count */}
-                    <div className="flex items-center text-gray-600 justify-center">
-                      <FaClock className="w-4 h-4 mr-2 text-orange-500" />
-                      <div className="text-center">
-                        <div className="text-sm font-medium">Số buổi</div>
-                        <div className="text-sm">{booking.slotCount} buổi học</div>
-                      </div>
-                    </div>
-                    
-                    {/* Price */}
-                    <div className="flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-sm text-gray-500 mb-1">Tổng tiền</div>
-                        <div className="text-lg font-bold text-blue-600">
-                          {formatPriceWithCommas(booking.totalPrice)}đ
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Right side - Action button */}
-                  <div className="flex-shrink-0 ml-auto">
-                    <button
-                      type="button"
-                      onClick={() => handleViewDetail(booking)}
-                      className="no-focus-outline flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <FaEye className="w-3 h-3" />
-                      Chi tiết
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Mobile info - show on small screens */}
-                <div className="md:hidden mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex justify-between items-center text-sm text-gray-600">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center">
-                        <FaCalendarAlt className="w-3 h-3 mr-1 text-purple-500" />
-                        <span>{formatCentralTimestamp(booking.createdTime)}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <FaClock className="w-3 h-3 mr-1 text-orange-500" />
-                        <span>{booking.slotCount} buổi học</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500">Tổng tiền</div>
-                      <div className="font-bold text-blue-600">
-                        {formatPriceWithCommas(booking.totalPrice)}đ
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                     {/* Booking List - Card Layout */}
+           <div className="space-y-4 mb-6">
+             {bookings.map((booking) => {
+               const status = bookingStatuses[booking.id];
+               return (
+                 <motion.div
+                   key={booking.id}
+                   className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ duration: 0.3 }}
+                 >
+                   <div className="flex items-start justify-between mb-4">
+                     <div className="flex items-center space-x-4">
+                       <img
+                         src={booking.learnerAvatarUrl || 'https://via.placeholder.com/48?text=L'}
+                         alt={booking.learnerName}
+                         className="w-12 h-12 rounded-full object-cover"
+                       />
+                       <div>
+                         <h3 className="text-lg font-semibold text-gray-900">
+                           {booking.lessonName}
+                         </h3>
+                         <div className="flex items-center text-gray-600 mt-1">
+                           <FaUser className="w-4 h-4 mr-2" />
+                           <span>{booking.learnerName}</span>
+                         </div>
+                       </div>
+                     </div>
+                     <span
+                       className={`px-3 py-1 rounded-full text-xs font-medium ${
+                         statusLoading.has(booking.id) ? 'bg-gray-100 text-gray-800' :
+                         status && status.text ? 
+                           (status.text === 'Hoàn thành' ? 'bg-green-100 text-green-800' :
+                            status.text === 'Đã hủy' ? 'bg-red-100 text-red-800' :
+                            status.text === 'Đã hủy do tranh chấp' ? 'bg-orange-100 text-orange-800' :
+                            status.text === 'Đang chờ' ? 'bg-yellow-100 text-yellow-800' :
+                            status.text === 'Đang chờ xác nhận' ? 'bg-blue-100 text-blue-800' :
+                            status.text === 'Đang diễn ra' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800') :
+                         'bg-gray-100 text-gray-800'
+                       }`}
+                     >
+                       {statusLoading.has(booking.id) ? 'Đang tải...' :
+                        status && status.text ? status.text : 'Không xác định'}
+                     </span>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                     <div className="space-y-2">
+                       <div className="flex items-center text-gray-700">
+                         <FaCalendarAlt className="w-4 h-4 mr-2" />
+                         <span>{formatCentralTimestamp(booking.createdTime)}</span>
+                       </div>
+                       <div className="flex items-center text-gray-700">
+                         <FaClock className="w-4 h-4 mr-2" />
+                         <span>{booking.slotCount} buổi học</span>
+                       </div>
+                       <div className="flex items-center text-gray-700">
+                         <FaVideo className="w-4 h-4 mr-2" />
+                         <span>Học trực tuyến</span>
+                       </div>
+                     </div>
+                     
+                     <div className="space-y-2">
+                       <div className="text-lg font-bold text-blue-600">
+                         {formatPriceWithCommas(booking.totalPrice)} VNĐ
+                       </div>
+                       {status && status.text === 'Hoàn thành' && (
+                         <div className="flex items-center space-x-2">
+                           <div className="flex">
+                             {Array.from({ length: 5 }, (_, index) => (
+                               <FaStar
+                                 key={index}
+                                 className={`w-4 h-4 ${
+                                   index < 4 ? 'text-yellow-400' : 'text-gray-300'
+                                 }`}
+                               />
+                             ))}
+                           </div>
+                           <span className="text-sm text-gray-600">(4.0/5)</span>
+                         </div>
+                       )}
+                     </div>
+
+                     <div className="flex justify-end">
+                       <button 
+                         onClick={() => handleViewDetail(booking)}
+                         className="no-focus-outline flex items-center space-x-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                       >
+                         <FaEye className="w-4 h-4" />
+                         <span>Chi tiết</span>
+                       </button>
+                     </div>
+                   </div>
+
+                   {/* Status-specific sections */}
+                   {status && status.text === 'Hoàn thành' && (
+                     <div className="bg-gray-50 p-4 rounded-lg">
+                       <h4 className="font-medium text-gray-900 mb-2">Đánh giá từ học viên:</h4>
+                       <p className="text-gray-700 text-sm">Thầy dạy rất tốt, giải thích dễ hiểu. Em đã hiểu được nhiều kiến thức mới.</p>
+                     </div>
+                   )}
+
+                   {status && status.text === 'Đã hủy do tranh chấp' && (
+                     <div className="bg-orange-50 p-4 rounded-lg">
+                       <h4 className="font-medium text-orange-900 mb-2">Lý do hủy:</h4>
+                       <p className="text-orange-700 text-sm">Booking bị hủy do có tranh chấp giữa học viên và giáo viên.</p>
+                     </div>
+                   )}
+
+                   {status && status.text === 'Đang diễn ra' && (
+                     <div className="bg-blue-50 p-4 rounded-lg">
+                       <h4 className="font-medium text-blue-900 mb-2">Trạng thái hiện tại:</h4>
+                       <p className="text-blue-700 text-sm">Khóa học đang trong quá trình diễn ra. Vui lòng theo dõi tiến độ các buổi học.</p>
+                     </div>
+                   )}
+
+                   {status && status.text === 'Đang chờ xác nhận' && (
+                     <div className="bg-yellow-50 p-4 rounded-lg">
+                       <h4 className="font-medium text-yellow-900 mb-2">Trạng thái hiện tại:</h4>
+                       <p className="text-yellow-700 text-sm">Khóa học đang chờ xác nhận từ giáo viên. Vui lòng chờ thông báo.</p>
+                     </div>
+                   )}
+                 </motion.div>
+               );
+             })}
+           </div>
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
