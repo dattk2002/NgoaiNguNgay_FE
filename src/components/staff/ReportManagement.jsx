@@ -245,7 +245,7 @@ const ReportManagement = () => {
                             <textarea
                                 placeholder="Nhập giải pháp xử lý..."
                                 rows="4"
-                                className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-gray-500 text-black"
                             />
                             <div className="flex gap-3 mt-4">
                                 <button

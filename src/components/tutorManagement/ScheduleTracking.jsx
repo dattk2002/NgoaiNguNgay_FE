@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt, FaEye, FaTimes, FaGraduationCap, FaCheck } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt, FaEye, FaTimes, FaGraduationCap, FaCheck, FaExclamationTriangle } from 'react-icons/fa';
 import { 
   Skeleton, 
   Box, 
@@ -14,6 +14,7 @@ import { fetchTutorBookings, fetchBookingDetail, completeBookedSlot } from '../a
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatCentralTimestamp } from '../../utils/formatCentralTimestamp';
 import { formatSlotDateTime } from '../../utils/formatSlotTime';
+
 
 // Skeleton Component for Booking Items
 const BookingTrackingSkeleton = () => (
@@ -103,13 +104,15 @@ const BookingTrackingSkeleton = () => (
 const getSlotStatusInfo = (status) => {
   switch (status) {
     case 0: // Pending
-      return { text: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' };
+      return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
     case 1: // AwaitingConfirmation  
-      return { text: 'Chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
+      return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
     case 2: // Completed
       return { text: 'Đã hoàn thành', color: 'bg-green-100 text-green-700' };
     case 3: // Cancelled
       return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
+    case 4: // CancelledDisputed
+      return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
     default:
       return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
   }
@@ -126,6 +129,7 @@ const getBookingOverallStatus = (booking) => {
   const totalSlots = slots.length;
   const completedSlots = slots.filter(slot => slot.status === 2).length;
   const cancelledSlots = slots.filter(slot => slot.status === 3).length;
+  const cancelledDisputedSlots = slots.filter(slot => slot.status === 4).length;
   const pendingSlots = slots.filter(slot => slot.status === 0).length;
   const awaitingSlots = slots.filter(slot => slot.status === 1).length;
 
@@ -139,26 +143,29 @@ const getBookingOverallStatus = (booking) => {
     return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
   }
   
-  // If there are mixed statuses (some completed, some not) - show as in progress
-  if (completedSlots > 0 && completedSlots < totalSlots) {
-    return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
+  // If all slots are cancelled due to dispute
+  if (cancelledDisputedSlots === totalSlots) {
+    return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
+  }
+  
+  // If there are completed slots or cancelled disputed slots, consider as completed
+  if (completedSlots > 0 || cancelledDisputedSlots > 0) {
+    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
   }
   
   // If all slots are pending
   if (pendingSlots === totalSlots) {
-    return { text: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' };
+    return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
   }
   
   // If all slots are awaiting confirmation
   if (awaitingSlots === totalSlots) {
-    return { text: 'Chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
+    return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
   }
   
   // Mixed status without completed slots - show as in progress
   return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
 };
-
-
 
 const ScheduleTracking = () => {
   const [bookings, setBookings] = useState([]);
@@ -176,6 +183,7 @@ const ScheduleTracking = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [completingSlots, setCompletingSlots] = useState(new Set());
+
 
   useEffect(() => {
     loadBookings();
@@ -224,8 +232,6 @@ const ScheduleTracking = () => {
     setDetailLoading(false);
     setCompletingSlots(new Set()); // Clear completing slots state when closing modal
   };
-
-
 
   const handlePageChange = (newPage) => {
     loadBookings(newPage);
@@ -300,6 +306,8 @@ const ScheduleTracking = () => {
       });
     }
   };
+
+
 
   if (loading) {
     return <BookingTrackingSkeleton />;
@@ -539,14 +547,18 @@ const ScheduleTracking = () => {
                     <div className="bg-blue-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-gray-900">Thông tin đặt lịch</h4>
-                        {bookingDetail && (() => {
-                          const overallStatus = getBookingOverallStatus(bookingDetail);
-                          return overallStatus ? (
-                            <span className={`px-3 py-1 text-sm rounded-full font-medium ${overallStatus.color}`}>
-                              {overallStatus.text}
-                            </span>
-                          ) : null;
-                        })()}
+                        <div className="flex items-center gap-3">
+                          {bookingDetail && (() => {
+                            const overallStatus = getBookingOverallStatus(bookingDetail);
+                            return overallStatus ? (
+                              <span className={`px-3 py-1 text-sm rounded-full font-medium ${overallStatus.color}`}>
+                                {overallStatus.text}
+                              </span>
+                            ) : null;
+                          })()}
+                          
+
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
@@ -661,6 +673,8 @@ const ScheduleTracking = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+
 
       {/* Toast Container for notifications */}
       <ToastContainer
