@@ -40,6 +40,7 @@ import FormLabel from "@mui/material/FormLabel";
 import Pagination from "@mui/material/Pagination";
 import Skeleton from "@mui/material/Skeleton";
 
+
 function FilterButton({ icon, label, menuItems, isActive = false }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -118,7 +119,7 @@ function PriceFilterButton({
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
-  // Local state for input fields
+  // Local state for input fields - ensure they are numbers without leading zeros
   const [minInput, setMinInput] = useState(priceRange[0]);
   const [maxInput, setMaxInput] = useState(priceRange[1]);
 
@@ -137,24 +138,30 @@ function PriceFilterButton({
     setPriceRange(newValue);
   };
 
-  // Handle input change
+  // Handle input change - now filters immediately
   const handleMinInputChange = (e) => {
     const value = Number(e.target.value.replace(/[^0-9]/g, ""));
     setMinInput(value);
-  };
-  const handleMaxInputChange = (e) => {
-    const value = Number(e.target.value.replace(/[^0-9]/g, ""));
-    setMaxInput(value);
-  };
-
-  // Apply input values to slider and filter
-  const handleApply = () => {
-    let min = Math.max(priceLimits[0], minInput);
+    
+    // Apply filter immediately
+    let min = Math.max(priceLimits[0], value);
     let max = Math.min(priceLimits[1], maxInput);
     if (min > max) [min, max] = [max, min];
     setPriceRange([min, max]);
-    handleClose();
   };
+  
+  const handleMaxInputChange = (e) => {
+    const value = Number(e.target.value.replace(/[^0-9]/g, ""));
+    setMaxInput(value);
+    
+    // Apply filter immediately
+    let min = Math.max(priceLimits[0], minInput);
+    let max = Math.min(priceLimits[1], value);
+    if (min > max) [min, max] = [max, min];
+    setPriceRange([min, max]);
+  };
+
+  // Remove the handleApply function since we're applying immediately
 
   return (
     <>
@@ -220,7 +227,7 @@ function PriceFilterButton({
                   label="Tối thiểu"
                   size="small"
                   type="number"
-                  value={minInput}
+                  value={minInput || ""}
                   onChange={handleMinInputChange}
                   inputProps={{
                     min: priceLimits[0],
@@ -239,7 +246,7 @@ function PriceFilterButton({
                   label="Tối đa"
                   size="small"
                   type="number"
-                  value={maxInput}
+                  value={maxInput || ""}
                   onChange={handleMaxInputChange}
                   inputProps={{
                     min: priceLimits[0],
@@ -258,15 +265,6 @@ function PriceFilterButton({
                 <span>{Number(minInput).toLocaleString()}đ</span>
                 <span>{Number(maxInput).toLocaleString()}đ</span>
               </div>
-              {/* <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                onClick={handleApply}
-                sx={{ mt: 2, width: "100%" }}
-              >
-                Áp dụng
-              </Button> */}
             </>
           )}
         </div>
@@ -415,7 +413,7 @@ const TutorLanguageList = () => {
   const location = useLocation();
   const navigate = useNavigate(); // Get the navigate function
 
-  // Parse search param
+  // Uncomment and implement search query parameter parsing
   const searchParams = new URLSearchParams(location.search);
   const searchFromQuery = searchParams.get("search") || "";
 
@@ -429,7 +427,7 @@ const TutorLanguageList = () => {
   const [filters, setFilters] = useState({
     instantLesson: false,
     within72Hours: false,
-    searchTerm: searchFromQuery,
+    searchTerm: searchFromQuery, // Initialize with search from URL
     speakingLanguage: "",
     professionalType: "all",
   });
@@ -491,7 +489,7 @@ const TutorLanguageList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalTutors, setTotalTutors] = useState(0);
-  const pageSize = 6; // 6 records per page
+  const pageSize = 12; // 6 records per page
 
   // Add state for active filter tags
   const [activeFilters, setActiveFilters] = useState([]);
@@ -512,6 +510,13 @@ const TutorLanguageList = () => {
 
     // Reset the corresponding filter based on type
     switch (type) {
+      case "searchTerm":
+        setFilters((prev) => ({ ...prev, searchTerm: "" }));
+        // Update URL to remove search parameter
+        const newSearchParams = new URLSearchParams(location.search);
+        newSearchParams.delete("search");
+        navigate(`${location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""}`);
+        break;
       case "price":
         setPriceRange([0, 1000000]);
         break;
@@ -544,11 +549,24 @@ const TutorLanguageList = () => {
       speakingLanguage: "",
       professionalType: "all",
     }));
+    // Update URL to remove search parameter
+    const newSearchParams = new URLSearchParams(location.search);
+    newSearchParams.delete("search");
+    navigate(`${location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""}`);
   };
 
   // Update active filters when filters change
   useEffect(() => {
     const newActiveFilters = [];
+
+    // Search term filter
+    if (filters.searchTerm) {
+      newActiveFilters.push({
+        type: "searchTerm",
+        label: `Tìm kiếm: "${filters.searchTerm}"`,
+        value: filters.searchTerm,
+      });
+    }
 
     // Price filter
     if (priceRange[0] > 0 || priceRange[1] < 1000000) {
@@ -603,6 +621,7 @@ const TutorLanguageList = () => {
 
     setActiveFilters(newActiveFilters);
   }, [
+    filters.searchTerm, // Add searchTerm to dependencies
     priceRange,
     selectedDays,
     selectedTimes,
@@ -632,7 +651,7 @@ const TutorLanguageList = () => {
           slotIndexes.push(...slots);
         });
 
-        // Call fetchAllTutor with API parameters including pagination
+        // Call fetchAllTutor with API parameters including pagination and fullName
         const fetchedTeachersData = await fetchAllTutor(
           currentPage, // page
           pageSize, // size
@@ -640,8 +659,9 @@ const TutorLanguageList = () => {
           filters.speakingLanguage || null, // primaryLanguageCode
           daysInWeek.length > 0 ? daysInWeek : null, // daysInWeek
           slotIndexes.length > 0 ? slotIndexes : null, // slotIndexes
-          priceRange[0] > 0 ? priceRange[0] : null, // minPrice
-          priceRange[1] < 1000000 ? priceRange[1] : null // maxPrice
+          priceRange[0], // minPrice - send actual value, even if 0
+          priceRange[1], // maxPrice - send actual value, even if 1000000
+          filters.searchTerm || null // fullName - pass search term to API
         );
 
         // Map the fetched array data to the structure expected by TutorCard
@@ -675,25 +695,26 @@ const TutorLanguageList = () => {
           return processedTeacher;
         });
 
-        // Filter by subject AFTER fetching all tutors
-        const filteredBySubject = initialSubject
-          ? processedTeachers.filter(
-              (tutor) =>
-                tutor.nativeLanguage.toLowerCase() ===
-                initialSubject.toLowerCase()
-            )
-          : processedTeachers;
+        // Remove client-side subject filtering since it should be handled by API
+        // const filteredBySubject = initialSubject
+        //   ? processedTeachers.filter(
+        //       (tutor) =>
+        //         tutor.nativeLanguage.toLowerCase() ===
+        //         initialSubject.toLowerCase()
+        //     )
+        //   : processedTeachers;
 
-        if (filteredBySubject.length === 0) {
+        // Use processedTeachers directly since API should handle filtering
+        if (processedTeachers.length === 0) {
           setTeachers([]);
         } else {
-          setTeachers(filteredBySubject);
+          setTeachers(processedTeachers);
         }
 
         // Calculate total pages based on total count (you might need to get this from API response)
         // For now, we'll estimate based on the current data
         // You should update this based on your API response structure
-        const estimatedTotal = Math.max(filteredBySubject.length * 3, 20); // Estimate
+        const estimatedTotal = Math.max(processedTeachers.length * 3, 20); // Estimate
         setTotalTutors(estimatedTotal);
         setTotalPages(Math.ceil(estimatedTotal / pageSize));
       } catch (error) {
@@ -716,12 +737,13 @@ const TutorLanguageList = () => {
     selectedTimes,
     priceRange,
     filters.speakingLanguage,
+    filters.searchTerm, // Add searchTerm to dependencies
   ]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedDays, selectedTimes, priceRange, filters.speakingLanguage]);
+  }, [selectedDays, selectedTimes, priceRange, filters.speakingLanguage, filters.searchTerm]); // Add searchTerm
 
   // --- Fetch lessons for each tutor ---
   useEffect(() => {
@@ -908,30 +930,16 @@ const TutorLanguageList = () => {
     // The useEffect will automatically trigger a new API call
   };
 
-  // --- Filtered Teachers (Only client-side search filtering now) ---
+  // --- Filtered Teachers (Remove client-side search filtering) ---
   const filteredTeachers = teachers.filter((teacher) => {
-    // Only search term filtering on client side
-    const searchTermLower = filters.searchTerm.toLowerCase();
-    const nameMatch = teacher.name.toLowerCase().includes(searchTermLower);
-    const descriptionMatch = teacher.description
-      .toLowerCase()
-      .includes(searchTermLower);
-    const subjectMatch = Array.isArray(teacher.subjects)
-      ? teacher.subjects.some((sub) =>
-          sub.name.toLowerCase().includes(searchTermLower)
-        )
-      : false;
-
-    const searchMatch =
-      !searchTermLower || nameMatch || descriptionMatch || subjectMatch;
-
-    // Professional type filtering
+    // Remove search term filtering since it's now handled by API
+    // Only keep professional type filtering on client side
     const professionalMatch =
       filters.professionalType === "all" ||
       (filters.professionalType === "pro" && teacher.isProfessional) ||
       (filters.professionalType === "normal" && !teacher.isProfessional);
 
-    return searchMatch && professionalMatch;
+    return professionalMatch; // Remove searchMatch from return
   });
 
   function isTutorAvailable(teacher) {
@@ -1100,30 +1108,22 @@ const TutorLanguageList = () => {
           {/* Left Text */}
           <div className="md:w-2/3 text-center md:text-left mb-6 md:mb-0">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-              {searchFromQuery ? (
-                "Tìm gia sư tốt nhất trực tuyến"
-              ) : (
-                <>
-                  Tìm gia sư{" "}
-                  <strong className="text-[#333333]">
-                    {displaySubject.toUpperCase()}
-                  </strong>{" "}
-                  tốt nhất trực tuyến
-                </>
-              )}
+              <>
+                Tìm gia sư{" "}
+                <strong className="text-[#333333]">
+                  {displaySubject.toUpperCase()}
+                </strong>{" "}
+                tốt nhất trực tuyến
+              </>
             </h1>
             <p className="text-gray-600 text-base md:text-lg">
-              {searchFromQuery ? (
-                "Học trực tuyến với các gia sư chuyên nghiệp của NgoaiNguNgay. Nền tảng của chúng tôi kết nối bạn với những người bản xứ từ khắp nơi trên thế giới, cung cấp các bài học và khóa học cá nhân hóa phục vụ nhu cầu và mục tiêu của bạn."
-              ) : (
-                <>
-                  Học {displaySubject} trực tuyến với các gia sư chuyên nghiệp
-                  của NgoaiNguNgay. Nền tảng của chúng tôi kết nối bạn với những
-                  người bản xứ nói tiếng {displaySubject} từ khắp nơi trên thế
-                  giới, cung cấp các bài học và khóa học cá nhân hóa phục vụ nhu
-                  cầu và mục tiêu của bạn.
-                </>
-              )}
+              <>
+                Học {displaySubject} trực tuyến với các gia sư chuyên nghiệp
+                của NgoaiNguNgay. Nền tảng của chúng tôi kết nối bạn với những
+                người bản xứ nói tiếng {displaySubject} từ khắp nơi trên thế
+                giới, cung cấp các bài học và khóa học cá nhân hóa phục vụ nhu
+                cầu và mục tiêu của bạn.
+              </>
             </p>
           </div>
           {/* Right Illustration (Placeholder) */}
@@ -1135,50 +1135,6 @@ const TutorLanguageList = () => {
 
         {/* Subject Selector & Search */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-          {/* Basic Subject Dropdown Example */}
-          {/* {!searchFromQuery && (
-            <Select
-              value={subject}
-              onChange={handleSubjectChange} // Use the new handler
-              variant="outlined"
-              size="small"
-              renderValue={() => {
-                return (
-                  <em className="not-italic">
-                    {subject.charAt(0).toUpperCase() + subject.slice(1)}
-                  </em>
-                );
-              }}
-              sx={{ minWidth: 150, backgroundColor: "white" }}
-            >
-              {languageList.map((lang) => (
-                <MenuItem key={lang.code} value={lang.name}>
-                  {(() => {
-                    // You can localize the display name here if needed
-                    switch (lang.code) {
-                      case "vi": return "Tiếng Việt";
-                      case "zh": return "Tiếng Trung";
-                      case "fr": return "Tiếng Pháp";
-                      case "en": return "Tiếng Anh";
-                      case "it": return "Tiếng Ý";
-                      case "ja": return "Tiếng Nhật";
-                      case "es": return "Tiếng Tây Ban Nha";
-                      case "ko": return "Tiếng Hàn";
-                      case "ru": return "Tiếng Nga";
-                      case "pt": return "Tiếng Bồ Đào Nha";
-                      case "ar": return "Tiếng Ả Rập";
-                      case "hi": return "Tiếng Hindi";
-                      case "th": return "Tiếng Thái";
-                      case "id": return "Tiếng Indonesia";
-                      case "nl": return "Tiếng Hà Lan";
-                      case "de": return "Tiếng Đức";
-                      default: return lang.name;
-                    }
-                  })()}
-                </MenuItem>
-              ))}
-            </Select>
-          )} */}
           <TextField
             name="searchTerm"
             placeholder="Vui lòng nhập tên gia sư..."
@@ -1203,12 +1159,12 @@ const TutorLanguageList = () => {
         {/* Keep relative for positioning tutor list */}
         {/* Filter Buttons Row */}
         <div className="flex flex-wrap gap-4 mb-6 pb-4 border-b border-gray-200 items-center">
-          <FilterButton
+          {/* <FilterButton
             icon={<FaTag />}
             label="Danh mục bài học"
             menuItems={["Giao tiếp", "Ngữ pháp", "Phát âm"]}
             isActive={false}
-          />
+          /> */}
           <PriceFilterButton
             icon={<FaDollarSign />}
             label="Giá cả"
@@ -1429,14 +1385,10 @@ const TutorLanguageList = () => {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                {searchFromQuery ? (
-                  "Cải thiện kỹ năng của bạn với các lớp học trực tuyến cá nhân hóa"
-                ) : (
-                  <>
-                    Cải thiện kỹ năng tiếng {displaySubject} của bạn với các lớp
-                    học trực tuyến cá nhân hóa
-                  </>
-                )}
+                <>
+                  Cải thiện kỹ năng tiếng {displaySubject} của bạn với các lớp
+                  học trực tuyến cá nhân hóa
+                </>
               </h3>
               <p className="text-gray-600 text-sm">
                 Đội ngũ giáo viên tiếng {displaySubject} giàu kinh nghiệm của

@@ -65,11 +65,14 @@ const StudentRequests = () => {
   const [allOffers, setAllOffers] = useState([]);
 
   // Week navigation
-  const dayInWeekOrder = [1, 2, 3, 4, 5, 6, 7]; // Monday to Sunday
+  const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // API: 2=Mon, ..., 7=Sat, 1=Sun
   const dialogWeekInfo = dayInWeekOrder.map((dayInWeek) => {
     const date = new Date(dialogWeekStart);
-    date.setDate(date.getDate() + (dayInWeek - 1));
-    const labels = ['', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    // Calculate day offset: dayInWeek 2=Mon, ..., 7=Sat, 1=Sun
+    let dayOffset = dayInWeek - 2;
+    if (dayInWeek === 1) dayOffset = 6; // Sunday
+    date.setDate(date.getDate() + dayOffset);
+    const labels = ['', 'CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     return {
       label: labels[dayInWeek],
       date: date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
@@ -92,7 +95,10 @@ const StudentRequests = () => {
 
   const getSlotDateTime = (weekStart, dayInWeek, slotIndex) => {
     const date = new Date(weekStart);
-    date.setDate(date.getDate() + (dayInWeek - 1));
+    // Calculate day offset: dayInWeek 2=Mon, ..., 7=Sat, 1=Sun
+    let dayOffset = dayInWeek - 2;
+    if (dayInWeek === 1) dayOffset = 6; // Sunday
+    date.setDate(date.getDate() + dayOffset);
     const hour = Math.floor(slotIndex / 2);
     const minute = slotIndex % 2 === 0 ? 0 : 30;
     date.setHours(hour, minute, 0, 0);

@@ -161,7 +161,7 @@ const TutorCard = memo(
           setAvailabilityText(availableBlocks.join(", "));
         }
       } else {
-        setAvailabilityText("Đang tải...");
+        setAvailabilityText("Không có lịch");
       }
     }, [weeklySchedule]);
 
