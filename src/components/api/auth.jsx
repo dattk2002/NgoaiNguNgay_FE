@@ -1406,7 +1406,38 @@ export async function fetchTutorApplicationByApplicationId(applicationId) {
     const response = await callApi(`/api/tutorapplication/staff/${applicationId}`, "GET", null, token);
 
     if (response && response.data) {
-      return response.data;
+      // Implement defensive coding to ensure languages and hashtags are always arrays
+      const data = response.data;
+      
+      // According to the API response structure, languages and hashtags are at the root level
+      // Ensure they are always arrays
+      data.languages = data.languages || [];
+      data.hashtags = data.hashtags || [];
+      
+      // Convert hashtags to consistent format (handle both string and object formats)
+      if (data.hashtags && Array.isArray(data.hashtags)) {
+        data.hashtags = data.hashtags.map(tag => {
+          if (typeof tag === 'string') {
+            return { name: tag, value: tag };
+          }
+          return tag;
+        });
+      }
+      
+      // Ensure tutor object exists
+      if (!data.tutor) {
+        data.tutor = {};
+      }
+      
+      // Also copy languages and hashtags to tutor object for backward compatibility
+      data.tutor.languages = data.languages;
+      data.tutor.hashtags = data.hashtags;
+      
+      console.log("🔍 Processed tutor application data:", data);
+      console.log("🔍 Languages (processed):", data.languages);
+      console.log("🔍 Hashtags (processed):", data.hashtags);
+      
+      return data;
     } else {
       throw new Error("No tutor application data found for this application ID.");
     }
@@ -1422,10 +1453,10 @@ export async function reviewTutorApplication(applicationId, action, notes = "") 
     if (!token) {
       throw new Error("Authentication token is required");
     }
-
+    
     const requestBody = {
       applicationId: applicationId,
-      action: action, // 0 = request more info, 1 = approve, 2 = reject
+      action: action, // 0 = RequestRevision (Yêu cầu chỉnh sửa), 1 = Approve (Phê duyệt), 2 = Reject (Từ chối)
       notes: notes
     };
 
@@ -2433,6 +2464,69 @@ export async function fetchStaffDisputes(params = {}) {
 }
 
 /**
+ * Fetch filtered disputes for staff/admin management with advanced filtering
+ * @param {Object} params - Query parameters { 
+ *   ResolutionFilter: array[integer], 
+ *   CaseNumber: string, 
+ *   PageIndex: integer, 
+ *   PageSize: integer 
+ * }
+ * @returns {Promise<Object>} API response with filtered disputes data and metadata
+ */
+export async function fetchStaffDisputesFilter(params = {}) {
+  try {
+    // Try staff token first, then fall back to regular access token
+    const staffToken = localStorage.getItem("staffToken");
+    const token = staffToken || getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add ResolutionFilter (array of integers)
+    if (params.ResolutionFilter && Array.isArray(params.ResolutionFilter) && params.ResolutionFilter.length > 0) {
+      params.ResolutionFilter.forEach(resolution => {
+        queryParams.append("ResolutionFilter", resolution.toString());
+      });
+    }
+    
+    // Add CaseNumber (string)
+    if (params.CaseNumber) {
+      queryParams.append("CaseNumber", params.CaseNumber);
+    }
+    
+    // Add PageIndex (integer)
+    if (params.PageIndex !== undefined && params.PageIndex !== null) {
+      queryParams.append("PageIndex", params.PageIndex.toString());
+    }
+    
+    // Add PageSize (integer)
+    if (params.PageSize !== undefined && params.PageSize !== null) {
+      queryParams.append("PageSize", params.PageSize.toString());
+    }
+    
+    const url = `/api/disputes/staff/filter${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+    console.log("🔍 Calling staff disputes filter API:", url);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    console.log("🔍 Filter params:", params);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Staff disputes filter fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for staff disputes filter.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch staff disputes filter:", error.message);
+    throw error;
+  }
+}
+
+/**
  * Fetch dispute details by ID for staff
  * @param {string} disputeId - The dispute ID
  * @returns {Promise<Object>} API response with detailed dispute data
@@ -2466,5 +2560,7 @@ export async function fetchStaffDisputeDetail(disputeId) {
     throw error;
   }
 }
+
+
 
 import { formatCentralTimestamp, convertUTC0ToUTC7, convertBookingOfferResponseToUTC7 } from '../../utils/formatCentralTimestamp';

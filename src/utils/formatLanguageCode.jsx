@@ -18,6 +18,17 @@ const languageMap = {
     // Add more language codes and names as needed
 };
 
+// Proficiency level mapping for tutor applications
+const proficiencyLevelMap = {
+    1: "Người mới bắt đầu (A1)",
+    2: "Sơ cấp (A2)",
+    3: "Trung cấp (B1)",
+    4: "Trung cấp trên (B2)",
+    5: "Nâng cao (C1)",
+    6: "Thành thạo (C2)",
+    7: "Bản ngữ"
+};
+
 /**
  * Converts a single language code (e.g., 'en', 'fr') or a comma-separated string
  * of codes (e.g., 'en, fr') to their full English name(s).
@@ -55,4 +66,16 @@ export const formatLanguageCode = (languageCodeOrCodes) => {
         const lowerCaseCode = trimmedInput.toLowerCase();
         return languageMap[lowerCaseCode] || trimmedInput;
     }
+};
+
+/**
+ * Formats a proficiency level number to its Vietnamese description
+ * @param {number} level The proficiency level number (1-7)
+ * @returns {string} The formatted proficiency level description
+ */
+export const formatProficiencyLevel = (level) => {
+    if (!level || level < 1 || level > 7) {
+        return "Chưa xác định";
+    }
+    return proficiencyLevelMap[level] || "Chưa xác định";
 };

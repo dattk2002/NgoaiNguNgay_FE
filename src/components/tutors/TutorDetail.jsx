@@ -515,7 +515,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   // Component to display detailed rating breakdown
   const DetailedRatingDisplay = ({ rating, label, icon, loading = false }) => {
     const starCount = Math.round(rating || 0);
-    const averageRating = rating ? rating.toFixed(1) : "N/A";
+    const averageRating = rating ? rating.toFixed(1) : "Chưa có";
     
     if (loading) {
       return (
@@ -818,7 +818,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   ? ((tutorRating.averageTeachingQuality + tutorRating.averageAttitude + tutorRating.averageCommitment) / 3).toFixed(1)
                   : teacher.rating !== undefined && teacher.rating !== null
                   ? teacher.rating.toFixed(1)
-                  : "N/A"}
+                  : "chưa có"}
               </p>
               <div className="flex justify-center gap-1 mt-1">
                 {[...Array(5)].map((_, i) => {

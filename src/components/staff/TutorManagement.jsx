@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { fetchPendingApplications, fetchTutorApplicationById, reviewTutorApplication } from '../api/auth';
+import { 
+    fetchPendingApplications, 
+    fetchTutorApplicationById, 
+    reviewTutorApplication
+} from '../api/auth';
 import { toast } from 'react-toastify';
 import StudentRequests from '../tutorManagement/StudentRequests';
 import { motion, AnimatePresence } from "framer-motion";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
+import { formatLanguageCode, formatProficiencyLevel } from '../../utils/formatLanguageCode';
+import { 
+    APPLICATION_STATUS, 
+    REVISION_ACTION, 
+    getStatusText, 
+    getStatusColorClass,
+    getActionText 
+} from '../../utils/tutorApplicationConstants';
 
 const TutorManagement = () => {
     const [activeTab, setActiveTab] = useState('pending');
@@ -16,6 +28,12 @@ const TutorManagement = () => {
     const [reviewingTutor, setReviewingTutor] = useState(null);
     const [reviewLoading, setReviewLoading] = useState(false);
     const [pendingApplications, setPendingApplications] = useState([]);
+    const [statistics, setStatistics] = useState({
+        total: 0,
+        pending: 0,
+        approved: 0,
+        needInfo: 0
+    });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -23,33 +41,16 @@ const TutorManagement = () => {
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [detailsCache, setDetailsCache] = useState({});
 
-    const getStatusText = (status) => {
-        switch (status) {
-            case 0: return "Chưa nộp";
-            case 1: return "Chờ xác minh";
-            case 2: return "Yêu cầu chỉnh sửa";
-            case 3: return "Chờ xác minh lại";
-            case 4: return "Đã xác minh";
-            default: return "Không xác định";
-        }
-    };
-
+    // Using imported constants and helper functions
     const getStatusColor = (status) => {
-        switch (status) {
-            case 0: return "bg-gray-100 text-gray-800"; // gray - chưa nộp
-            case 1: return "bg-yellow-100 text-yellow-800"; // amber - chờ xác minh
-            case 2: return "bg-blue-100 text-blue-800"; // blue - yêu cầu chỉnh sửa
-            case 3: return "bg-yellow-100 text-yellow-800"; // amber - chờ xác minh lại
-            case 4: return "bg-green-100 text-green-800"; // green - đã xác minh
-            default: return "bg-gray-100 text-gray-800";
-        }
+        return getStatusColorClass(status);
     };
 
     const tabs = [
         {
             id: 'pending',
             title: 'Chờ duyệt',
-            count: pendingApplications.length,
+            count: statistics.pending,
             icon: (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -59,7 +60,7 @@ const TutorManagement = () => {
         {
             id: 'approved',
             title: 'Đã duyệt',
-            count: 156,
+            count: statistics.approved,
             icon: (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -69,7 +70,7 @@ const TutorManagement = () => {
         {
             id: 'need-info',
             title: 'Cần thông tin',
-            count: 15,
+            count: statistics.needInfo,
             icon: (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -88,68 +89,105 @@ const TutorManagement = () => {
         }
     ];
 
-    useEffect(() => {
-        const loadPendingApplications = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const data = await fetchPendingApplications(currentPage, pageSize);
+    // Calculate statistics from applications data
+    const calculateStatistics = (applications) => {
+        const stats = {
+            total: applications.length,
+            pending: applications.filter(app => app.status === 1).length, // PendingVerification
+            approved: applications.filter(app => app.status === 4).length, // Verified
+            needInfo: applications.filter(app => app.status === 2).length // RevisionRequested
+        };
+        setStatistics(stats);
+    };
 
-                // Fetch detailed information for each application
-                const enrichedData = await Promise.all(
-                    data.map(async (application) => {
-                        try {
-                            // Check cache first
-                            if (detailsCache[application.id]) {
-                                return {
-                                    ...application,
-                                    tutor: {
-                                        ...application.tutor,
-                                        ...detailsCache[application.id].tutor
-                                    }
-                                };
-                            }
+    // Load pending applications
+    const loadPendingApplications = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await fetchPendingApplications(currentPage, pageSize);
 
-                            const details = await fetchTutorApplicationById(application.id);
-                            console.log(`Debug - Detailed data for ${application.id}:`, details);
-
-                            // Cache the details
-                            setDetailsCache(prev => ({
-                                ...prev,
-                                [application.id]: details
-                            }));
-
-                            // Merge the detailed tutor information
+            // Fetch detailed information for each application
+            const enrichedData = await Promise.all(
+                data.map(async (application) => {
+                    try {
+                        // Check cache first
+                        if (detailsCache[application.id]) {
                             return {
                                 ...application,
                                 tutor: {
                                     ...application.tutor,
-                                    ...details.tutor // This will override with detailed info
+                                    ...detailsCache[application.id].tutor
                                 }
                             };
-                        } catch (error) {
-                            console.error(`Error fetching details for application ${application.id}:`, error);
-                            return application; // Return original if details fetch fails
                         }
-                    })
-                );
 
-                console.log('Debug - Enriched applications data:', enrichedData);
-                setPendingApplications(enrichedData);
-            } catch (err) {
-                setError(err.message);
-                console.error('Error loading pending applications:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
+                        const details = await fetchTutorApplicationById(application.id);
+                        console.log(`Debug - Detailed data for ${application.id}:`, details);
+                        console.log("🔍 Languages in details:", details?.languages);
+                        console.log("🔍 Hashtags in details:", details?.hashtags);
 
-        if (activeTab === 'pending') {
-            loadPendingApplications();
+                        // Cache the details
+                        setDetailsCache(prev => ({
+                            ...prev,
+                            [application.id]: details
+                        }));
+
+                        // Merge the detailed tutor information
+                        return {
+                            ...application,
+                            tutor: {
+                                ...application.tutor,
+                                ...details.tutor // This will override with detailed info
+                            },
+                            // Also add languages and hashtags at the root level for direct access
+                            languages: details.languages,
+                            hashtags: details.hashtags
+                        };
+                    } catch (error) {
+                        console.error(`Error fetching details for application ${application.id}:`, error);
+                        return application; // Return original if details fetch fails
+                    }
+                })
+            );
+
+            console.log('Debug - Enriched applications data:', enrichedData);
+            setPendingApplications(enrichedData);
+        } catch (err) {
+            setError(err.message);
+            console.error('Error loading pending applications:', err);
+        } finally {
+            setLoading(false);
         }
-    }, [activeTab, currentPage, pageSize]);
+    };
 
-    const currentTutors = activeTab === 'pending' ? pendingApplications : [];
+    // Filter applications by status
+    const filterApplicationsByStatus = (applications, status) => {
+        return applications.filter(app => app.status === status);
+    };
+
+    useEffect(() => {
+        // Load pending applications on component mount and calculate statistics
+        loadPendingApplications();
+    }, [currentPage, pageSize]);
+
+    useEffect(() => {
+        // Calculate statistics whenever pendingApplications changes
+        calculateStatistics(pendingApplications);
+    }, [pendingApplications]);
+
+    const currentTutors = (() => {
+        switch (activeTab) {
+            case 'pending':
+                return filterApplicationsByStatus(pendingApplications, 1); // PendingVerification
+            case 'approved':
+                return filterApplicationsByStatus(pendingApplications, 4); // Verified
+            case 'need-info':
+                return filterApplicationsByStatus(pendingApplications, 2); // RevisionRequested
+            default:
+                return [];
+        }
+    })();
 
     const handleViewProfile = async (tutor) => {
         setSelectedTutor(tutor);
@@ -164,8 +202,6 @@ const TutorManagement = () => {
                 setDetailsLoading(true);
                 try {
                     const details = await fetchTutorApplicationById(tutor.id);
-                    console.log('Debug - Modal detailed tutor data:', details);
-                    console.log('Debug - Modal tutor object:', details.tutor);
 
                     // Update cache
                     setDetailsCache(prev => ({
@@ -205,11 +241,15 @@ const TutorManagement = () => {
     const confirmApprove = async () => {
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, 4, reviewNotes); // Status 4 = Verified
+            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.APPROVE, reviewNotes); // Action 1 = Approve (Phê duyệt)
 
-            // Update local state
+            // Update the application status in pendingApplications
             setPendingApplications(prev =>
-                prev.filter(app => app.id !== reviewingTutor.id)
+                prev.map(app => 
+                    app.id === reviewingTutor.id 
+                        ? { ...app, status: 4 } // Change to Verified (4)
+                        : app
+                )
             );
 
             setShowApproveModal(false);
@@ -234,11 +274,15 @@ const TutorManagement = () => {
 
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, 2, reviewNotes); // Status 2 = RevisionRequested
+            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.REJECT, reviewNotes); // Action 2 = Reject (Từ chối)
 
-            // Update local state
+            // Update the application status in pendingApplications
             setPendingApplications(prev =>
-                prev.filter(app => app.id !== reviewingTutor.id)
+                prev.map(app => 
+                    app.id === reviewingTutor.id 
+                        ? { ...app, status: 5 } // Change to Rejected (5)
+                        : app
+                )
             );
 
             setShowRejectModal(false);
@@ -263,11 +307,15 @@ const TutorManagement = () => {
 
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, 0, reviewNotes); // Status 0 = UnSubmitted
+            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.REQUEST_REVISION, reviewNotes); // Action 0 = RequestRevision (Yêu cầu chỉnh sửa)
 
-            // Update local state
+            // Update the application status in pendingApplications
             setPendingApplications(prev =>
-                prev.filter(app => app.id !== reviewingTutor.id)
+                prev.map(app => 
+                    app.id === reviewingTutor.id 
+                        ? { ...app, status: 2 } // Change to RevisionRequested (2)
+                        : app
+                )
             );
 
             setShowInfoRequestModal(false);
@@ -502,37 +550,47 @@ const TutorManagement = () => {
                                             </div>
 
                                             {/* Languages */}
-                                            {selectedTutorDetails.tutor.languages && selectedTutorDetails.tutor.languages.length > 0 && (
-                                                <div className="bg-gray-50 p-4 rounded-lg">
-                                                    <h4 className="text-lg font-semibold text-gray-800 mb-3">Ngôn ngữ</h4>
-                                                    <div className="space-y-2">
-                                                        {selectedTutorDetails.tutor.languages.map((lang, index) => (
-                                                            <div key={index} className="flex justify-between items-center">
-                                                                <span className="font-medium text-gray-600">
-                                                                    {lang.languageCode} {lang.isPrimary && '(Chính)'}
-                                                                </span>
-                                                                <span className="text-gray-800">
-                                                                    Trình độ: {lang.proficiency}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <div className="bg-gray-50 p-4 rounded-lg">
+                                                <h4 className="text-lg font-semibold text-gray-800 mb-3">Ngôn ngữ</h4>
+                                                {(() => {
+                                                    console.log("🔍 Modal - Languages data:", selectedTutorDetails.languages);
+                                                    return selectedTutorDetails.languages && selectedTutorDetails.languages.length > 0 ? (
+                                                        <div className="space-y-2">
+                                                            {selectedTutorDetails.languages.map((lang, index) => (
+                                                                <div key={index} className="flex justify-between items-center">
+                                                                    <span className="font-medium text-gray-600">
+                                                                        {formatLanguageCode(lang.languageCode)} {lang.isPrimary && '(Chính)'}
+                                                                    </span>
+                                                                    <span className="text-gray-800">
+                                                                        Trình độ: {formatProficiencyLevel(lang.proficiency)}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-gray-500 italic">Chưa có thông tin ngôn ngữ</p>
+                                                    );
+                                                })()}
+                                            </div>
 
                                             {/* Hashtags */}
-                                            {selectedTutorDetails.tutor.hashtags && selectedTutorDetails.tutor.hashtags.length > 0 && (
-                                                <div className="bg-gray-50 p-4 rounded-lg">
-                                                    <h4 className="text-lg font-semibold text-gray-800 mb-3">Kỹ năng & Chứng chỉ</h4>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {selectedTutorDetails.tutor.hashtags.map((tag, index) => (
-                                                            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                                                                {tag.name}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <div className="bg-gray-50 p-4 rounded-lg">
+                                                <h4 className="text-lg font-semibold text-gray-800 mb-3">Kỹ năng & Chứng chỉ</h4>
+                                                {(() => {
+                                                    console.log("🔍 Modal - Hashtags data:", selectedTutorDetails.hashtags);
+                                                    return selectedTutorDetails.hashtags && selectedTutorDetails.hashtags.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {selectedTutorDetails.hashtags.map((tag, index) => (
+                                                                <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                                                                    {tag.name || tag.value || tag}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-gray-500 italic">Chưa có thông tin kỹ năng và chứng chỉ</p>
+                                                    );
+                                                })()}
+                                            </div>
                                         </>
                                     )}
                                 </div>
@@ -655,24 +713,44 @@ const TutorManagement = () => {
                     )}
 
                     <div className="flex gap-4 justify-center pt-6 border-t border-gray-200 mt-6">
-                        <NoFocusOutLineButton
-                            className="bg-green-500 text-white px-6 py-3 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2"
-                            onClick={() => handleApprove(selectedTutor)}
-                        >
-                            ✅ Phê duyệt
-                        </NoFocusOutLineButton>
-                        <NoFocusOutLineButton
-                            className="bg-yellow-500 text-white px-6 py-3 rounded-md hover:bg-yellow-600 transition-colors flex items-center gap-2"
-                            onClick={() => handleRequestInfo(selectedTutor)}
-                        >
-                            📝 Yêu cầu thông tin bổ sung
-                        </NoFocusOutLineButton>
-                        <NoFocusOutLineButton
-                            className="bg-red-500 text-white px-6 py-3 rounded-md hover:bg-red-600 transition-colors flex items-center gap-2"
-                            onClick={() => handleReject(selectedTutor)}
-                        >
-                            ❌ Từ chối
-                        </NoFocusOutLineButton>
+                        {selectedTutorDetails?.status === 1 && (
+                            <>
+                                <NoFocusOutLineButton
+                                    className="bg-green-500 text-white px-6 py-3 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2"
+                                    onClick={() => handleApprove(selectedTutor)}
+                                >
+                                    ✅ Phê duyệt
+                                </NoFocusOutLineButton>
+                                <NoFocusOutLineButton
+                                    className="bg-yellow-500 text-white px-6 py-3 rounded-md hover:bg-yellow-600 transition-colors flex items-center gap-2"
+                                    onClick={() => handleRequestInfo(selectedTutor)}
+                                >
+                                    📝 Yêu cầu thông tin bổ sung
+                                </NoFocusOutLineButton>
+                                <NoFocusOutLineButton
+                                    className="bg-red-500 text-white px-6 py-3 rounded-md hover:bg-red-600 transition-colors flex items-center gap-2"
+                                    onClick={() => handleReject(selectedTutor)}
+                                >
+                                    ❌ Từ chối
+                                </NoFocusOutLineButton>
+                            </>
+                        )}
+                        {selectedTutorDetails?.status === 0 && (
+                            <>
+                                <NoFocusOutLineButton
+                                    className="bg-green-500 text-white px-6 py-3 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2"
+                                    onClick={() => handleApprove(selectedTutor)}
+                                >
+                                    ✅ Phê duyệt
+                                </NoFocusOutLineButton>
+                                <NoFocusOutLineButton
+                                    className="bg-red-500 text-white px-6 py-3 rounded-md hover:bg-red-600 transition-colors flex items-center gap-2"
+                                    onClick={() => handleReject(selectedTutor)}
+                                >
+                                    ❌ Từ chối
+                                </NoFocusOutLineButton>
+                            </>
+                        )}
                     </div>
                         </div>
                     </motion.div>
@@ -726,7 +804,7 @@ const TutorManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-blue-100 text-sm font-medium">Tổng đơn đăng ký</p>
-                            <p className="text-2xl font-bold">{pendingApplications.length + 156 + 15}</p>
+                            <p className="text-2xl font-bold">{statistics.total}</p>
                         </div>
                         <div className="bg-blue-400 bg-opacity-30 rounded-full p-3">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -739,7 +817,7 @@ const TutorManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">Đã phê duyệt</p>
-                            <p className="text-2xl font-bold">156</p>
+                            <p className="text-2xl font-bold">{statistics.approved}</p>
                         </div>
                         <div className="bg-green-400 bg-opacity-30 rounded-full p-3">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -752,7 +830,7 @@ const TutorManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-yellow-100 text-sm font-medium">Chờ xử lý</p>
-                            <p className="text-2xl font-bold">{pendingApplications.length}</p>
+                            <p className="text-2xl font-bold">{statistics.pending}</p>
                         </div>
                         <div className="bg-yellow-400 bg-opacity-30 rounded-full p-3">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -807,11 +885,11 @@ const TutorManagement = () => {
                     </div>
                     <div className="flex space-x-3">
                         <select className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black">
-                            <option>Tất cả môn học</option>
-                            <option>Toán học</option>
+                            <option>Tất cả</option>
+                            <option>Tiếng Pháp</option>
                             <option>Tiếng Anh</option>
-                            <option>Vật lý</option>
-                            <option>Hóa học</option>
+                            <option>Tiếng Việt</option>
+                            <option>Tiếng Ả Rập</option>
                         </select>
                         <select className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black">
                             <option>Sắp xếp theo</option>
@@ -935,6 +1013,27 @@ const TutorManagement = () => {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                             </svg>
                                                             Yêu cầu TT
+                                                        </NoFocusOutLineButton>
+                                                        <NoFocusOutLineButton
+                                                            onClick={() => handleReject(tutor)}
+                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                                                        >
+                                                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                            Từ chối
+                                                        </NoFocusOutLineButton>
+                                                    </>
+                                                )}
+                                                {activeTab === 'need-info' && tutor.status === 0 && (
+                                                    <>
+                                                        <NoFocusOutLineButton
+                                                            onClick={() => handleApprove(tutor)}
+                                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                                                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            Duyệt
                                                         </NoFocusOutLineButton>
                                                         <NoFocusOutLineButton
                                                             onClick={() => handleReject(tutor)}

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { 
   getAllTutorBookingOffer, 
   deleteTutorBookingOfferByOfferId 
@@ -30,12 +32,33 @@ const OfferManagement = () => {
       const response = await getAllTutorBookingOffer();
       if (response && response.data) {
         setOffers(response.data);
+        // Hiển thị toast thông báo thành công nếu có dữ liệu
+        if (response.data.length > 0) {
+          toast.success(`Đã tải ${response.data.length} yêu cầu thành công!`, {
+            position: "top-right",
+            autoClose: 2000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+        }
       } else {
         setOffers([]);
       }
     } catch (err) {
       setError('Không thể tải danh sách offers');
       console.error('Error fetching offers:', err);
+      
+      // Hiển thị toast thông báo lỗi
+      toast.error('Không thể tải danh sách yêu cầu. Vui lòng thử lại.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -56,12 +79,33 @@ const OfferManagement = () => {
   const confirmDeleteOffer = async () => {
     try {
       await deleteTutorBookingOfferByOfferId(offerToDelete.id);
-      setOffers(offers.filter(offer => offer.id !== offerToDelete.id));
+      
+      // Cập nhật state ngay lập tức
+      setOffers(prevOffers => prevOffers.filter(offer => offer.id !== offerToDelete.id));
       setShowDeleteModal(false);
       setOfferToDelete(null);
+      
+      // Hiển thị toast thông báo thành công
+      toast.success('Xóa yêu cầu thành công!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } catch (err) {
       console.error('Error deleting offer:', err);
-      alert('Không thể xóa offer. Vui lòng thử lại.');
+      
+      // Hiển thị toast thông báo lỗi
+      toast.error('Không thể xóa yêu cầu. Vui lòng thử lại.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -82,7 +126,10 @@ const OfferManagement = () => {
       <div className="text-center py-8">
         <p className="text-red-600">{error}</p>
         <button 
-          onClick={fetchOffers}
+          onClick={() => {
+            setError(null);
+            fetchOffers();
+          }}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           Thử lại
@@ -238,6 +285,20 @@ const OfferManagement = () => {
           }}
         />
       )}
+
+      {/* Toast Container */}
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
 
     </div>
   );
