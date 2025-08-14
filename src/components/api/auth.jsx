@@ -1608,6 +1608,37 @@ export async function fetchBookingDetail(bookingId) {
 }
 
 /**
+ * Fetch booking information by booking ID
+ * @param {string} bookingId - The booking ID
+ * @returns {Promise<Object>} API response with booking data
+ */
+export async function fetchBookingInfo(bookingId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/booking/${bookingId}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("✅ Booking info fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for booking info.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch booking info:", error.message);
+    throw error;
+  }
+}
+
+/**
  * Fetch notifications for the current user.
  * @param {number} page - The page number (default: 1)
  * @param {number} size - The number of notifications per page (default: 10)
@@ -2033,6 +2064,405 @@ export async function fetchTutorRating(tutorId, page = 1, size = 10) {
     }
   } catch (error) {
     console.error("❌ Failed to fetch tutor rating:", error.message);
+    throw error;
+  }
+}
+
+// ==================== DISPUTE API FUNCTIONS ====================
+
+/**
+ * Create a new dispute/complaint
+ * @param {Object} disputeData - { bookingId, reason, evidenceUrls }
+ * @returns {Promise<Object>} API response
+ */
+export async function createDispute(disputeData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate reason length (minimum 10 characters)
+    if (!disputeData.reason || disputeData.reason.length < 10) {
+      throw new Error("Reason must be at least 10 characters long");
+    }
+
+    const response = await callApi("/api/disputes", "POST", disputeData, token);
+
+    if (response) {
+      console.log("✅ Dispute created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for dispute creation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to create dispute:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch disputes for learners
+ * @param {boolean} onlyActive - Only show active disputes (default: false)
+ * @returns {Promise<Object>} API response with dispute data and metadata
+ */
+export async function fetchLearnerDisputes(onlyActive = false) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const params = new URLSearchParams({
+      onlyActive: onlyActive.toString()
+    });
+
+    const response = await callApi(
+      `/api/disputes/learner?${params.toString()}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Learner disputes fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for learner disputes.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch learner disputes:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch disputes for tutors with pagination
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Number of items per page (default: 10)
+ * @param {string} status - Filter by status (optional)
+ * @returns {Promise<Object>} API response with dispute data
+ */
+export async function fetchTutorDisputes(page = 1, pageSize = 10, status = null) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString()
+    });
+
+    if (status) {
+      params.append('status', status);
+    }
+
+    const response = await callApi(
+      `/api/disputes/tutor?${params.toString()}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Tutor disputes fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for tutor disputes.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor disputes:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch dispute details by ID for learners
+ * @param {string} disputeId - The dispute ID
+ * @returns {Promise<Object>} API response with detailed dispute data
+ */
+export async function fetchLearnerDisputeDetail(disputeId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/disputes/learner/${disputeId}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Learner dispute detail fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for learner dispute detail.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch learner dispute detail:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch dispute details by ID for tutors
+ * @param {string} disputeId - The dispute ID
+ * @returns {Promise<Object>} API response with detailed dispute data
+ */
+export async function fetchTutorDisputeDetail(disputeId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/disputes/tutor/${disputeId}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Tutor dispute detail fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for tutor dispute detail.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor dispute detail:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Respond to a dispute (add comment/response)
+ * @param {Object} responseData - { disputeId, response }
+ * @returns {Promise<Object>} API response
+ */
+export async function respondToDispute(responseData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/disputes/respond`,
+      "POST",
+      responseData,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Dispute response added successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for adding dispute response.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to add dispute response:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Resolve a dispute (for staff/admin only)
+ * @param {Object} resolveData - { disputeId, resolution, notes }
+ * @returns {Promise<Object>} API response
+ */
+export async function resolveDispute(resolveData) {
+  try {
+    // Try staff token first, then fall back to regular access token
+    const staffToken = localStorage.getItem("staffToken");
+    const token = staffToken || getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    console.log("🔍 Calling resolve dispute API with data:", resolveData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    const response = await callApi(
+      `/api/disputes/resolve`,
+      "POST",
+      resolveData,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Dispute resolved successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for resolving dispute.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to resolve dispute:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Withdraw a dispute
+ * @param {Object} withdrawData - { disputeId }
+ * @returns {Promise<Object>} API response
+ */
+export async function withdrawDispute(withdrawData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/disputes/withdraw`,
+      "POST",
+      withdrawData,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Dispute withdrawn successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for withdrawing dispute.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to withdraw dispute:", error.message);
+    throw error;
+  }
+}
+
+// ==================== BACKWARD COMPATIBILITY ALIASES ====================
+
+/**
+ * @deprecated Use fetchLearnerDisputes instead
+ */
+export const fetchDisputes = fetchLearnerDisputes;
+
+/**
+ * @deprecated Use fetchLearnerDisputeDetail instead
+ */
+export const fetchDisputeDetail = fetchLearnerDisputeDetail;
+
+/**
+ * @deprecated Use addDisputeComment instead
+ */
+export const addDisputeComment = respondToDispute;
+
+/**
+ * @deprecated Use updateDisputeStatus instead
+ */
+export const updateDisputeStatus = resolveDispute;
+
+/**
+ * @deprecated Use fetchAllDisputes instead
+ */
+export const fetchAllDisputes = fetchStaffDisputes;
+
+/**
+ * Fetch dispute metadata (reasons, statuses, etc.)
+ * @returns {Promise<Object>} API response with dispute metadata
+ */
+export async function fetchDisputeMetadata() {
+  try {
+    // Try staff token first, then fall back to regular access token
+    const staffToken = localStorage.getItem("staffToken");
+    const token = staffToken || getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/disputes/metadata`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Dispute metadata fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for dispute metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch dispute metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch all disputes for staff/admin management
+ * @param {Object} params - Query parameters { page, pageSize, status, priority, etc. }
+ * @returns {Promise<Object>} API response with all disputes data
+ */
+export async function fetchStaffDisputes(params = {}) {
+  try {
+    // Try staff token first, then fall back to regular access token
+    const staffToken = localStorage.getItem("staffToken");
+    const token = staffToken || getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Only include non-pagination parameters
+    const queryParams = new URLSearchParams();
+    if (params.status) queryParams.append("status", params.status);
+    if (params.search) queryParams.append("search", params.search);
+    
+    const url = `/api/disputes/staff${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+    console.log("🔍 Calling staff disputes API:", url);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Staff disputes fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for staff disputes.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch staff disputes:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch dispute details by ID for staff
+ * @param {string} disputeId - The dispute ID
+ * @returns {Promise<Object>} API response with detailed dispute data
+ */
+export async function fetchStaffDisputeDetail(disputeId) {
+  try {
+    // Try staff token first, then fall back to regular access token
+    const staffToken = localStorage.getItem("staffToken");
+    const token = staffToken || getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    console.log("🔍 Calling staff dispute detail API:", `/api/disputes/staff/${disputeId}`);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    const response = await callApi(
+      `/api/disputes/staff/${disputeId}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Staff dispute detail fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for staff dispute detail.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch staff dispute detail:", error.message);
     throw error;
   }
 }

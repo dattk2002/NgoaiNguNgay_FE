@@ -87,6 +87,7 @@ export default function MyBookingTable({
   loadingRequests,
   onMessageTutor,
   onDeleteRequest,
+  onCreateDispute,
   selectedBookingId, // <-- new prop
 }) {
   const navigate = useNavigate();

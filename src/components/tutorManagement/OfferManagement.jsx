@@ -94,10 +94,10 @@ const OfferManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Quản lý Offers</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Quản lý yêu cầu</h2>
         <div className="flex items-center space-x-4">
           <div className="text-sm text-gray-600">
-            Hiển thị: {offers.length} offers
+            {offers.length} yêu cầu đến học viên
           </div>
         </div>
       </div>
@@ -105,8 +105,8 @@ const OfferManagement = () => {
       {offers.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">📝</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có offers nào</h3>
-          <p className="text-gray-500">Bạn chưa tạo offer nào cho học viên</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có yêu cầu đến học viên nào</h3>
+          <p className="text-gray-500">Bạn chưa tạo yêu cầu nào cho học viên</p>
         </div>
       ) : (
         <div className="grid gap-6">
@@ -136,7 +136,7 @@ const OfferManagement = () => {
                    </div>
                    <div>
                      <h3 className="text-lg font-semibold text-gray-900">
-                       Offer đến {offer.learner?.fullName || 'Học viên'}
+                       Yêu cầu đến {offer.learner?.fullName || 'Học viên'}
                      </h3>
                     <p className="text-sm text-gray-600">
                       Tạo lúc: {formatTutorDate(offer.createdAt)}
