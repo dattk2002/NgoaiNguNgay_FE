@@ -676,7 +676,15 @@ const ScheduleTracking = () => {
                         </div>
                         <div>
                           <p className="text-gray-700">Buổi đầu tiên:</p>
-                          <p className="font-medium text-gray-900">{formatCentralTimestamp(selectedBooking?.earliestBookedDate)}</p>
+                          <p className="font-medium text-gray-900">
+                            {bookingDetail?.bookedSlots && bookingDetail.bookedSlots.length > 0 
+                              ? formatSlotDateTime(
+                                  bookingDetail.bookedSlots[0].slotIndex, 
+                                  bookingDetail.bookedSlots[0].bookedDate
+                                )
+                              : formatCentralTimestamp(selectedBooking?.earliestBookedDate)
+                            }
+                          </p>
                         </div>
                       </div>
                     </div>
