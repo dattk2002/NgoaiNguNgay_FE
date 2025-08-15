@@ -1041,6 +1041,23 @@ function AppWithNotifications() {
         pauseOnHover
         theme="light"
         style={{ zIndex: 99999 }}
+        toastStyle={{
+          backgroundColor: '#28a745',
+          color: 'white',
+        }}
+        bodyStyle={{
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: '400',
+        }}
+        closeButton={{
+          style: {
+            color: 'white',
+          },
+        }}
+        progressStyle={{
+          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        }}
       />
     </Router>
   );
