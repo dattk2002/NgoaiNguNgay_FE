@@ -44,12 +44,16 @@ const timeRanges = [
   "20:00 - 24:00",
 ];
 
-function getCurrentWeekMondayString() {
+function getNextWeekMondayString() {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
   const diffToMonday = (dayOfWeek + 6) % 7; // 0 for Monday, 1 for Tuesday, ..., 6 for Sunday
   const monday = new Date(today);
   monday.setDate(today.getDate() - diffToMonday);
+  
+  // Add 7 days to get next week's Monday
+  monday.setDate(monday.getDate() + 7);
+  
   // Format as YYYY-MM-DD 00:00:00
   const yyyy = monday.getFullYear();
   const mm = String(monday.getMonth() + 1).padStart(2, "0");
@@ -196,6 +200,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         const diffToMonday = (dayOfWeek + 6) % 7; // 0 for Monday, 1 for Tuesday, ..., 6 for Sunday
         const monday = new Date(today);
         monday.setDate(today.getDate() - diffToMonday);
+        
+        // Add 7 days to get next week's Monday
+        monday.setDate(monday.getDate() + 7);
 
         setWeekStartDate(monday);
 
@@ -229,8 +236,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         const lessonsData = await fetchTutorLesson(id);
         setLessons(lessonsData);
 
-        // Calculate current week's Monday as startDate
-        const startDate = getCurrentWeekMondayString();
+        // Calculate next week's Monday as startDate
+        const startDate = getNextWeekMondayString();
         const scheduleData = await fetchTutorWeekSchedule(id, startDate);
         setWeeklySchedule(scheduleData);
 
@@ -956,10 +963,11 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       </div>
 
       <div className="mt-10">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-row items-center gap-2">
           <h2 className="text-2xl font-semibold text-gray-800">
             Lịch trình khả dụng
           </h2>
+          <p className="text-black">Bắt đầu từ tuần tiếp theo</p>
         </div>
         <div className="mt-4 overflow-x-auto border border-gray-200 rounded-lg">
           <div className="grid grid-cols-8 min-w-[600px]">
