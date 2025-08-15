@@ -57,12 +57,18 @@ const TutorManagement = () => {
         return getStatusColorClass(status);
     };
 
-    // Get status text from metadata
-    const getStatusTextFromMetadata = (status) => {
-        if (!metadata?.ApplicationStatus) return getStatusText(status);
+    // Local function to convert status to Vietnamese
+    const getStatusTextVietnamese = (status) => {
+        const statusMap = {
+            0: "Chưa gửi hồ sơ",
+            1: "Chờ duyệt",
+            2: "Cần thông tin bổ sung", 
+            3: "Chờ xác minh lại",
+            4: "Đã duyệt",
+            5: "Đã từ chối"
+        };
         
-        const statusInfo = metadata.ApplicationStatus.find(s => s.numericValue === status);
-        return statusInfo ? statusInfo.name : getStatusText(status);
+        return statusMap[status] || "Không xác định";
     };
 
     const tabs = [
@@ -1045,7 +1051,7 @@ const TutorManagement = () => {
                                                             {tutor.tutor?.fullName || tutor.tutor?.nickName || tutor.tutorName || 'Không có tên'}
                                                         </h3>
                                                         <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tutor.status)}`}>
-                                                            {getStatusTextFromMetadata(tutor.status)}
+                                                            {getStatusTextVietnamese(tutor.status)}
                                                         </span>
                                                     </div>
                                                     {tutor.tutor?.fullName && tutor.tutor?.nickName && tutor.tutor.fullName !== tutor.tutor.nickName && (
@@ -1144,7 +1150,7 @@ const TutorManagement = () => {
                                                             {tutor.tutor?.fullName || tutor.tutor?.nickName || tutor.tutorName || 'Không có tên'}
                                                         </h3>
                                                         <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tutor.status)}`}>
-                                                            {getStatusTextFromMetadata(tutor.status)}
+                                                            {getStatusTextVietnamese(tutor.status)}
                                                         </span>
                                                     </div>
                                                     {tutor.tutor?.fullName && tutor.tutor?.nickName && tutor.tutor.fullName !== tutor.tutor.nickName && (
