@@ -15,7 +15,9 @@ import {
   FaClock,
   FaComments,
   FaCheckCircle,
+  FaBook,
 } from "react-icons/fa";
+import { FiSearch } from "react-icons/fi";
 
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -1031,6 +1033,84 @@ const TutorLanguageList = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Add search input state
+  const [searchInput, setSearchInput] = useState(searchFromQuery);
+
+  // Add search handler similar to Banner.jsx
+  const handleSearch = () => {
+    const trimmed = searchInput.trim();
+    if (!trimmed) return;
+
+    const lower = trimmed.toLowerCase();
+    let subject = languageList.find(lang => lower === lang.name.toLowerCase());
+
+    // Special case: "Brazilian" should map to "Portuguese"
+    if (subject?.name.toLowerCase() === "brazilian") {
+      subject = languageList.find(lang => lang.name.toLowerCase() === "portuguese");
+    }
+
+    if (subject) {
+      // Route to /tutor/{languageName} for language search
+      console.log("🔍 TutorLanguageList Search - Language Search:", {
+        searchInput: trimmed,
+        matchedSubject: subject.name,
+        route: `/tutor/${subject.name.toLowerCase()}`,
+        timestamp: new Date().toISOString()
+      });
+      navigate(`/tutor/${subject.name.toLowerCase()}`);
+    } else {
+      // Update search term for tutor name search
+      console.log("🔍 TutorLanguageList Search - Tutor Name Search:", {
+        searchInput: trimmed,
+        searchType: "tutor_name",
+        timestamp: new Date().toISOString()
+      });
+      setFilters(prev => ({ ...prev, searchTerm: trimmed }));
+      
+      // Update URL with search parameter
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.set("search", trimmed);
+      navigate(`${location.pathname}?${newSearchParams.toString()}`);
+    }
+  };
+
+  // Add useEffect for real-time search
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    
+    // If search input is empty, clear the search term
+    if (!trimmed) {
+      setFilters(prev => ({ ...prev, searchTerm: "" }));
+      // Update URL to remove search parameter
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.delete("search");
+      navigate(`${location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""}`);
+      return;
+    }
+
+    // Check if it's a language search
+    const lower = trimmed.toLowerCase();
+    let subject = languageList.find(lang => lower === lang.name.toLowerCase());
+
+    // Special case: "Brazilian" should map to "Portuguese"
+    if (subject?.name.toLowerCase() === "brazilian") {
+      subject = languageList.find(lang => lang.name.toLowerCase() === "portuguese");
+    }
+
+    if (subject) {
+      // Don't update filters for language search, let handleSearch handle navigation
+      return;
+    } else {
+      // Update search term for tutor name search
+      setFilters(prev => ({ ...prev, searchTerm: trimmed }));
+      
+      // Update URL with search parameter
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.set("search", trimmed);
+      navigate(`${location.pathname}?${newSearchParams.toString()}`);
+    }
+  }, [searchInput, navigate, location.pathname, location.search]);
+
   // Update the render logic to use different loading states
   if (initialLoading) {
     return (
@@ -1130,6 +1210,31 @@ const TutorLanguageList = () => {
           <div className="md:w-1/3 flex justify-center md:justify-end">
             {/* Replace with your actual illustration SVG or Image */}
             <img src={LanguageImage} alt="language_banner" />
+          </div>
+        </div>
+      </div>
+
+      {/* === Search Bar Section === */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="w-full max-w-2xl bg-white p-3 rounded-full shadow-lg flex items-center transition-all duration-300 focus-within:shadow-xl">
+          <div className="flex items-center text-black pl-3 pr-3">
+            <FaBook size={24} />
+          </div>
+          <div className="relative flex-grow h-full flex items-center">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleSearch(); }}
+              className="w-full h-full py-3 px-2 focus:outline-none text-xl text-gray-700 bg-transparent z-10 relative"
+              placeholder="Tìm kiếm gia sư hoặc ngôn ngữ..."
+            />
+          </div>
+          <div
+            className="bg-[#333333] hover:bg-black text-white p-4 rounded-full font-semibold transition duration-300 shadow-sm hover:shadow-md flex items-center justify-center ml-2 cursor-pointer"
+            onClick={handleSearch}
+          >
+            <FiSearch size={20} />
           </div>
         </div>
       </div>

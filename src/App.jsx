@@ -189,6 +189,7 @@ function AppContent({
   handleBackToLogin,
   shouldAutoOpenLogin,
   setShouldAutoOpenLogin,
+  setIsConfirmEmailModalOpen, // Add this prop
 }) {
   const location = useLocation();
   const isStaffRoute = location.pathname.startsWith('/staff');
@@ -968,6 +969,7 @@ function AppWithNotifications() {
         handleBackToLogin={handleBackToLogin}
         shouldAutoOpenLogin={shouldAutoOpenLogin}
         setShouldAutoOpenLogin={setShouldAutoOpenLogin}
+        setIsConfirmEmailModalOpen={setIsConfirmEmailModalOpen} // Add this prop
       />
       
       {/* Global Snackbar with enhanced content */}

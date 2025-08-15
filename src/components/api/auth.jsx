@@ -3201,4 +3201,72 @@ export async function adminDeleteUsers(userId) {
   }
 }
 
+/**
+ * Get staff tutor applications with filtering and pagination
+ * @param {Object} params - Query parameters { status, page, size }
+ * @returns {Promise<Object>} API response with tutor applications data and pagination info
+ */
+export async function staffFetchTutorApplications(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add optional filter parameters
+    if (params.status !== undefined && params.status !== null) {
+      queryParams.append('status', params.status.toString());
+    }
+    
+    // Add pagination parameters with defaults
+    queryParams.append('page', (params.page || 1).toString());
+    queryParams.append('size', (params.size || 20).toString());
+
+    const url = `/api/tutorapplication/staff/applications${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log("🔍 Calling staff tutor applications API:", url);
+    console.log("🔍 Parameters:", params);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Staff tutor applications fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for staff tutor applications.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch staff tutor applications:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get staff tutor applications metadata
+ * @returns {Promise<Object>} API response with tutor applications metadata including status definitions and process descriptions
+ */
+export async function staffFetchTutorApplicationsMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/tutorapplication/staff/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Staff tutor applications metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for staffFetchTutorApplicationsMetadata:", response);
+      throw new Error("API response did not contain expected tutor applications metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch staff tutor applications metadata:", error.message);
+    throw error;
+  }
+}
+
 import { convertBookingOfferResponseToUTC7 } from '../../utils/formatCentralTimestamp';

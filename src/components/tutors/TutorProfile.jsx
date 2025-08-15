@@ -604,7 +604,14 @@ function buildEditPatternSlotsFromPattern(pattern) {
 
 function getSlotDateTime(weekStart, dayInWeek, slotIndex) {
   const slotDate = new Date(weekStart);
-  slotDate.setDate(slotDate.getDate() + (dayInWeek - 1));
+  
+  // Fix the day offset calculation
+  // dayInWeek: 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat
+  // weekStart is Monday, so we need to map:
+  // 1 (Sun) -> +6 days, 2 (Mon) -> +0 days, 3 (Tue) -> +1 day, etc.
+  const dayOffset = dayInWeek === 1 ? 6 : dayInWeek - 2;
+  
+  slotDate.setDate(slotDate.getDate() + dayOffset);
   slotDate.setHours(slotIndex, 0, 0, 0);
   return slotDate;
 }

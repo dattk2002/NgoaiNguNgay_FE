@@ -740,6 +740,7 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
       case 2: return "Yêu cầu chỉnh sửa";
       case 3: return "Chờ xác minh lại";
       case 4: return "Đã xác minh";
+      case 5: return "Đã từ chối";
       default: return "Không xác định";
     }
   };
