@@ -22,7 +22,7 @@ import {
   Typography
 } from '@mui/material';
 import { toast } from 'react-toastify';
-import { fetchStaffDisputes } from '../api/auth';
+import { fetchStaffDisputes, fetchStaffDisputesFilter } from '../api/auth';
 import DisputeDetailModal from '../modals/DisputeDetailModal';
 import { formatCentralTimestamp } from '../../utils/formatCentralTimestamp';
 
@@ -54,36 +54,115 @@ const StaffDisputes = () => {
   const [disputeMetadata, setDisputeMetadata] = useState(null);
   const [filters, setFilters] = useState({
     status: '',
-    search: ''
+    search: '',
+    resolutionFilter: [], // Ensure this is empty by default
+    pageIndex: 1,
+    pageSize: 10
+  });
+  const [paginationInfo, setPaginationInfo] = useState({
+    totalItems: 0,
+    totalPages: 1,
+    currentPage: 1,
+    hasNextPage: false,
+    hasPreviousPage: false
   });
 
   const loadDisputes = async () => {
     setLoading(true);
     try {
-      console.log("🔍 Loading staff disputes...");
+      console.log("🔍 Loading staff disputes with filter...");
       console.log("🔍 Available tokens:", {
         staffToken: localStorage.getItem("staffToken") ? "Present" : "Not found",
         accessToken: localStorage.getItem("accessToken") ? "Present" : "Not found"
       });
-      const response = await fetchStaffDisputes();
-      console.log("🔍 Staff disputes response:", response);
-      console.log("🔍 Response type:", typeof response);
-      console.log("🔍 Response.data:", response?.data);
-      console.log("🔍 Response.additionalData:", response?.additionalData);
+      
+             // Build filter parameters
+       const filterParams = {
+         PageIndex: filters.pageIndex - 1, // Convert to 0-based indexing
+         PageSize: filters.pageSize
+       };
+      
+      // Add ResolutionFilter if specified
+      if (filters.resolutionFilter && filters.resolutionFilter.length > 0) {
+        filterParams.ResolutionFilter = filters.resolutionFilter;
+      }
+      
+      // Add CaseNumber if search is provided
+      if (filters.search && filters.search.trim()) {
+        filterParams.CaseNumber = filters.search.trim();
+      }
+      
+             console.log("🔍 Filter params:", filterParams);
+       console.log("🔍 Current filters state:", filters);
+      
+      let response;
+      try {
+        // Try the new filter endpoint first
+        response = await fetchStaffDisputesFilter(filterParams);
+        console.log("✅ Using fetchStaffDisputesFilter endpoint");
+      } catch (filterError) {
+        console.warn("⚠️ Filter endpoint failed, falling back to regular endpoint:", filterError);
+        // Fallback to regular endpoint
+        response = await fetchStaffDisputes();
+        console.log("✅ Using fetchStaffDisputes endpoint as fallback");
+      }
       
       if (response && response.data) {
-        console.log("🔍 Setting disputes:", response.data);
-        console.log("🔍 Setting metadata:", response.additionalData);
-        console.log("🔍 Disputes array length:", response.data.length);
-        console.log("🔍 First dispute sample:", response.data[0]);
-        setDisputes(response.data);
-        setDisputeMetadata(response.additionalData);
+        // Handle new endpoint structure: response.data.items
+        let disputesData = [];
+        let metadata = null;
+        
+        if (response.data.items && Array.isArray(response.data.items)) {
+          // New endpoint structure
+          disputesData = response.data.items;
+          metadata = response.additionalData;
+          console.log("✅ Using new endpoint structure (response.data.items)");
+        } else if (Array.isArray(response.data)) {
+          // Old endpoint structure
+          disputesData = response.data;
+          metadata = response.additionalData;
+          console.log("✅ Using old endpoint structure (response.data)");
+        } else {
+          console.log("⚠️ Unknown response structure");
+        }
+        
+        setDisputes(disputesData);
+        setDisputeMetadata(metadata);
+        
+                 // Update pagination info from response
+         if (response.data) {
+           const paginationData = {
+             totalItems: response.data.totalItems || response.data.totalitems || 0,
+             totalPages: response.data.totalPages || 1,
+             currentPage: (response.data.currentPageNumber || response.data.pageIndex || 0) + 1, // Convert back to 1-based
+             hasNextPage: response.data.hasNextPage || false,
+             hasPreviousPage: response.data.hasPreviousPage || false
+           };
+           setPaginationInfo(paginationData);
+           console.log("📄 Pagination info updated:", paginationData);
+         }
+        
+                 console.log("✅ Disputes loaded successfully:", disputesData.length, "items");
+         console.log("🔍 Full response data:", response?.data);
+         console.log("🔍 Response structure:", {
+           hasResponse: !!response,
+           hasData: !!(response && response.data),
+           hasItems: !!(response?.data?.items),
+           dataType: response?.data ? typeof response.data : 'undefined',
+           itemsType: response?.data?.items ? typeof response.data.items : 'undefined',
+           itemsIsArray: Array.isArray(response?.data?.items),
+           itemsLength: response?.data?.items?.length || 0,
+           totalItems: response?.data?.totalItems || response?.data?.totalitems || 0,
+           pageIndex: response?.data?.pageIndex || 0,
+           currentPageNumber: response?.data?.currentPageNumber || 0
+         });
       } else {
         console.log("🔍 No data in response, setting empty array");
         console.log("🔍 Response structure:", {
           hasResponse: !!response,
           hasData: !!(response && response.data),
           responseKeys: response ? Object.keys(response) : [],
+          dataKeys: response?.data ? Object.keys(response.data) : [],
           dataType: response?.data ? typeof response.data : 'undefined',
           responseData: response?.data
         });
@@ -100,18 +179,15 @@ const StaffDisputes = () => {
 
   useEffect(() => {
     loadDisputes();
+  }, [filters.pageIndex, filters.pageSize, filters.resolutionFilter, filters.search]);
+
+  // Reset filters on component mount to ensure clean state
+  useEffect(() => {
+    console.log("🔄 Component mounted, ensuring clean filter state");
+    resetFilters();
   }, []);
 
   const handleViewDetail = (dispute) => {
-    console.log("🔍 handleViewDetail called with dispute:", dispute);
-    console.log("🔍 Dispute ID:", dispute.id);
-    console.log("🔍 Dispute case number:", dispute.caseNumber);
-    console.log("🔍 Dispute status:", dispute.status);
-    console.log("🔍 Dispute learner:", dispute.learner);
-    console.log("🔍 Dispute tutor:", dispute.tutor);
-    console.log("🔍 Dispute learner reason:", dispute.learnerReason);
-    console.log("🔍 Dispute metadata available:", !!disputeMetadata);
-    console.log("🔍 Setting selected dispute and opening modal...");
     setSelectedDispute(dispute);
     setShowDetailModal(true);
     console.log("🔍 Modal should now be open");
@@ -119,6 +195,16 @@ const StaffDisputes = () => {
 
   const handleDisputeUpdated = () => {
     loadDisputes();
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      status: '',
+      search: '',
+      resolutionFilter: [],
+      pageIndex: 1,
+      pageSize: 10
+    });
   };
 
   const getStatusInfo = (status) => {
@@ -144,32 +230,22 @@ const StaffDisputes = () => {
   };
 
   const getStatistics = () => {
-    if (!disputes.length) return { total: 0, pending: 0, resolved: 0 };
+    // Use total items from pagination info for total count
+    const total = paginationInfo.totalItems;
+    
+    if (!Array.isArray(disputes) || !disputes.length) {
+      return { total, pending: 0, resolved: 0 };
+    }
 
-    const total = disputes.length;
+    // Calculate pending and resolved from current page data
     const pending = disputes.filter(d => d.status === 3).length; // AwaitingStaffReview
     const resolved = disputes.filter(d => [4, 5, 6].includes(d.status)).length; // Resolved statuses
 
     return { total, pending, resolved };
   };
 
-  const filteredDisputes = disputes.filter(dispute => {
-    if (filters.status && dispute.status !== parseInt(filters.status)) return false;
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      return (
-        dispute.caseNumber?.toLowerCase().includes(searchLower) ||
-        dispute.learner?.fullName?.toLowerCase().includes(searchLower) ||
-        dispute.tutor?.fullName?.toLowerCase().includes(searchLower) ||
-        dispute.learnerReason?.toLowerCase().includes(searchLower)
-      );
-    }
-    return true;
-  });
-
-  console.log("🔍 Current disputes state:", disputes);
-  console.log("🔍 Current filters:", filters);
-  console.log("🔍 Filtered disputes:", filteredDisputes);
+  // Ensure filteredDisputes is always an array
+  const filteredDisputes = Array.isArray(disputes) ? disputes : [];
 
   const stats = getStatistics();
 
@@ -237,37 +313,58 @@ const StaffDisputes = () => {
         </motion.div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Tìm kiếm theo mã khiếu nại, tên học viên, gia sư..."
-                value={filters.search}
-                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
-              />
-            </div>
-          </div>
-          <div className="md:w-48">
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
-            >
-              <option value="">Tất cả trạng thái</option>
-              {disputeMetadata?.DisputeStatus?.map(status => (
-                <option key={status.numericValue} value={status.numericValue}>
-                  {status.description}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+             {/* Filters */}
+       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+         <div className="flex flex-col md:flex-row gap-4">
+           {/* Search input: chiếm 60% */}
+           <div className="w-full md:w-[60%]">
+             <div className="relative">
+               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+               <input
+                 type="text"
+                 placeholder="Tìm kiếm khiếu nại..."
+                 value={filters.search}
+                 onChange={(e) => setFilters(prev => ({ 
+                   ...prev, 
+                   search: e.target.value,
+                   pageIndex: 1 // Reset to first page when search changes
+                 }))}
+                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+               />
+             </div>
+           </div>
+           {/* Status filter: chiếm 40% */}
+           <div className="w-full md:w-[40%] flex gap-4">
+             <select
+               value={filters.status}
+               onChange={(e) => {
+                 const status = e.target.value;
+                 setFilters(prev => ({ 
+                   ...prev, 
+                   status: status,
+                   resolutionFilter: status ? [parseInt(status)] : [],
+                   pageIndex: 1 // Reset to first page when filter changes
+                 }));
+               }}
+               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+             >
+               <option value="">Tất cả trạng thái</option>
+               {disputeMetadata?.DisputeStatus?.map(status => (
+                 <option key={status.numericValue} value={status.numericValue}>
+                   {status.description}
+                 </option>
+               ))}
+             </select>
+             <button
+               onClick={resetFilters}
+               className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center space-x-1"
+             >
+               <FaFilter className="w-4 h-4" />
+               <span>Reset</span>
+             </button>
+           </div>
+         </div>
+       </div>
 
       {/* Disputes List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -365,6 +462,36 @@ const StaffDisputes = () => {
           )}
         </div>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredDisputes.length > 0 && (
+        <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600">
+              Hiển thị {((filters.pageIndex - 1) * filters.pageSize) + 1} - {Math.min(filters.pageIndex * filters.pageSize, paginationInfo.totalItems)} của {paginationInfo.totalItems} khiếu nại
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, pageIndex: Math.max(1, prev.pageIndex - 1) }))}
+              disabled={!paginationInfo.hasPreviousPage}
+              className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            <span className="px-3 py-1 text-sm text-gray-600">
+              Trang {filters.pageIndex} / {paginationInfo.totalPages}
+            </span>
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 }))}
+              disabled={!paginationInfo.hasNextPage}
+              className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Dispute Detail Modal */}
       <DisputeDetailModal

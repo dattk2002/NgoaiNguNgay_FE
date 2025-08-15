@@ -13,13 +13,15 @@ import {
   CardContent,
   Divider
 } from "@mui/material";
-import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot } from "../api/auth";
+import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot, fetchTutorLessonDetailById } from "../api/auth";
 import Skeleton from "@mui/material/Skeleton";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { FiTrash2 } from "react-icons/fi";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatLanguageCode } from "../../utils/formatLanguageCode";
+import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 
 const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // API: 2=Mon, ..., 7=Sat, 1=Sun
@@ -95,6 +97,10 @@ const TutorWeeklyPatternDetailModal = ({
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  
+  // Add lesson details state
+  const [lessonDetails, setLessonDetails] = useState(null);
+  const [lessonLoading, setLessonLoading] = useState(false);
 
   // Only allow slot selection for learners and when not in read-only mode
   const learnerPermission = isLearner(currentUser) && !isReadOnly;
@@ -102,9 +108,37 @@ const TutorWeeklyPatternDetailModal = ({
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    fetchTutorWeeklyPattern(tutorId)
-      .then((data) => setPatterns(data || []))
-      .finally(() => setLoading(false));
+    
+    const fetchData = async () => {
+      try {
+        // Fetch weekly pattern
+        const patternData = await fetchTutorWeeklyPattern(tutorId);
+        setPatterns(patternData || []);
+        
+        // Fetch lesson details if lessonId is provided
+        if (lessonId) {
+          setLessonLoading(true);
+          try {
+            const lessonData = await fetchTutorLessonDetailById(lessonId);
+            setLessonDetails(lessonData);
+          } catch (lessonError) {
+            console.error("Failed to fetch lesson details:", lessonError);
+            setLessonDetails(null);
+          } finally {
+            setLessonLoading(false);
+          }
+        } else {
+          setLessonDetails(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+    
     setWeekStart(initialWeekStart); // Reset week when dialog opens
     
     // Load saved selected slots for this week and tutor (only if not read-only)
@@ -115,7 +149,7 @@ const TutorWeeklyPatternDetailModal = ({
       // Clear selected slots in read-only mode
       setSelectedSlots([]);
     }
-  }, [open, tutorId, initialWeekStart, learnerPermission, currentUser?.id, isReadOnly]);
+  }, [open, tutorId, initialWeekStart, learnerPermission, currentUser?.id, isReadOnly, lessonId]);
 
   // Calculate week range
   const monday = weekStart ? new Date(weekStart) : null;
@@ -326,6 +360,14 @@ const TutorWeeklyPatternDetailModal = ({
     return false;
   };
 
+  // Calculate total price for selected slots
+  const calculateTotalPrice = () => {
+    if (!lessonDetails || !lessonDetails.price || selectedSlots.length === 0) {
+      return 0;
+    }
+    return lessonDetails.price * selectedSlots.length;
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -352,10 +394,31 @@ const TutorWeeklyPatternDetailModal = ({
           justifyContent: "space-between",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap:2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Typography variant="h6">
             {isReadOnly ? "Lịch trình khả dụng" : "Chi tiết lịch trình khả dụng"}
           </Typography>
+          
+          {/* Show selected lesson info in header if available */}
+          {lessonDetails && !isReadOnly && (
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              backgroundColor: '#e3f2fd',
+              px: 2,
+              py: 1,
+              borderRadius: 2,
+              border: '1px solid #2196f3'
+            }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                📚 {lessonDetails.name}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#1976d2', fontSize: '14px' }}>
+                {formatPriceWithCommas(lessonDetails.price)} VND/slot
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -621,7 +684,12 @@ const TutorWeeklyPatternDetailModal = ({
                   style={{ width: 300, flexShrink: 0 }}
                 >
                   <Card sx={{ height: '100%', position: 'sticky', top: 0 }}>
-                    <CardContent>
+                    <CardContent sx={{ 
+                      height: '100%', 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      overflow: 'hidden'
+                    }}>
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -631,6 +699,37 @@ const TutorWeeklyPatternDetailModal = ({
                           Khung giờ đã chọn
                         </Typography>
                       </motion.div>
+                      
+                      {/* Lesson Details Section */}
+                      {lessonDetails && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.15, duration: 0.3 }}
+                        >
+                          <Box sx={{ 
+                            mb: 2, 
+                            p: 2, 
+                            backgroundColor: '#f8f9fa', 
+                            borderRadius: 1,
+                            border: '1px solid #e9ecef'
+                          }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              Bài học đã chọn:
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 1 }}>
+                              {lessonDetails.name}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                              {formatLanguageCode(lessonDetails.languageCode)}
+                              {lessonDetails.category && ` | ${lessonDetails.category}`}
+                            </Typography>
+                            <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                              {formatPriceWithCommas(lessonDetails.price)} VND/slot
+                            </Typography>
+                          </Box>
+                        </motion.div>
+                      )}
                       
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -649,7 +748,12 @@ const TutorWeeklyPatternDetailModal = ({
 
                       <Divider sx={{ my: 2 }} />
 
-                      <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                      {/* Scrollable slots section - takes remaining space */}
+                      <Box sx={{ 
+                        flex: 1, 
+                        overflowY: 'auto',
+                        minHeight: 0 // Important for flex child to shrink
+                      }}>
                         <AnimatePresence>
                           {selectedSlots.map((slot, index) => {
                             // Map dayInWeek to the correct day label
@@ -718,6 +822,12 @@ const TutorWeeklyPatternDetailModal = ({
                                     <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 'medium' }}>
                                       {timeLabel}
                                     </Typography>
+                                    {/* Show price per slot if lesson details are available */}
+                                    {lessonDetails && lessonDetails.price && (
+                                      <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>
+                                        {formatPriceWithCommas(lessonDetails.price)} VND
+                                      </Typography>
+                                    )}
                                   </Box>
                                   <motion.div
                                     whileHover={{ scale: 1.1 }}
@@ -754,6 +864,12 @@ const TutorWeeklyPatternDetailModal = ({
                           <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
                             Tổng cộng: {selectedSlots.length} slot
                           </Typography>
+                          {/* Show total price if lesson details are available */}
+                          {lessonDetails && lessonDetails.price && (
+                            <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold', mb: 2 }}>
+                              Tổng giá: {formatPriceWithCommas(calculateTotalPrice())} VND
+                            </Typography>
+                          )}
                           <motion.div
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}

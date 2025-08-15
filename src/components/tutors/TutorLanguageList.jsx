@@ -1132,26 +1132,6 @@ const TutorLanguageList = () => {
             <img src={LanguageImage} alt="language_banner" />
           </div>
         </div>
-
-        {/* Subject Selector & Search */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-          <TextField
-            name="searchTerm"
-            placeholder="Vui lòng nhập tên gia sư..."
-            variant="outlined"
-            size="small"
-            value={filters.searchTerm}
-            onChange={handleFilterChange}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <IoSearch />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ backgroundColor: "white", width: "100%", maxWidth: "300px" }}
-          />
-        </div>
       </div>
 
       {/* === Filters & Main Content Area === */}

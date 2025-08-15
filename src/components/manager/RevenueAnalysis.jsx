@@ -1,27 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
+import { managerRecentTransactions, managerRecentTransactionsMetadata } from '../api/auth';
 
 const RevenueAnalysis = () => {
-    const [dateFilter, setDateFilter] = useState('month');
+    const [dateFilter, setDateFilter] = useState('all'); // Changed from 'month' to 'all'
     const [selectedCategory, setSelectedCategory] = useState('all');
-
-    const revenueData = {
-        daily: [
-            { date: '2024-01-01', revenue: 45000, sessions: 12 },
-            { date: '2024-01-02', revenue: 52000, sessions: 15 },
-            { date: '2024-01-03', revenue: 38000, sessions: 10 },
-            { date: '2024-01-04', revenue: 61000, sessions: 18 },
-            { date: '2024-01-05', revenue: 47000, sessions: 13 },
-            { date: '2024-01-06', revenue: 55000, sessions: 16 },
-            { date: '2024-01-07', revenue: 49000, sessions: 14 }
-        ],
-        categories: [
-            { name: 'Tiếng Anh', revenue: 980000, sessions: 245, growth: 15.2 },
-            { name: 'Toán học', revenue: 735000, sessions: 198, growth: 8.7 },
-            { name: 'Tiếng Trung', revenue: 490000, sessions: 132, growth: 22.1 },
-            { name: 'Vật lý', revenue: 245000, sessions: 89, growth: -3.2 }
-        ]
-    };
+    const [allTransactions, setAllTransactions] = useState([]);
+    const [filteredTransactions, setFilteredTransactions] = useState([]);
+    const [transactionsMetadata, setTransactionsMetadata] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize] = useState(10);
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', {
@@ -29,6 +18,161 @@ const RevenueAnalysis = () => {
             currency: 'VND'
         }).format(amount);
     };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleString('vi-VN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const getTransactionTypeColor = (type) => {
+        switch (type) {
+            case 'Deposit': return 'bg-blue-100 text-blue-800';
+            case 'Withdrawal': return 'bg-red-100 text-red-800';
+            case 'Payment': return 'bg-green-100 text-green-800';
+            case 'Refund': return 'bg-yellow-100 text-yellow-800';
+            case 'Commission': return 'bg-purple-100 text-purple-800';
+            case 'Fee': return 'bg-gray-100 text-gray-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getTransactionStatusColor = (status) => {
+        switch (status) {
+            case 'Success': return 'bg-green-100 text-green-800';
+            case 'Pending': return 'bg-yellow-100 text-yellow-800';
+            case 'Failed': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    // Function to get date range based on filter
+    const getDateRange = (filter) => {
+        const now = new Date();
+        let startDate = new Date();
+        
+        switch (filter) {
+            case 'week':
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case 'month':
+                startDate.setDate(now.getDate() - 30);
+                break;
+            case 'quarter':
+                startDate.setMonth(now.getMonth() - 3);
+                break;
+            case 'year':
+                startDate.setFullYear(now.getFullYear() - 1);
+                break;
+            case 'all':
+            default:
+                // For 'all', return a very old date to include all transactions
+                startDate = new Date('1970-01-01');
+                break;
+        }
+        
+        return { startDate, endDate: now };
+    };
+
+    // Function to filter transactions based on date range
+    const filterTransactionsByDate = (transactions, dateFilter) => {
+        if (!transactions || transactions.length === 0) return [];
+        
+        // If filter is 'all', return all transactions
+        if (dateFilter === 'all') return transactions;
+        
+        const { startDate, endDate } = getDateRange(dateFilter);
+        
+        return transactions.filter(transaction => {
+            const transactionDate = new Date(transaction.createdAt);
+            return transactionDate >= startDate && transactionDate <= endDate;
+        });
+    };
+
+    // Function to filter transactions by category
+    const filterTransactionsByCategory = (transactions, category) => {
+        if (category === 'all' || !transactions) return transactions;
+        
+        return transactions.filter(transaction => {
+            // Assuming transaction has a category field, adjust based on your data structure
+            return transaction.category === category || transaction.type === category;
+        });
+    };
+
+    // Function to apply all filters
+    const applyFilters = () => {
+        let filtered = [...allTransactions];
+        
+        // Apply date filter
+        filtered = filterTransactionsByDate(filtered, dateFilter);
+        
+        // Apply category filter
+        filtered = filterTransactionsByCategory(filtered, selectedCategory);
+        
+        setFilteredTransactions(filtered);
+        setCurrentPage(1); // Reset to first page when filters change
+    };
+
+    const fetchRecentTransactions = async (page = 1) => {
+        try {
+            setLoading(true);
+            const [transactionsData, metadataData] = await Promise.all([
+                managerRecentTransactions(page, pageSize),
+                managerRecentTransactionsMetadata()
+            ]);
+            
+            // Store all transactions for client-side filtering
+            const transactions = transactionsData.items || [];
+            setAllTransactions(transactions);
+            setTransactionsMetadata(metadataData);
+            
+            // Set filtered transactions to all transactions initially
+            setFilteredTransactions(transactions);
+        } catch (error) {
+            console.error('Failed to fetch recent transactions:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRecentTransactions(currentPage);
+    }, []);
+
+    // Apply filters when dateFilter or selectedCategory changes, but only if we have data
+    useEffect(() => {
+        if (allTransactions.length > 0) {
+            applyFilters();
+        }
+    }, [dateFilter, selectedCategory, allTransactions]);
+
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+    };
+
+    const handleDateFilterChange = (newDateFilter) => {
+        setDateFilter(newDateFilter);
+    };
+
+    const handleCategoryChange = (newCategory) => {
+        setSelectedCategory(newCategory);
+    };
+
+    // Calculate pagination for filtered results
+    const getPaginatedTransactions = () => {
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        return filteredTransactions.slice(startIndex, endIndex);
+    };
+
+    const totalPages = Math.ceil(filteredTransactions.length / pageSize);
+    const hasPreviousPage = currentPage > 1;
+    const hasNextPage = currentPage < totalPages;
+    const paginatedTransactions = getPaginatedTransactions();
 
     return (
         <div className="space-y-6">
@@ -39,9 +183,10 @@ const RevenueAnalysis = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Khoảng thời gian</label>
                         <select
                             value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value)}
+                            onChange={(e) => handleDateFilterChange(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
                         >
+                            <option value="all">Tất cả thời gian</option>
                             <option value="week">7 ngày qua</option>
                             <option value="month">30 ngày qua</option>
                             <option value="quarter">3 tháng qua</option>
@@ -52,7 +197,7 @@ const RevenueAnalysis = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
                         <select
                             value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            onChange={(e) => handleCategoryChange(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
                         >
                             <option value="all">Tất cả danh mục</option>
@@ -70,6 +215,111 @@ const RevenueAnalysis = () => {
                 </div>
             </div>
 
+            {/* Recent Transactions Section */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">Giao dịch gần đây</h3>
+                    <div className="text-sm text-gray-500">
+                        Tổng cộng: {filteredTransactions.length} giao dịch
+                        {dateFilter && dateFilter !== 'all' && (
+                            <span className="ml-2">
+                                ({dateFilter === 'week' ? '7 ngày' : 
+                                  dateFilter === 'month' ? '30 ngày' : 
+                                  dateFilter === 'quarter' ? '3 tháng' : '12 tháng'} qua)
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                        <span className="ml-2 text-gray-600">Đang tải...</span>
+                    </div>
+                ) : filteredTransactions.length > 0 ? (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full">
+                                <thead>
+                                    <tr className="border-b border-gray-200">
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Thời gian</th>
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Loại</th>
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Từ</th>
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Đến</th>
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Số tiền</th>
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Trạng thái</th>
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Mô tả</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginatedTransactions.map((transaction) => (
+                                        <tr key={transaction.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <td className="py-3 px-4 text-sm text-gray-900">
+                                                {formatDate(transaction.createdAt)}
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionTypeColor(transaction.type)}`}>
+                                                    {transaction.type}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-4 text-sm text-gray-900 font-medium">
+                                                {transaction.sourceUser}
+                                            </td>
+                                            <td className="py-3 px-4 text-sm text-gray-900 font-medium">
+                                                {transaction.targetUser}
+                                            </td>
+                                            <td className="py-3 px-4 text-sm font-medium text-green-600">
+                                                {formatCurrency(transaction.amount)}
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionStatusColor(transaction.status)}`}>
+                                                    {transaction.status}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-4 text-sm text-gray-600 max-w-xs truncate" title={transaction.description}>
+                                                {transaction.description}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between mt-6">
+                                <div className="text-sm text-gray-700">
+                                    Hiển thị {((currentPage - 1) * pageSize) + 1} đến {Math.min(currentPage * pageSize, filteredTransactions.length)} trong tổng số {filteredTransactions.length} giao dịch
+                                </div>
+                                <div className="flex space-x-2">
+                                    <NoFocusOutLineButton
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={!hasPreviousPage}
+                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Trước
+                                    </NoFocusOutLineButton>
+                                    <span className="px-3 py-1 text-sm text-gray-700">
+                                        Trang {currentPage} / {totalPages}
+                                    </span>
+                                    <NoFocusOutLineButton
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={!hasNextPage}
+                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Sau
+                                    </NoFocusOutLineButton>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="text-center py-8 text-gray-500">
+                        {loading ? 'Đang tải...' : 'Không có dữ liệu giao dịch'}
+                    </div>
+                )}
+            </div>
+
             {/* Revenue Chart Placeholder */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Biểu đồ doanh thu theo thời gian</h3>
@@ -84,91 +334,10 @@ const RevenueAnalysis = () => {
                 </div>
             </div>
 
-            {/* Daily Revenue Breakdown */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Doanh thu hàng ngày (7 ngày gần nhất)</h3>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead>
-                            <tr className="border-b border-gray-200">
-                                <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Ngày</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Doanh thu</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Số buổi học</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">TB/buổi</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Trạng thái</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {revenueData.daily.map((day, index) => (
-                                <tr key={index} className="border-b border-gray-100">
-                                    <td className="py-3 px-4 text-sm text-gray-900">
-                                        {new Date(day.date).toLocaleDateString('vi-VN')}
-                                    </td>
-                                    <td className="py-3 px-4 text-sm font-medium text-green-600">
-                                        {formatCurrency(day.revenue)}
-                                    </td>
-                                    <td className="py-3 px-4 text-sm text-gray-900">{day.sessions}</td>
-                                    <td className="py-3 px-4 text-sm text-gray-900">
-                                        {formatCurrency(Math.round(day.revenue / day.sessions))}
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${day.revenue > 50000
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-yellow-100 text-yellow-800'
-                                            }`}>
-                                            {day.revenue > 50000 ? 'Cao' : 'Trung bình'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
             {/* Category Analysis */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Phân tích theo danh mục</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {revenueData.categories.map((category, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-base font-medium text-gray-900">{category.name}</h4>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${category.growth > 0
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
-                                    }`}>
-                                    {category.growth > 0 ? '+' : ''}{category.growth}%
-                                </span>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Doanh thu:</span>
-                                    <span className="text-sm font-medium text-gray-900">
-                                        {formatCurrency(category.revenue)}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Số buổi học:</span>
-                                    <span className="text-sm font-medium text-gray-900">{category.sessions}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">TB/buổi:</span>
-                                    <span className="text-sm font-medium text-gray-900">
-                                        {formatCurrency(Math.round(category.revenue / category.sessions))}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="mt-3">
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div
-                                        className="bg-green-600 h-2 rounded-full"
-                                        style={{ width: `${(category.revenue / 980000) * 100}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
                 </div>
             </div>
 

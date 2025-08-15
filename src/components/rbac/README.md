@@ -452,22 +452,6 @@ function AdminRoutes() {
 }
 ```
 
-### Permission-Based Guard
-```jsx
-import { RoleBasedRouteGuard } from './components/rbac';
-
-function FinancialReports() {
-  return (
-    <RoleBasedRouteGuard 
-      allowedRoles={['Manager', 'Admin']}
-      requiredPermissions={['financial.read', 'financial.reports']}
-    >
-      <ReportsComponent />
-    </RoleBasedRouteGuard>
-  );
-}
-```
-
 ### Multiple Route Protection
 ```jsx
 function AppRoutes() {

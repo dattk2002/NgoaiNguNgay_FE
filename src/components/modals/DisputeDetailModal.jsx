@@ -1029,9 +1029,9 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                              onChange={(e) => setStaffResolution(parseInt(e.target.value))}
                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
                            >
-                             <option value={3}>Học viên thắng (StaffLearnerWin)</option>
-                             <option value={4}>Gia sư thắng (StaffTutorWin)</option>
-                             <option value={5}>Hòa (StaffDraw)</option>
+                             <option value={3}>Học viên thắng</option>
+                             <option value={4}>Gia sư thắng</option>
+                             <option value={5}>Hòa</option>
                            </select>
                          </div>
                          <div>
