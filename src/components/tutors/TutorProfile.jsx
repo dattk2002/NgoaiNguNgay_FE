@@ -613,33 +613,33 @@ const validateLessonForm = (form) => {
   const errors = {};
   
   // Tên bài học: 5-50 characters
-  if (!form.name || form.name.length < 5 || form.name.length > 50) {
-    errors.name = "Tên bài học phải từ 5-50 ký tự";
+  if (!form.name || form.name.length < 5 || form.name.length > 100) {
+    errors.name = "Tên bài học phải từ 5-100 ký tự";
   }
   
   // Mô tả: 10-100 characters
-  if (!form.description || form.description.length < 10 || form.description.length > 100) {
-    errors.description = "Mô tả phải từ 10-100 ký tự";
+  if (!form.description || form.description.length < 10 || form.description.length > 1000) {
+    errors.description = "Mô tả phải từ 10-1000 ký tự";
   }
   
   // Ghi chú: 10-100 characters (optional field)
-  if (form.note && (form.note.length < 10 || form.note.length > 100)) {
-    errors.note = "Ghi chú phải từ 10-100 ký tự";
+  if (form.note && (form.note.length < 10 || form.note.length > 1000)) {
+    errors.note = "Ghi chú phải từ 10-1000 ký tự";
   }
   
   // Đối tượng: 1-20 characters
-  if (!form.targetAudience || form.targetAudience.length < 1 || form.targetAudience.length > 20) {
-    errors.targetAudience = "Đối tượng phải từ 1-20 ký tự";
+  if (!form.targetAudience || form.targetAudience.length < 1 || form.targetAudience.length > 200) {
+    errors.targetAudience = "Đối tượng phải từ 1-200 ký tự";
   }
   
   // Yêu cầu trước: 10-100 characters
-  if (!form.prerequisites || form.prerequisites.length < 10 || form.prerequisites.length > 100) {
-    errors.prerequisites = "Yêu cầu trước phải từ 10-100 ký tự";
+  if (!form.prerequisites || form.prerequisites.length < 10 || form.prerequisites.length > 300) {
+    errors.prerequisites = "Yêu cầu trước phải từ 10-300 ký tự";
   }
   
   // Danh mục: 5-50 characters
-  if (!form.category || form.category.length < 5 || form.category.length > 50) {
-    errors.category = "Danh mục phải từ 5-50 ký tự";
+  if (!form.category || form.category.length < 5 || form.category.length > 100) {
+    errors.category = "Danh mục phải từ 5-100 ký tự";
   }
   
   // Language code is required

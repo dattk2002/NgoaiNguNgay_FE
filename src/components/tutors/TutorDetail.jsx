@@ -32,6 +32,7 @@ import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 import TutorWeeklyPatternDetailModal from "../modals/TutorWeeklyPatternDetailModal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import LessonSelectionModal from "../modals/LessonSelectionModal";
 
 // Define the 4-hour time ranges
 const timeRanges = [
@@ -115,6 +116,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     // Close the LessonDetailModal as well
     handleCloseLessonModal();
   };
+
+  // Add new state for lesson selection modal
+  const [isLessonSelectionModalOpen, setIsLessonSelectionModalOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -275,10 +279,15 @@ const TutorDetail = ({ user, onRequireLogin }) => {
       onRequireLogin("Please log in to book a lesson.");
       return;
     }
-    // Proceed with booking logic (e.g., open booking modal or navigate)
-    console.log("Booking lesson for user:", user);
-    // Example: navigate to a booking page, passing the teacher ID
-    // navigate(`/book/${teacher.id}`);
+    
+    // Check if tutor has lessons available
+    if (!lessons || lessons.length === 0) {
+      toast.error("Gia sư này chưa có khóa học nào khả dụng.");
+      return;
+    }
+    
+    // Open lesson selection modal
+    setIsLessonSelectionModalOpen(true);
   };
 
   // Updated handler for the "Contact teacher" button
@@ -333,6 +342,13 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   const handleBookNowFromLesson = (lessonId) => {
     setBookingLessonId(lessonId);
+    setIsPatternDialogOpen(true);
+  };
+
+  // New handler for lesson selection
+  const handleLessonSelect = (selectedLesson) => {
+    // Set the selected lesson ID and open the pattern dialog
+    setBookingLessonId(selectedLesson.id);
     setIsPatternDialogOpen(true);
   };
 
@@ -1119,6 +1135,15 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         onBookingSuccess={handleBookingSuccess}
         lessonId={bookingLessonId}
         expectedStartDate={new Date().toISOString()} // Truyền expectedStartDate cho current week và future weeks
+      />
+
+      {/* Add the new LessonSelectionModal */}
+      <LessonSelectionModal
+        isOpen={isLessonSelectionModalOpen}
+        onClose={() => setIsLessonSelectionModalOpen(false)}
+        lessons={lessons}
+        onLessonSelect={handleLessonSelect}
+        tutorName={teacher?.name}
       />
     </div>
   );
