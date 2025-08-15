@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    fetchPendingApplications, 
+    staffFetchTutorApplications,
+    staffFetchTutorApplicationsMetadata,
     fetchTutorApplicationById, 
     reviewTutorApplication
 } from '../api/auth';
@@ -27,30 +28,48 @@ const TutorManagement = () => {
     const [reviewNotes, setReviewNotes] = useState('');
     const [reviewingTutor, setReviewingTutor] = useState(null);
     const [reviewLoading, setReviewLoading] = useState(false);
-    const [pendingApplications, setPendingApplications] = useState([]);
+    const [applications, setApplications] = useState([]);
+    const [metadata, setMetadata] = useState(null);
     const [statistics, setStatistics] = useState({
-        total: 0,
         pending: 0,
         approved: 0,
-        needInfo: 0
+        needInfo: 0,
+        rejected: 0
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(20);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [detailsCache, setDetailsCache] = useState({});
+    const [statusFilter, setStatusFilter] = useState(null);
+    const [overallStatistics, setOverallStatistics] = useState({
+        pending: 0,
+        approved: 0,
+        needInfo: 0,
+        rejected: 0
+    });
 
     // Using imported constants and helper functions
     const getStatusColor = (status) => {
         return getStatusColorClass(status);
     };
 
+    // Get status text from metadata
+    const getStatusTextFromMetadata = (status) => {
+        if (!metadata?.ApplicationStatus) return getStatusText(status);
+        
+        const statusInfo = metadata.ApplicationStatus.find(s => s.numericValue === status);
+        return statusInfo ? statusInfo.name : getStatusText(status);
+    };
+
     const tabs = [
         {
             id: 'pending',
             title: 'Chờ duyệt',
-            count: statistics.pending,
+            count: overallStatistics.pending,
             icon: (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -60,7 +79,7 @@ const TutorManagement = () => {
         {
             id: 'approved',
             title: 'Đã duyệt',
-            count: statistics.approved,
+            count: overallStatistics.approved,
             icon: (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -70,7 +89,7 @@ const TutorManagement = () => {
         {
             id: 'need-info',
             title: 'Cần thông tin',
-            count: statistics.needInfo,
+            count: overallStatistics.needInfo,
             icon: (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -78,12 +97,12 @@ const TutorManagement = () => {
             )
         },
         {
-            id: 'student-requests',
-            title: 'Yêu cầu từ học viên',
-            count: 0,
+            id: 'rejected',
+            title: 'Đã từ chối',
+            count: overallStatistics.rejected,
             icon: (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
             )
         }
@@ -91,71 +110,132 @@ const TutorManagement = () => {
 
     // Calculate statistics from applications data
     const calculateStatistics = (applications) => {
+        // For now, we'll calculate based on current page data
+        // In a real implementation, you might want to fetch statistics separately
         const stats = {
-            total: applications.length,
-            pending: applications.filter(app => app.status === 1).length, // PendingVerification
-            approved: applications.filter(app => app.status === 4).length, // Verified
-            needInfo: applications.filter(app => app.status === 2).length // RevisionRequested
+            pending: applications.filter(app => app.status === 1).length,
+            approved: applications.filter(app => app.status === 4).length,
+            needInfo: applications.filter(app => app.status === 2).length,
+            rejected: applications.filter(app => app.status === 5).length
         };
         setStatistics(stats);
     };
 
-    // Load pending applications
-    const loadPendingApplications = async () => {
+    // Load metadata
+    const loadMetadata = async () => {
+        try {
+            const metadataData = await staffFetchTutorApplicationsMetadata();
+            setMetadata(metadataData);
+            console.log('Metadata loaded:', metadataData);
+        } catch (error) {
+            console.error('Error loading metadata:', error);
+        }
+    };
+
+    // Load overall statistics (call this once on component mount)
+    const loadOverallStatistics = async () => {
+        try {
+            // Fetch statistics for all statuses
+            const [pendingResponse, approvedResponse, needInfoResponse, rejectedResponse] = await Promise.all([
+                staffFetchTutorApplications({ page: 1, size: 1, status: 1 }),
+                staffFetchTutorApplications({ page: 1, size: 1, status: 4 }),
+                staffFetchTutorApplications({ page: 1, size: 1, status: 2 }),
+                staffFetchTutorApplications({ page: 1, size: 1, status: 5 })
+            ]);
+
+            setOverallStatistics({
+                pending: pendingResponse?.additionalData?.totalItems || 0,
+                approved: approvedResponse?.additionalData?.totalItems || 0,
+                needInfo: needInfoResponse?.additionalData?.totalItems || 0,
+                rejected: rejectedResponse?.additionalData?.totalItems || 0
+            });
+        } catch (error) {
+            console.error('Error loading overall statistics:', error);
+        }
+    };
+
+    // Load applications
+    const loadApplications = async () => {
         try {
             setLoading(true);
             setError(null);
-            const data = await fetchPendingApplications(currentPage, pageSize);
+            
+            const params = {
+                page: currentPage,
+                size: pageSize
+            };
+            
+            // Add status filter based on active tab for proper pagination
+            if (activeTab === 'pending') {
+                params.status = 1; // PendingVerification
+            } else if (activeTab === 'approved') {
+                params.status = 4; // Verified
+            } else if (activeTab === 'need-info') {
+                params.status = 2; // RevisionRequested
+            } else if (activeTab === 'rejected') {
+                params.status = 5; // Rejected
+            }
 
-            // Fetch detailed information for each application
-            const enrichedData = await Promise.all(
-                data.map(async (application) => {
-                    try {
-                        // Check cache first
-                        if (detailsCache[application.id]) {
+            const response = await staffFetchTutorApplications(params);
+            console.log('Applications response:', response);
+
+            if (response && response.data) {
+                setApplications(response.data);
+                
+                // Update pagination info
+                if (response.additionalData) {
+                    setTotalItems(response.additionalData.totalItems);
+                    setTotalPages(response.additionalData.totalPages);
+                    setCurrentPage(response.additionalData.currentPageNumber);
+                }
+
+                // Fetch detailed information for each application
+                const enrichedData = await Promise.all(
+                    response.data.map(async (application) => {
+                        try {
+                            // Check cache first
+                            if (detailsCache[application.id]) {
+                                return {
+                                    ...application,
+                                    tutor: {
+                                        ...application.tutor,
+                                        ...detailsCache[application.id].tutor
+                                    }
+                                };
+                            }
+
+                            const details = await fetchTutorApplicationById(application.id);
+                            console.log(`Debug - Detailed data for ${application.id}:`, details);
+
+                            // Cache the details
+                            setDetailsCache(prev => ({
+                                ...prev,
+                                [application.id]: details
+                            }));
+
+                            // Merge the detailed tutor information
                             return {
                                 ...application,
                                 tutor: {
                                     ...application.tutor,
-                                    ...detailsCache[application.id].tutor
-                                }
+                                    ...details.tutor
+                                },
+                                languages: details.languages,
+                                hashtags: details.hashtags
                             };
+                        } catch (error) {
+                            console.error(`Error fetching details for application ${application.id}:`, error);
+                            return application; // Return original if details fetch fails
                         }
+                    })
+                );
 
-                        const details = await fetchTutorApplicationById(application.id);
-                        console.log(`Debug - Detailed data for ${application.id}:`, details);
-                        console.log("🔍 Languages in details:", details?.languages);
-                        console.log("🔍 Hashtags in details:", details?.hashtags);
-
-                        // Cache the details
-                        setDetailsCache(prev => ({
-                            ...prev,
-                            [application.id]: details
-                        }));
-
-                        // Merge the detailed tutor information
-                        return {
-                            ...application,
-                            tutor: {
-                                ...application.tutor,
-                                ...details.tutor // This will override with detailed info
-                            },
-                            // Also add languages and hashtags at the root level for direct access
-                            languages: details.languages,
-                            hashtags: details.hashtags
-                        };
-                    } catch (error) {
-                        console.error(`Error fetching details for application ${application.id}:`, error);
-                        return application; // Return original if details fetch fails
-                    }
-                })
-            );
-
-            console.log('Debug - Enriched applications data:', enrichedData);
-            setPendingApplications(enrichedData);
+                console.log('Debug - Enriched applications data:', enrichedData);
+                setApplications(enrichedData);
+            }
         } catch (err) {
             setError(err.message);
-            console.error('Error loading pending applications:', err);
+            console.error('Error loading applications:', err);
         } finally {
             setLoading(false);
         }
@@ -167,25 +247,34 @@ const TutorManagement = () => {
     };
 
     useEffect(() => {
-        // Load pending applications on component mount and calculate statistics
-        loadPendingApplications();
-    }, [currentPage, pageSize]);
+        // Load metadata and overall statistics on component mount
+        loadMetadata();
+        loadOverallStatistics();
+    }, []);
 
     useEffect(() => {
-        // Calculate statistics whenever pendingApplications changes
-        calculateStatistics(pendingApplications);
-    }, [pendingApplications]);
+        // Load applications when tab or page changes
+        loadApplications();
+    }, [activeTab, currentPage, pageSize]);
 
+    useEffect(() => {
+        // Calculate statistics whenever applications change
+        calculateStatistics(applications);
+    }, [applications]);
+
+    // Update the currentTutors calculation to handle pagination properly
     const currentTutors = (() => {
         switch (activeTab) {
             case 'pending':
-                return filterApplicationsByStatus(pendingApplications, 1); // PendingVerification
+                return filterApplicationsByStatus(applications, 1); // PendingVerification
             case 'approved':
-                return filterApplicationsByStatus(pendingApplications, 4); // Verified
+                return filterApplicationsByStatus(applications, 4); // Verified
             case 'need-info':
-                return filterApplicationsByStatus(pendingApplications, 2); // RevisionRequested
+                return filterApplicationsByStatus(applications, 2); // RevisionRequested
+            case 'rejected':
+                return filterApplicationsByStatus(applications, 5); // Rejected
             default:
-                return [];
+                return applications; // Show all for other tabs
         }
     })();
 
@@ -241,13 +330,13 @@ const TutorManagement = () => {
     const confirmApprove = async () => {
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.APPROVE, reviewNotes); // Action 1 = Approve (Phê duyệt)
+            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.APPROVE, reviewNotes);
 
-            // Update the application status in pendingApplications
-            setPendingApplications(prev =>
+            // Update the application status in applications
+            setApplications(prev =>
                 prev.map(app => 
                     app.id === reviewingTutor.id 
-                        ? { ...app, status: 4 } // Change to Verified (4)
+                        ? { ...app, status: 4 }
                         : app
                 )
             );
@@ -256,7 +345,6 @@ const TutorManagement = () => {
             setReviewingTutor(null);
             setReviewNotes('');
 
-            // Show success message
             toast.success('Đã phê duyệt hồ sơ gia sư thành công!');
         } catch (error) {
             console.error('Error approving tutor:', error);
@@ -274,13 +362,13 @@ const TutorManagement = () => {
 
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.REJECT, reviewNotes); // Action 2 = Reject (Từ chối)
+            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.REJECT, reviewNotes);
 
-            // Update the application status in pendingApplications
-            setPendingApplications(prev =>
+            // Update the application status in applications
+            setApplications(prev =>
                 prev.map(app => 
                     app.id === reviewingTutor.id 
-                        ? { ...app, status: 5 } // Change to Rejected (5)
+                        ? { ...app, status: 5 }
                         : app
                 )
             );
@@ -289,7 +377,6 @@ const TutorManagement = () => {
             setReviewingTutor(null);
             setReviewNotes('');
 
-            // Show success message
             toast.success('Đã từ chối hồ sơ gia sư!');
         } catch (error) {
             console.error('Error rejecting tutor:', error);
@@ -307,13 +394,13 @@ const TutorManagement = () => {
 
         setReviewLoading(true);
         try {
-            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.REQUEST_REVISION, reviewNotes); // Action 0 = RequestRevision (Yêu cầu chỉnh sửa)
+            await reviewTutorApplication(reviewingTutor.id, REVISION_ACTION.REQUEST_REVISION, reviewNotes);
 
-            // Update the application status in pendingApplications
-            setPendingApplications(prev =>
+            // Update the application status in applications
+            setApplications(prev =>
                 prev.map(app => 
                     app.id === reviewingTutor.id 
-                        ? { ...app, status: 2 } // Change to RevisionRequested (2)
+                        ? { ...app, status: 2 }
                         : app
                 )
             );
@@ -322,7 +409,6 @@ const TutorManagement = () => {
             setReviewingTutor(null);
             setReviewNotes('');
 
-            // Show success message
             toast.success('Đã yêu cầu bổ sung thông tin!');
         } catch (error) {
             console.error('Error requesting info:', error);
@@ -330,6 +416,11 @@ const TutorManagement = () => {
         } finally {
             setReviewLoading(false);
         }
+    };
+
+    // Handle pagination
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
     };
 
     const renderTutorCard = (tutor) => (
@@ -798,26 +889,14 @@ const TutorManagement = () => {
                     }
                 `
             }} />
+            
             {/* Statistics Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-blue-100 text-sm font-medium">Tổng đơn đăng ký</p>
-                            <p className="text-2xl font-bold">{statistics.total}</p>
-                        </div>
-                        <div className="bg-blue-400 bg-opacity-30 rounded-full p-3">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
                 <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">Đã phê duyệt</p>
-                            <p className="text-2xl font-bold">{statistics.approved}</p>
+                            <p className="text-2xl font-bold">{overallStatistics.approved}</p>
                         </div>
                         <div className="bg-green-400 bg-opacity-30 rounded-full p-3">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -830,11 +909,24 @@ const TutorManagement = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-yellow-100 text-sm font-medium">Chờ xử lý</p>
-                            <p className="text-2xl font-bold">{statistics.pending}</p>
+                            <p className="text-2xl font-bold">{overallStatistics.pending}</p>
                         </div>
                         <div className="bg-yellow-400 bg-opacity-30 rounded-full p-3">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-red-100 text-sm font-medium">Đã từ chối</p>
+                            <p className="text-2xl font-bold">{overallStatistics.rejected}</p>
+                        </div>
+                        <div className="bg-red-400 bg-opacity-30 rounded-full p-3">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </div>
                     </div>
@@ -868,8 +960,8 @@ const TutorManagement = () => {
                 </nav>
             </div>
 
-            {/* Search and Filter - Only show for non-student-requests tabs */}
-            {activeTab !== 'student-requests' && (
+            {/* Search and Filter - Only show for non-rejected tabs */}
+            {activeTab !== 'rejected' && (
                 <div className="flex flex-col sm:flex-row gap-4 justify-between">
                     <div className="relative flex-1 max-w-md">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -884,13 +976,20 @@ const TutorManagement = () => {
                         />
                     </div>
                     <div className="flex space-x-3">
-                        <select className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black">
-                            <option>Tất cả</option>
-                            <option>Tiếng Pháp</option>
-                            <option>Tiếng Anh</option>
-                            <option>Tiếng Việt</option>
-                            <option>Tiếng Ả Rập</option>
-                        </select>
+                        {metadata?.ApplicationStatus && (
+                            <select 
+                                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black"
+                                value={statusFilter || ''}
+                                onChange={(e) => setStatusFilter(e.target.value || null)}
+                            >
+                                <option value="">Tất cả trạng thái</option>
+                                {metadata.ApplicationStatus.map((status) => (
+                                    <option key={status.numericValue} value={status.numericValue}>
+                                        {status.name} - {status.description}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                         <select className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 outline-none sm:text-sm rounded-md text-black">
                             <option>Sắp xếp theo</option>
                             <option>Ngày nộp</option>
@@ -902,9 +1001,7 @@ const TutorManagement = () => {
             )}
 
             {/* Tab Content */}
-            {activeTab === 'student-requests' ? (
-                <StudentRequests />
-            ) : (
+            {activeTab === 'rejected' ? (
                 <>
                     {/* Loading and Error States */}
                     {loading && (
@@ -921,7 +1018,7 @@ const TutorManagement = () => {
                         </div>
                     )}
 
-                                        {/* Tutors List */}
+                    {/* Applications List */}
                     {!loading && !error && (
                         <div className="bg-white shadow overflow-hidden sm:rounded-md">
                             <ul className="divide-y divide-gray-200">
@@ -945,10 +1042,109 @@ const TutorManagement = () => {
                                                 <div className="ml-4 flex-1">
                                                     <div className="flex items-center">
                                                         <h3 className="text-lg font-semibold text-gray-900">
-                                                            {tutor.tutor?.fullName || tutor.tutor?.nickName || 'Không có tên'}
+                                                            {tutor.tutor?.fullName || tutor.tutor?.nickName || tutor.tutorName || 'Không có tên'}
                                                         </h3>
                                                         <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tutor.status)}`}>
-                                                            {getStatusText(tutor.status)}
+                                                            {getStatusTextFromMetadata(tutor.status)}
+                                                        </span>
+                                                    </div>
+                                                    {tutor.tutor?.fullName && tutor.tutor?.nickName && tutor.tutor.fullName !== tutor.tutor.nickName && (
+                                                        <p className="text-sm text-gray-600 mt-1">Biệt danh: {tutor.tutor.nickName}</p>
+                                                    )}
+
+                                                    <div className="mt-2 space-y-1 text-sm text-gray-600">
+                                                        <div className="flex items-center">
+                                                            <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <span>{tutor.tutor?.email || 'Không có email'}</span>
+                                                        </div>
+                                                        <div className="flex items-center">
+                                                            <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-3h14a2 2 0 002-2v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <span>
+                                                                {tutor.submittedAt ?
+                                                                    `Nộp: ${new Date(tutor.submittedAt).toLocaleDateString('vi-VN')}` :
+                                                                    'Chưa xác định'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Brief description */}
+                                                    {tutor.tutor?.brief && (
+                                                        <div className="mt-2">
+                                                            <p className="text-sm text-gray-700 italic">
+                                                                "{tutor.tutor.brief}"
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <NoFocusOutLineButton
+                                                    onClick={() => handleViewProfile(tutor)}
+                                                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                                >
+                                                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                    Xem
+                                                </NoFocusOutLineButton>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </>
+            ) : (
+                <>
+                    {/* Loading and Error States */}
+                    {loading && (
+                        <div className="flex justify-center items-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            <span className="ml-2">Đang tải thông tin gia sư...</span>
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                            <strong className="font-bold">Error! </strong>
+                            <span className="block sm:inline">{error}</span>
+                        </div>
+                    )}
+
+                    {/* Applications List */}
+                    {!loading && !error && (
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                            <ul className="divide-y divide-gray-200">
+                                {currentTutors.map((tutor) => (
+                                    <li key={tutor.id} className="px-6 py-4 hover:bg-gray-50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0 h-16 w-16">
+                                                    {tutor.tutor?.profileImageUrl ? (
+                                                        <img
+                                                            src={tutor.tutor.profileImageUrl}
+                                                            alt={tutor.tutor?.fullName || 'Tutor'}
+                                                            className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                                                            {(tutor.tutor?.fullName || tutor.tutor?.nickName || 'T').charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="ml-4 flex-1">
+                                                    <div className="flex items-center">
+                                                        <h3 className="text-lg font-semibold text-gray-900">
+                                                            {tutor.tutor?.fullName || tutor.tutor?.nickName || tutor.tutorName || 'Không có tên'}
+                                                        </h3>
+                                                        <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tutor.status)}`}>
+                                                            {getStatusTextFromMetadata(tutor.status)}
                                                         </span>
                                                     </div>
                                                     {tutor.tutor?.fullName && tutor.tutor?.nickName && tutor.tutor.fullName !== tutor.tutor.nickName && (
@@ -1057,43 +1253,78 @@ const TutorManagement = () => {
             )}
 
             {/* Pagination */}
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="flex-1 flex justify-between sm:hidden">
-                    <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        Trước
-                    </button>
-                    <button className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        Sau
-                    </button>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                        <p className="text-sm text-gray-700">
-                            Hiển thị <span className="font-medium">1</span> đến <span className="font-medium">{Math.min(pageSize, currentTutors.length)}</span> trong tổng số{' '}
-                            <span className="font-medium">{currentTutors.length}</span> kết quả
-                        </p>
+            {totalPages > 1 && (
+                <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div className="flex-1 flex justify-between sm:hidden">
+                        <NoFocusOutLineButton 
+                            className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                        >
+                            Trước
+                        </NoFocusOutLineButton>
+                        <NoFocusOutLineButton 
+                            className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                        >
+                            Sau
+                        </NoFocusOutLineButton>
                     </div>
-                    <div>
-                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                            <button className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                <span className="sr-only">Trước</span>
-                                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                            </button>
-                            <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                1
-                            </button>
-                            <button className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                <span className="sr-only">Sau</span>
-                                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                </svg>
-                            </button>
-                        </nav>
+                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm text-gray-700">
+                                Hiển thị <span className="font-medium">{((currentPage - 1) * pageSize) + 1}</span> đến{' '}
+                                <span className="font-medium">{Math.min(currentPage * pageSize, totalItems)}</span> trong tổng số{' '}
+                                <span className="font-medium">{totalItems}</span> kết quả
+                            </p>
+                        </div>
+                        <div>
+                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                <NoFocusOutLineButton 
+                                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                >
+                                    <span className="sr-only">Trước</span>
+                                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                </NoFocusOutLineButton>
+                                
+                                {/* Page numbers */}
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    const pageNum = i + 1;
+                                    return (
+                                        <NoFocusOutLineButton
+                                            key={pageNum}
+                                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                                pageNum === currentPage
+                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                            }`}
+                                            onClick={() => handlePageChange(pageNum)}
+                                        >
+                                            {pageNum}
+                                        </NoFocusOutLineButton>
+                                    );
+                                })}
+                                
+                                <NoFocusOutLineButton 
+                                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    <span className="sr-only">Sau</span>
+                                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                </NoFocusOutLineButton>
+                            </nav>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {selectedTutor && renderTutorProfile()}
 
