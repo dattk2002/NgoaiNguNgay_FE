@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { fetchWalletTransactions, fetchDepositHistory, fetchWithdrawalRequests } from '../api/auth';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
+// Import React Icons
+import { 
+  HiClipboardList, 
+  HiArrowDown, 
+  HiArrowUp, 
+  HiRefresh, 
+  HiCheck, 
+  HiClock, 
+  HiX,
+  HiExclamation,
+  HiChartBar,
+  HiDownload,
+  HiUpload
+} from 'react-icons/hi';
 
 const TransactionHistory = () => {
   const [filter, setFilter] = useState('all');
@@ -114,6 +128,14 @@ const TransactionHistory = () => {
                 transactionType = t.transactionType.toLowerCase();
               } else if (t.type && typeof t.type === 'string') {
                 transactionType = t.type.toLowerCase();
+              }
+
+              // Improved categorization logic - include withdrawal fees
+              const description = String(t.description || t.transactionType || t.note || '').toLowerCase();
+              if (description.includes('rút tiền về') || description.includes('withdraw to') || description.includes('withdrawal to') || description.includes('phí rút tiền')) {
+                transactionType = 'withdraw';
+              } else if (description.includes('nạp') || description.includes('deposit')) {
+                transactionType = 'deposit';
               }
 
               // Handle status safely
@@ -348,9 +370,9 @@ const TransactionHistory = () => {
   };
 
   const getTransactionIcon = (type) => {
-    if (type === 'deposit') return '⬇';
-    if (type === 'withdraw') return '⬆';
-    return '🔄';
+    if (type === 'deposit') return <HiDownload className="w-6 h-6" />;
+    if (type === 'withdraw') return <HiUpload className="w-6 h-6" />;
+    return <HiRefresh className="w-6 h-6" />;
   };
 
   const getAmountColor = (type) => {
@@ -360,20 +382,23 @@ const TransactionHistory = () => {
   };
 
   const filterOptions = [
-    { key: 'all', label: 'Tất cả', icon: '📋' },
-    { key: 'deposit', label: 'Nạp tiền', icon: '⬇️' },
-    { key: 'withdraw', label: 'Rút tiền', icon: '⬆️' },
-    { key: 'transaction', label: 'Giao dịch khác', icon: '🔄' },
-    { key: 'success', label: 'Thành công', icon: '✅' },
-    { key: 'pending', label: 'Đang xử lý', icon: '⏳' },
-    { key: 'failed', label: 'Thất bại', icon: '❌' }
+    { key: 'all', label: 'Tất cả', icon: <HiClipboardList className="w-5 h-5" /> },
+    { key: 'deposit', label: 'Nạp tiền', icon: <HiArrowDown className="w-5 h-5" /> },
+    { key: 'withdraw', label: 'Rút tiền', icon: <HiArrowUp className="w-5 h-5" /> },
+    { key: 'transaction', label: 'Giao dịch khác', icon: <HiRefresh className="w-5 h-5" /> },
+    { key: 'success', label: 'Thành công', icon: <HiCheck className="w-5 h-5" /> },
+    { key: 'pending', label: 'Đang xử lý', icon: <HiClock className="w-5 h-5" /> },
+    { key: 'failed', label: 'Thất bại', icon: <HiX className="w-5 h-5" /> }
   ];
 
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">📋 Lịch sử giao dịch</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <HiClipboardList className="w-7 h-7 text-gray-600" />
+          Lịch sử giao dịch
+        </h2>
         <p className="text-gray-600">Xem tất cả các giao dịch đã thực hiện</p>
       </div>
 
@@ -391,7 +416,7 @@ const TransactionHistory = () => {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <span>{filterOption.icon}</span>
+              {filterOption.icon}
               <span>{filterOption.label}</span>
             </NoFocusOutLineButton>
           ))}
@@ -418,7 +443,7 @@ const TransactionHistory = () => {
           </div>
         ) : error ? (
           <div className="text-center py-16">
-            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <HiExclamation className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">Lỗi tải dữ liệu</h3>
             <p className="text-gray-500 mb-4">{error}</p>
             <NoFocusOutLineButton
@@ -434,7 +459,7 @@ const TransactionHistory = () => {
               <div key={transaction.id} className="p-6 hover:bg-gray-100 transition-colors duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-medium ${
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${
                       transaction.type === 'deposit' ? 'bg-emerald-500' : 
                       transaction.type === 'withdraw' ? 'bg-rose-500' : 'bg-blue-500'
                     }`}>
@@ -462,7 +487,7 @@ const TransactionHistory = () => {
           </div>
         ) : (
           <div className="text-center py-16">
-            <div className="text-gray-300 text-6xl mb-4">📋</div>
+            <HiClipboardList className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">
               {searchTerm || filter !== 'all' ? 'Không tìm thấy giao dịch' : 'Chưa có giao dịch nào'}
             </h3>
@@ -522,7 +547,7 @@ const TransactionHistory = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">⬇️</span>
+              <HiDownload className="w-8 h-8 text-emerald-600" />
               <span className="font-medium text-emerald-800">Tổng nạp</span>
             </div>
             <div className="text-2xl font-bold text-emerald-600">
@@ -536,7 +561,7 @@ const TransactionHistory = () => {
           
           <div className="bg-rose-50 border border-rose-200 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">⬆️</span>
+              <HiUpload className="w-8 h-8 text-rose-600" />
               <span className="font-medium text-rose-800">Tổng rút</span>
             </div>
             <div className="text-2xl font-bold text-rose-600">
@@ -550,7 +575,7 @@ const TransactionHistory = () => {
           
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">📊</span>
+              <HiChartBar className="w-8 h-8 text-blue-600" />
               <span className="font-medium text-blue-800">Tổng giao dịch</span>
             </div>
             <div className="text-2xl font-bold text-blue-600">

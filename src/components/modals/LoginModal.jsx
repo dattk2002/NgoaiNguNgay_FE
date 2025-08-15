@@ -71,7 +71,7 @@ const SpinnerIcon = () => (
         fill="currentFill" // This will be the fill color from className, e.g., fill-[#333333]
       />
     </svg>
-    <span className="sr-only">Logging in...</span>
+    <span className="sr-only">Đang đăng nhập...</span>
   </div>
 );
 
