@@ -85,36 +85,6 @@ const dailyRevenue = [
 - 💰 **Doanh thu cao nhất**: Tiếng Anh
 - ⚠️ **Cần cải thiện**: Vật lý (-3.2%)
 
-### 📋 FinancialReports.jsx
-**Mục đích**: Tạo và quản lý các báo cáo tài chính
-
-**Report Types**:
-- 💰 **Báo cáo doanh thu**: Chi tiết theo thời gian và danh mục
-- 💸 **Báo cáo hoa hồng**: Hoa hồng gia sư và phí nền tảng
-- 💳 **Báo cáo thanh toán**: Trạng thái và phương thức thanh toán
-- 📊 **Báo cáo thuế**: Tổng hợp cho khai báo thuế
-
-**Export Formats**:
-- 📄 **PDF**: Định dạng in ấn và chia sẻ
-- 📊 **Excel**: Định dạng phân tích dữ liệu  
-- 📈 **CSV**: Định dạng dữ liệu thô
-
-**Report Generation**:
-```jsx
-const handleGenerateReport = () => {
-  const reportType = selectedReportType;
-  const timeRange = dateRange;
-  // Generate report logic
-};
-```
-
-**Recent Reports Table**:
-- 📝 Tên báo cáo và loại
-- 📅 Ngày tạo
-- ✅ Trạng thái (Hoàn thành/Đang xử lý)
-- 📦 Kích thước file
-- ⬇️ Download actions
-
 ### 💸 WithdrawalManagement.jsx
 **Mục đích**: Quản lý các yêu cầu rút tiền từ gia sư
 

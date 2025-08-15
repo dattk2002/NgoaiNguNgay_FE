@@ -716,7 +716,6 @@ export async function fetchConversationList(conversationId, page = 1, size = 20)
 
       const formattedMessages = response.data.messages.map(msg => {
         const senderInfo = getParticipantInfo(msg.userId);
-        const currentUser = getStoredUser();
 
         return {
           id: msg.id,
@@ -2563,4 +2562,643 @@ export async function fetchStaffDisputeDetail(disputeId) {
 
 
 
-import { formatCentralTimestamp, convertUTC0ToUTC7, convertBookingOfferResponseToUTC7 } from '../../utils/formatCentralTimestamp';
+/**
+ * Get manager financial overview data
+ * @returns {Promise<Object>} Financial overview data including totals and status definitions
+ */
+export async function managerFinancialOverview() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/financial-overview", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager financial overview fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerFinancialOverview:", response);
+      throw new Error("API response did not contain expected financial overview data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager financial overview:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager financial overview metadata
+ * @returns {Promise<Object>} Financial overview metadata including status definitions and component descriptions
+ */
+export async function managerFinancialOverviewMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/financial-overview/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager financial overview metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerFinancialOverviewMetadata:", response);
+      throw new Error("API response did not contain expected financial overview metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager financial overview metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager wallet balances data
+ * @returns {Promise<Object>} Wallet balances data including totals and wallet information
+ */
+export async function managerWalletBalances() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/wallet-balances", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager wallet balances fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerWalletBalances:", response);
+      throw new Error("API response did not contain expected wallet balances data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager wallet balances:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager wallet balances metadata
+ * @returns {Promise<Object>} Wallet balances metadata including wallet types and status definitions
+ */
+export async function managerWalletBalancesMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/wallet-balances/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager wallet balances metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerWalletBalancesMetadata:", response);
+      throw new Error("API response did not contain expected wallet balances metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager wallet balances metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager transaction summary data
+ * @param {string} fromDate - Start date in ISO format (YYYY-MM-DD)
+ * @param {string} toDate - End date in ISO format (YYYY-MM-DD)
+ * @returns {Promise<Object>} Transaction summary data including totals and transaction information
+ */
+export async function managerTransactionSummary(fromDate, toDate) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Build query parameters with proper UTC date formatting
+    const params = new URLSearchParams();
+    if (fromDate) {
+      // Convert date to UTC midnight for the start of the day
+      const fromDateUTC = new Date(fromDate + 'T00:00:00.000Z').toISOString();
+      params.append('fromDate', fromDateUTC);
+    }
+    if (toDate) {
+      // Convert date to UTC end of day (23:59:59.999)
+      const toDateUTC = new Date(toDate + 'T23:59:59.999Z').toISOString();
+      params.append('toDate', toDateUTC);
+    }
+
+    const url = `/api/manager/transaction-summary${params.toString() ? `?${params.toString()}` : ''}`;
+    console.log("🔍 Calling transaction summary API with URL:", url);
+    console.log("🔍 Date parameters:", { fromDate, toDate, fromDateUTC: fromDate ? new Date(fromDate + 'T00:00:00.000Z').toISOString() : null, toDateUTC: toDate ? new Date(toDate + 'T23:59:59.999Z').toISOString() : null });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager transaction summary fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerTransactionSummary:", response);
+      throw new Error("API response did not contain expected transaction summary data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager transaction summary:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager transaction summary metadata
+ * @returns {Promise<Object>} Transaction summary metadata including transaction types and status definitions
+ */
+export async function managerTransactionSummaryMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/transaction-summary/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager transaction summary metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerTransactionSummaryMetadata:", response);
+      throw new Error("API response did not contain expected transaction summary metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager transaction summary metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager held funds summary data
+ * @returns {Promise<Object>} Held funds summary data including totals, amounts by type/status, and metadata
+ */
+export async function managerHeldFunds() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/held-funds-summary", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager held funds summary fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerHeldFunds:", response);
+      throw new Error("API response did not contain expected held funds summary data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager held funds summary:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager held funds statistics data
+ * @param {number} timeRange - Time range enum: 0=Day, 1=Week, 2=Month, 3=HalfYear, 4=Year, 5=All
+ * @returns {Promise<Object>} Held funds statistics data for the specified time range
+ */
+export async function managerHeldFundsStatistics(timeRange = 5) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate timeRange parameter
+    if (timeRange < 0 || timeRange > 5) {
+      throw new Error("Invalid timeRange parameter. Must be between 0-5 (0=Day, 1=Week, 2=Month, 3=HalfYear, 4=Year, 5=All)");
+    }
+
+    const params = new URLSearchParams({
+      timeRange: timeRange.toString()
+    });
+
+    const url = `/api/manager/held-fund-statistics?${params.toString()}`;
+    console.log(" Calling held funds statistics API with URL:", url);
+    console.log("🔍 Time range parameter:", timeRange);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager held funds statistics fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerHeldFundsStatistics:", response);
+      throw new Error("API response did not contain expected held funds statistics data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager held funds statistics:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager held funds summary metadata
+ * @returns {Promise<Object>} Held funds summary metadata including status definitions, types, and component descriptions
+ */
+export async function managerHeldFundsMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/held-funds-summary/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager held funds summary metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerHeldFundsMetadata:", response);
+      throw new Error("API response did not contain expected held funds summary metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager held funds summary metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager held funds statistics metadata
+ * @returns {Promise<Object>} Held funds statistics metadata including time ranges, status definitions, types, and component descriptions
+ */
+export async function managerHeldFundsStatisticsMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/held-fund-statistics/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager held funds statistics metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerHeldFundsStatisticsMetadata:", response);
+      throw new Error("API response did not contain expected held funds statistics metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager held funds statistics metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager transaction statistics data
+ * @param {number} timeRange - Time range enum: 0=Day, 1=Week, 2=Month, 3=HalfYear, 4=Year, 5=All
+ * @returns {Promise<Object>} Transaction statistics data for the specified time range
+ */
+export async function managerTransactionStatistics(timeRange = 5) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate timeRange parameter
+    if (timeRange < 0 || timeRange > 5) {
+      throw new Error("Invalid timeRange parameter. Must be between 0-5 (0=Day, 1=Week, 2=Month, 3=HalfYear, 4=Year, 5=All)");
+    }
+
+    const params = new URLSearchParams({
+      timeRange: timeRange.toString()
+    });
+
+    const url = `/api/manager/transaction-statistics?${params.toString()}`;
+    console.log("🔍 Calling transaction statistics API with URL:", url);
+    console.log("🔍 Time range parameter:", timeRange);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager transaction statistics fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerTransactionStatistics:", response);
+      throw new Error("API response did not contain expected transaction statistics data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager transaction statistics:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager transaction statistics metadata
+ * @returns {Promise<Object>} Transaction statistics metadata including time ranges, transaction types, statuses, and component descriptions
+ */
+export async function managerTransactionStatisticsMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/transaction-statistics/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager transaction statistics metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerTransactionStatisticsMetadata:", response);
+      throw new Error("API response did not contain expected transaction statistics metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager transaction statistics metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager system revenue data
+ * @param {number} timeRange - Time range enum: 0=Day, 1=Week, 2=Month, 3=HalfYear, 4=Year, 5=All
+ * @returns {Promise<Object>} System revenue data for the specified time range
+ */
+export async function managerSystemRevenue(timeRange = 5) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate timeRange parameter
+    if (timeRange < 0 || timeRange > 5) {
+      throw new Error("Invalid timeRange parameter. Must be between 0-5 (0=Day, 1=Week, 2=Month, 3=HalfYear, 4=Year, 5=All)");
+    }
+
+    const params = new URLSearchParams({
+      timeRange: timeRange.toString()
+    });
+
+    const url = `/api/manager/system-revenue?${params.toString()}`;
+    console.log("🔍 Calling system revenue API with URL:", url);
+    console.log("🔍 Time range parameter:", timeRange);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager system revenue fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerSystemRevenue:", response);
+      throw new Error("API response did not contain expected system revenue data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager system revenue:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager system revenue metadata
+ * @returns {Promise<Object>} System revenue metadata including time ranges and component descriptions
+ */
+export async function managerSystemRevenueMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/system-revenue/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager system revenue metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerSystemRevenueMetadata:", response);
+      throw new Error("API response did not contain expected system revenue metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager system revenue metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager recent transactions data
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Number of items per page (default: 10)
+ * @returns {Promise<Object>} Recent transactions data including items and pagination info
+ */
+export async function managerRecentTransactions(page = 1, pageSize = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString()
+    });
+
+    const url = `/api/manager/recent-transactions?${params.toString()}`;
+    console.log("🔍 Calling recent transactions API with URL:", url);
+    console.log("🔍 Parameters:", { page, pageSize });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager recent transactions fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerRecentTransactions:", response);
+      throw new Error("API response did not contain expected recent transactions data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager recent transactions:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager recent transactions metadata
+ * @returns {Promise<Object>} Recent transactions metadata including transaction types, statuses, and component descriptions
+ */
+export async function managerRecentTransactionsMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/recent-transactions/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager recent transactions metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerRecentTransactionsMetadata:", response);
+      throw new Error("API response did not contain expected recent transactions metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager recent transactions metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager top tutors data
+ * @param {number} top - Number of top tutors to fetch (default: 10)
+ * @param {number} timeRange - Time range enum: 0=Day, 1=Week, 2=Month, 3=HalfYear, 4=Year, 5=All (default: 5)
+ * @returns {Promise<Object>} Top tutors data including tutor information and revenue statistics
+ */
+export async function managerTopTutors(top = 10, timeRange = 5) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate parameters
+    if (top < 1 || top > 100) {
+      throw new Error("Top parameter must be between 1 and 100");
+    }
+    if (timeRange < 0 || timeRange > 5) {
+      throw new Error("Invalid timeRange parameter. Must be between 0-5 (0=Day, 1=Week, 2=Month, 3=HalfYear, 4=Year, 5=All)");
+    }
+
+    const params = new URLSearchParams({
+      top: top.toString(),
+      timeRange: timeRange.toString()
+    });
+
+    const url = `/api/manager/top-tutors?${params.toString()}`;
+    console.log(" Calling top tutors API with URL:", url);
+    console.log("🔍 Parameters:", { top, timeRange });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager top tutors fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerTopTutors:", response);
+      throw new Error("API response did not contain expected top tutors data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager top tutors:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get manager top tutors metadata
+ * @returns {Promise<Object>} Top tutors metadata including time ranges and component descriptions
+ */
+export async function managerTopTutorsMetadata() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/manager/top-tutors/metadata", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Manager top tutors metadata fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for managerTopTutorsMetadata:", response);
+      throw new Error("API response did not contain expected top tutors metadata.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch manager top tutors metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get admin users management data with filtering and pagination
+ * @param {Object} params - Query parameters { Name, IsActive, Role, PageIndex, PageSize }
+ * @returns {Promise<Object>} API response with users data and metadata
+ */
+export async function adminManageUsers(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add optional filter parameters
+    if (params.Name) {
+      queryParams.append('Name', params.Name);
+    }
+    
+    if (params.IsActive !== undefined && params.IsActive !== null) {
+      queryParams.append('IsActive', params.IsActive.toString());
+    }
+    
+    if (params.Role) {
+      queryParams.append('Role', params.Role);
+    }
+    
+    // Add pagination parameters with defaults
+    queryParams.append('PageIndex', (params.PageIndex || 0).toString());
+    queryParams.append('PageSize', (params.PageSize || 10).toString());
+
+    const url = `/api/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log("🔍 Calling admin manage users API:", url);
+    console.log("🔍 Parameters:", params);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Admin users management data fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for admin users management.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch admin users management data:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete/disable a user by admin
+ * @param {string} userId - The ID of the user to delete/disable
+ * @returns {Promise<Object>} API response
+ */
+export async function adminDeleteUsers(userId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
+    const response = await callApi(`/api/admin/${userId}`, "DELETE", null, token);
+
+    if (response) {
+      console.log("✅ User deleted/disabled successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for user deletion.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to delete/disable user:", error.message);
+    throw error;
+  }
+}
+
+import { convertBookingOfferResponseToUTC7 } from '../../utils/formatCentralTimestamp';
