@@ -12,13 +12,16 @@ const BecomeATutorPage = ({
     fetchHashtags: fetchHashtagsApi,
     uploadProfileImage: uploadProfileImageApi,
     deleteProfileImage: deleteProfileImageApi,
-    registerAsTutor: registerAsTutorApi
+    registerAsTutor: registerAsTutorApi,
+    uploadCertificate: uploadCertificateApi,
+    requestTutorVerification: requestTutorVerificationApi
 }) => {
     const navigate = useNavigate();
     const [activeStep, setActiveStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [hashtags, setHashtags] = useState([]);
+    const [tutorApplicationId, setTutorApplicationId] = useState(null);
     const [formData, setFormData] = useState({
         // Basic Information
         fullName: "",
@@ -38,7 +41,10 @@ const BecomeATutorPage = ({
         hashtagIds: [],
 
         // Languages
-        languages: [{ languageCode: "", proficiency: 3, isPrimary: true }]
+        languages: [{ languageCode: "", proficiency: 3, isPrimary: true }],
+
+        // Certificates
+        certificates: []
     });
 
     const proficiencyLevels = [
@@ -311,48 +317,55 @@ const BecomeATutorPage = ({
         });
     };
 
-    const handleCertificationChange = (index, field, value) => {
-        const updatedCertifications = [...formData.certifications];
-        updatedCertifications[index] = {
-            ...updatedCertifications[index],
-            [field]: value,
-        };
-        setFormData({ ...formData, certifications: updatedCertifications });
-    };
+    // Removed handleCertificateChange since we no longer have name field
 
-    const handleCertificationFileChange = (index, e) => {
+    const handleCertificateFileChange = (index, e) => {
         const { files } = e.target;
         if (files.length > 0) {
             const file = files[0];
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('Kích thước file phải nhỏ hơn 5MB');
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                toast.error('Chỉ chấp nhận file PDF hoặc ảnh (JPG, PNG)');
+                return;
+            }
+
             const previewUrl = URL.createObjectURL(file);
-            const updatedCertifications = [...formData.certifications];
-            updatedCertifications[index] = {
-                ...updatedCertifications[index],
+            const updatedCertificates = [...formData.certificates];
+            updatedCertificates[index] = {
+                ...updatedCertificates[index],
                 file: file,
                 filePreview: previewUrl
             };
-            setFormData({ ...formData, certifications: updatedCertifications });
+            setFormData({ ...formData, certificates: updatedCertificates });
         }
     };
 
-    const addCertification = () => {
+    const addCertificate = () => {
         setFormData({
             ...formData,
-            certifications: [...formData.certifications, { name: "", file: null, filePreview: "" }],
+            certificates: [...formData.certificates, { file: null, filePreview: "" }],
         });
     };
 
-    const removeCertification = (index) => {
-        const updatedCertifications = [...formData.certifications];
-        updatedCertifications.splice(index, 1);
-        setFormData({ ...formData, certifications: updatedCertifications });
+    const removeCertificate = (index) => {
+        const updatedCertificates = [...formData.certificates];
+        updatedCertificates.splice(index, 1);
+        setFormData({ ...formData, certificates: updatedCertificates });
     };
 
     useEffect(() => {
         // Cleanup object URLs when component unmounts
         return () => {
             if (formData.profilePhotoPreview) URL.revokeObjectURL(formData.profilePhotoPreview);
-            formData.certifications?.forEach(cert => {
+            formData.certificates?.forEach(cert => {
                 if (cert.filePreview) URL.revokeObjectURL(cert.filePreview);
             });
         };
@@ -421,7 +434,7 @@ const BecomeATutorPage = ({
                         return false;
                     }
                 }
-                
+
                 // Validate brief (optional but if provided, must be valid)
                 if (formData.brief && formData.brief.trim() !== "") {
                     if (formData.brief.trim().length < 10) {
@@ -433,7 +446,7 @@ const BecomeATutorPage = ({
                         return false;
                     }
                 }
-                
+
                 // Validate description (required)
                 if (!formData.description || formData.description.trim() === "") {
                     toast.error("Mô tả đầy đủ là bắt buộc");
@@ -447,7 +460,7 @@ const BecomeATutorPage = ({
                     toast.error("Mô tả không được vượt quá 3000 ký tự");
                     return false;
                 }
-                
+
                 // Validate teachingMethod (required)
                 if (!formData.teachingMethod || formData.teachingMethod.trim() === "") {
                     toast.error("Phương pháp giảng dạy là bắt buộc");
@@ -505,6 +518,22 @@ const BecomeATutorPage = ({
 
                 return true;
 
+            case 5:
+                // Certificates are required
+                if (!formData.certificates || formData.certificates.length === 0) {
+                    toast.error("Vui lòng tải lên ít nhất một chứng chỉ");
+                    return false;
+                }
+
+                for (let i = 0; i < formData.certificates.length; i++) {
+                    const cert = formData.certificates[i];
+                    if (!cert.file) {
+                        toast.error(`Vui lòng tải lên file cho chứng chỉ thứ ${i + 1}`);
+                        return false;
+                    }
+                }
+                return true;
+
             default:
                 return true;
         }
@@ -513,58 +542,127 @@ const BecomeATutorPage = ({
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (activeStep !== 4) {
-            // If not the final step, go to the next step
-            nextStep();
-            return;
-        }
-
-        if (!validateCurrentStep()) {
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        try {
-            const token = getAccessToken();
-            if (!token) {
-                toast.error("Bạn phải đăng nhập để đăng ký làm gia sư");
-                onRequireLogin();
+        if (activeStep === 4) {
+            // Step 4: Submit tutor registration
+            if (!validateCurrentStep()) {
                 return;
             }
 
-            // Format data to match API requirements
-            const payload = {
-                fullName: formData.fullName,
-                dateOfBirth: new Date(formData.dateOfBirth).toISOString(),
-                gender: parseInt(formData.gender),
-                timezone: formData.timezone,
-                nickName: formData.nickName || null,
-                brief: formData.brief || null,
-                description: formData.description,
-                teachingMethod: formData.teachingMethod,
-                hashtagIds: formData.hashtagIds,
-                languages: formData.languages.map(lang => ({
-                    languageCode: lang.languageCode,
-                    proficiency: parseInt(lang.proficiency),
-                    isPrimary: lang.isPrimary
-                }))
-            };
+            setIsSubmitting(true);
 
-            const response = await registerAsTutorApi(payload);
-            toast.success("Đăng ký gia sư của bạn đã thành công! Hồ sơ của bạn hiện đang được xem xét.");
+            try {
+                const token = getAccessToken();
+                if (!token) {
+                    toast.error("Bạn phải đăng nhập để đăng ký làm gia sư");
+                    onRequireLogin();
+                    return;
+                }
 
-            // Redirect to home page after 2 seconds
-            setTimeout(() => {
-                navigate('/');
-            }, 2000);
+                // Format data to match API requirements
+                const payload = {
+                    fullName: formData.fullName,
+                    dateOfBirth: new Date(formData.dateOfBirth).toISOString(),
+                    gender: parseInt(formData.gender),
+                    timezone: formData.timezone,
+                    nickName: formData.nickName || null,
+                    brief: formData.brief || null,
+                    description: formData.description,
+                    teachingMethod: formData.teachingMethod,
+                    hashtagIds: formData.hashtagIds,
+                    languages: formData.languages.map(lang => ({
+                        languageCode: lang.languageCode,
+                        proficiency: parseInt(lang.proficiency),
+                        isPrimary: lang.isPrimary
+                    }))
+                };
 
-        } catch (error) {
-            console.error("Error submitting tutor registration:", error);
-            toast.error(error.message || "Đăng ký thất bại. Vui lòng thử lại sau.");
-        } finally {
-            setIsSubmitting(false);
+                const response = await registerAsTutorApi(payload);
+                console.log("Tutor registration response:", response);
+
+                // Store the application ID for step 5
+                // Try different possible locations for the application ID
+                let applicationId = null;
+                if (response && response.data) {
+                    applicationId = response.data.applicationId ||
+                        response.data.id ||
+                        response.data.tutorApplicationId ||
+                        response.data.tutorId;
+                }
+
+                if (applicationId) {
+                    setTutorApplicationId(applicationId);
+                    console.log("Application ID found:", applicationId);
+                } else {
+                    console.warn("No application ID found in response:", response);
+                    // Still proceed to step 5, but show a warning
+                    toast.warning("Đăng ký thành công nhưng không tìm thấy ID ứng dụng. Vui lòng liên hệ hỗ trợ nếu gặp vấn đề.");
+                }
+
+                // Show success message and go to step 5
+                toast.success("Đăng ký cơ bản thành công! Bây giờ bạn có thể tải lên chứng chỉ (tùy chọn).");
+                setActiveStep(5);
+                window.scrollTo(0, 0);
+
+            } catch (error) {
+                console.error("Error submitting tutor registration:", error);
+                toast.error(error.message || "Đăng ký thất bại. Vui lòng thử lại sau.");
+            } finally {
+                setIsSubmitting(false);
+            }
+            return;
         }
+
+        if (activeStep === 5) {
+            // Step 5: Submit certificates and request verification
+            if (!validateCurrentStep()) {
+                return;
+            }
+
+            setIsSubmitting(true);
+
+            try {
+                const token = getAccessToken();
+                if (!token) {
+                    toast.error("Bạn phải đăng nhập để hoàn thành đăng ký");
+                    onRequireLogin();
+                    return;
+                }
+
+                if (!tutorApplicationId) {
+                    toast.error("Không tìm thấy thông tin đăng ký. Vui lòng thử lại hoặc liên hệ hỗ trợ.");
+                    return;
+                }
+
+                // Upload certificates if any
+                if (formData.certificates && formData.certificates.length > 0) {
+                    const certificatesWithFiles = formData.certificates.filter(cert => cert.file);
+                    if (certificatesWithFiles.length > 0) {
+                        const files = certificatesWithFiles.map(cert => cert.file);
+                        await uploadCertificateApi(files, tutorApplicationId);
+                    }
+                }
+
+                // Request verification
+                await requestTutorVerificationApi(tutorApplicationId);
+
+                toast.success("Hoàn thành đăng ký gia sư! Hồ sơ của bạn hiện đang được xem xét trong vòng 1-3 ngày làm việc.");
+
+                // Redirect to home page after 2 seconds
+                setTimeout(() => {
+                    navigate('/');
+                }, 2000);
+
+            } catch (error) {
+                console.error("Error submitting certificates and verification request:", error);
+                toast.error(error.message || "Hoàn thành đăng ký thất bại. Vui lòng thử lại sau.");
+            } finally {
+                setIsSubmitting(false);
+            }
+            return;
+        }
+
+        // For other steps, just go to next step
+        nextStep();
     };
 
     useEffect(() => {
@@ -588,7 +686,8 @@ const BecomeATutorPage = ({
             "Thông tin cơ bản",
             "Thông tin gia sư",
             "Ngôn ngữ",
-            "Hashtag"
+            "Hashtag",
+            "Chứng chỉ"
         ];
 
         return (
@@ -675,7 +774,7 @@ const BecomeATutorPage = ({
                 return (
                     <div className="space-y-6">
                         <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Thông tin cơ bản</h2>
-                        
+
                         {/* Warning message for incomplete profile */}
                         {(!formData.fullName || !formData.dateOfBirth || formData.gender === undefined || formData.gender === null || !formData.timezone) && (
                             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
@@ -693,7 +792,7 @@ const BecomeATutorPage = ({
                                 </div>
                             </div>
                         )}
-                        
+
                         <div className="space-y-5">
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -792,12 +891,11 @@ const BecomeATutorPage = ({
                                     name="nickName"
                                     value={formData.nickName}
                                     onChange={handleChange}
-                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${
-                                        formData.nickName && formData.nickName.trim() !== "" && 
+                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${formData.nickName && formData.nickName.trim() !== "" &&
                                         (formData.nickName.trim().length < 2 || formData.nickName.trim().length > 50)
-                                            ? 'border-red-500 focus:ring-red-500' 
-                                            : 'border-gray-300 focus:ring-blue-500'
-                                    }`}
+                                        ? 'border-red-500 focus:ring-red-500'
+                                        : 'border-gray-300 focus:ring-blue-500'
+                                        }`}
                                     style={formControlStyle}
                                     placeholder="Nhập biệt danh bạn muốn (tùy chọn, 2-50 ký tự)"
                                 />
@@ -805,12 +903,11 @@ const BecomeATutorPage = ({
                                     <p className="text-xs text-gray-500">
                                         Tối thiểu 2 ký tự, tối đa 50 ký tự (tùy chọn)
                                     </p>
-                                    <p className={`text-xs ${
-                                        formData.nickName && formData.nickName.trim() !== "" && 
+                                    <p className={`text-xs ${formData.nickName && formData.nickName.trim() !== "" &&
                                         (formData.nickName.trim().length < 2 || formData.nickName.trim().length > 50)
-                                            ? 'text-red-500' 
-                                            : 'text-gray-500'
-                                    }`}>
+                                        ? 'text-red-500'
+                                        : 'text-gray-500'
+                                        }`}>
                                         {formData.nickName.length}/50 ký tự
                                     </p>
                                 </div>
@@ -837,12 +934,11 @@ const BecomeATutorPage = ({
                                     name="brief"
                                     value={formData.brief}
                                     onChange={handleChange}
-                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${
-                                        formData.brief && formData.brief.trim() !== "" && 
+                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${formData.brief && formData.brief.trim() !== "" &&
                                         (formData.brief.trim().length < 10 || formData.brief.trim().length > 300)
-                                            ? 'border-red-500 focus:ring-red-500' 
-                                            : 'border-gray-300 focus:ring-blue-500'
-                                    }`}
+                                        ? 'border-red-500 focus:ring-red-500'
+                                        : 'border-gray-300 focus:ring-blue-500'
+                                        }`}
                                     rows="2"
                                     style={formControlStyle}
                                     placeholder="Giới thiệu ngắn gọn về bản thân (tùy chọn, 10-300 ký tự)"
@@ -851,12 +947,11 @@ const BecomeATutorPage = ({
                                     <p className="text-xs text-gray-500">
                                         Tối thiểu 10 ký tự, tối đa 300 ký tự (tùy chọn)
                                     </p>
-                                    <p className={`text-xs ${
-                                        formData.brief && formData.brief.trim() !== "" && 
+                                    <p className={`text-xs ${formData.brief && formData.brief.trim() !== "" &&
                                         (formData.brief.trim().length < 10 || formData.brief.trim().length > 300)
-                                            ? 'text-red-500' 
-                                            : 'text-gray-500'
-                                    }`}>
+                                        ? 'text-red-500'
+                                        : 'text-gray-500'
+                                        }`}>
                                         {formData.brief.length}/300 ký tự
                                     </p>
                                 </div>
@@ -880,12 +975,11 @@ const BecomeATutorPage = ({
                                     name="description"
                                     value={formData.description}
                                     onChange={handleChange}
-                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${
-                                        formData.description && 
+                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${formData.description &&
                                         (formData.description.trim().length < 100 || formData.description.trim().length > 3000)
-                                            ? 'border-red-500 focus:ring-red-500' 
-                                            : 'border-gray-300 focus:ring-blue-500'
-                                    }`}
+                                        ? 'border-red-500 focus:ring-red-500'
+                                        : 'border-gray-300 focus:ring-blue-500'
+                                        }`}
                                     rows="6"
                                     style={formControlStyle}
                                     placeholder="Cung cấp mô tả chi tiết về bản thân, bao gồm trình độ học vấn, kinh nghiệm làm việc và triết lý giảng dạy (100-3000 ký tự)"
@@ -895,12 +989,11 @@ const BecomeATutorPage = ({
                                     <p className="text-xs text-gray-500">
                                         Tối thiểu 100 ký tự, tối đa 3000 ký tự
                                     </p>
-                                    <p className={`text-xs ${
-                                        formData.description && 
+                                    <p className={`text-xs ${formData.description &&
                                         (formData.description.trim().length < 100 || formData.description.trim().length > 3000)
-                                            ? 'text-red-500' 
-                                            : 'text-gray-500'
-                                    }`}>
+                                        ? 'text-red-500'
+                                        : 'text-gray-500'
+                                        }`}>
                                         {formData.description.length}/3000 ký tự
                                     </p>
                                 </div>
@@ -924,12 +1017,11 @@ const BecomeATutorPage = ({
                                     name="teachingMethod"
                                     value={formData.teachingMethod}
                                     onChange={handleChange}
-                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${
-                                        formData.teachingMethod && 
+                                    className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black ${formData.teachingMethod &&
                                         (formData.teachingMethod.trim().length < 10 || formData.teachingMethod.trim().length > 300)
-                                            ? 'border-red-500 focus:ring-red-500' 
-                                            : 'border-gray-300 focus:ring-blue-500'
-                                    }`}
+                                        ? 'border-red-500 focus:ring-red-500'
+                                        : 'border-gray-300 focus:ring-blue-500'
+                                        }`}
                                     rows="3"
                                     style={formControlStyle}
                                     placeholder="Mô tả phương pháp và cách tiếp cận giảng dạy của bạn (10-300 ký tự)"
@@ -939,12 +1031,11 @@ const BecomeATutorPage = ({
                                     <p className="text-xs text-gray-500">
                                         Tối thiểu 10 ký tự, tối đa 300 ký tự
                                     </p>
-                                    <p className={`text-xs ${
-                                        formData.teachingMethod && 
+                                    <p className={`text-xs ${formData.teachingMethod &&
                                         (formData.teachingMethod.trim().length < 10 || formData.teachingMethod.trim().length > 300)
-                                            ? 'text-red-500' 
-                                            : 'text-gray-500'
-                                    }`}>
+                                        ? 'text-red-500'
+                                        : 'text-gray-500'
+                                        }`}>
                                         {formData.teachingMethod.length}/300 ký tự
                                     </p>
                                 </div>
@@ -1182,6 +1273,111 @@ const BecomeATutorPage = ({
                         </div>
                     </div>
                 );
+            case 5:
+                return (
+                    <div className="space-y-6">
+                        <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Chứng chỉ</h2>
+                        <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-md">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-green-800">
+                                        <strong>Chúc mừng!</strong> Bạn đã hoàn thành thông tin cơ bản. Bây giờ bạn tải lên các chứng chỉ để được phê duyệt (bắt buộc).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                            <h3 className="text-lg font-medium text-gray-800 mb-4">Tải lên chứng chỉ</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Tải lên các chứng chỉ, bằng cấp hoặc giấy chứng nhận liên quan đến giảng dạy ngôn ngữ.
+                                Việc tải lên chứng chỉ là bắt buộc để được phê duyệt hồ sơ.
+                            </p>
+
+                            <div className="space-y-4">
+                                {formData.certificates.map((cert, index) => (
+                                    <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="font-medium text-gray-800">Chứng chỉ {index + 1}</h4>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeCertificate(index)}
+                                                className="text-red-500 hover:text-red-700 flex items-center transition-colors"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                                Xóa
+                                            </button>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Tải lên chứng chỉ
+                                            </label>
+                                            <input
+                                                type="file"
+                                                onChange={(e) => handleCertificateFileChange(index, e)}
+                                                accept=".pdf,.jpg,.jpeg,.png"
+                                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Chấp nhận: PDF, JPG, PNG (tối đa 5MB)
+                                            </p>
+                                        </div>
+
+                                        {cert.filePreview && (
+                                            <div className="mt-2">
+                                                <p className="text-sm text-gray-600 mb-1">Xem trước:</p>
+                                                {cert.file.type.startsWith('image/') ? (
+                                                    <img
+                                                        src={cert.filePreview}
+                                                        alt="Certificate Preview"
+                                                        className="max-w-xs max-h-32 object-contain border border-gray-200 rounded"
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center p-2 bg-gray-50 border border-gray-200 rounded">
+                                                        <svg className="w-8 h-8 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                                        </svg>
+                                                        <span className="text-sm text-gray-600">{cert.file.name}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    onClick={addCertificate}
+                                    className="flex items-center px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors"
+                                >
+                                    <svg
+                                        className="w-5 h-5 mr-2"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                        ></path>
+                                    </svg>
+                                    Thêm chứng chỉ khác
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
             default:
                 return null;
         }
@@ -1225,7 +1421,7 @@ const BecomeATutorPage = ({
                     </div>
                     <div className="p-6">
                         {renderStepIndicator()}
-                        <form onSubmit={activeStep === 4 ? handleSubmit : (e) => e.preventDefault()}>
+                        <form onSubmit={(activeStep === 4 || activeStep === 5) ? handleSubmit : (e) => e.preventDefault()}>
                             {/* Error message for validation that only appears when submit is clicked, not during navigation */}
                             {activeStep === 4 && formData.hashtagIds.length === 0 && (
                                 <div className="mb-4 bg-red-50 border border-red-500 text-red-600 p-3 rounded text-sm text-center">
@@ -1259,10 +1455,10 @@ const BecomeATutorPage = ({
                                             <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                                         </svg>
                                     </button>
-                                ) : (
+                                ) : activeStep === 4 ? (
                                     <button
                                         type="submit"
-                                        disabled={isSubmitting || (activeStep === 4 && formData.hashtagIds.length === 0)}
+                                        disabled={isSubmitting || formData.hashtagIds.length === 0}
                                         className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? (
@@ -1278,7 +1474,30 @@ const BecomeATutorPage = ({
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 -ml-1" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                 </svg>
-                                                Gửi đơn đăng ký
+                                                Tiếp theo
+                                            </>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Đang xử lý...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 -ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                                Hoàn thành đăng ký
                                             </>
                                         )}
                                     </button>
@@ -1289,7 +1508,7 @@ const BecomeATutorPage = ({
                 </div>
 
                 <div className="mt-8 text-center text-gray-600 text-sm">
-                    Sau khi đăng ký, hồ sơ của bạn sẽ được xem xét trong vòng 1-3 ngày làm việc.
+                    Sau khi hoàn thành đăng ký, hồ sơ của bạn sẽ được xem xét trong vòng 1-3 ngày làm việc.
                 </div>
             </div>
         </div>

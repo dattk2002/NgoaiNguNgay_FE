@@ -14,7 +14,7 @@ import "slick-carousel/slick/slick-theme.css";
 const getLanguageName = (code) => {
   const lang = languageList.find((l) => l.code === code);
   return lang ? lang.name : code;
-  
+
 };
 
 const languages = languageList.map((lang) => lang.code);
@@ -137,6 +137,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
                 borderRadius: "20px",
                 textTransform: "none",
                 width: "90%",
+
               }}
             >
               Tất cả

@@ -323,6 +323,8 @@ function AppContent({
                   uploadProfileImage={uploadProfileImage}
                   deleteProfileImage={deleteProfileImage}
                   registerAsTutor={registerAsTutor}
+                  uploadCertificate={uploadCertificate}
+                  requestTutorVerification={requestTutorVerification}
                 />
               </BlockedRoute>
             }
@@ -345,8 +347,8 @@ function AppContent({
             element={
               <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
                 <ProtectedRoute user={user} requireAuth={true} redirectTo="/">
-                  <UserProfile 
-                    loggedInUser={user} 
+                  <UserProfile
+                    loggedInUser={user}
                     getUserById={getUserById}
                     requestTutorVerification={requestTutorVerification}
                     uploadCertificate={uploadCertificate}
@@ -541,7 +543,7 @@ function AppWithNotifications() {
   const [firstTutorId, setFirstTutorId] = useState(null);
   const [triggerRoleRedirect, setTriggerRoleRedirect] = useState(false);
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
-  
+
   // Add the missing shouldAutoOpenLogin state
   const [shouldAutoOpenLogin, setShouldAutoOpenLogin] = useState(false);
 
@@ -584,7 +586,7 @@ function AppWithNotifications() {
         createdAt: notification.createdAt,
         additionalData: notification.additionalData
       });
-      
+
       // Parse the notification data based on the API structure
       let displayTitle = notification.title || "Thông báo mới";
       let displayContent = notification.content || "";
@@ -623,7 +625,7 @@ function AppWithNotifications() {
         // Handle other notification types
         displayTitle = notification.title;
         displayContent = notification.content;
-        
+
         // Set priority based on notificationPriority
         switch (notification.notificationPriority) {
           case 1:
@@ -639,7 +641,7 @@ function AppWithNotifications() {
             priority = "Normal";
         }
       }
-      
+
       setSnackbarContent({
         title: displayTitle,
         body: displayContent,
@@ -648,7 +650,7 @@ function AppWithNotifications() {
         additionalData: notification.additionalData,
         createdAt: notification.createdAt
       });
-      
+
       console.log("🎯 App.jsx - Setting Snackbar Content:", {
         title: displayTitle,
         body: displayContent,
@@ -656,7 +658,7 @@ function AppWithNotifications() {
         originalTitle: notification.title,
         originalContent: notification.content
       });
-      
+
       setSnackbarOpen(true);
       console.log(" App.jsx - Snackbar Opened");
     } else {
@@ -859,7 +861,7 @@ function AppWithNotifications() {
 
   const handleLogout = () => {
     const currentPath = window.location.pathname;
-    
+
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
     localStorage.removeItem("user");
@@ -867,7 +869,7 @@ function AppWithNotifications() {
     sessionStorage.clear();
     deleteAllCookies();
     setTriggerRoleRedirect(false);
-    
+
     // If user was on change password page, redirect to home and open login modal
     if (currentPath.startsWith('/change-password')) {
       setShouldAutoOpenLogin(true);
@@ -971,7 +973,7 @@ function AppWithNotifications() {
         setShouldAutoOpenLogin={setShouldAutoOpenLogin}
         setIsConfirmEmailModalOpen={setIsConfirmEmailModalOpen} // Add this prop
       />
-      
+
       {/* Global Snackbar with enhanced content */}
       <Snackbar
         open={snackbarOpen}
@@ -992,18 +994,18 @@ function AppWithNotifications() {
           }}
           severity={
             snackbarContent?.priority === "Critical" ? "error" :
-            snackbarContent?.priority === "Warning" ? "warning" :
-            snackbarContent?.priority === "Success" ? "success" :
-            "info"
+              snackbarContent?.priority === "Warning" ? "warning" :
+                snackbarContent?.priority === "Success" ? "success" :
+                  "info"
           }
-          sx={{ 
-            width: "100%", 
+          sx={{
+            width: "100%",
             alignItems: "flex-start",
-            backgroundColor: 
+            backgroundColor:
               snackbarContent?.priority === "Critical" ? "#f44336" :
-              snackbarContent?.priority === "Warning" ? "#ff9800" :
-              snackbarContent?.priority === "Success" ? "#4caf50" :
-              "#2196f3",
+                snackbarContent?.priority === "Warning" ? "#ff9800" :
+                  snackbarContent?.priority === "Success" ? "#4caf50" :
+                    "#2196f3",
             color: "white",
             "& .MuiAlert-message": {
               color: "white"
@@ -1018,9 +1020,9 @@ function AppWithNotifications() {
             {snackbarContent?.body}
           </div>
           {snackbarContent?.createdAt && (
-            <div style={{ 
-              color: "rgba(255, 255, 255, 0.8)", 
-              fontSize: "12px", 
+            <div style={{
+              color: "rgba(255, 255, 255, 0.8)",
+              fontSize: "12px",
               marginTop: "4px",
               fontStyle: "italic"
             }}>
