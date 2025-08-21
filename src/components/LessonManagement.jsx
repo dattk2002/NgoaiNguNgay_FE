@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating, fetchLearnerDisputes } from "./api/auth";
-import { formatCentralTimestamp } from "../utils/formatCentralTimestamp";
+import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from "../utils/formatCentralTimestamp";
+import { calculateUTC7SlotIndex } from "../utils/formatSlotTime";
 import { formatSlotDateTime } from "../utils/formatSlotTime";
 import { Skeleton } from "@mui/material";
 import CreateDisputeModal from "./modals/CreateDisputeModal";
@@ -261,7 +262,9 @@ const LessonManagement = () => {
           bookingList.map(async (booking) => {
             try {
               const detail = await fetchBookingDetail(booking.id);
-              return detail;
+              // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+              const convertedDetail = convertBookingDetailToUTC7(detail);
+              return convertedDetail;
             } catch (error) {
               console.error(`Failed to fetch detail for booking ${booking.id}:`, error);
               return null;
@@ -786,10 +789,10 @@ const LessonManagement = () => {
                                       <div className="flex items-center justify-between">
                                         <div>
                                           <span className="font-medium text-lg" style={{ color: '#666666' }}>
-                                            Slot {slot.slotIndex}
+                                            Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
                                           </span>
                                           <div className="text-xs text-gray-500 mt-1">
-                                            Ngày học: {slot.slotIndex !== undefined ? formatSlotDateTime(slot.slotIndex, slot.bookedDate) : (slot.bookedDate ? formatCentralTimestamp(slot.bookedDate) : 'N/A')}
+                                            Ngày học: {slot.slotIndex !== undefined ? formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate) : (slot.bookedDate ? formatUTC0ToUTC7(slot.bookedDate) : 'N/A')}
                                           </div>
                                           {slot.slotNote && (
                                             <div className="text-xs text-gray-600 mt-1">

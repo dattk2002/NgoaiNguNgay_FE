@@ -91,6 +91,7 @@ import formatPriceInputWithCommas from "../../utils/formatPriceInputWithCommas";
 import getWeekDates from "../../utils/getWeekDates";
 import ConfirmDeleteWeeklyPattern from "../modals/ConfirmDeleteWeeklyPattern";
 import { motion, AnimatePresence } from "framer-motion";
+import { convertUTC7ToUTC0 } from "../../utils/formatCentralTimestamp";
 
 // Global styles to remove focus borders and improve UI
 const globalStyles = (
@@ -557,7 +558,12 @@ function getSlotDateTime(weekStart, dayInWeek, slotIndex) {
   const dayOffset = dayInWeek === 1 ? 6 : dayInWeek - 2;
 
   slotDate.setDate(slotDate.getDate() + dayOffset);
-  slotDate.setHours(slotIndex, 0, 0, 0);
+  
+  // Calculate hours and minutes from slotIndex (0-47 for 48 slots per day)
+  const hour = Math.floor(slotIndex / 2);
+  const minute = slotIndex % 2 === 0 ? 0 : 30;
+  slotDate.setHours(hour, minute, 0, 0);
+  
   return slotDate;
 }
 
@@ -1547,12 +1553,17 @@ const TutorProfile = ({
           slot.dayInWeek,
           slot.slotIndex
         );
+        
+        // Convert UTC+7 to UTC+0 for backend
+        const utc0DateTime = convertUTC7ToUTC0(slotDateTime);
+        
         console.log("Generated slot:", {
           slotDateTime,
+          utc0DateTime,
           slotIndex: slot.slotIndex,
         });
         return {
-          slotDateTime,
+          slotDateTime: utc0DateTime,
           slotIndex: slot.slotIndex,
         };
       });

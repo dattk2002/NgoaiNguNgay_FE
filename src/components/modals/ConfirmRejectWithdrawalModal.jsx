@@ -143,11 +143,7 @@ const ConfirmRejectWithdrawalModal = ({ isOpen, onClose, onConfirm, withdrawal, 
                 <div className="grid grid-cols-1 gap-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Người yêu cầu:</span>
-                    <span className="font-medium">{withdrawal.userFullName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Ngân hàng:</span>
-                    <span className="font-medium">{withdrawal.bankAccount?.bankName}</span>
+                    <span className="font-medium text-black">{withdrawal.userFullName}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Số tiền:</span>

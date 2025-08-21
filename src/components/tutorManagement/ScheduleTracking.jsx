@@ -12,8 +12,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { fetchTutorBookings, fetchBookingDetail, completeBookedSlot } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
-import { formatCentralTimestamp } from '../../utils/formatCentralTimestamp';
-import { formatSlotDateTime } from '../../utils/formatSlotTime';
+import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from '../../utils/formatCentralTimestamp';
+import { formatSlotDateTime, calculateUTC7SlotIndex } from '../../utils/formatSlotTime';
 
 
 // Skeleton Component for Booking Items
@@ -294,7 +294,9 @@ const ScheduleTracking = () => {
       setDetailLoading(true);
       
       const detail = await fetchBookingDetail(booking.id);
-      setBookingDetail(detail);
+      // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+      const convertedDetail = convertBookingDetailToUTC7(detail);
+      setBookingDetail(convertedDetail);
     } catch (error) {
       console.error("Error loading booking detail:", error);
     } finally {
@@ -362,7 +364,9 @@ const ScheduleTracking = () => {
       // Refresh booking detail to get updated status
       if (selectedBooking) {
         const updatedDetail = await fetchBookingDetail(selectedBooking.id);
-        setBookingDetail(updatedDetail);
+        // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+        const convertedDetail = convertBookingDetailToUTC7(updatedDetail);
+        setBookingDetail(convertedDetail);
       }
       
       // Also refresh the main bookings list and statuses
@@ -462,7 +466,7 @@ const ScheduleTracking = () => {
                      <div className="space-y-2">
                        <div className="flex items-center text-gray-700">
                          <FaCalendarAlt className="w-4 h-4 mr-2" />
-                         <span>{formatCentralTimestamp(booking.createdTime)}</span>
+                         <span>{formatUTC0ToUTC7(booking.createdTime)}</span>
                        </div>
                        <div className="flex items-center text-gray-700">
                          <FaClock className="w-4 h-4 mr-2" />
@@ -672,17 +676,17 @@ const ScheduleTracking = () => {
                         </div>
                         <div>
                           <p className="text-gray-700">Ngày tạo:</p>
-                          <p className="font-medium text-gray-900">{formatCentralTimestamp(selectedBooking?.createdTime)}</p>
+                          <p className="font-medium text-gray-900">{formatUTC0ToUTC7(selectedBooking?.createdTime)}</p>
                         </div>
                         <div>
                           <p className="text-gray-700">Buổi đầu tiên:</p>
                           <p className="font-medium text-gray-900">
                             {bookingDetail?.bookedSlots && bookingDetail.bookedSlots.length > 0 
                               ? formatSlotDateTime(
-                                  bookingDetail.bookedSlots[0].slotIndex, 
+                                  bookingDetail.bookedSlots[0].slotIndex - 1, 
                                   bookingDetail.bookedSlots[0].bookedDate
                                 )
-                              : formatCentralTimestamp(selectedBooking?.earliestBookedDate)
+                              : formatUTC0ToUTC7(selectedBooking?.earliestBookedDate)
                             }
                           </p>
                         </div>
@@ -707,12 +711,12 @@ const ScheduleTracking = () => {
                                     </div>
                                     <div>
                                       <p className="font-medium text-gray-900">
-                                        Slot {slot.slotIndex || index + 1}
+                                        Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
                                       </p>
                                       <div className="flex items-center gap-4 text-sm text-gray-600">
                                         <span className="flex items-center gap-1">
                                           <FaCalendarAlt className="w-3 h-3" />
-                                          {formatSlotDateTime(slot.slotIndex, slot.bookedDate)}
+                                          {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
                                         </span>
                                         {slot.slotNote && (
                                           <span className="text-xs text-gray-500">

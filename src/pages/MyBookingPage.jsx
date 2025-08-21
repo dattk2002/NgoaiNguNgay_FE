@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import MyBookingTable from "../components/MyBookingTable";
 import LessonManagement from "../components/LessonManagement";
 import MyDisputes from "../components/MyDisputes";
-import { getAllLearnerBookingTimeSlot, deleteLearnerBookingTimeSlot } from "../components/api/auth";
+import { getAllLearnerBookingOffer, deleteLearnerBookingTimeSlot } from "../components/api/auth";
 import ConfirmDialog from "../components/modals/ConfirmDialog";
 import CreateDisputeModal from "../components/modals/CreateDisputeModal";
 import { toast, ToastContainer } from "react-toastify";
@@ -21,8 +21,8 @@ const toastConfig = {
 
 export default function MyBookingPage({ user }) {
   const { id } = useParams(); // get booking id from URL
-  const [sentRequests, setSentRequests] = useState([]);
-  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [bookingOffers, setBookingOffers] = useState([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [pendingDeleteTutorId, setPendingDeleteTutorId] = useState(null);
   const [activeTab, setActiveTab] = useState("booking-requests");
@@ -31,20 +31,20 @@ export default function MyBookingPage({ user }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchSentRequests = async () => {
-      setLoadingRequests(true);
+    const fetchBookingOffers = async () => {
+      setLoadingOffers(true);
       try {
-        const data = await getAllLearnerBookingTimeSlot();
-        setSentRequests(data);
+        const data = await getAllLearnerBookingOffer();
+        setBookingOffers(data);
       } catch (err) {
-        console.error("Error fetching booking requests:", err);
-        setSentRequests([]);
-        toast.error("Không thể tải danh sách yêu cầu. Vui lòng thử lại!", toastConfig);
+        console.error("Error fetching booking offers:", err);
+        setBookingOffers([]);
+        toast.error("Không thể tải danh sách đề xuất. Vui lòng thử lại!", toastConfig);
       } finally {
-        setLoadingRequests(false);
+        setLoadingOffers(false);
       }
     };
-    fetchSentRequests();
+    fetchBookingOffers();
   }, []);
 
   const handleMessageTutor = tutorId => {
@@ -59,7 +59,7 @@ export default function MyBookingPage({ user }) {
   const handleConfirmDelete = async () => {
     try {
       await deleteLearnerBookingTimeSlot(pendingDeleteTutorId);
-      setSentRequests(prev => prev.filter(req => req.tutorId !== pendingDeleteTutorId));
+      setBookingOffers(prev => prev.filter(offer => offer.tutor.id !== pendingDeleteTutorId));
       toast.success("Đã xóa yêu cầu thành công!", toastConfig);
     } catch (error) {
       toast.error("Xóa yêu cầu thất bại. Vui lòng thử lại!", toastConfig);
@@ -78,6 +78,24 @@ export default function MyBookingPage({ user }) {
     // Refresh disputes list if needed
     toast.success("Khiếu nại đã được gửi thành công!");
   };
+
+  // Transform offers data to match the expected format for MyBookingTable
+  const transformedOffers = bookingOffers.map(offer => ({
+    id: offer.id,
+    tutorId: offer.tutor.id,
+    tutorName: offer.tutor.fullName,
+    tutorAvatarUrl: offer.tutor.profilePictureUrl,
+    latestRequestTime: offer.createdAt,
+    tutorBookingOfferId: offer.id, // Use offer ID as the booking offer ID
+    lessonName: offer.lessonName,
+    pricePerSlot: offer.pricePerSlot,
+    totalPrice: offer.totalPrice,
+    durationInMinutes: offer.durationInMinutes,
+    expirationTime: offer.expirationTime,
+    isExpired: offer.isExpired,
+    isRejected: offer.isRejected,
+    offeredSlots: offer.offeredSlots || []
+  }));
 
   const tabs = [
     {
@@ -162,8 +180,8 @@ export default function MyBookingPage({ user }) {
           {activeTab === "booking-requests" && (
             <div className="p-6">
               <MyBookingTable
-                sentRequests={sentRequests}
-                loadingRequests={loadingRequests}
+                sentRequests={transformedOffers}
+                loadingRequests={loadingOffers}
                 onMessageTutor={handleMessageTutor}
                 onDeleteRequest={handleDeleteRequest}
                 onCreateDispute={handleCreateDispute}

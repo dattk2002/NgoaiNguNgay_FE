@@ -1,7 +1,7 @@
 import React from 'react';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatTutorDate } from '../../utils/formatTutorDate';
-import { formatSlotDateTimeFromTimestamp } from '../../utils/formatSlotTime';
+import { formatSlotDateTimeFromTimestamp, calculateUTC7SlotIndex } from '../../utils/formatSlotTime';
 
 const OfferDetailModal = ({ offer, onClose }) => {
 
@@ -114,7 +114,7 @@ const OfferDetailModal = ({ offer, onClose }) => {
                    offer.offeredSlots.map((slot, index) => (
                      <div key={index} className="bg-white p-3 rounded-md border border-purple-200">
                        <div className="flex justify-between items-center">
-                         <span className="font-medium text-sm text-gray-900">Slot {slot.slotIndex + 1}</span>
+                         <span className="font-medium text-sm text-gray-900">Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.slotDateTime)}</span>
                          <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">
                            {formatSlotDateTimeFromTimestamp(slot.slotDateTime)}
                          </span>
