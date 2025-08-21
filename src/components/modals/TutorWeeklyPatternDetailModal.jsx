@@ -13,7 +13,13 @@ import {
   CardContent,
   Divider
 } from "@mui/material";
-import { fetchTutorWeeklyPattern, updateLearnerBookingTimeSlot, fetchTutorLessonDetailById } from "../api/auth";
+import { 
+  fetchTutorWeeklyPattern, 
+  updateLearnerBookingTimeSlot, 
+  fetchTutorLessonDetailById,
+  fetchTutorScheduleToOfferAndBook,
+  learnerCreateInstantBooking 
+} from "../api/auth";
 import Skeleton from "@mui/material/Skeleton";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { FiTrash2 } from "react-icons/fi";
@@ -22,6 +28,7 @@ import Alert from "@mui/material/Alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
+import { toast } from "react-toastify";
 
 const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // API: 2=Mon, ..., 7=Sat, 1=Sun
@@ -102,6 +109,10 @@ const TutorWeeklyPatternDetailModal = ({
   const [lessonDetails, setLessonDetails] = useState(null);
   const [lessonLoading, setLessonLoading] = useState(false);
 
+  // Add schedule data state
+  const [scheduleData, setScheduleData] = useState(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+
   // Only allow slot selection for learners and when not in read-only mode
   const learnerPermission = isLearner(currentUser) && !isReadOnly;
 
@@ -129,6 +140,25 @@ const TutorWeeklyPatternDetailModal = ({
           }
         } else {
           setLessonDetails(null);
+        }
+
+        // Fetch schedule data for the current week
+        setScheduleLoading(true);
+        try {
+          const monday = new Date(initialWeekStart);
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          
+          const startDate = monday.toISOString().split('T')[0];
+          const endDate = sunday.toISOString().split('T')[0];
+          
+          const scheduleData = await fetchTutorScheduleToOfferAndBook(tutorId, startDate, endDate);
+          setScheduleData(scheduleData);
+        } catch (scheduleError) {
+          console.error("Failed to fetch schedule data:", scheduleError);
+          setScheduleData(null);
+        } finally {
+          setScheduleLoading(false);
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -194,6 +224,9 @@ const TutorWeeklyPatternDetailModal = ({
       const savedSlots = loadSelectedSlots(prevMonday, tutorId, currentUser.id);
       setSelectedSlots(savedSlots);
     }
+
+    // Fetch schedule data for the new week
+    fetchScheduleForWeek(prevMonday);
   };
 
   const handleNextWeek = () => {
@@ -207,9 +240,60 @@ const TutorWeeklyPatternDetailModal = ({
       const savedSlots = loadSelectedSlots(nextMonday, tutorId, currentUser.id);
       setSelectedSlots(savedSlots);
     }
+
+    // Fetch schedule data for the new week
+    fetchScheduleForWeek(nextMonday);
   };
 
-  // Check if slot is available based on pattern
+  // Function to fetch schedule data for a specific week
+  const fetchScheduleForWeek = async (weekStartDate) => {
+    try {
+      setScheduleLoading(true);
+      const monday = new Date(weekStartDate);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      
+      const startDate = monday.toISOString().split('T')[0];
+      const endDate = sunday.toISOString().split('T')[0];
+      
+      const scheduleData = await fetchTutorScheduleToOfferAndBook(tutorId, startDate, endDate);
+      setScheduleData(scheduleData);
+    } catch (scheduleError) {
+      console.error("Failed to fetch schedule data:", scheduleError);
+      setScheduleData(null);
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  // Get slot status from schedule data
+  const getSlotStatus = (dayInWeek, slotIndex) => {
+    if (!scheduleData || !monday) return 'unavailable';
+    
+    // Calculate the date for this day in week
+    const dayDate = new Date(monday);
+    const dayIndex = dayInWeekOrder.indexOf(dayInWeek);
+    dayDate.setDate(monday.getDate() + dayIndex);
+    
+    const dayData = scheduleData.find(day => {
+      const scheduleDate = new Date(day.date);
+      return scheduleDate.toDateString() === dayDate.toDateString();
+    });
+
+    if (!dayData) return 'unavailable';
+
+    const slot = dayData.timeSlots.find(slot => slot.slotIndex === slotIndex);
+    if (!slot) return 'unavailable';
+
+    switch (slot.type) {
+      case 0: return 'available';
+      case 1: return 'onhold';
+      case 2: return 'booked';
+      default: return 'unavailable';
+    }
+  };
+
+  // Check if slot is available based on pattern (legacy check)
   const isSlotAvailable = (dayInWeek, slotIndex) => {
     if (!pattern || !pattern.slots) return false;
     return pattern.slots.some(
@@ -248,6 +332,10 @@ const TutorWeeklyPatternDetailModal = ({
     const isPastSlot = isSlotInPast(dayInWeek, slotIndex);
     if (isPastSlot) return;
     
+    // Check if slot is available according to schedule data
+    const slotStatus = getSlotStatus(dayInWeek, slotIndex);
+    if (slotStatus !== 'available') return;
+    
     setSelectedSlots((prev) => {
       const newSlots = prev.some((s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIndex)
         ? prev.filter((s) => !(s.dayInWeek === dayInWeek && s.slotIndex === slotIndex))
@@ -267,7 +355,6 @@ const TutorWeeklyPatternDetailModal = ({
   const expectedStartDateToday = now.toISOString();
 
   const handleSubmit = async () => {
-    // Remove the restriction that only allows submission for current week
     if (selectedSlots.length === 0) {
       return;
     }
@@ -276,11 +363,10 @@ const TutorWeeklyPatternDetailModal = ({
     setSubmitError(null);
     setSubmitSuccess(false);
     
-    console.log("🔗 TutorWeeklyPatternDetailModal - Starting booking submission");
+    console.log("🔗 TutorWeeklyPatternDetailModal - Starting instant booking submission");
     console.log("📦 Booking Details:", {
       tutorId,
       lessonId,
-      expectedStartDate: expectedStartDate || expectedStartDateToday, // Use passed expectedStartDate or current
       selectedSlots,
       currentUser: {
         id: currentUser?.id,
@@ -290,21 +376,47 @@ const TutorWeeklyPatternDetailModal = ({
     });
 
     try {
-      console.log("📦 TutorWeeklyPatternDetailModal - Calling updateLearnerBookingTimeSlot...");
+      console.log("📦 TutorWeeklyPatternDetailModal - Calling learnerCreateInstantBooking...");
       
-      // Use the expectedStartDate parameter if provided, otherwise use current date
-      const finalExpectedStartDate = expectedStartDate || expectedStartDateToday;
-      
-      await updateLearnerBookingTimeSlot(
-        tutorId,
-        lessonId,
-        finalExpectedStartDate,
-        selectedSlots
-      );
-      console.log("✅ TutorWeeklyPatternDetailModal - Booking slot updated successfully");
+      // Convert selected slots to the format expected by the API
+      const slots = selectedSlots.map(slot => {
+        // Calculate the actual date for this slot
+        const slotDate = new Date(monday);
+        // dayInWeek: 2=Mon, ..., 7=Sat, 1=Sun
+        let jsDay = slot.dayInWeek === 1 ? 6 : slot.dayInWeek - 2; // 0=Mon, ..., 6=Sun
+        slotDate.setDate(monday.getDate() + jsDay);
+        
+        // Set the time based on slotIndex
+        const hour = Math.floor(slot.slotIndex / 2);
+        const minute = slot.slotIndex % 2 === 0 ? 0 : 30;
+        slotDate.setHours(hour, minute, 0, 0);
+        
+        return {
+          slotDate: slotDate.toISOString(),
+          slotIndex: slot.slotIndex
+        };
+      });
 
-      // Note: Notification will be sent via SignalR hub automatically by the backend
-      console.log("✅ TutorWeeklyPatternDetailModal - Notification will be sent via SignalR hub");
+      const bookingData = {
+        tutorId: tutorId,
+        lessonId: lessonId,
+        slots: slots
+      };
+
+      console.log("📦 Instant booking data:", bookingData);
+      
+      await learnerCreateInstantBooking(bookingData);
+      console.log("✅ TutorWeeklyPatternDetailModal - Instant booking created successfully");
+
+      // Show success toast
+      toast.success("Đặt lịch thành công! Gia sư sẽ liên hệ với bạn sớm nhất.", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
 
       setSubmitSuccess(true);
       setSelectedSlots([]);
@@ -317,8 +429,31 @@ const TutorWeeklyPatternDetailModal = ({
       if (onBookingSuccess) onBookingSuccess();
       onClose();
     } catch (err) {
-      console.error("❌ TutorWeeklyPatternDetailModal - Error during submission:", err);
-      setSubmitError(err.message || "Gửi yêu cầu thất bại.");
+      console.error("❌ TutorWeeklyPatternDetailModal - Error during instant booking:", err);
+      
+      // Handle specific 400 error for slots less than 24 hours
+      if (err.message && err.message.includes("Cannot book slots that start less than 24 hour(s) from now")) {
+        toast.error("Không thể đặt lịch cho các khung giờ bắt đầu trong vòng 24 giờ tới. Vui lòng chọn khung giờ khác.", {
+          position: "top-right",
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        // Handle other errors
+        toast.error(err.message || "Đặt lịch thất bại. Vui lòng thử lại.", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+      
+      setSubmitError(err.message || "Đặt lịch thất bại.");
     } finally {
       setSubmitting(false);
     }
@@ -366,6 +501,34 @@ const TutorWeeklyPatternDetailModal = ({
       return 0;
     }
     return lessonDetails.price * selectedSlots.length;
+  };
+
+  // Get slot background color based on status
+  const getSlotBackgroundColor = (dayInWeek, slotIndex, isSelected) => {
+    const slotStatus = getSlotStatus(dayInWeek, slotIndex);
+    const isPastSlot = isSlotInPast(dayInWeek, slotIndex);
+    
+    if (isSelected) {
+      return isPastSlot ? "#6d9e46" : "#2563eb"; // Selected slots
+    }
+    
+    if (isPastSlot) {
+      // Past slots - muted colors
+      switch (slotStatus) {
+        case 'available': return "#6d9e46";
+        case 'onhold': return "#f59e0b";
+        case 'booked': return "#ef4444";
+        default: return "#B8B8B8";
+      }
+    } else {
+      // Current/future slots - normal colors
+      switch (slotStatus) {
+        case 'available': return "#98D45F";
+        case 'onhold': return "#fbbf24";
+        case 'booked': return "#f87171";
+        default: return "#f1f5f9";
+      }
+    }
   };
 
   return (
@@ -449,7 +612,7 @@ const TutorWeeklyPatternDetailModal = ({
         </Box>
       </DialogTitle>
       <DialogContent>
-        {loading ? (
+        {loading || scheduleLoading ? (
           <Box
             sx={{
               backgroundColor: "#ffffff",
@@ -587,7 +750,6 @@ const TutorWeeklyPatternDetailModal = ({
                     </Box>
                     {/* For each day, render a cell for this 30-min slot */}
                     {dayInWeekOrder.map((dayInWeek, dayIdx) => {
-                      const isActive = isSlotAvailable(dayInWeek, slotIdx);
                       const isSelected = selectedSlots.some(
                         (s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIdx
                       );
@@ -595,27 +757,12 @@ const TutorWeeklyPatternDetailModal = ({
                       // Check if slot is in the past
                       const isPastSlot = isSlotInPast(dayInWeek, slotIdx);
                       
-                      // Determine background color based on past status and selection
-                      let backgroundColor;
-                      if (isPastSlot) {
-                        // Past slots - muted colors
-                        if (isSelected) {
-                          backgroundColor = "#6d9e46"; // muted green for selected past slots
-                        } else if (isActive) {
-                          backgroundColor = "#6d9e46"; // muted green for available past slots
-                        } else {
-                          backgroundColor = "#B8B8B8"; // muted gray for unavailable past slots
-                        }
-                      } else {
-                        // Current/future slots - normal colors
-                        if (isSelected) {
-                          backgroundColor = "#2563eb";
-                        } else if (isActive) {
-                          backgroundColor = "#98D45F";
-                        } else {
-                          backgroundColor = "#f1f5f9";
-                        }
-                      }
+                      // Get slot status from schedule data
+                      const slotStatus = getSlotStatus(dayInWeek, slotIdx);
+                      const isAvailable = slotStatus === 'available';
+                      
+                      // Get background color based on status
+                      const backgroundColor = getSlotBackgroundColor(dayInWeek, slotIdx, isSelected);
 
                       return (
                         <Box
@@ -624,11 +771,11 @@ const TutorWeeklyPatternDetailModal = ({
                             backgroundColor,
                             border: "1px solid #e2e8f0",
                             minHeight: 32,
-                            cursor: learnerPermission && isActive && !isPastSlot ? "pointer" : "default",
+                            cursor: learnerPermission && isAvailable && !isPastSlot ? "pointer" : "default",
                             opacity: isPastSlot ? 0.7 : 1,
                             transition: "background 0.2s",
                             position: "relative",
-                            "&:hover": !isPastSlot && learnerPermission && isActive ? {
+                            "&:hover": !isPastSlot && learnerPermission && isAvailable ? {
                               backgroundColor: isSelected ? "#1d4ed8" : "#7bbf3f",
                             } : {},
                             // Add a subtle pattern or overlay for past slots
@@ -646,7 +793,7 @@ const TutorWeeklyPatternDetailModal = ({
                           onClick={() => {
                             // Don't allow clicking on past slots or in read-only mode
                             if (isPastSlot || isReadOnly) return;
-                            handleSlotClick(dayInWeek, slotIdx, isActive);
+                            handleSlotClick(dayInWeek, slotIdx, isAvailable);
                           }}
                         />
                       );
@@ -920,7 +1067,7 @@ const TutorWeeklyPatternDetailModal = ({
         }}
       >
         {/* Legend */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box
               sx={{
@@ -933,6 +1080,34 @@ const TutorWeeklyPatternDetailModal = ({
             />
             <Typography variant="body2" sx={{ color: "#98D45F" }}>
               Lịch có sẵn
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: "#fbbf24",
+                mr: 1,
+              }}
+            />
+            <Typography variant="body2" sx={{ color: "#fbbf24" }}>
+              Lịch đang giữ
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: "#f87171",
+                mr: 1,
+              }}
+            />
+            <Typography variant="body2" sx={{ color: "#f87171" }}>
+              Lịch đã đặt
             </Typography>
           </Box>
           {/* Only show "Lịch bạn đang chọn" legend when not in read-only mode */}
@@ -982,7 +1157,7 @@ const TutorWeeklyPatternDetailModal = ({
               variant="contained"
               color="primary"
             >
-              {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
+              {submitting ? "Đang đặt lịch..." : "Đặt lịch ngay"}
             </Button>
           )}
           <Button onClick={onClose}>Đóng</Button>

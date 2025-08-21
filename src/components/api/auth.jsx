@@ -832,18 +832,6 @@ export async function editTutorWeeklyPattern(patternData) {
   }
 }
 
-export async function deleteTutorWeeklyPattern(patternId) {
-  try {
-    const token = getAccessToken();
-    if (!token) throw new Error("Authentication token is required");
-    const response = await callApi(`/api/schedule/weekly-pattern/${patternId}`, "DELETE", null, token);
-    return response;
-  } catch (error) {
-    console.error("Failed to delete weekly pattern:", error.message);
-    throw error;
-  }
-}
-
 export async function fetchTutorWeekSchedule(tutorId, startDate) {
   try {
     const response = await callApi(`/api/schedule/tutors/${tutorId}/week?startDate=${startDate}`, "GET");
@@ -3265,6 +3253,430 @@ export async function staffFetchTutorApplicationsMetadata() {
     }
   } catch (error) {
     console.error("❌ Failed to fetch staff tutor applications metadata:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor weekly patterns list by tutor ID
+ * @param {string} tutorId - The tutor ID to fetch weekly patterns for
+ * @returns {Promise<Object>} API response with weekly patterns data including id, endDate, and appliedFrom
+ */
+export async function fetchTutorListWeeklyPatternsByTutorId(tutorId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!tutorId) {
+      throw new Error("Tutor ID is required");
+    }
+
+    const response = await callApi(
+      `/api/schedule/tutors/${tutorId}/list-weekly-patterns`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("✅ Tutor weekly patterns list fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for fetchTutorListWeeklyPatternsByTutorId:", response);
+      throw new Error("API response did not contain expected weekly patterns data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor weekly patterns list:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a new weekly pattern for tutor
+ * @param {Object} patternData - { appliedFrom, slots }
+ * @returns {Promise<Object>} API response
+ */
+export async function createTutorWeeklyPattern(patternData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!patternData.appliedFrom) {
+      throw new Error("AppliedFrom date is required");
+    }
+    if (!patternData.slots || !Array.isArray(patternData.slots) || patternData.slots.length === 0) {
+      throw new Error("At least one slot is required");
+    }
+
+    console.log("🔍 Creating tutor weekly pattern with data:", patternData);
+    
+    const response = await callApi(
+      "/api/schedule/weekly-pattern/create",
+      "POST",
+      patternData,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Tutor weekly pattern created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for weekly pattern creation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to create tutor weekly pattern:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor weekly pattern detail by pattern ID
+ * @param {string} patternId - The pattern ID to fetch details for
+ * @returns {Promise<Object>} API response with weekly pattern detail data
+ */
+export async function fetchTutorWeeklyPatternDetailByPatternId(patternId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!patternId) {
+      throw new Error("Pattern ID is required");
+    }
+
+    const response = await callApi(
+      `/api/schedule/weekly-pattern/detail/${patternId}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("✅ Tutor weekly pattern detail fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for fetchTutorWeeklyPatternDetailByPatternId:", response);
+      throw new Error("API response did not contain expected weekly pattern detail data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor weekly pattern detail:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Update a tutor's weekly pattern by pattern ID
+ * @param {string} patternId - The pattern ID to update
+ * @param {Array} slots - Array of slot objects with dayInWeek and slotIndex
+ * @returns {Promise<Object>} API response
+ */
+export async function updateTutorWeeklyPattern(patternId, slots) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!patternId) {
+      throw new Error("Pattern ID is required");
+    }
+
+    if (!slots || !Array.isArray(slots) || slots.length === 0) {
+      throw new Error("At least one slot is required");
+    }
+
+    // Validate slot structure
+    const isValidSlot = slots.every(slot => 
+      typeof slot.dayInWeek === 'number' && 
+      typeof slot.slotIndex === 'number'
+    );
+    
+    if (!isValidSlot) {
+      throw new Error("Each slot must have dayInWeek and slotIndex as numbers");
+    }
+
+    console.log("🔍 Updating tutor weekly pattern with ID:", patternId);
+    console.log("🔍 Slots data:", slots);
+    
+    const response = await callApi(
+      `/api/schedule/weekly-pattern/${patternId}`,
+      "PUT",
+      slots,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Tutor weekly pattern updated successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for weekly pattern update.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to update tutor weekly pattern:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete a tutor's weekly pattern by pattern ID
+ * @param {string} patternId - The pattern ID to delete
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteTutorWeeklyPattern(patternId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!patternId) {
+      throw new Error("Pattern ID is required");
+    }
+
+    console.log("🔍 Deleting tutor weekly pattern with ID:", patternId);
+    
+    const response = await callApi(
+      `/api/schedule/weekly-pattern/${patternId}`,
+      "DELETE",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Tutor weekly pattern deleted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for weekly pattern deletion.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to delete tutor weekly pattern:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch blocked slots for a weekly pattern by pattern ID
+ * @param {string} patternId - The pattern ID to fetch blocked slots for
+ * @returns {Promise<Object>} API response with blocked slots data and metadata
+ */
+export async function fetchWeeklyPatternBlockedSlotsByPatternId(patternId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!patternId) {
+      throw new Error("Pattern ID is required");
+    }
+
+    console.log("🔍 Fetching blocked slots for weekly pattern with ID:", patternId);
+    
+    const response = await callApi(
+      `/api/schedule/weekly-pattern/${patternId}/blocked-slots`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Weekly pattern blocked slots fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for weekly pattern blocked slots.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch weekly pattern blocked slots:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor schedule for offering and booking
+ * @param {string} tutorId - The tutor ID
+ * @param {string} startDate - Start date in ISO format (YYYY-MM-DD)
+ * @param {string} endDate - End date in ISO format (YYYY-MM-DD)
+ * @returns {Promise<Object>} API response with schedule data and metadata
+ */
+export async function fetchTutorScheduleToOfferAndBook(tutorId, startDate, endDate) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!tutorId) {
+      throw new Error("Tutor ID is required");
+    }
+
+    if (!startDate || !endDate) {
+      throw new Error("Start date and end date are required");
+    }
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      startDate: startDate,
+      endDate: endDate
+    });
+
+    const url = `/api/schedule/tutors/${tutorId}/schedule?${params.toString()}`;
+    console.log("🔍 Calling tutor schedule API:", url);
+    console.log("🔍 Parameters:", { tutorId, startDate, endDate });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Tutor schedule fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for fetchTutorScheduleToOfferAndBook:", response);
+      throw new Error("API response did not contain expected schedule data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor schedule:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor booking configuration by tutor ID
+ * @param {string} tutorId - The tutor ID to fetch booking configuration for
+ * @returns {Promise<Object>} API response with booking configuration data
+ */
+export async function fetchTutorBookingConfigByTutorId(tutorId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!tutorId) {
+      throw new Error("Tutor ID is required");
+    }
+
+    console.log("🔍 Fetching tutor booking config for tutor ID:", tutorId);
+    
+    const response = await callApi(
+      `/api/tutor/${tutorId}/booking-config`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("✅ Tutor booking config fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for fetchTutorBookingConfigByTutorId:", response);
+      throw new Error("API response did not contain expected booking configuration data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor booking config:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Update tutor booking configuration
+ * @param {Object} configData - { allowInstantBooking: boolean, maxInstantBookingSlots: number }
+ * @returns {Promise<Object>} API response
+ */
+export async function updateTutorBookingConfig(configData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (typeof configData.allowInstantBooking !== 'boolean') {
+      throw new Error("allowInstantBooking must be a boolean value");
+    }
+    
+    if (typeof configData.maxInstantBookingSlots !== 'number' || configData.maxInstantBookingSlots < 0) {
+      throw new Error("maxInstantBookingSlots must be a non-negative number");
+    }
+
+    console.log("🔍 Updating tutor booking config with data:", configData);
+    
+    const response = await callApi(
+      "/api/tutor/booking-config",
+      "PUT",
+      configData,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Tutor booking config updated successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for booking configuration update.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to update tutor booking config:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create an instant booking for a learner
+ * @param {Object} bookingData - { tutorId: string, lessonId: string, slots: Array<{slotDate: string, slotIndex: number}> }
+ * @returns {Promise<Object>} API response
+ */
+export async function learnerCreateInstantBooking(bookingData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!bookingData.tutorId) {
+      throw new Error("Tutor ID is required");
+    }
+    
+    if (!bookingData.lessonId) {
+      throw new Error("Lesson ID is required");
+    }
+    
+    if (!bookingData.slots || !Array.isArray(bookingData.slots) || bookingData.slots.length === 0) {
+      throw new Error("At least one slot is required");
+    }
+
+    // Validate slot structure
+    const isValidSlot = bookingData.slots.every(slot => 
+      slot.slotDate && 
+      typeof slot.slotIndex === 'number' && 
+      slot.slotIndex >= 0
+    );
+    
+    if (!isValidSlot) {
+      throw new Error("Each slot must have slotDate and slotIndex as a non-negative number");
+    }
+
+    console.log("🔍 Creating instant booking with data:", bookingData);
+    
+    const response = await callApi(
+      "/api/learner-bookings/instant-booking",
+      "POST",
+      bookingData,
+      token
+    );
+
+    if (response) {
+      console.log("✅ Instant booking created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for instant booking creation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to create instant booking:", error.message);
     throw error;
   }
 }

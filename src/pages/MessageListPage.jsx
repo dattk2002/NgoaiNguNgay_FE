@@ -22,6 +22,8 @@ import { getAccessToken } from "../components/api/auth";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { FaUser, FaBan, FaFlag, FaTimes } from "react-icons/fa";
+import TutorScheduleCalendarModal from '../components/modals/TutorScheduleCalendarModal';
+import { toast } from 'react-toastify'; // Add this import
 
 const MessagePage = ({ user }) => {
   const { id: tutorId } = useParams();
@@ -43,6 +45,9 @@ const MessagePage = ({ user }) => {
   const [connectionBadge, setConnectionBadge] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const menuOpen = Boolean(anchorEl);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [selectedLearnerId, setSelectedLearnerId] = useState(null);
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
 
   const handleTutorMenuClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -913,6 +918,28 @@ const MessagePage = ({ user }) => {
     setShowConvMenu(null);
   };
 
+  const handleOpenCalendar = () => {
+    if (!selectedConversation) {
+      setError('Vui lòng chọn một cuộc trò chuyện trước');
+      return;
+    }
+
+    // Set the learner ID from the selected conversation
+    setSelectedLearnerId(selectedConversation.participantId);
+    setShowCalendarModal(true);
+  };
+
+  const handleOfferSuccess = (learnerName) => {
+    toast.success(`Đề xuất thành công cho học viên ${learnerName}`, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+  };
+
   if (loading)
     return (
       <div className="container mx-auto flex flex-col md:flex-row h-full md:h-[calc(100vh-8rem)] border border-gray-300 rounded-lg overflow-hidden shadow-lg max-w-6xl">
@@ -1200,7 +1227,8 @@ const MessagePage = ({ user }) => {
             {selectedConversation?.type === "tutor" && (
               <div
                 className="text-gray-600 cursor-pointer hover:text-blue-600 transition"
-                title="Xem lịch"
+                title="Xem lịch và gửi lời mời đặt lịch"
+                onClick={handleOpenCalendar}
               >
                 <FaCalendarAlt />
               </div>
@@ -1514,6 +1542,18 @@ const MessagePage = ({ user }) => {
           </form>
         )}
       </div>
+
+      {/* Add the calendar modal */}
+      <TutorScheduleCalendarModal
+        isOpen={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        tutorId={user?.id} // Assuming the current user is the tutor
+        learnerId={selectedLearnerId}
+        lessonId={selectedLessonId}
+        tutorName={user?.fullName || user?.nickName || 'Gia sư'}
+        learnerName={selectedConversation?.participantName || 'Học viên'}
+        onOfferSuccess={handleOfferSuccess} // Add this prop
+      />
     </div>
   );
 };
