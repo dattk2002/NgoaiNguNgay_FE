@@ -9,6 +9,7 @@ import {
   fetchTutorRating,
   fetchTutorBookingConfigByTutorId,
 } from "../api/auth";
+import VideoPlayer from "../VideoPlayer";
 import { formatTutorDate } from "../../utils/formatTutorDate";
 import {
   FaStar,
@@ -138,8 +139,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         setLoading(true);
         setError(null);
 
-        // Fetch tutor data using the updated API function
-        const apiTeacherData = await fetchTutorById(id);
+                 // Fetch tutor data using the updated API function
+         const apiTeacherData = await fetchTutorById(id);
+         console.log("🔍 API Teacher Data:", apiTeacherData);
 
         // --- Map API data and add mock data for missing fields ---
         // Find the primary language from the languages array
@@ -168,35 +170,36 @@ const TutorDetail = ({ user, onRequireLogin }) => {
           };
         });
 
-        const formattedTeacherData = {
-          id: apiTeacherData.userId, // Use userId from API
-          name: apiTeacherData.fullName || apiTeacherData.nickName, // Use fullName or nickName
-          email: apiTeacherData.email, // Add email from API
-          brief: apiTeacherData.brief, // Add brief from API
-          description: apiTeacherData.description, // Add description from API
-          teachingMethod: apiTeacherData.teachingMethod, // Add teachingMethod from API
-          verificationStatus: apiTeacherData.verificationStatus, // Add verificationStatus from API
-          becameTutorAt: apiTeacherData.becameTutorAt, // Add becameTutorAt from API
-          // Mocked data for fields not in the provided API response structure
-          profileImageUrl: apiTeacherData.profileImageUrl, // Mocked
-          tag: "Gia sư uy tín", // Mocked
-          nativeLanguage: primaryLanguage
-            ? primaryLanguage.languageCode
-            : "English", // Derived or Mocked
-          subjects: languages, // Mapped from hashtags, level mocked
-          address: "Unknown", // Mocked
-          lessons: 100, // Mocked
-          students: 50, // Mocked
-          rating: apiTeacherData.averageTeachingQuality,
-          ratingCount: 30, // Mocked
-          certifications: apiTeacherData.hashtags.map(
-            (hashtag) => hashtag.name
-          ), // Get from API hashtags
-          videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Mocked
-          price: 10.0, // Mocked - Use a default or handle null if price is in API later
-          responseRate: "95%", // Mocked
-          availability: blockAvailability, // Processed from API or mocked
-        };
+                 const formattedTeacherData = {
+           id: apiTeacherData.userId, // Use userId from API
+           name: apiTeacherData.fullName || apiTeacherData.nickName, // Use fullName or nickName
+           email: apiTeacherData.email, // Add email from API
+           brief: apiTeacherData.brief, // Add brief from API
+           description: apiTeacherData.description, // Add description from API
+           teachingMethod: apiTeacherData.teachingMethod, // Add teachingMethod from API
+           verificationStatus: apiTeacherData.verificationStatus, // Add verificationStatus from API
+           becameTutorAt: apiTeacherData.becameTutorAt, // Add becameTutorAt from API
+           // Mocked data for fields not in the provided API response structure
+           profileImageUrl: apiTeacherData.profileImageUrl, // Mocked
+           tag: "Gia sư uy tín", // Mocked
+           nativeLanguage: primaryLanguage
+             ? primaryLanguage.languageCode
+             : "English", // Derived or Mocked
+           subjects: languages, // Mapped from hashtags, level mocked
+           address: "Unknown", // Mocked
+           lessons: 100, // Mocked
+           students: 50, // Mocked
+           rating: apiTeacherData.averageTeachingQuality,
+           ratingCount: 30, // Mocked
+           certifications: apiTeacherData.hashtags.map(
+             (hashtag) => hashtag.name
+           ), // Get from API hashtags
+           videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Mocked
+           introductionVideoUrl: apiTeacherData.introductionVideoUrl, // Add introductionVideoUrl from API
+           price: 10.0, // Mocked - Use a default or handle null if price is in API later
+           responseRate: "95%", // Mocked
+           availability: blockAvailability, // Processed from API or mocked
+         };
         // --- End Mapping and Mocking ---
 
         setTeacher(formattedTeacherData);
@@ -649,6 +652,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     "Giới thiệu",
     "Phong cách giảng dạy",
     "Sơ yếu lý lịch & chứng chỉ",
+    "Video giới thiệu",
   ];
 
   // Handler for tab change
@@ -840,6 +844,41 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                         </div>
                       </div>
                     )}
+
+                    {activeTab === 3 && (
+                      <div>
+                        <h3 className="text-gray-800 font-semibold mb-4">
+                          Video giới thiệu
+                        </h3>
+                                                 {(teacher.introductionVideoUrl || teacher.videoUrl) ? (
+                           <div className="max-w-2xl">
+                             <VideoPlayer 
+                               videoUrl={teacher.introductionVideoUrl || teacher.videoUrl}
+                               width="100%"
+                               height="400"
+                               title={`Video giới thiệu của ${teacher.name}`}
+                             />
+                             <p className="text-gray-600 text-sm mt-3">
+                               Video này đã được phê duyệt bởi đội ngũ NgoaiNguNgay
+                             </p>
+                           </div>
+                         ) : (
+                          <div className="text-center py-8">
+                            <div className="mx-auto h-16 w-16 text-gray-400 mb-4">
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <h4 className="text-lg font-medium text-gray-900 mb-2">
+                              Chưa có video giới thiệu
+                            </h4>
+                            <p className="text-gray-500 text-sm">
+                              Gia sư này chưa tải lên video giới thiệu hoặc video đang chờ phê duyệt.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -850,18 +889,14 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         <div className="w-full md:w-[350px] flex-shrink-0 md:ml-0 mt-8 md:mt-0">
           <div className="md:sticky md:top-8">
             <div className="bg-white rounded-2xl shadow-lg p-4">
-              <div className="relative rounded-lg overflow-hidden">
-                <iframe
-                  src={
-                    teacher.videoUrl ||
-                    "https://www.youtube.com/embed/dQw4w9WgXcQ"
-                  }
-                  title={`Video giới thiệu của ${teacher.name}`}
-                  className="w-full aspect-video rounded-lg"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
+                             <div className="relative rounded-lg overflow-hidden">
+                 <VideoPlayer 
+                   videoUrl={teacher.introductionVideoUrl || teacher.videoUrl}
+                   width="100%"
+                   height="200"
+                   title={`Video giới thiệu của ${teacher.name}`}
+                 />
+               </div>
               <div className="mt-4">
                 <p className="text-gray-800 font-semibold text-sm">
                   {(() => {

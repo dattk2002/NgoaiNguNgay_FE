@@ -112,7 +112,7 @@ const getSlotStatusInfo = (status) => {
     case 3: // Cancelled
       return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
     case 4: // CancelledDisputed
-      return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
+      return { text: 'Đang bị khiếu nại', color: 'bg-orange-100 text-orange-700' };
     default:
       return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
   }
@@ -337,21 +337,21 @@ const ScheduleTracking = () => {
         return;
       }
 
-      // Check if this slot is in "awaiting confirmation" status
-      if (targetSlot.status !== 1) {
+      // Check if this slot is in "pending" status (status = 0)
+      if (targetSlot.status !== 0) {
         toast.error("Slot này không thể hoàn thành. Vui lòng kiểm tra trạng thái slot.");
         return;
       }
 
-      // Find the first slot with status 1 (awaiting confirmation)
-      const firstAwaitingSlot = bookingDetail.bookedSlots.find(slot => slot.status === 1);
-      if (!firstAwaitingSlot) {
-        toast.error("Không có slot nào đang chờ xác nhận.");
+      // Find the first slot with status 0 (pending)
+      const firstPendingSlot = bookingDetail.bookedSlots.find(slot => slot.status === 0);
+      if (!firstPendingSlot) {
+        toast.error("Không có slot nào đang chờ.");
         return;
       }
 
       // Check if the target slot is the first one that can be completed
-      if (firstAwaitingSlot.id !== bookedSlotId) {
+      if (firstPendingSlot.id !== bookedSlotId) {
         toast.error("Bạn phải hoàn thành các slot theo thứ tự. Vui lòng hoàn thành slot trước đó trước.");
         return;
       }
@@ -737,7 +737,7 @@ const ScheduleTracking = () => {
                                         </div>
                                       )}
                                     </div>
-                                    {slot.status === 1 && ( // Show complete button only for "Chờ xác nhận" status
+                                    {slot.status === 0 && ( // Show complete button only for "Đang chờ" status
                                       <button
                                         type="button"
                                         onClick={(e) => handleCompleteSlot(slot.id, e)}

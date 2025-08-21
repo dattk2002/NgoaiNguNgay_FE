@@ -665,6 +665,7 @@ const TutorLanguageList = () => {
           priceRange[1], // maxPrice - send actual value, even if 1000000
           filters.searchTerm || null // fullName - pass search term to API
         );
+        console.log("🔍 Fetched Teachers Data:", fetchedTeachersData);
 
         // Map the fetched array data to the structure expected by TutorCard
         const processedTeachers = fetchedTeachersData.map((t) => {
@@ -691,6 +692,7 @@ const TutorLanguageList = () => {
             price: t.price || "N/A", // Assuming price is directly available in the API response
             availabilityText: "Availability not specified",
             videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            introductionVideoUrl: t.introductionVideoUrl, // Add introductionVideoUrl from API
             availabilityGrid: [],
             badges: [],
           };

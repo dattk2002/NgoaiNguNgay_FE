@@ -4143,3 +4143,198 @@ export async function updateTutorProfile(profileData) {
     throw error;
   }
 }
+
+// ==================== TUTOR INTRODUCTION VIDEO API FUNCTIONS ====================
+
+/**
+ * Upload tutor introduction video URL
+ * @param {Object} videoData - { url: string } - YouTube or other video platform URL
+ * @returns {Promise<Object>} API response
+ */
+export async function uploadTutorIntroductionVideo(videoData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!videoData.url || !videoData.url.trim()) {
+      throw new Error("Video URL is required");
+    }
+
+    // Basic URL validation
+    const urlPattern = /^https?:\/\/.+/;
+    if (!urlPattern.test(videoData.url)) {
+      throw new Error("Please enter a valid video URL (must start with http:// or https://)");
+    }
+
+    console.log("🔍 Uploading tutor introduction video with URL:", videoData.url);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/tutorintroductionvideo", "POST", videoData, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video uploaded successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for video upload.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to upload tutor introduction video:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get tutor introduction video for current user
+ * @param {number} page - Page number (default: 1)
+ * @param {number} size - Number of items per page (default: 10)
+ * @returns {Promise<Object>} API response with video data
+ */
+export async function getTutorIntroductionVideo(page = 1, size = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString()
+    });
+
+    const url = `/api/tutorintroductionvideo/current-user?${params.toString()}`;
+    console.log("🔍 Calling tutor introduction video API:", url);
+    console.log("🔍 Parameters:", { page, size });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for tutor introduction video.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor introduction video:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete tutor introduction video
+ * @param {string} videoId - The ID of the video to delete
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteTutorIntroductionVideo(videoId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!videoId) {
+      throw new Error("Video ID is required");
+    }
+
+    console.log("🔍 Deleting tutor introduction video with ID:", videoId);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi(`/api/tutorintroductionvideo/${videoId}`, "DELETE", null, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video deleted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for video deletion.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to delete tutor introduction video:", error.message);
+    throw error;
+  }
+}
+
+// ==================== STAFF VIDEO MANAGEMENT API FUNCTIONS ====================
+
+/**
+ * Get pending tutor introduction videos for staff review
+ * @param {number} page - Page number (default: 1)
+ * @param {number} size - Number of items per page (default: 20)
+ * @param {number} status - Status filter: 0=pending, 1=approved, 2=rejected (optional)
+ * @returns {Promise<Object>} API response with pending video data
+ */
+export async function getPendingTutorIntroductionVideos(page = 1, size = 20, status = 0) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString()
+    });
+
+    // Add status parameter if provided (0=pending, 1=approved, 2=rejected)
+    if (status !== undefined && status !== null) {
+      params.append('status', status.toString());
+    }
+
+    const url = `/api/tutorintroductionvideo?${params.toString()}`;
+    console.log("🔍 Calling tutor introduction videos API:", url);
+    console.log("🔍 Parameters:", { page, size, status });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction videos fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for tutor introduction videos.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor introduction videos:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Review tutor introduction video (approve/reject)
+ * @param {Object} reviewData - { id: string, status: number } - status: 0=pending, 1=approve, 2=reject
+ * @returns {Promise<Object>} API response
+ */
+export async function reviewTutorIntroductionVideo(reviewData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!reviewData.id || !reviewData.id.trim()) {
+      throw new Error("Video ID is required");
+    }
+    if (reviewData.status === undefined || reviewData.status === null) {
+      throw new Error("Status is required");
+    }
+    if (![0, 1, 2].includes(reviewData.status)) {
+      throw new Error("Status must be 0 (pending), 1 (approve), or 2 (reject)");
+    }
+
+    console.log("🔍 Reviewing tutor introduction video with data:", reviewData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/tutorintroductionvideo/review", "POST", reviewData, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video reviewed successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for video review.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to review tutor introduction video:", error.message);
+    throw error;
+  }
+}
