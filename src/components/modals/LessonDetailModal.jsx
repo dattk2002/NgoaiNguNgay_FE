@@ -2,7 +2,16 @@ import React, { useEffect } from "react";
 import { FaVolumeUp } from "react-icons/fa"; // Example icon, adjust as needed
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 
-const LessonDetailModal = ({ isOpen, onClose, lesson, loading, error, onBookNow }) => {
+const LessonDetailModal = ({ 
+  isOpen, 
+  onClose, 
+  lesson, 
+  loading, 
+  error, 
+  onBookNow,
+  bookingConfig,
+  loadingBookingConfig 
+}) => {
   // Prevent background scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -188,10 +197,20 @@ const LessonDetailModal = ({ isOpen, onClose, lesson, loading, error, onBookNow 
         {/* Footer */}
         <div className="border-t px-8 py-4 bg-white sticky bottom-0 left-0 w-full">
           <button
-            className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition"
+            className={`w-full py-3 rounded-lg font-semibold transition ${
+              loadingBookingConfig || (bookingConfig && !bookingConfig.allowInstantBooking)
+                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                : "bg-red-500 text-white hover:bg-red-600"
+            }`}
             onClick={() => onBookNow && lesson && onBookNow(lesson.id)}
+            disabled={loadingBookingConfig || (bookingConfig && !bookingConfig.allowInstantBooking)}
           >
-            Đặt lịch ngay
+            {loadingBookingConfig 
+              ? "Đang tải..." 
+              : bookingConfig && !bookingConfig.allowInstantBooking 
+                ? "Đặt lịch ngay" 
+                : "Đặt lịch ngay"
+            }
           </button>
         </div>
       </div>

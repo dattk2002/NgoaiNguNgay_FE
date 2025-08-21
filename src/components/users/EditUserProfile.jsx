@@ -11,6 +11,11 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { vi } from 'date-fns/locale';
+import TextField from '@mui/material/TextField';
 
 function EditUserProfile() {
   const { id } = useParams(); // Get the user ID from the URL
@@ -511,19 +516,16 @@ function EditUserProfile() {
           // Handle date format
           try {
             const date = new Date(valueToSave);
+
             if (!isNaN(date.getTime())) {
               updateData = { dateOfBirth: date.toISOString() };
             } else {
-              toast.error(
-                "Định dạng ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD."
-              );
+              toast.error("Định dạng ngày không hợp lệ.");
               setIsSaving(false);
               return;
             }
           } catch (err) {
-            toast.error(
-              "Lỗi xử lý ngày. Vui lòng sử dụng định dạng YYYY-MM-DD."
-            );
+            toast.error("Lỗi xử lý ngày.");
             console.error("Date processing error:", err);
             setIsSaving(false);
             return;
@@ -561,7 +563,7 @@ function EditUserProfile() {
 
       // Update was successful
       setEditingFields((prev) => ({ ...prev, [fieldName]: false }));
-      toast.success(`Trường "${fieldName}" đã được cập nhật thành công!`);
+      toast.success(`Đã được cập nhật thành công!`);
     } catch (err) {
       console.error("Error updating profile:", err);
 
@@ -617,14 +619,12 @@ function EditUserProfile() {
       // Check if date is valid
       if (isNaN(date.getTime())) return "Ngày không hợp lệ";
 
-      // Format options for more readable display
-      const options = {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      };
+      // Format as DD-MM-YYYY
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
 
-      return date.toLocaleDateString(undefined, options);
+      return `${day}-${month}-${year}`;
     } catch (error) {
       console.error("Error formatting display date:", error);
       return dateString; // Return original string if parsing fails
@@ -686,6 +686,23 @@ function EditUserProfile() {
     options = null,
     placeholder = "",
   }) => {
+    // Get validation rules for the field
+    const getValidationRules = (field) => {
+      switch (field) {
+        case "fullName":
+          return "Tên phải từ 2 đến 50 ký tự, chỉ chứa chữ cái và khoảng trắng";
+        case "dateOfBirth":
+          return "Ngày sinh phải hợp lệ và không thể lớn hơn ngày hiện tại";
+        case "gender":
+          return "Vui lòng chọn giới tính (Khác, Nam, hoặc Nữ)";
+        case "phoneNumber":
+          return "Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số";
+        case "timezone":
+          return "Vui lòng chọn múi giờ phù hợp với vị trí của bạn";
+        default:
+          return "";
+      }
+    };
     // Determine the initial local value based on field type
     const getInitialValue = () => {
       if (inputType === "select") {
@@ -731,26 +748,8 @@ function EditUserProfile() {
       // Clear validation error when user changes the value
       clearFieldError(fieldName);
 
-      // Xử lý đặc biệt cho trường dateOfBirth
-      if (fieldName === "dateOfBirth") {
-        try {
-          // Kiểm tra nếu đây là ngày hợp lệ
-          const inputDate = new Date(value);
-          if (!isNaN(inputDate.getTime())) {
-            // Nếu hợp lệ, lưu dưới dạng ISO string (format chuẩn cho API)
-            setLocalValue(inputDate.toISOString());
-          } else {
-            // Nếu không hợp lệ (người dùng đang nhập), vẫn lưu để hiển thị
-            setLocalValue(value);
-          }
-        } catch (error) {
-          console.error("Error parsing date:", error);
-          setLocalValue(value);
-        }
-      } else {
-        // Các trường khác xử lý bình thường
-        setLocalValue(value);
-      }
+      // Các trường khác xử lý bình thường (dateOfBirth được xử lý riêng bởi DatePicker)
+      setLocalValue(value);
     };
 
     // Reset local value and close edit mode
@@ -807,30 +806,57 @@ function EditUserProfile() {
                 {titleCaseLabel}
               </label>
             </div>
+
             {inputType === "date" ? (
               <div>
-                <input
-                  type="date"
-                  id={fieldName}
-                  name={fieldName}
-                  value={localValue ? formatDateForInput(localValue) : ""}
-                  onChange={handleLocalInputChange}
-                  placeholder={placeholder}
-                  className={`w-full border ${
-                    fieldErrors[fieldName]
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
-                  autoFocus
-                />
+                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+                  <DatePicker
+                    value={localValue ? new Date(localValue) : null}
+                    onChange={(newValue) => {
+                      if (newValue) {
+                        setLocalValue(newValue.toISOString());
+                      } else {
+                        setLocalValue("");
+                      }
+                      clearFieldError(fieldName);
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        variant="outlined"
+                        size="small"
+                        error={!!fieldErrors[fieldName]}
+                        helperText={fieldErrors[fieldName] || ""}
+                        placeholder="Chọn ngày sinh"
+                        autoFocus
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: '0.375rem',
+                            '& fieldset': {
+                              borderColor: fieldErrors[fieldName] ? '#ef4444' : '#d1d5db',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: fieldErrors[fieldName] ? '#ef4444' : '#9ca3af',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: '#3b82f6',
+                            },
+                          },
+                        }}
+                      />
+                    )}
+                    format="dd/MM/yyyy"
+                    slotProps={{
+                      textField: {
+                        size: "small",
+                      },
+                    }}
+                  />
+                </LocalizationProvider>
                 <p className="text-sm text-gray-500 mt-1">
-                  Chọn từ lịch hoặc nhập trực tiếp định dạng YYYY-MM-DD
+                  Chọn ngày sinh từ lịch hoặc nhập trực tiếp theo định dạng DD/MM/YYYY. Quy tắc: Ngày sinh phải hợp lệ và không thể lớn hơn ngày hiện tại.
                 </p>
-                {fieldErrors[fieldName] && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {fieldErrors[fieldName]}
-                  </p>
-                )}
               </div>
             ) : inputType === "select" && options ? (
               <div>
@@ -839,34 +865,37 @@ function EditUserProfile() {
                   name={fieldName}
                   value={localValue}
                   onChange={handleLocalInputChange}
-                  className={`w-full border ${
-                    fieldErrors[fieldName]
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
+                  className={`w-full border ${fieldErrors[fieldName]
+                    ? "border-red-500"
+                    : "border-gray-300"
+                    } rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
                   autoFocus
                 >
                   <option value="">-- Chọn {label} --</option>
                   {fieldName === "gender" ||
-                  fieldName === "learningProficiencyLevel"
+                    fieldName === "learningProficiencyLevel"
                     ? // For numeric values like gender and learningProficiencyLevel
-                      options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))
+                    options.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))
                     : // For string values like language codes and timezone
-                      options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                    options.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                 </select>
                 {fieldErrors[fieldName] && (
                   <p className="text-red-500 text-sm mt-1">
                     {fieldErrors[fieldName]}
                   </p>
                 )}
+                <p className="text-sm text-gray-500 mt-1">
+                  {fieldName === "gender" && "Chọn giới tính của bạn. Quy tắc: Vui lòng chọn một trong ba lựa chọn (Khác, Nam, hoặc Nữ)."}
+                  {fieldName === "timezone" && "Chọn múi giờ phù hợp với vị trí địa lý của bạn. Quy tắc: Chọn múi giờ chính xác để đảm bảo lịch học đúng giờ."}
+                </p>
               </div>
             ) : (
               <div>
@@ -881,11 +910,10 @@ function EditUserProfile() {
                   }
                   onChange={handleLocalInputChange}
                   placeholder={placeholder}
-                  className={`w-full border ${
-                    fieldErrors[fieldName]
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
+                  className={`w-full border ${fieldErrors[fieldName]
+                    ? "border-red-500"
+                    : "border-gray-300"
+                    } rounded py-2 px-3 text-gray-700 focus:outline-none focus:border-blue-500`}
                   autoFocus
                 />
                 {fieldErrors[fieldName] && (
@@ -893,6 +921,10 @@ function EditUserProfile() {
                     {fieldErrors[fieldName]}
                   </p>
                 )}
+                <p className="text-sm text-gray-500 mt-1">
+                  {fieldName === "fullName" && "Nhập tên đầy đủ của bạn (chỉ chứa chữ cái và khoảng trắng). Quy tắc: Tên phải từ 2 đến 50 ký tự."}
+                  {fieldName === "phoneNumber" && "Nhập số điện thoại bắt đầu bằng số 0 (ví dụ: 0123456789). Quy tắc: Phải có đúng 10 chữ số."}
+                </p>
               </div>
             )}
             <div className="flex mt-2">
@@ -900,9 +932,8 @@ function EditUserProfile() {
                 type="button"
                 onClick={saveWithLocalValue}
                 disabled={isSaving}
-                className={`${
-                  isSaving ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
-                } text-white font-medium py-1 px-3 rounded text-sm`}
+                className={`${isSaving ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
+                  } text-white font-medium py-1 px-3 rounded text-sm`}
               >
                 {isSaving ? "Đang lưu..." : "Lưu"}
               </button>
@@ -1114,11 +1145,10 @@ function EditUserProfile() {
                     Kích thước tối đa: 2MB
                   </p>
                   <button
-                    className={`${
-                      isUploadingImage
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    } text-sm font-medium py-1 px-4 rounded transition-colors`}
+                    className={`${isUploadingImage
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      } text-sm font-medium py-1 px-4 rounded transition-colors`}
                     onClick={() =>
                       document.getElementById("profileImage").click()
                     }
