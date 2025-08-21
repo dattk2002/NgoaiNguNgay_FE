@@ -7,6 +7,7 @@ import {
   fetchTutorLessonDetailById,
   fetchTutorWeekSchedule,
   fetchTutorRating,
+  fetchTutorBookingConfigByTutorId,
 } from "../api/auth";
 import { formatTutorDate } from "../../utils/formatTutorDate";
 import {
@@ -91,6 +92,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   const [isPatternDialogOpen, setIsPatternDialogOpen] = useState(false);
   const [bookingLessonId, setBookingLessonId] = useState(null);
+  
+  // Add new state for modal mode
+  const [patternModalMode, setPatternModalMode] = useState('readonly'); // 'readonly' or 'booking'
 
   // Rating states
   const [tutorRating, setTutorRating] = useState(null);
@@ -123,6 +127,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   // Add new state for lesson selection modal
   const [isLessonSelectionModalOpen, setIsLessonSelectionModalOpen] = useState(false);
+
+  // Add new state for booking configuration
+  const [bookingConfig, setBookingConfig] = useState(null);
+  const [loadingBookingConfig, setLoadingBookingConfig] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -245,6 +253,19 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
         // Fetch tutor rating data
         await fetchTutorRatingData(id);
+
+        // Fetch tutor booking configuration
+        try {
+          setLoadingBookingConfig(true);
+          const configData = await fetchTutorBookingConfigByTutorId(id);
+          setBookingConfig(configData);
+        } catch (configError) {
+          console.error("Failed to fetch tutor booking config:", configError);
+          // Set default config if API fails
+          setBookingConfig({ allowInstantBooking: true });
+        } finally {
+          setLoadingBookingConfig(false);
+        }
       } catch (err) {
         console.error("Failed to fetch data:", err);
         setError(err.message || "Could not load data.");
@@ -290,6 +311,12 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     // Check if tutor has lessons available
     if (!lessons || lessons.length === 0) {
       toast.error("Gia sư này chưa có khóa học nào khả dụng.");
+      return;
+    }
+    
+    // Check if instant booking is allowed
+    if (bookingConfig && !bookingConfig.allowInstantBooking) {
+      toast.error("Gia sư này không cho phép đặt lịch tức thì. Vui lòng liên hệ trực tiếp.");
       return;
     }
     
@@ -347,8 +374,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     }
   };
 
+  // Modify the existing handlers to set the appropriate mode
   const handleBookNowFromLesson = (lessonId) => {
     setBookingLessonId(lessonId);
+    setPatternModalMode('booking');
     setIsPatternDialogOpen(true);
   };
 
@@ -356,6 +385,14 @@ const TutorDetail = ({ user, onRequireLogin }) => {
   const handleLessonSelect = (selectedLesson) => {
     // Set the selected lesson ID and open the pattern dialog
     setBookingLessonId(selectedLesson.id);
+    setPatternModalMode('booking');
+    setIsPatternDialogOpen(true);
+  };
+
+  // Add new handler for read-only mode
+  const handleViewScheduleDetails = () => {
+    setPatternModalMode('readonly');
+    setBookingLessonId(null); // Clear any selected lesson
     setIsPatternDialogOpen(true);
   };
 
@@ -404,6 +441,30 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
     // Check if any of the expected slots are in the available slots
     return expectedSlots.some((slot) => dayData.timeSlotIndex.includes(slot));
+  };
+
+  // Add a function to get the lowest priced lesson
+  const getLowestPricedLesson = () => {
+    if (!lessons || lessons.length === 0) {
+      return null;
+    }
+    
+    // Filter out lessons with invalid prices and find the lowest
+    const validLessons = lessons.filter(lesson => 
+      lesson.price !== null && 
+      lesson.price !== undefined && 
+      !isNaN(parseFloat(lesson.price))
+    );
+    
+    if (validLessons.length === 0) {
+      return null;
+    }
+    
+    return validLessons.reduce((lowest, current) => {
+      const currentPrice = parseFloat(current.price);
+      const lowestPrice = parseFloat(lowest.price);
+      return currentPrice < lowestPrice ? current : lowest;
+    });
   };
 
   if (loading)
@@ -617,7 +678,16 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                     <div>
                       <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 pb-3">
                         {teacher.name}
+                        
                       </h1>
+                      {bookingConfig && !bookingConfig.allowInstantBooking && (
+                        <span className="text-yellow-700 text-xl font-normal bg-yellow-50 px-3 py-1 rounded-full border border-yellow-200 inline-flex items-center gap-1 w-fit">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          Gia sư này hiện ko thể đặt lịch tức thì
+                        </span>
+                      )}
                       <p className="text-green-600 font-medium text-sm">
                         {teacher.tag || "Giáo viên chuyên nghiệp"}
                       </p>
@@ -798,16 +868,40 @@ const TutorDetail = ({ user, onRequireLogin }) => {
               </div>
               <div className="mt-4">
                 <p className="text-gray-800 font-semibold text-sm">
-                  Buổi học thử
+                  {(() => {
+                    const lowestLesson = getLowestPricedLesson();
+                    return lowestLesson ? lowestLesson.name : "Buổi học thử";
+                  })()}
                 </p>
                 <p className="text-red-500 font-bold text-lg">
-                  {(parseFloat(teacher.price) * 0.5).toFixed(2)} VND
+                  {(() => {
+                    const lowestLesson = getLowestPricedLesson();
+                    if (lowestLesson) {
+                      // Show the actual lesson price, not 50%
+                      const lessonPrice = formatPriceWithCommas(parseFloat(lowestLesson.price));
+                      return `${lessonPrice} VND / 30 phút / 1 slot`;
+                    } else {
+                      // Fallback to teacher's default price if no lessons available
+                      const fallbackPrice = formatPriceWithCommas(parseFloat(teacher.price || 0));
+                      return `${fallbackPrice} VND / 30 phút / 1 slot`;
+                    }
+                  })()}
                 </p>
                 <button
                   onClick={handleBookLesson}
-                  className="w-full bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-red-600 transition mt-3"
+                  disabled={loadingBookingConfig || (bookingConfig && !bookingConfig.allowInstantBooking)}
+                  className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 transition mt-3 ${
+                    loadingBookingConfig || (bookingConfig && !bookingConfig.allowInstantBooking)
+                      ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                      : "bg-red-500 text-white hover:bg-red-600"
+                  }`}
                 >
-                  Đặt buổi học
+                  {loadingBookingConfig 
+                    ? "Đang tải..." 
+                    : bookingConfig && !bookingConfig.allowInstantBooking 
+                      ? "Đặt buổi học" 
+                      : "Đặt buổi học"
+                  }
                 </button>
                 <button
                   onClick={handleContactTeacher}
@@ -946,6 +1040,9 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                       : "Không có"}{" "}
                     VND
                   </span>
+                  <span className="text-gray-500 text-sm mt-1">
+                    30 phút / 1 slot
+                  </span>
                   {lesson.discount && (
                     <span className="text-xs text-gray-500 mt-1">
                       Gói học giảm {lesson.discount}%
@@ -1061,7 +1158,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
               Dựa trên múi giờ của bạn (UTC+07:00)
             </span>
             <button
-              onClick={() => setIsPatternDialogOpen(true)}
+              onClick={handleViewScheduleDetails}
               className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
             >
               Chi tiết lịch trình
@@ -1128,6 +1225,8 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         loading={loadingLessonDetail}
         error={lessonDetailError}
         onBookNow={handleBookNowFromLesson}
+        bookingConfig={bookingConfig}
+        loadingBookingConfig={loadingBookingConfig}
       />
 
       <TutorWeeklyPatternDetailModal
@@ -1135,6 +1234,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         onClose={() => {
           setIsPatternDialogOpen(false);
           setBookingLessonId(null); // reset after close
+          setPatternModalMode('readonly'); // Reset to default mode
         }}
         tutorId={teacher.id}
         tutorName={teacher.name} // Pass tutor name
@@ -1143,6 +1243,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         onBookingSuccess={handleBookingSuccess}
         lessonId={bookingLessonId}
         expectedStartDate={new Date().toISOString()} // Truyền expectedStartDate cho current week và future weeks
+        isReadOnly={patternModalMode === 'readonly'} // Add this prop
       />
 
       {/* Add the new LessonSelectionModal */}
