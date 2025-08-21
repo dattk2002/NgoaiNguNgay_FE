@@ -25,6 +25,7 @@ import {
   ListItem,
   ListItemText,
   Divider,
+  TextField,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import {
@@ -54,6 +55,7 @@ import {
   requestTutorVerification,
   uploadCertificate,
   fetchTutorApplicationByApplicationId,
+  updateTutorProfile,
 } from "../api/auth";
 import { formatLanguageCode, formatProficiencyLevel } from "../../utils/formatLanguageCode";
 import ConfirmDialog from "../modals/ConfirmDialog";
@@ -318,6 +320,14 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
   const [tutorApplication, setTutorApplication] = useState(null);
   const [applicationLoading, setApplicationLoading] = useState(false);
   const [applicationDetailDialogOpen, setApplicationDetailDialogOpen] = useState(false);
+  const [editApplicationDialogOpen, setEditApplicationDialogOpen] = useState(false);
+  const [editingApplication, setEditingApplication] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    nickName: "",
+    brief: "",
+    description: "",
+    teachingMethod: ""
+  });
 
   // Listen for avatar updates through custom event
   useEffect(() => {
@@ -716,6 +726,56 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
     }
   };
 
+  const handleEditApplication = () => {
+    if (tutorApplication && tutorApplication.tutor) {
+      setEditFormData({
+        nickName: tutorApplication.tutor.nickName || "",
+        brief: tutorApplication.tutor.brief || "",
+        description: tutorApplication.tutor.description || "",
+        teachingMethod: tutorApplication.tutor.teachingMethod || ""
+      });
+      setEditApplicationDialogOpen(true);
+    }
+  };
+
+  const handleUpdateApplication = async () => {
+    // Validate form data
+    if (!editFormData.nickName.trim()) {
+      toast.error("Vui lòng nhập biệt danh");
+      return;
+    }
+    if (!editFormData.brief.trim()) {
+      toast.error("Vui lòng nhập mô tả ngắn");
+      return;
+    }
+    if (!editFormData.description.trim()) {
+      toast.error("Vui lòng nhập mô tả chi tiết");
+      return;
+    }
+    if (!editFormData.teachingMethod.trim()) {
+      toast.error("Vui lòng nhập phương pháp giảng dạy");
+      return;
+    }
+
+    setEditingApplication(true);
+    try {
+      await updateTutorProfile(editFormData);
+      toast.success("Cập nhật thông tin đơn đăng ký thành công!");
+      
+      // Refresh application data
+      if (tutorData?.applicationId) {
+        await fetchApplicationData();
+      }
+      
+      setEditApplicationDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to update application:", error);
+      toast.error(`Cập nhật thông tin thất bại: ${error.message}`);
+    } finally {
+      setEditingApplication(false);
+    }
+  };
+
   const fetchApplicationData = async () => {
     if (!tutorData?.applicationId) return;
     
@@ -1063,6 +1123,21 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                             sx={{ textTransform: "none" }}
                           >
                             Xem chi tiết
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleEditApplication}
+                            startIcon={<FiEdit3 />}
+                            sx={{ 
+                              textTransform: "none",
+                              backgroundColor: "#3b82f6",
+                              "&:hover": {
+                                backgroundColor: "#2563eb",
+                              }
+                            }}
+                          >
+                            Chỉnh sửa
                           </Button>
                         </Box>
                       </CardContent>
@@ -1481,7 +1556,7 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
               <Card sx={{ mb: 3, backgroundColor: "#f8fafc" }}>
                 <CardContent>
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: "#1e293b" }}>
-                    Kỹ năng & Chứng chỉ
+                    Hasgtag đã chọn
                   </Typography>
                   
                   {(() => {
@@ -1628,9 +1703,289 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
         </DialogContent>
         
         <DialogActions>
+          <Button 
+            onClick={handleEditApplication}
+            variant="outlined"
+            startIcon={<FiEdit3 />}
+            sx={{ textTransform: "none" }}
+          >
+            Chỉnh sửa
+          </Button>
           <Button onClick={() => setApplicationDetailDialogOpen(false)}>
             Đóng
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Application Dialog */}
+      <Dialog
+        open={editApplicationDialogOpen}
+        onClose={() => setEditApplicationDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15)",
+            border: "1px solid #e2e8f0",
+            background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          color: "white",
+          borderRadius: "16px 16px 0 0",
+          pb: 3
+        }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Box sx={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: "50%", 
+                background: "rgba(255, 255, 255, 0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}>
+                <FiEdit3 style={{ fontSize: "20px" }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1.25rem" }}>
+                  Chỉnh sửa thông tin đơn đăng ký gia sư
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+                  Cập nhật thông tin cá nhân và phương pháp giảng dạy
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton 
+              onClick={() => setEditApplicationDialogOpen(false)}
+              sx={{ 
+                color: "white",
+                "&:hover": {
+                  background: "rgba(255, 255, 255, 0.1)",
+                }
+              }}
+            >
+              <FiX />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        
+                          <DialogContent sx={{ p: 4 }}>
+           {/* Biệt danh */}
+           <Box sx={{ mb: 4 }}>
+             <Typography variant="subtitle1" sx={{ 
+               fontWeight: 600, 
+               color: "#1e293b", 
+               mb: 2
+             }}>
+               Biệt danh <Box component="span" sx={{ color: "#ef4444" }}>*</Box>
+             </Typography>
+             <TextField
+               fullWidth
+               variant="outlined"
+               size="medium"
+               value={editFormData.nickName}
+               onChange={(e) => setEditFormData(prev => ({ ...prev, nickName: e.target.value }))}
+               placeholder="Ví dụ: Cô Mai, Thầy Nam, Giáo viên Anh..."
+               sx={{
+                 "& .MuiOutlinedInput-root": {
+                   borderRadius: "8px",
+                   transition: "all 0.3s ease",
+                   "&:hover": {
+                     borderColor: "#cbd5e1",
+                   },
+                   "&.Mui-focused": {
+                     borderColor: "#667eea",
+                     boxShadow: "0 0 0 3px rgba(102, 126, 234, 0.1)",
+                   }
+                 },
+                 "& .MuiOutlinedInput-input": {
+                   padding: "14px 16px",
+                   fontSize: "1rem",
+                 }
+               }}
+             />
+           </Box>
+           
+           {/* Mô tả ngắn */}
+           <Box sx={{ mb: 4 }}>
+             <Typography variant="subtitle1" sx={{ 
+               fontWeight: 600, 
+               color: "#1e293b", 
+               mb: 2
+             }}>
+               Mô tả ngắn <Box component="span" sx={{ color: "#ef4444" }}>*</Box>
+             </Typography>
+             <TextField
+               fullWidth
+               variant="outlined"
+               size="medium"
+               multiline
+               rows={4}
+               value={editFormData.brief}
+               onChange={(e) => setEditFormData(prev => ({ ...prev, brief: e.target.value }))}
+               placeholder="Ví dụ: Tôi là giáo viên tiếng Anh với 5 năm kinh nghiệm giảng dạy tại các trung tâm ngoại ngữ. Tôi chuyên về giao tiếp và luyện thi IELTS..."
+               sx={{
+                 "& .MuiOutlinedInput-root": {
+                   borderRadius: "8px",
+                   transition: "all 0.3s ease",
+                   "&:hover": {
+                     borderColor: "#cbd5e1",
+                   },
+                   "&.Mui-focused": {
+                     borderColor: "#667eea",
+                     boxShadow: "0 0 0 3px rgba(102, 126, 234, 0.1)",
+                   }
+                 },
+                 "& .MuiOutlinedInput-input": {
+                   padding: "14px 16px",
+                   fontSize: "1rem",
+                   lineHeight: 1.6,
+                 }
+               }}
+             />
+           </Box>
+         
+           {/* Mô tả chi tiết */}
+           <Box sx={{ mb: 4 }}>
+             <Typography variant="subtitle1" sx={{ 
+               fontWeight: 600, 
+               color: "#1e293b", 
+               mb: 2
+             }}>
+               Mô tả chi tiết <Box component="span" sx={{ color: "#ef4444" }}>*</Box>
+             </Typography>
+             <TextField
+               fullWidth
+               variant="outlined"
+               size="medium"
+               multiline
+               rows={6}
+               value={editFormData.description}
+               onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+               placeholder="Ví dụ: Tôi tốt nghiệp Đại học Ngoại ngữ với bằng Cử nhân Sư phạm Tiếng Anh. Có chứng chỉ TESOL và 5 năm kinh nghiệm giảng dạy tại các trung tâm ngoại ngữ lớn. Chuyên về giao tiếp, luyện thi IELTS, TOEIC và tiếng Anh trẻ em..."
+               sx={{
+                 "& .MuiOutlinedInput-root": {
+                   borderRadius: "8px",
+                   transition: "all 0.3s ease",
+                   "&:hover": {
+                     borderColor: "#cbd5e1",
+                   },
+                   "&.Mui-focused": {
+                     borderColor: "#667eea",
+                     boxShadow: "0 0 0 3px rgba(102, 126, 234, 0.1)",
+                   }
+                 },
+                 "& .MuiOutlinedInput-input": {
+                   padding: "14px 16px",
+                   fontSize: "1rem",
+                   lineHeight: 1.6,
+                 }
+               }}
+             />
+           </Box>
+           
+           {/* Phương pháp giảng dạy */}
+           <Box sx={{ mb: 4 }}>
+             <Typography variant="subtitle1" sx={{ 
+               fontWeight: 600, 
+               color: "#1e293b", 
+               mb: 2
+             }}>
+               Phương pháp giảng dạy <Box component="span" sx={{ color: "#ef4444" }}>*</Box>
+             </Typography>
+             <TextField
+               fullWidth
+               variant="outlined"
+               size="medium"
+               multiline
+               rows={5}
+               value={editFormData.teachingMethod}
+               onChange={(e) => setEditFormData(prev => ({ ...prev, teachingMethod: e.target.value }))}
+               placeholder="Ví dụ: Tôi áp dụng phương pháp giao tiếp trực tiếp, kết hợp với các hoạt động tương tác và trò chơi để tạo môi trường học tập vui vẻ. Tôi tập trung vào phát âm chuẩn và sử dụng tài liệu thực tế để học viên có thể áp dụng ngay vào cuộc sống..."
+               sx={{
+                 "& .MuiOutlinedInput-root": {
+                   borderRadius: "8px",
+                   transition: "all 0.3s ease",
+                   "&:hover": {
+                     borderColor: "#cbd5e1",
+                   },
+                   "&.Mui-focused": {
+                     borderColor: "#667eea",
+                     boxShadow: "0 0 0 3px rgba(102, 126, 234, 0.1)",
+                   }
+                 },
+                 "& .MuiOutlinedInput-input": {
+                   padding: "14px 16px",
+                   fontSize: "1rem",
+                   lineHeight: 1.6,
+                 }
+               }}
+             />
+           </Box>
+        </DialogContent>
+        
+        <DialogActions sx={{ 
+          p: 4, 
+          pt: 2, 
+          background: "#fafbfc",
+          borderRadius: "0 0 16px 16px",
+          borderTop: "1px solid #e2e8f0"
+        }}>
+          <Box sx={{ display: "flex", gap: 2, width: "100%", justifyContent: "flex-end" }}>
+            <Button 
+              onClick={() => setEditApplicationDialogOpen(false)}
+              variant="outlined"
+              sx={{ 
+                textTransform: "none",
+                color: "#64748b",
+                borderColor: "#cbd5e1",
+                borderRadius: "12px",
+                px: 4,
+                py: 1.5,
+                fontSize: "1rem",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: "#94a3b8",
+                  background: "#f1f5f9",
+                }
+              }}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleUpdateApplication}
+              disabled={editingApplication}
+              startIcon={editingApplication ? <CircularProgress size={20} sx={{ color: "white" }} /> : <FiCheck />}
+              sx={{
+                textTransform: "none",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                borderRadius: "12px",
+                px: 4,
+                py: 1.5,
+                fontSize: "1rem",
+                fontWeight: 600,
+                boxShadow: "0 4px 20px rgba(102, 126, 234, 0.3)",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)",
+                  boxShadow: "0 6px 25px rgba(102, 126, 234, 0.4)",
+                  transform: "translateY(-1px)",
+                },
+                "&:disabled": {
+                  background: "#94a3b8",
+                  boxShadow: "none",
+                  transform: "none",
+                }
+              }}
+            >
+              {editingApplication ? "Đang cập nhật..." : "Cập nhật thông tin"}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
 

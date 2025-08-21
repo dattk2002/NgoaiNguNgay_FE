@@ -8,7 +8,7 @@ import {
 } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatTutorDate } from '../../utils/formatTutorDate';
-import { formatSlotDateTimeFromTimestamp } from '../../utils/formatSlotTime';
+import { formatSlotDateTimeFromTimestamp, calculateUTC7SlotIndex } from '../../utils/formatSlotTime';
 import OfferDetailModal from './OfferDetailModal';
 
 
@@ -228,7 +228,7 @@ const OfferManagement = () => {
                   {offer.offeredSlots && offer.offeredSlots.map((slot, index) => (
                     <div key={index} className="bg-gray-50 p-3 rounded-md">
                       <p className="text-sm font-medium text-black">
-                        Slot {slot.slotIndex + 1}
+                        Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.slotDateTime)}
                       </p>
                       <p className="text-xs text-gray-600">
                                                  {formatSlotDateTimeFromTimestamp(slot.slotDateTime)}

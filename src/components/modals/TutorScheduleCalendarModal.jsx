@@ -14,6 +14,7 @@ import {
 import { fetchTutorScheduleToOfferAndBook } from '../api/auth';
 import { createTutorBookingOffer } from '../api/auth';
 import { fetchTutorLesson } from '../api/auth';
+import { convertUTC7ToUTC0 } from '../../utils/formatCentralTimestamp';
 import { 
   Dialog, 
   DialogTitle, 
@@ -190,7 +191,7 @@ const TutorScheduleCalendarModal = ({
 
   const isSlotSelected = (date, slotIndex) => {
     return selectedSlots.some(slot => 
-      slot.date === date.toISOString().split('T')[0] && 
+      slot.date === date.toLocaleDateString('en-CA') && 
       slot.slotIndex === slotIndex
     );
   };
@@ -210,7 +211,7 @@ const TutorScheduleCalendarModal = ({
       return; // Don't allow clicking on non-available slots
     }
 
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = date.toLocaleDateString('en-CA'); // Use YYYY-MM-DD format without timezone issues
     
     setSelectedSlots(prev => {
       const existing = prev.find(slot => 
@@ -318,15 +319,19 @@ const TutorScheduleCalendarModal = ({
 
       // Convert selected slots to the format expected by the API
       const offeredSlots = selectedSlots.map(slot => {
-        // Use the actual date from the slot instead of calculating from week start
-        const slotDate = new Date(slot.date);
+        // Create date properly to avoid timezone issues
+        const [year, month, day] = slot.date.split('-').map(Number);
+        const slotDate = new Date(year, month - 1, day); // month is 0-indexed
         
         const hour = Math.floor(slot.slotIndex / 2);
         const minute = slot.slotIndex % 2 === 0 ? 0 : 30;
         slotDate.setHours(hour, minute, 0, 0);
         
+        // Convert UTC+7 to UTC+0 for backend
+        const utc0Date = convertUTC7ToUTC0(slotDate);
+        
         return {
-          slotDateTime: slotDate.toISOString(),
+          slotDateTime: utc0Date.toISOString(),
           slotIndex: slot.slotIndex,
         };
       });
@@ -390,9 +395,11 @@ const TutorScheduleCalendarModal = ({
   };
 
   const getDayInWeek = (dateString) => {
-    const date = new Date(dateString);
-    const day = date.getDay();
-    return day === 0 ? 1 : day + 1; // Convert to API format (1=Sun, 2=Mon, etc.)
+    // Create date properly to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 ? 1 : dayOfWeek + 1; // Convert to API format (1=Sun, 2=Mon, etc.)
   };
 
   const isSlotInPast = (weekStart, dayInWeek, slotIndex) => {
@@ -971,7 +978,9 @@ const TutorScheduleCalendarModal = ({
                         <Box sx={{ maxHeight: 400, overflowY: "auto" }}>
                           <AnimatePresence>
                             {selectedSlots.map((slot, index) => {
-                              const date = new Date(slot.date);
+                              // Create date properly to avoid timezone issues
+                              const [year, month, day] = slot.date.split('-').map(Number);
+                              const date = new Date(year, month - 1, day); // month is 0-indexed
                               const dayName = dayNames[date.getDay()];
                               const hour = Math.floor(slot.slotIndex / 2);
                               const minute = slot.slotIndex % 2 === 0 ? "00" : "30";

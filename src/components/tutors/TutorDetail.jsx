@@ -778,10 +778,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                   >
                     {activeTab === 0 && (
                       <>
-                        <p className="text-gray-700 text-sm">
-                          Từ{" "}
-                          <span className="font-medium">{teacher.address}</span>
-                        </p>
                         <p className="text-gray-700 text-sm mt-2">
                           Gia sư NgoaiNguNgay từ{" "}
                           <span className="font-medium">

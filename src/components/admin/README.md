@@ -9,7 +9,8 @@ src/components/admin/
 ├── AdminDashboard.jsx        # Layout chính admin dashboard
 ├── AdminOverview.jsx         # Tổng quan hệ thống và thống kê
 ├── UserManagement.jsx        # Quản lý danh sách người dùng
-└── AccountCreation.jsx       # Tạo tài khoản Manager/Staff
+├── AccountCreation.jsx       # Tạo tài khoản Manager/Staff
+└── LegalDocumentManagement.jsx # Quản lý tài liệu pháp lý
 ```
 
 ## 🔧 Chi tiết components
@@ -33,6 +34,7 @@ const [activeTab, setActiveTab] = useState('overview');
 - 📊 **overview**: Tổng quan hệ thống
 - 👥 **user-management**: Quản lý người dùng
 - ➕ **account-creation**: Tạo tài khoản
+- 📄 **legal-documents**: Tài liệu pháp lý (với quản lý phiên bản)
 
 ### 📊 AdminOverview.jsx
 **Mục đích**: Hiển thị thống kê tổng quan và tình trạng hệ thống
@@ -106,6 +108,139 @@ const [formData, setFormData] = useState({
   confirmPassword: ''
 });
 ```
+
+### 📄 LegalDocumentManagement.jsx
+**Mục đích**: Quản lý tài liệu pháp lý và phiên bản của hệ thống
+
+**Tính năng**:
+- 📋 **Document List**: Hiển thị danh sách tài liệu pháp lý với truncation
+- ➕ **Create Document**: Tạo tài liệu pháp lý mới với modal
+- ✏️ **Edit Document**: Chỉnh sửa tài liệu với modal
+- 🗑️ **Delete Document**: Xóa tài liệu với confirmation modal
+- 👁️ **Detail View**: Xem chi tiết tài liệu với modal riêng biệt
+- 🔍 **Filter & Search**: Lọc theo danh mục và phân trang
+- 📊 **Pagination**: Phân trang kết quả
+- 🎨 **Modern UI**: Sử dụng Framer Motion animations
+- 📱 **Responsive**: Mobile-friendly design
+- 📅 **Time Display**: Hiển thị createdTime và lastUpdatedTime
+- 📚 **Version Management**: Quản lý phiên bản tài liệu với CRUD operations
+- 🔄 **Version Status**: Quản lý trạng thái phiên bản (Draft/Inactive/Active)
+
+**API Integration**:
+- **GET /api/legaldocument**: Lấy danh sách tài liệu với pagination
+- **GET /api/legaldocument/{id}**: Lấy chi tiết tài liệu theo ID (bao gồm danh sách phiên bản)
+- **POST /api/legaldocument**: Tạo tài liệu pháp lý mới
+- **PUT /api/legaldocument**: Cập nhật tài liệu pháp lý (ID trong request body)
+- **DELETE /api/legaldocument/:id**: Xóa tài liệu pháp lý
+
+**Version Management APIs**:
+- **GET /api/legaldocument/version/{id}**: Lấy danh sách phiên bản với pagination (id là legalDocumentId)
+- **GET /api/legaldocument/version/{id}**: Lấy chi tiết phiên bản đơn lẻ (id là versionId)
+- **POST /api/legaldocumentversion**: Tạo phiên bản mới
+- **PUT /api/legaldocumentversion**: Cập nhật phiên bản (ID trong request body)
+- **DELETE /api/legaldocumentversion/:id**: Xóa phiên bản
+
+**State Management**:
+```jsx
+// Document management
+const [documents, setDocuments] = useState([]);
+const [loading, setLoading] = useState(false);
+const [showCreateModal, setShowCreateModal] = useState(false);
+const [showEditModal, setShowEditModal] = useState(false);
+const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [showDetailModal, setShowDetailModal] = useState(false);
+const [selectedDocument, setSelectedDocument] = useState(null);
+const [detailedDocument, setDetailedDocument] = useState(null);
+const [loadingDetail, setLoadingDetail] = useState(false);
+const [generalError, setGeneralError] = useState("");
+const [fieldErrors, setFieldErrors] = useState({ name: "", description: "" });
+
+// Version management
+const [showVersionModal, setShowVersionModal] = useState(false);
+const [showCreateVersionModal, setShowCreateVersionModal] = useState(false);
+const [showEditVersionModal, setShowEditVersionModal] = useState(false);
+const [showDeleteVersionModal, setShowDeleteVersionModal] = useState(false);
+const [versions, setVersions] = useState([]);
+const [loadingVersions, setLoadingVersions] = useState(false);
+const [selectedVersion, setSelectedVersion] = useState(null);
+const [newVersion, setNewVersion] = useState({
+    legalDocumentId: '', version: '', status: 0, content: '', contentType: ''
+});
+const [editVersion, setEditVersion] = useState({
+    legalDocumentId: '', version: '', status: 0, content: '', contentType: ''
+});
+const [versionFieldErrors, setVersionFieldErrors] = useState({
+    version: "", content: "", contentType: ""
+});
+```
+
+**Document Fields**:
+```jsx
+const [newDocument, setNewDocument] = useState({
+  name: '',        // Tên tài liệu (required)
+  description: ''  // Mô tả tài liệu (optional)
+});
+
+// Detailed document includes:
+// - id, name, description, category
+// - createdTime, lastUpdatedTime
+// - createdAt, updatedAt (fallback fields)
+```
+
+**Version Fields**:
+```jsx
+const [newVersion, setNewVersion] = useState({
+  legalDocumentId: '',  // ID tài liệu pháp lý (required)
+  version: '',          // Phiên bản (required)
+  status: 0,            // Trạng thái: 0=draft, 1=inactive, 2=active (required)
+  content: '',          // Nội dung phiên bản (required)
+  contentType: ''       // Loại nội dung (required)
+});
+```
+
+**Filter Options**:
+- **Category**: Lọc theo danh mục tài liệu
+- **Page Size**: 5, 10, 20, 50 items per page
+- **Pagination**: Navigation giữa các trang
+
+**Modal Features**:
+- **Create Modal**: Form tạo tài liệu mới với validation
+- **Edit Modal**: Form chỉnh sửa tài liệu với pre-filled data
+- **Delete Modal**: Confirmation dialog với warning icon
+- **Detail Modal**: Hiển thị đầy đủ thông tin tài liệu và danh sách phiên bản (nếu có)
+- **Version Management Modal**: Quản lý phiên bản với table view
+- **Create Version Modal**: Form tạo phiên bản mới với status selection
+- **Edit Version Modal**: Form chỉnh sửa phiên bản với pre-filled data
+- **Delete Version Modal**: Confirmation dialog cho xóa phiên bản
+- **Version Detail Modal**: Hiển thị chi tiết đầy đủ của một phiên bản
+- **Animations**: Smooth transitions với Framer Motion
+- **Error Handling**: Field-level và general error display
+
+**Table Columns**:
+- 📄 Tên tài liệu
+- 📝 Mô tả (truncated với "Xem thêm" link)
+- 🏷️ Danh mục
+- 📅 Ngày tạo (createdTime)
+- 📅 Cập nhật lần cuối (lastUpdatedTime)
+- ⚙️ Thao tác (Xem chi tiết/Quản lý phiên bản/Chỉnh sửa/Xóa)
+
+**Version Table Columns**:
+- 📚 Phiên bản
+- 🏷️ Trạng thái (Draft/Inactive/Active với color coding)
+- 📄 Loại nội dung
+- 📝 Nội dung (truncated)
+- ⚙️ Thao tác (Xem chi tiết/Chỉnh sửa/Xóa)
+
+**Text Truncation**:
+- **Description**: Truncate ở 80 ký tự với "Xem thêm" button
+- **Detail View**: Hiển thị đầy đủ mô tả trong modal
+- **Responsive**: Tự động điều chỉnh theo màn hình
+
+**Error Handling**:
+- **Field Validation**: Real-time validation với error messages
+- **API Error Handling**: Parse và hiển thị server errors
+- **Toast Notifications**: Success/error feedback
+- **Loading States**: Spinner icons cho async operations
 
 ## 🎨 UI/UX Features
 
@@ -183,6 +318,20 @@ PUT /api/users/:id/status - Toggle user status
 // Account creation  
 POST /api/auth/register/manager - Create manager
 POST /api/auth/register/staff - Create staff
+
+// Legal documents
+GET /api/legaldocument - Fetch legal documents with pagination
+POST /api/legaldocument - Create new legal document
+PUT /api/legaldocument - Update legal document (ID in request body)
+DELETE /api/legaldocument/:id - Delete legal document
+GET /api/legaldocument/:id - Get single legal document details
+
+// Legal document versions
+GET /api/legaldocument/version/{id} - Fetch legal document versions with pagination (id is legalDocumentId)
+GET /api/legaldocument/version/{id} - Get single version details (id is versionId)
+POST /api/legaldocumentversion - Create new legal document version
+PUT /api/legaldocumentversion - Update legal document version (ID in request body)
+DELETE /api/legaldocumentversion/:id - Delete legal document version
 
 // Statistics
 GET /api/admin/stats - System overview stats
