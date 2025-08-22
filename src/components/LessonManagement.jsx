@@ -8,6 +8,7 @@ import { calculateUTC7SlotIndex } from "../utils/formatSlotTime";
 import { formatSlotDateTime } from "../utils/formatSlotTime";
 import { Skeleton } from "@mui/material";
 import CreateDisputeModal from "./modals/CreateDisputeModal";
+import { formatSlotDateTimeUTC0 } from "../utils/formatSlotTime";
 
 const LessonManagement = () => {
   const [lessons, setLessons] = useState([]);
@@ -783,10 +784,10 @@ const LessonManagement = () => {
                                       <div className="flex items-center justify-between">
                                         <div>
                                           <span className="font-medium text-lg" style={{ color: '#666666' }}>
-                                            Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
+                                            Slot {slot.slotIndex} {/* Sử dụng slotIndex gốc thay vì calculateUTC7SlotIndex */}
                                           </span>
                                           <div className="text-xs text-gray-500 mt-1">
-                                            Ngày học: {slot.slotIndex !== undefined ? formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate) : (slot.bookedDate ? formatUTC0ToUTC7(slot.bookedDate) : 'N/A')}
+                                            Ngày học: {formatSlotDateTimeUTC0(slot.slotIndex, slot.bookedDate)}
                                           </div>
                                           {slot.slotNote && (
                                             <div className="text-xs text-gray-600 mt-1">

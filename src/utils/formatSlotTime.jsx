@@ -142,3 +142,33 @@ export const formatSlotDateTimeFromTimestamp = (slotDateTime) => {
     return "Thời gian không hợp lệ";
   }
 };
+
+// Format slot date time in UTC+0
+export function formatSlotDateTimeUTC0(slotIndex, bookedDate) {
+  if (slotIndex === undefined || !bookedDate) {
+    return 'N/A';
+  }
+
+  // Parse the booked date (already in UTC+0)
+  const date = new Date(bookedDate);
+  
+  // Calculate hour and minute from slotIndex (UTC+0)
+  const hour = Math.floor(slotIndex / 2);
+  const minute = slotIndex % 2 === 0 ? 0 : 30;
+  
+  // Calculate next hour and minute
+  const nextHour = slotIndex % 2 === 0 ? hour : hour + 1;
+  const nextMinute = slotIndex % 2 === 0 ? 30 : 0;
+  
+  // Format the date and time in UTC+0
+  const formattedDate = date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  
+  const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  const endTime = `${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`;
+  
+  return `${formattedDate} ${startTime} - ${endTime}`;
+}

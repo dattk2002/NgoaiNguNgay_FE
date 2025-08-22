@@ -745,32 +745,29 @@ export default function MyBookingTable({
                                 slot.slotIndex === slotIdx
                                                         );
 
-                          const isOffered =
-                            Array.isArray(tutorOfferedSlots) &&
-                            tutorOfferedSlots.some((slot) => {
-                              if (!slot.slotDateTime || slot.slotIndex === undefined) return false;
-                              
-                              // Parse the slot date from API (UTC)
-                              const slotDate = new Date(slot.slotDateTime);
-                              
-                              // Get UTC date parts to avoid timezone issues
-                              const slotYear = slotDate.getUTCFullYear();
-                              const slotMonth = slotDate.getUTCMonth() + 1; // getUTCMonth() returns 0-11, we need 1-12
-                              const slotDay = slotDate.getUTCDate();
-                              
-                              // Check if this slot matches the current cell
-                              const dateMatches = (
-                                slotYear === currentDayInfo.year &&
-                                slotMonth === currentDayInfo.month &&
-                                slotDay === currentDayInfo.date
-                              );
-                              
-                              const slotIndexMatches = slot.slotIndex === slotIdx;
-                              
-                              const isMatching = dateMatches && slotIndexMatches;
-                              
-                              return isMatching;
-                            });
+                          const isOffered = Array.isArray(tutorOfferedSlots) && tutorOfferedSlots.some((slot) => {
+                            if (!slot.slotDateTime || slot.slotIndex === undefined) return false;
+                            
+                            // Parse the slot date from API (UTC)
+                            const slotDate = new Date(slot.slotDateTime);
+                            
+                            // Get UTC date parts to avoid timezone issues
+                            const slotYear = slotDate.getUTCFullYear();
+                            const slotMonth = slotDate.getUTCMonth() + 1;
+                            const slotDay = slotDate.getUTCDate();
+                            
+                            // Check if this slot matches the current cell
+                            const dateMatches = (
+                              slotYear === currentDayInfo.year &&
+                              slotMonth === currentDayInfo.month &&
+                              slotDay === currentDayInfo.date
+                            );
+                            
+                            // Use slotIndex directly without conversion since API returns UTC+0
+                            const slotIndexMatches = slot.slotIndex === slotIdx;
+                            
+                            return dateMatches && slotIndexMatches;
+                          });
 
                           let bgColor = "#f1f5f9";
                           let color = "#333";

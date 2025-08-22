@@ -171,7 +171,6 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
       handleClose();
       
     } catch (error) {
-      console.error("Error creating dispute:", error);
       toast.error(error.message || "Có lỗi xảy ra khi gửi khiếu nại. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
