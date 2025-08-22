@@ -56,30 +56,49 @@ const LessonManagement = () => {
     
     if (allSlots.length === 0) return 0; // Pending if no slots
     
-    // Check if all slots are completed
-    const allCompleted = allSlots.every(slot => slot.status === 2);
-    if (allCompleted) return 2; // Completed
+    // Count slots by status
+    const pendingSlots = allSlots.filter(slot => slot.status === 0).length;
+    const awaitingPayoutSlots = allSlots.filter(slot => slot.status === 1).length;
+    const completedSlots = allSlots.filter(slot => slot.status === 2).length;
+    const cancelledSlots = allSlots.filter(slot => slot.status === 3).length;
+    const cancelledDisputedSlots = allSlots.filter(slot => slot.status === 4).length;
+    const totalSlots = allSlots.length;
     
-    // Check if any slot is completed
-    const anyCompleted = allSlots.some(slot => slot.status === 2);
-    if (anyCompleted) return 2; // Completed (partial completion is still considered completed)
+    // If all slots are completed (status = 2)
+    if (completedSlots === totalSlots) return 2; // Completed
     
-    // Check if all slots are cancelled due to dispute
-    const allCancelledDisputed = allSlots.every(slot => slot.status === 4);
-    if (allCancelledDisputed) return 4; // CancelledDisputed
+    // If all slots are cancelled
+    if (cancelledSlots === totalSlots) return 3; // Cancelled
     
-    // Check if any slot is cancelled
-    const anyCancelled = allSlots.some(slot => slot.status === 3);
-    if (anyCancelled) return 3; // Cancelled
+    // If all slots are cancelled due to dispute
+    if (cancelledDisputedSlots === totalSlots) return 4; // CancelledDisputed
     
-    return 0; // Pending
+    // If all slots are pending
+    if (pendingSlots === totalSlots) return 0; // Pending
+    
+    // If all slots are awaiting payout
+    if (awaitingPayoutSlots === totalSlots) return 1; // AwaitingPayout
+    
+    // Mixed status cases:
+    
+    // Case 1: If there are any cancelled disputed slots + other statuses → "Đang diễn ra"
+    if (cancelledDisputedSlots > 0) return 0; // Show as "Đang diễn ra"
+    
+    // Case 2: If there are any awaiting payout slots (status = 1) + other statuses → "Đang diễn ra"
+    if (awaitingPayoutSlots > 0) return 0; // Show as "Đang diễn ra"
+    
+    // Case 3: If there are any pending slots + other statuses → "Đang diễn ra"
+    if (pendingSlots > 0) return 0; // Show as "Đang diễn ra"
+    
+    // Default case: mixed status without pending/awaiting/disputed → "Đang diễn ra"
+    return 0; // Show as "Đang diễn ra"
   };
 
-  // Helper function to check if a booking has a dispute
-  const hasDispute = (bookingId) => {
-    console.log("🔍 Checking dispute for bookingId:", bookingId);
+  // Helper function to check if a slot has a dispute
+  const hasSlotDispute = (slotId) => {
+    console.log("🔍 Checking dispute for slotId:", slotId);
     console.log("🔍 Current disputes:", disputes);
-    const hasDispute = disputes.some(dispute => dispute.bookingId === bookingId);
+    const hasDispute = disputes.some(dispute => dispute.bookedSlotId === slotId);
     console.log("🔍 Has dispute:", hasDispute);
     return hasDispute;
   };
@@ -88,7 +107,9 @@ const LessonManagement = () => {
   const hasGroupDispute = (group) => {
     console.log("🔍 Checking group dispute for group:", group.id);
     console.log("🔍 Group bookings:", group.bookings.map(b => ({ id: b.id, name: b.lessonSnapshot?.name })));
-    const hasGroupDispute = group.bookings.some(booking => hasDispute(booking.id));
+    const hasGroupDispute = group.bookings.some(booking => 
+      booking.bookedSlots?.some(slot => hasSlotDispute(slot.id))
+    );
     console.log("🔍 Group has dispute:", hasGroupDispute);
     return hasGroupDispute;
   };
@@ -102,7 +123,12 @@ const LessonManagement = () => {
       console.log("🔍 Disputes response:", response);
       if (response && response.data) {
         console.log("🔍 Setting disputes:", response.data);
-        setDisputes(response.data);
+        // Đảm bảo mỗi dispute có bookedSlotId
+        const processedDisputes = response.data.map(dispute => ({
+          ...dispute,
+          bookedSlotId: dispute.bookedSlotId || dispute.bookingId // Fallback cho backward compatibility
+        }));
+        setDisputes(processedDisputes);
       } else {
         console.log("🔍 No disputes data, setting empty array");
         setDisputes([]);
@@ -123,7 +149,7 @@ const LessonManagement = () => {
         allSlots.push(...booking.bookedSlots);
       }
     });
-    return allSlots.some(slot => slot.status === 2);
+    return allSlots.some(slot => slot.status === 2); // Status 2 = Completed
   };
 
   // Fetch ratings for all bookings
@@ -135,7 +161,7 @@ const LessonManagement = () => {
       // Get unique booking IDs that have completed slots
       const bookingIdsToCheck = new Set();
       bookings.forEach(booking => {
-        if (booking.bookedSlots && booking.bookedSlots.some(slot => slot.status === 2)) {
+        if (booking.bookedSlots && booking.bookedSlots.some(slot => slot.status === 2)) { // Status 2 = Completed
           bookingIdsToCheck.add(booking.id);
         }
       });
@@ -355,13 +381,13 @@ const LessonManagement = () => {
 
   const getStatusBadge = (status) => {
     // Based on backend SlotStatus enum:
-    // Pending = 0, AwaitingConfirmation = 1, Completed = 2, Cancelled = 3, CancelledDisputed = 4
+    // Pending = 0, AwaitingPayout = 1, Completed = 2, Cancelled = 3, CancelledDisputed = 4
     const statusMap = {
       0: { label: "Đang chờ", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-      1: { label: "Đang chờ xác nhận", class: "bg-blue-50 text-blue-700 border border-blue-200" },
+      1: { label: "Hoàn thành, nếu có vấn đề khiếu nại trong 24h", class: "bg-blue-50 text-blue-700 border border-blue-200" },
       2: { label: "Hoàn thành", class: "bg-green-50 text-green-700 border border-green-200" },
       3: { label: "Đã hủy", class: "bg-red-50 text-red-700 border border-red-200" },
-      4: { label: "Đã hủy do tranh chấp", class: "bg-orange-50 text-orange-700 border border-orange-200" }
+      4: { label: "Đang khiếu nại", class: "bg-orange-50 text-orange-700 border border-orange-200" }
     };
     const statusInfo = statusMap[status] || { label: "Không xác định", class: "bg-gray-50 text-gray-700 border border-gray-200" };
     
@@ -489,31 +515,19 @@ const LessonManagement = () => {
   };
 
   // Handle creating dispute
-  const handleCreateDispute = (group) => {
-    // Find the first booking that has completed slots to get bookingId for dispute
-    let validBookingId = null;
-    
-    // Look through all bookings in the group to find one with completed slots
-    for (const booking of group.bookings) {
-      if (booking.bookedSlots && Array.isArray(booking.bookedSlots)) {
-        const hasCompletedSlot = booking.bookedSlots.some(slot => slot.status === 2); // Status 2 = Completed
-        if (hasCompletedSlot) {
-          validBookingId = booking.id;
-          break;
-        }
-      }
-    }
-    
-    if (!validBookingId) {
-      toast.error("Không tìm thấy booking có slot đã hoàn thành để khiếu nại!");
+  const handleCreateDispute = (slot) => {
+    // Kiểm tra slot đã hoàn thành chưa (status = 1: AwaitingPayout)
+    if (slot.status !== 1) {
+      toast.error("Chỉ có thể khiếu nại slot đã hoàn thành!");
       return;
     }
     
     setSelectedBookingForDispute({
-      bookingId: validBookingId,
-      lessonName: group.lessonName,
-      tutorName: group.tutorName,
-      group: group
+      bookedSlotId: slot.id, // Sử dụng slot.id làm bookedSlotId
+      slotNumber: slot.slotIndex,
+      lessonName: slot.lessonName || "Khóa học",
+      tutorName: slot.tutorName || "Gia sư",
+      slot: slot
     });
     setShowDisputeModal(true);
   };
@@ -652,11 +666,21 @@ const LessonManagement = () => {
                           {(() => {
                             const overallStatus = getGroupOverallStatus(group);
                             return overallStatus ? (
-                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${overallStatus === 2 ? 'bg-green-50 text-green-700 border border-green-200' : overallStatus === 3 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                                {overallStatus === 2 ? 'Hoàn thành' : overallStatus === 3 ? 'Đã hủy' : 'Đang diễn ra'}
-                              </span>
-                            ) : getStatusBadge(group.latestStatus);
-                          })()}
+                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                                overallStatus === 2 ? 'bg-green-50 text-green-700 border border-green-200' : 
+                                overallStatus === 1 ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                overallStatus === 3 ? 'bg-red-50 text-red-700 border border-red-200' : 
+                                overallStatus === 4 ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+                                'bg-blue-50 text-blue-700 border border-blue-200'
+                              }`}>
+                                {overallStatus === 2 ? 'Hoàn thành' : 
+                                 overallStatus === 1 ? 'Đang chờ thanh toán' :
+                                 overallStatus === 3 ? 'Đã hủy' : 
+                                 overallStatus === 4 ? 'Đã hủy do tranh chấp' :
+                                 'Đang diễn ra'}
+                               </span>
+                              ) : getStatusBadge(group.latestStatus);
+                            })()}
                         </div>
                         <p className="text-sm text-gray-600 mt-1">
                           Gia sư: <span className="font-medium">{group.tutorName}</span>
@@ -714,36 +738,6 @@ const LessonManagement = () => {
                         </div>
                       )}
                       
-                      {/* Dispute button - only show when at least one slot is completed */}
-                      {(() => {
-                        const hasCompleted = hasCompletedSlots(group);
-                        const hasDispute = hasGroupDispute(group);
-                        console.log("🔍 Render debug for group:", group.id);
-                        console.log("🔍 Has completed slots:", hasCompleted);
-                        console.log("🔍 Has group dispute:", hasDispute);
-                        
-                        if (!hasCompleted) return null;
-                        
-                        return hasDispute ? (
-                          <div className="px-3 py-2 text-sm rounded-lg bg-gray-100 text-gray-600 flex items-center space-x-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Đã khiếu nại</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleCreateDispute(group)}
-                            className="px-3 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 flex items-center space-x-1"
-                            title="Tạo khiếu nại"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                            </svg>
-                            <span>Khiếu nại</span>
-                          </button>
-                        );
-                      })()}
                       <button
                         onClick={() => toggleExpanded(group.id)}
                         className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
@@ -801,8 +795,34 @@ const LessonManagement = () => {
                                             </div>
                                           )}
                                         </div>
-                                        <div className="text-right">
+                                        <div className="flex items-center gap-2">
                                           {getStatusBadge(slot.status)}
+                                          {/* Nút khiếu nại chỉ hiển thị cho slot đã hoàn thành (status = 1: AwaitingPayout) */}
+                                          {slot.status === 1 && (
+                                            hasSlotDispute(slot.id) ? (
+                                              <div className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-md flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Đã khiếu nại
+                                              </div>
+                                            ) : (
+                                              <button
+                                                onClick={() => handleCreateDispute({
+                                                  ...slot,
+                                                  lessonName: group.lessonName,
+                                                  tutorName: group.tutorName
+                                                })}
+                                                className="px-2 py-1 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 flex items-center gap-1"
+                                                title="Khiếu nại slot này"
+                                              >
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                </svg>
+                                                Khiếu nại
+                                              </button>
+                                            )
+                                          )}
                                         </div>
                                       </div>
                                     </div>
@@ -1140,7 +1160,11 @@ const LessonManagement = () => {
                         <span className="text-blue-600 font-medium">Trạng thái:</span>
                         <span className="ml-2">{(() => {
                           const overallStatus = getGroupOverallStatus(selectedLessonInfo.group);
-                          return overallStatus === 2 ? 'Hoàn thành' : overallStatus === 3 ? 'Đã hủy' : 'Đang diễn ra';
+                          return overallStatus === 2 ? 'Hoàn thành' : 
+                                 overallStatus === 1 ? 'Đang chờ thanh toán' :
+                                 overallStatus === 3 ? 'Đã hủy' : 
+                                 overallStatus === 4 ? 'Đã hủy do tranh chấp' :
+                                 'Đang diễn ra';
                         })()}</span>
                       </div>
                     </div>

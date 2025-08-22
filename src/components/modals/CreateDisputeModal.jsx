@@ -158,11 +158,11 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
       const fileUrls = formData.evidence.map(file => file.name);
       const allEvidenceUrls = [...fileUrls, ...formData.evidenceUrls];
       
-             const disputeData = {
-         bookingId: displayData.bookingId || displayData.id,
-         reason: formData.reason,
-         evidenceUrls: allEvidenceUrls
-       };
+      const disputeData = {
+        bookedSlotId: displayData.bookedSlotId, // Sử dụng bookedSlotId thay vì bookingId
+        reason: formData.reason,
+        evidenceUrls: allEvidenceUrls
+      };
 
       await createDispute(disputeData);
       
@@ -201,8 +201,15 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
   // Use bookingData or booking prop, whichever is available
   const displayData = bookingData || booking;
   
-  // Extract booking details from nested structure
-  const bookingDetails = displayData?.group?.bookings?.[0] || displayData;
+  // Extract slot details from the new structure
+  const slotDetails = displayData?.slot || displayData;
+  
+  // Debug logging
+  console.log("🔍 CreateDisputeModal - bookingData:", bookingData);
+  console.log("🔍 CreateDisputeModal - booking:", booking);
+  console.log("🔍 CreateDisputeModal - displayData:", displayData);
+  console.log("🔍 CreateDisputeModal - slotDetails:", slotDetails);
+  console.log("🔍 CreateDisputeModal - bookedSlotId:", displayData?.bookedSlotId);
   
   if (!isOpen) return null;
 
@@ -231,9 +238,9 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">Tạo khiếu nại</h3>
-                                 <p className="text-sm text-gray-500">
-                   Khóa học: {displayData?.LessonName || displayData?.lessonName || bookingDetails?.lessonSnapshot?.name || "N/A"}
-                 </p>
+                <p className="text-sm text-gray-500">
+                  Slot học: {displayData?.lessonName || slotDetails?.lessonName || "N/A"}
+                </p>
               </div>
             </div>
             <button
@@ -250,30 +257,30 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Booking Info */}
               <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">Thông tin khóa học</h4>
+                <h4 className="font-medium text-blue-900 mb-2">Thông tin slot học</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-600">Giáo viên:</span>
                     <span className="ml-2 font-medium text-black">{displayData?.tutorName || displayData?.tutor?.fullName || "N/A"}</span>
                   </div>
-                                     <div>
-                     <span className="text-gray-600">Ngày tạo:</span>
-                     <span className="ml-2 font-medium text-black">
-                       {bookingDetails?.createdTime ? new Date(bookingDetails.createdTime).toLocaleDateString('vi-VN') : "N/A"}
-                     </span>
-                   </div>
-                   <div>
-                     <span className="text-gray-600">Số buổi:</span>
-                     <span className="ml-2 font-medium text-black">
-                       {`${bookingDetails?.bookedSlots?.length || 0} buổi`}
-                     </span>
-                   </div>
-                   <div>
-                     <span className="text-gray-600">Tổng tiền:</span>
-                     <span className="ml-2 font-medium text-blue-600">
-                       {bookingDetails?.totalPrice ? `${bookingDetails.totalPrice.toLocaleString('vi-VN')}đ` : "N/A"}
-                     </span>
-                   </div>
+                  <div>
+                    <span className="text-gray-600">Slot số:</span>
+                    <span className="ml-2 font-medium text-black">
+                      {displayData?.slotNumber || slotDetails?.slotIndex || "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Ngày học:</span>
+                    <span className="ml-2 font-medium text-black">
+                      {slotDetails?.bookedDate ? new Date(slotDetails.bookedDate).toLocaleDateString('vi-VN') : "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Trạng thái:</span>
+                    <span className="ml-2 font-medium text-green-600">
+                      Hoàn thành
+                    </span>
+                  </div>
                 </div>
               </div>
 
