@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ScheduleTracking from './ScheduleTracking';
-import StudentRequests from './StudentRequests';
+// import StudentRequests from './StudentRequests'; // Đã xóa
 import TeachingHistory from './TeachingHistory';
 import OfferManagement from './OfferManagement';
 import TutorDisputes from './TutorDisputes';
@@ -11,7 +11,7 @@ const TutorManagementDashboard = () => {
 
   const tabs = [
     { id: 'schedule', label: 'Theo dõi lịch dạy', component: ScheduleTracking },
-    { id: 'requests', label: 'Yêu cầu từ học viên', component: StudentRequests },
+    // { id: 'requests', label: 'Yêu cầu từ học viên', component: StudentRequests }, // Đã xóa
     { id: 'offers', label: 'Quản lý yêu cầu', component: OfferManagement },
     { id: 'disputes', label: 'Quản lý khiếu nại', component: TutorDisputes },
     { id: 'history', label: 'Lịch sử dạy học', component: TeachingHistory },

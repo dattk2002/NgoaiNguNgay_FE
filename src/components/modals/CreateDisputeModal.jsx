@@ -171,7 +171,6 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
       handleClose();
       
     } catch (error) {
-      console.error("Error creating dispute:", error);
       toast.error(error.message || "Có lỗi xảy ra khi gửi khiếu nại. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
@@ -204,19 +203,6 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
   
   // Extract booking details from nested structure
   const bookingDetails = displayData?.group?.bookings?.[0] || displayData;
-  
-  // Debug logging
-  console.log("🔍 CreateDisputeModal - bookingData:", bookingData);
-  console.log("🔍 CreateDisputeModal - booking:", booking);
-  console.log("🔍 CreateDisputeModal - displayData:", displayData);
-  console.log("🔍 CreateDisputeModal - bookingDetails:", bookingDetails);
-  console.log("🔍 CreateDisputeModal - createdTime:", bookingDetails?.createdTime);
-  console.log("🔍 CreateDisputeModal - bookedSlots:", bookingDetails?.bookedSlots);
-  console.log("🔍 CreateDisputeModal - bookedSlots.length:", bookingDetails?.bookedSlots?.length);
-  console.log("🔍 CreateDisputeModal - totalPrice:", bookingDetails?.totalPrice);
-  console.log("🔍 CreateDisputeModal - displayData.group:", displayData?.group);
-  console.log("🔍 CreateDisputeModal - displayData.group.bookings:", displayData?.group?.bookings);
-  console.log("🔍 CreateDisputeModal - displayData.group.bookings[0]:", displayData?.group?.bookings?.[0]);
   
   if (!isOpen) return null;
 
@@ -273,21 +259,13 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
                                      <div>
                      <span className="text-gray-600">Ngày tạo:</span>
                      <span className="ml-2 font-medium text-black">
-                       {(() => {
-                         console.log("🔍 Rendering - bookingDetails?.createdTime:", bookingDetails?.createdTime);
-                         console.log("🔍 Rendering - typeof bookingDetails?.createdTime:", typeof bookingDetails?.createdTime);
-                         return bookingDetails?.createdTime ? new Date(bookingDetails.createdTime).toLocaleDateString('vi-VN') : "N/A";
-                       })()}
+                       {bookingDetails?.createdTime ? new Date(bookingDetails.createdTime).toLocaleDateString('vi-VN') : "N/A"}
                      </span>
                    </div>
                    <div>
                      <span className="text-gray-600">Số buổi:</span>
                      <span className="ml-2 font-medium text-black">
-                       {(() => {
-                         console.log("🔍 Rendering - bookingDetails?.bookedSlots:", bookingDetails?.bookedSlots);
-                         console.log("🔍 Rendering - bookingDetails?.bookedSlots?.length:", bookingDetails?.bookedSlots?.length);
-                         return `${bookingDetails?.bookedSlots?.length || 0} buổi`;
-                       })()}
+                       {`${bookingDetails?.bookedSlots?.length || 0} buổi`}
                      </span>
                    </div>
                    <div>

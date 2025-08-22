@@ -1,48 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FaCalendarAlt, 
-  FaClock, 
-  FaCheck, 
-  FaTimes, 
-  FaChevronLeft, 
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FaCalendarAlt,
+  FaClock,
+  FaCheck,
+  FaTimes,
+  FaChevronLeft,
   FaChevronRight,
   FaSpinner,
-  FaInfoCircle
-} from 'react-icons/fa';
-import { fetchTutorScheduleToOfferAndBook } from '../api/auth';
-import { createTutorBookingOffer } from '../api/auth';
-import { fetchTutorLesson } from '../api/auth';
-import { convertUTC7ToUTC0 } from '../../utils/formatCentralTimestamp';
-import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  Box, 
-  Typography, 
-  Button, 
-  Card, 
-  CardContent, 
+  FaInfoCircle,
+} from "react-icons/fa";
+import { fetchTutorScheduleToOfferAndBook } from "../api/auth";
+import { createTutorBookingOffer } from "../api/auth";
+import { fetchTutorLesson } from "../api/auth";
+import { convertUTC7ToUTC0 } from "../../utils/formatCentralTimestamp";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Box,
+  Typography,
+  Button,
+  Card,
+  CardContent,
   Divider,
   IconButton,
   CircularProgress,
   Autocomplete,
   TextField,
   Alert,
-  Tooltip
-} from '@mui/material';
+  Tooltip,
+} from "@mui/material";
 
-const TutorScheduleCalendarModal = ({ 
-  isOpen, 
-  onClose, 
-  tutorId, 
-  learnerId, 
+const TutorScheduleCalendarModal = ({
+  isOpen,
+  onClose,
+  tutorId,
+  learnerId,
   lessonId,
   tutorName,
   learnerName = "Học viên",
-  onOfferSuccess // Add this new prop
+  onOfferSuccess, // Add this new prop
 }) => {
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,8 @@ const TutorScheduleCalendarModal = ({
   const [submitting, setSubmitting] = useState(false);
 
   // Lesson selection states
-  const [lessonSelectionDialogOpen, setLessonSelectionDialogOpen] = useState(false);
+  const [lessonSelectionDialogOpen, setLessonSelectionDialogOpen] =
+    useState(false);
   const [availableLessons, setAvailableLessons] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [lessonsLoading, setLessonsLoading] = useState(false);
@@ -76,7 +77,7 @@ const TutorScheduleCalendarModal = ({
     // Sunday is 0, Monday is 1, Tuesday is 2, etc.
     const daysToSubtract = day === 0 ? 6 : day - 1;
     start.setDate(start.getDate() - daysToSubtract);
-    
+
     const dates = [];
     for (let i = 0; i < 7; i++) {
       const newDate = new Date(start);
@@ -87,7 +88,15 @@ const TutorScheduleCalendarModal = ({
   };
 
   const weekDates = getWeekDates(currentWeek);
-  const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  const dayNames = [
+    "Chủ nhật",
+    "Thứ 2",
+    "Thứ 3",
+    "Thứ 4",
+    "Thứ 5",
+    "Thứ 6",
+    "Thứ 7",
+  ];
   // Update the dayInWeekOrder to match TutorProfile
   const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // Mon, Tue, Wed, Thu, Fri, Sat, Sun
 
@@ -99,17 +108,21 @@ const TutorScheduleCalendarModal = ({
     // ...
     // dayInWeek 1 (Sunday) should map to the 6th element (SUN) in weekDates
     let weekDateIndex;
-    if (dayInWeek === 1) { // Sunday
+    if (dayInWeek === 1) {
+      // Sunday
       weekDateIndex = 6; // SUN
     } else {
       weekDateIndex = dayInWeek - 2; // Monday=0, Tuesday=1, etc.
     }
-    
+
     const date = weekDates[weekDateIndex];
     return {
       label: dayNames[date.getDay()],
-      date: date.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' }),
-      fullDate: date
+      date: date.toLocaleDateString("vi-VN", {
+        day: "numeric",
+        month: "numeric",
+      }),
+      fullDate: date,
     };
   });
 
@@ -153,53 +166,68 @@ const TutorScheduleCalendarModal = ({
       setError(null);
 
       // Fix: Use local date formatting instead of toISOString() to avoid timezone issues
-      const startDate = weekDates[0].toLocaleDateString('en-CA'); // YYYY-MM-DD format
-      const endDate = weekDates[6].toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      const startDate = weekDates[0].toLocaleDateString("en-CA"); // YYYY-MM-DD format
+      const endDate = weekDates[6].toLocaleDateString("en-CA"); // YYYY-MM-DD format
 
-      console.log("Calling tutor schedule API with dates:", { startDate, endDate });
+      console.log("Calling tutor schedule API with dates:", {
+        startDate,
+        endDate,
+      });
 
-      const data = await fetchTutorScheduleToOfferAndBook(tutorId, startDate, endDate);
+      const data = await fetchTutorScheduleToOfferAndBook(
+        tutorId,
+        startDate,
+        endDate
+      );
       setScheduleData(data);
     } catch (err) {
-      console.error('Failed to fetch schedule:', err);
-      setError(err.message || 'Không thể tải lịch trình');
+      console.error("Failed to fetch schedule:", err);
+      setError(err.message || "Không thể tải lịch trình");
     } finally {
       setLoading(false);
     }
   };
 
   const getSlotStatus = (date, slotIndex) => {
-    if (!scheduleData) return 'unavailable';
-    
-    const dayData = scheduleData.find(day => {
+    if (!scheduleData) return "unavailable";
+
+    const dayData = scheduleData.find((day) => {
       const dayDate = new Date(day.date);
       return dayDate.toDateString() === date.toDateString();
     });
 
-    if (!dayData) return 'unavailable';
+    if (!dayData) return "unavailable";
 
-    const slot = dayData.timeSlots.find(slot => slot.slotIndex === slotIndex);
-    if (!slot) return 'unavailable';
+    const slot = dayData.timeSlots.find((slot) => slot.slotIndex === slotIndex);
+    if (!slot) return "unavailable";
 
     switch (slot.type) {
-      case 0: return 'available';
-      case 1: return 'onhold';
-      case 2: return 'booked';
-      default: return 'unavailable';
+      case 0:
+        return "available";
+      case 1:
+        return "onhold";
+      case 2:
+        return "booked";
+      default:
+        return "unavailable";
     }
   };
 
   const isSlotSelected = (date, slotIndex) => {
-    return selectedSlots.some(slot => 
-      slot.date === date.toLocaleDateString('en-CA') && 
-      slot.slotIndex === slotIndex
+    return selectedSlots.some(
+      (slot) =>
+        slot.date === date.toLocaleDateString("en-CA") &&
+        slot.slotIndex === slotIndex
     );
   };
 
   const handleSlotClick = (date, slotIndex) => {
     // Use the same dayInWeek calculation as in the rendering logic
-    const dayInWeek = dayInWeekOrder[weekDates.findIndex(d => d.toDateString() === date.toDateString())];
-    
+    const dayInWeek =
+      dayInWeekOrder[
+        weekDates.findIndex((d) => d.toDateString() === date.toDateString())
+      ];
+
     // Check if the slot is in the past using the same logic as rendering
     if (isSlotInPast(currentWeek, dayInWeek, slotIndex)) {
       return; // Don't allow clicking on past slots
@@ -207,20 +235,20 @@ const TutorScheduleCalendarModal = ({
 
     // Check if the slot is available (only available slots can be selected)
     const status = getSlotStatus(date, slotIndex);
-    if (status !== 'available') {
+    if (status !== "available") {
       return; // Don't allow clicking on non-available slots
     }
 
-    const dateStr = date.toLocaleDateString('en-CA'); // Use YYYY-MM-DD format without timezone issues
-    
-    setSelectedSlots(prev => {
-      const existing = prev.find(slot => 
-        slot.date === dateStr && slot.slotIndex === slotIndex
+    const dateStr = date.toLocaleDateString("en-CA"); // Use YYYY-MM-DD format without timezone issues
+
+    setSelectedSlots((prev) => {
+      const existing = prev.find(
+        (slot) => slot.date === dateStr && slot.slotIndex === slotIndex
       );
-      
+
       if (existing) {
-        return prev.filter(slot => 
-          !(slot.date === dateStr && slot.slotIndex === slotIndex)
+        return prev.filter(
+          (slot) => !(slot.date === dateStr && slot.slotIndex === slotIndex)
         );
       } else {
         return [...prev, { date: dateStr, slotIndex }];
@@ -250,12 +278,12 @@ const TutorScheduleCalendarModal = ({
 
   const handleSubmit = async () => {
     if (selectedSlots.length < 3) {
-      setError('Vui lòng chọn ít nhất 3 khung giờ để đề xuất');
+      setError("Vui lòng chọn ít nhất 3 khung giờ để đề xuất");
       return;
     }
 
     if (!selectedLesson) {
-      setError('Vui lòng chọn bài học');
+      setError("Vui lòng chọn bài học");
       return;
     }
 
@@ -265,21 +293,28 @@ const TutorScheduleCalendarModal = ({
     twoDaysFromNow.setDate(now.getDate() + 2);
     twoDaysFromNow.setHours(0, 0, 0, 0);
 
-    const invalidSlots = selectedSlots.filter(slot => {
+    const invalidSlots = selectedSlots.filter((slot) => {
       const dayInWeek = getDayInWeek(slot.date);
-      const slotDateTime = getSlotDateTime(currentWeek, dayInWeek, slot.slotIndex);
+      const slotDateTime = getSlotDateTime(
+        currentWeek,
+        dayInWeek,
+        slot.slotIndex
+      );
       return slotDateTime < twoDaysFromNow;
     });
 
     if (invalidSlots.length > 0) {
-      toast.error('Tất cả khung giờ phải cách hiện tại ít nhất 2 ngày. Vui lòng chọn lại các khung giờ phù hợp.', {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      toast.error(
+        "Tất cả khung giờ phải cách hiện tại ít nhất 2 ngày. Vui lòng chọn lại các khung giờ phù hợp.",
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
       return;
     }
 
@@ -287,28 +322,43 @@ const TutorScheduleCalendarModal = ({
     const sortedSlots = selectedSlots.sort((a, b) => {
       const dayInWeekA = getDayInWeek(a.date);
       const dayInWeekB = getDayInWeek(b.date);
-      const slotDateTimeA = getSlotDateTime(currentWeek, dayInWeekA, a.slotIndex);
-      const slotDateTimeB = getSlotDateTime(currentWeek, dayInWeekB, b.slotIndex);
+      const slotDateTimeA = getSlotDateTime(
+        currentWeek,
+        dayInWeekA,
+        a.slotIndex
+      );
+      const slotDateTimeB = getSlotDateTime(
+        currentWeek,
+        dayInWeekB,
+        b.slotIndex
+      );
       return slotDateTimeA - slotDateTimeB;
     });
 
     if (sortedSlots.length > 0) {
       const firstSlot = sortedSlots[0];
       const dayInWeek = getDayInWeek(firstSlot.date);
-      const firstSlotDateTime = getSlotDateTime(currentWeek, dayInWeek, firstSlot.slotIndex);
-      
+      const firstSlotDateTime = getSlotDateTime(
+        currentWeek,
+        dayInWeek,
+        firstSlot.slotIndex
+      );
+
       const fortyEightHoursFromNow = new Date(now);
       fortyEightHoursFromNow.setHours(now.getHours() + 48);
 
       if (firstSlotDateTime < fortyEightHoursFromNow) {
-        toast.error('Slot đầu tiên phải cách thời điểm hiện tại ít nhất 48 giờ.', {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        toast.error(
+          "Slot đầu tiên phải cách thời điểm hiện tại ít nhất 48 giờ.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          }
+        );
         return;
       }
     }
@@ -318,42 +368,42 @@ const TutorScheduleCalendarModal = ({
       setError(null);
 
       // Convert selected slots to the format expected by the API
-      const offeredSlots = selectedSlots.map(slot => {
-        // Create date properly to avoid timezone issues
-        const [year, month, day] = slot.date.split('-').map(Number);
-        const slotDate = new Date(year, month - 1, day); // month is 0-indexed
-        
+      const offeredSlots = selectedSlots.map((slot) => {
+        // Create date parts
+        const [year, month, day] = slot.date.split("-").map(Number);
         const hour = Math.floor(slot.slotIndex / 2);
         const minute = slot.slotIndex % 2 === 0 ? 0 : 30;
-        slotDate.setHours(hour, minute, 0, 0);
+
+        // Create the date in local timezone (UTC+7) directly
+        const localDate = new Date(year, month - 1, day, hour, minute, 0, 0);
         
-        // Convert UTC+7 to UTC+0 for backend
-        const utc0Date = convertUTC7ToUTC0(slotDate);
-        
+        // Convert to UTC+7 ISO string by adding 7 hours
+        const utcPlus7Date = new Date(localDate.getTime() + (7 * 60 * 60 * 1000));
+
         return {
-          slotDateTime: utc0Date.toISOString(),
-          slotIndex: slot.slotIndex,
+          slotDateTime: utcPlus7Date.toISOString(),
+          slotIndex: slot.slotIndex, // Keep the same slotIndex as selected on UI
         };
       });
 
       const offerData = {
         learnerId: learnerId,
         lessonId: selectedLesson.id,
-        offeredSlots: offeredSlots
+        offeredSlots: offeredSlots,
       };
 
       await createTutorBookingOffer(offerData);
-      
+
       // Close modal first
       onClose();
-      
+
       // Call the success callback with learner name
       if (onOfferSuccess) {
         onOfferSuccess(learnerName);
       }
     } catch (err) {
-      console.error('Failed to create booking offer:', err);
-      toast.error(err.message || 'Không thể gửi lời mời đặt lịch', {
+      console.error("Failed to create booking offer:", err);
+      toast.error(err.message || "Không thể gửi lời mời đặt lịch", {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
@@ -367,13 +417,21 @@ const TutorScheduleCalendarModal = ({
   };
 
   const formatDateRange = (startDate, endDate) => {
-    return `${startDate.toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' })} - ${endDate.toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+    return `${startDate.toLocaleDateString("vi-VN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })} - ${endDate.toLocaleDateString("vi-VN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })}`;
   };
 
   const getSlotDateTime = (weekStart, dayInWeek, slotIndex) => {
     // Create the date in local timezone first
     const date = new Date(weekStart);
-    
+
     // Fix: Calculate the correct day offset
     // weekStart is Monday, so:
     // dayInWeek 2 (Monday) -> offset 0
@@ -384,59 +442,61 @@ const TutorScheduleCalendarModal = ({
     // dayInWeek 7 (Saturday) -> offset 5
     // dayInWeek 1 (Sunday) -> offset 6
     const dayOffset = dayInWeek === 1 ? 6 : dayInWeek - 2;
-    
+
     date.setDate(date.getDate() + dayOffset);
-    
+
     const hour = Math.floor(slotIndex / 2);
     const minute = slotIndex % 2 === 0 ? 0 : 30;
     date.setHours(hour, minute, 0, 0);
-    
+
     return date;
   };
 
   const getDayInWeek = (dateString) => {
     // Create date properly to avoid timezone issues
-    const [year, month, day] = dateString.split('-').map(Number);
+    const [year, month, day] = dateString.split("-").map(Number);
     const date = new Date(year, month - 1, day); // month is 0-indexed
     const dayOfWeek = date.getDay();
     return dayOfWeek === 0 ? 1 : dayOfWeek + 1; // Convert to API format (1=Sun, 2=Mon, etc.)
   };
 
   const isSlotInPast = (weekStart, dayInWeek, slotIndex) => {
-    const slotDateTime = new Date(getSlotDateTime(weekStart, dayInWeek, slotIndex));
+    const slotDateTime = new Date(
+      getSlotDateTime(weekStart, dayInWeek, slotIndex)
+    );
     const now = new Date();
     return slotDateTime < now;
   };
 
   const formatLanguageCode = (code) => {
     const languageMap = {
-      'en': 'Tiếng Anh',
-      'vi': 'Tiếng Việt',
-      'zh': 'Tiếng Trung',
-      'ja': 'Tiếng Nhật',
-      'ko': 'Tiếng Hàn',
-      'fr': 'Tiếng Pháp',
-      'de': 'Tiếng Đức',
-      'es': 'Tiếng Tây Ban Nha',
-      'pt': 'Tiếng Bồ Đào Nha',
-      'ru': 'Tiếng Nga',
-      'ar': 'Tiếng Ả Rập',
-      'th': 'Tiếng Thái',
-      'id': 'Tiếng Indonesia',
-      'hi': 'Tiếng Hindi',
-      'it': 'Tiếng Ý',
-      'nl': 'Tiếng Hà Lan'
+      en: "Tiếng Anh",
+      vi: "Tiếng Việt",
+      zh: "Tiếng Trung",
+      ja: "Tiếng Nhật",
+      ko: "Tiếng Hàn",
+      fr: "Tiếng Pháp",
+      de: "Tiếng Đức",
+      es: "Tiếng Tây Ban Nha",
+      pt: "Tiếng Bồ Đào Nha",
+      ru: "Tiếng Nga",
+      ar: "Tiếng Ả Rập",
+      th: "Tiếng Thái",
+      id: "Tiếng Indonesia",
+      hi: "Tiếng Hindi",
+      it: "Tiếng Ý",
+      nl: "Tiếng Hà Lan",
     };
     return languageMap[code] || code;
   };
 
   const formatPriceWithCommas = (price) => {
-    if (typeof price === 'number') {
-      return price.toLocaleString('vi-VN');
+    if (typeof price === "number") {
+      return price.toLocaleString("vi-VN");
     }
-    if (typeof price === 'string') {
+    if (typeof price === "string") {
       const numPrice = parseFloat(price);
-      return isNaN(numPrice) ? price : numPrice.toLocaleString('vi-VN');
+      return isNaN(numPrice) ? price : numPrice.toLocaleString("vi-VN");
     }
     return price;
   };
@@ -452,8 +512,8 @@ const TutorScheduleCalendarModal = ({
   // Add cleanup effect for past slots
   useEffect(() => {
     if (currentWeek) {
-      setSelectedSlots(prev => {
-        const filtered = prev.filter(slot => {
+      setSelectedSlots((prev) => {
+        const filtered = prev.filter((slot) => {
           const dayInWeek = getDayInWeek(slot.date);
           return !isSlotInPast(currentWeek, dayInWeek, slot.slotIndex);
         });
@@ -466,8 +526,8 @@ const TutorScheduleCalendarModal = ({
   useEffect(() => {
     const interval = setInterval(() => {
       if (currentWeek) {
-        setSelectedSlots(prev => {
-          const filtered = prev.filter(slot => {
+        setSelectedSlots((prev) => {
+          const filtered = prev.filter((slot) => {
             const dayInWeek = getDayInWeek(slot.date);
             return !isSlotInPast(currentWeek, dayInWeek, slot.slotIndex);
           });
@@ -502,7 +562,8 @@ const TutorScheduleCalendarModal = ({
         <DialogTitle>Chọn bài học cho đề xuất</DialogTitle>
         <DialogContent sx={{ minHeight: "400px" }}>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Vui lòng chọn bài học bạn muốn đề xuất cho học viên trước khi chọn khung giờ:
+            Vui lòng chọn bài học bạn muốn đề xuất cho học viên trước khi chọn
+            khung giờ:
           </Typography>
 
           {lessonsLoading ? (
@@ -511,7 +572,8 @@ const TutorScheduleCalendarModal = ({
             </Box>
           ) : availableLessons.length === 0 ? (
             <Alert severity="warning">
-              Bạn chưa có bài học nào. Vui lòng tạo bài học trước khi gửi đề xuất.
+              Bạn chưa có bài học nào. Vui lòng tạo bài học trước khi gửi đề
+              xuất.
             </Alert>
           ) : (
             <Autocomplete
@@ -583,9 +645,7 @@ const TutorScheduleCalendarModal = ({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>
-            Hủy
-          </Button>
+          <Button onClick={handleClose}>Hủy</Button>
           <Button
             variant="contained"
             onClick={handleLessonSelected}
@@ -634,17 +694,18 @@ const TutorScheduleCalendarModal = ({
                       • Gia sư phải đề xuất ít nhất 3 slot trở lên
                     </Typography>
                     <Typography variant="body2">
-                      • Gia sư chỉ có thể đề xuất slot sau 48h kể từ ngày hiện tại
+                      • Gia sư chỉ có thể đề xuất slot sau 48h kể từ ngày hiện
+                      tại
                     </Typography>
                   </Box>
                 }
                 arrow
                 placement="top"
                 sx={{
-                  '& .MuiTooltip-tooltip': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.87)',
-                    color: 'white',
-                    fontSize: '0.875rem',
+                  "& .MuiTooltip-tooltip": {
+                    backgroundColor: "rgba(0, 0, 0, 0.87)",
+                    color: "white",
+                    fontSize: "0.875rem",
                     maxWidth: 300,
                     p: 2,
                   },
@@ -653,9 +714,9 @@ const TutorScheduleCalendarModal = ({
                 <IconButton
                   size="small"
                   sx={{
-                    color: 'primary.main',
-                    '&:hover': {
-                      backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                    color: "primary.main",
+                    "&:hover": {
+                      backgroundColor: "rgba(25, 118, 210, 0.04)",
                     },
                   }}
                 >
@@ -736,12 +797,26 @@ const TutorScheduleCalendarModal = ({
 
         <DialogContent>
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "400px" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "400px",
+              }}
+            >
               <CircularProgress />
               <Typography sx={{ ml: 2 }}>Đang tải lịch trình...</Typography>
             </Box>
           ) : error ? (
-            <Box sx={{ p: 2, bgcolor: "error.light", color: "error.contrastText", borderRadius: 1 }}>
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: "error.light",
+                color: "error.contrastText",
+                borderRadius: 1,
+              }}
+            >
               <Typography>{error}</Typography>
             </Box>
           ) : (
@@ -806,7 +881,11 @@ const TutorScheduleCalendarModal = ({
                           const date = weekDates[dayIdx];
                           const status = getSlotStatus(date, slotIdx);
                           const isSelected = isSlotSelected(date, slotIdx);
-                          const isPastSlot = isSlotInPast(currentWeek, dayInWeek, slotIdx);
+                          const isPastSlot = isSlotInPast(
+                            currentWeek,
+                            dayInWeek,
+                            slotIdx
+                          );
 
                           let bgColor = "#f1f5f9"; // Default background
                           let textColor = "inherit";
@@ -821,7 +900,7 @@ const TutorScheduleCalendarModal = ({
                             cursor = "not-allowed";
 
                             // Only apply diagonal stripe pattern for past slots that are NOT available
-                            if (status !== 'available') {
+                            if (status !== "available") {
                               overlayPattern = {
                                 position: "relative",
                                 "&::after": {
@@ -843,15 +922,15 @@ const TutorScheduleCalendarModal = ({
                               bgColor = "#98D45F"; // green for selected (even if past)
                               textColor = "#fff";
                               fontWeight = 700;
-                            } else if (status === 'available') {
+                            } else if (status === "available") {
                               bgColor = "#3B82F6"; // blue for available slots (even if past)
                               textColor = "#fff";
                               fontWeight = 700;
-                            } else if (status === 'onhold') {
+                            } else if (status === "onhold") {
                               bgColor = "#fae632"; // muted yellow for onhold
                               textColor = "#333";
                               fontWeight = 600;
-                            } else if (status === 'booked') {
+                            } else if (status === "booked") {
                               bgColor = "#ffb3b3"; // muted red for booked
                               textColor = "#fff";
                               fontWeight = 700;
@@ -863,17 +942,17 @@ const TutorScheduleCalendarModal = ({
                               textColor = "#fff";
                               fontWeight = 700;
                               cursor = "pointer"; // Selected slots can be deselected
-                            } else if (status === 'available') {
+                            } else if (status === "available") {
                               bgColor = "#3B82F6"; // blue for available
                               textColor = "#fff";
                               fontWeight = 700;
                               cursor = "pointer"; // Only available slots are clickable
-                            } else if (status === 'onhold') {
+                            } else if (status === "onhold") {
                               bgColor = "#FFD700"; // yellow for onhold
                               textColor = "#333";
                               fontWeight = 600;
                               cursor = "not-allowed"; // Onhold slots are not clickable
-                            } else if (status === 'booked') {
+                            } else if (status === "booked") {
                               bgColor = "#ef4444"; // red for booked
                               textColor = "#fff";
                               fontWeight = 700;
@@ -906,7 +985,7 @@ const TutorScheduleCalendarModal = ({
                                 ...overlayPattern,
                               }}
                               onClick={() => {
-                                if (!isPastSlot && status === 'available') {
+                                if (!isPastSlot && status === "available") {
                                   handleSlotClick(date, slotIdx);
                                 }
                               }}
@@ -979,13 +1058,18 @@ const TutorScheduleCalendarModal = ({
                           <AnimatePresence>
                             {selectedSlots.map((slot, index) => {
                               // Create date properly to avoid timezone issues
-                              const [year, month, day] = slot.date.split('-').map(Number);
+                              const [year, month, day] = slot.date
+                                .split("-")
+                                .map(Number);
                               const date = new Date(year, month - 1, day); // month is 0-indexed
                               const dayName = dayNames[date.getDay()];
                               const hour = Math.floor(slot.slotIndex / 2);
-                              const minute = slot.slotIndex % 2 === 0 ? "00" : "30";
-                              const nextHour = slot.slotIndex % 2 === 0 ? hour : hour + 1;
-                              const nextMinute = slot.slotIndex % 2 === 0 ? "30" : "00";
+                              const minute =
+                                slot.slotIndex % 2 === 0 ? "00" : "30";
+                              const nextHour =
+                                slot.slotIndex % 2 === 0 ? hour : hour + 1;
+                              const nextMinute =
+                                slot.slotIndex % 2 === 0 ? "30" : "00";
                               const timeLabel = `${hour
                                 .toString()
                                 .padStart(2, "0")}:${minute} - ${nextHour
@@ -1013,7 +1097,8 @@ const TutorScheduleCalendarModal = ({
                                       variant="body2"
                                       sx={{ fontWeight: "bold", mb: 0.5 }}
                                     >
-                                      {dayName}, {date.toLocaleDateString('vi-VN')}
+                                      {dayName},{" "}
+                                      {date.toLocaleDateString("vi-VN")}
                                     </Typography>
                                     <Typography
                                       variant="body2"
@@ -1109,10 +1194,7 @@ const TutorScheduleCalendarModal = ({
 
           {/* Buttons */}
           <Box sx={{ display: "flex", gap: 2 }}>
-            <Button
-              onClick={handleClose}
-              disabled={submitting}
-            >
+            <Button onClick={handleClose} disabled={submitting}>
               Đóng
             </Button>
             <Button
