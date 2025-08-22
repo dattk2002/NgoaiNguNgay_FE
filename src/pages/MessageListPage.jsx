@@ -86,22 +86,6 @@ const MessagePage = ({ user }) => {
         );
         setConversations(sortedConversations);
       }
-
-      // If there's a selected conversation, refetch its messages
-      if (selectedConversation?.id) {
-        const updatedMessages = await fetchConversationList(
-          selectedConversation.id,
-          currentPage,
-          messagesPerPage
-        );
-        if (updatedMessages && Array.isArray(updatedMessages)) {
-          const sortedMessages = updatedMessages.sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          setMessages(sortedMessages);
-        }
-      }
     } catch (error) {
       console.error("Error refetching conversation data:", error);
     }
@@ -177,9 +161,9 @@ const MessagePage = ({ user }) => {
             return [...prevMessages, formattedMessage];
           });
 
-          // Update the conversation's last message in real-time
+          // Update the conversation's last message in real-time and move it to top
           setConversations((prevConversations) => {
-            return prevConversations.map((conv) => {
+            const updatedConversations = prevConversations.map((conv) => {
               // Check if this message belongs to this conversation
               if (conv.id === statusCode.chatConversationId) {
                 const isCurrentConv = selectedConversation && conv.id === selectedConversation.id;
@@ -191,15 +175,17 @@ const MessagePage = ({ user }) => {
                     minute: "2-digit",
                   }),
                   actualTimestamp: new Date(statusCode.createdTime).getTime(),
-                  unreadCount: isCurrentConv ? 0 : (conv.unreadCount || 0) + 1, // <--- This is correct!
+                  unreadCount: isCurrentConv ? 0 : (conv.unreadCount || 0) + 1,
                 };
               }
               return conv;
             });
+            
+            // Sort conversations by actualTimestamp to move the updated one to top
+            return updatedConversations.sort((a, b) => b.actualTimestamp - a.actualTimestamp);
           });
 
-          // Refetch conversation data
-          await refetchConversationData();
+          // Scroll to bottom for new messages
           if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "auto" });
           }
@@ -229,13 +215,12 @@ const MessagePage = ({ user }) => {
               return [...prevMessages, formattedMessage];
             });
 
-            // Update the conversation's last message in real-time
+            // Update the conversation's last message in real-time and move it to top
             setConversations((prevConversations) => {
-              return prevConversations.map((conv) => {
-                if (
-                  conv.participantId === message.userId ||
-                  conv.participantId === user.id
-                ) {
+              const updatedConversations = prevConversations.map((conv) => {
+                // Check if this message belongs to this conversation
+                if (conv.id === message.chatConversationId || 
+                    (conv.participantId === message.userId || conv.participantId === user.id)) {
                   return {
                     ...conv,
                     lastMessage: message.textMessage,
@@ -251,10 +236,12 @@ const MessagePage = ({ user }) => {
                 }
                 return conv;
               });
+              
+              // Sort conversations by actualTimestamp to move the updated one to top
+              return updatedConversations.sort((a, b) => b.actualTimestamp - a.actualTimestamp);
             });
 
-            // Refetch conversation data
-            await refetchConversationData();
+            // Scroll to bottom after message is sent
             if (messagesEndRef.current) {
               messagesEndRef.current.scrollIntoView({ behavior: "auto" });
             }
@@ -622,6 +609,17 @@ const MessagePage = ({ user }) => {
     }
   }, [selectedConversation]);
 
+  // Refetch conversation list periodically to keep it updated
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user && !loading) {
+        refetchConversationData();
+      }
+    }, 30000); // Refetch every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user, loading]);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (
@@ -634,45 +632,25 @@ const MessagePage = ({ user }) => {
       return;
     }
 
-    const messagePayload = {
-      senderId: user.id,
-      recipientId: selectedConversation.participantId,
-      text: newMessage,
-      id: `temp-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      senderAvatar: user.profilePictureUrl || "https://via.placeholder.com/30?text=Bạn",
-    };
-
-    // Optimistically add message to UI
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        ...messagePayload,
-        sender: user.id,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      },
-    ]);
+    const messageText = newMessage.trim();
     setNewMessage("");
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "auto" });
-    }
 
     try {
       await hubConnection.invoke("SendMessage", {
-        senderUserId: messagePayload.senderId,
-        receiverUserId: messagePayload.recipientId,
-        textMessage: messagePayload.text,
+        senderUserId: user.id,
+        receiverUserId: selectedConversation.participantId,
+        textMessage: messageText,
       });
 
-      // Optionally, refetch in the background (do not set loading)
-      // refetchConversationData(); // Remove or run in background if needed
+      // Scroll to bottom after sending
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+      }
     } catch (apiError) {
-      setMessages((prevMessages) =>
-        prevMessages.filter((msg) => msg.id !== messagePayload.id)
-      );
+      console.error("Failed to send message:", apiError);
+      setError("Không thể gửi tin nhắn. Vui lòng thử lại.");
+      // Restore the message text if sending failed
+      setNewMessage(messageText);
     }
   };
 
@@ -690,18 +668,12 @@ const MessagePage = ({ user }) => {
       setConnectionBadge(null);
     }
 
-    // Find unread message IDs (for example, all messages not sent by the user and not marked as read)
-    const unreadMessageIds = (conversation.messages || [])
-      .filter(
-        (msg) =>
-          msg.sender !== user.id &&
-          !msg.isRead // or whatever property indicates read status
+    // Mark conversation as read in the list
+    setConversations((prevConversations) =>
+      prevConversations.map((conv) =>
+        conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
       )
-      .map((msg) => msg.id);
-
-    if (unreadMessageIds.length > 0) {
-      handleMarkAsRead(unreadMessageIds, conversation.participantId);
-    }
+    );
 
     if (conversation.type === "tutor" && !conversation.id.startsWith("temp-")) {
       console.log(
@@ -717,12 +689,6 @@ const MessagePage = ({ user }) => {
       );
       sessionStorage.setItem("currentTempTutorId", conversation.participantId);
     }
-
-    setConversations((prevConversations) =>
-      prevConversations.map((conv) =>
-        conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
-      )
-    );
   };
 
   function formatMessageTimestamp(date) {

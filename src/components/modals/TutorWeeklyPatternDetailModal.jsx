@@ -149,8 +149,11 @@ const TutorWeeklyPatternDetailModal = ({
           const sunday = new Date(monday);
           sunday.setDate(monday.getDate() + 6);
           
-          const startDate = monday.toISOString().split('T')[0];
-          const endDate = sunday.toISOString().split('T')[0];
+          // Fix: Use local date formatting instead of toISOString() to avoid timezone issues
+          const startDate = monday.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+          const endDate = sunday.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+          
+          console.log("🔍 Initial schedule fetch with dates:", { startDate, endDate });
           
           const scheduleData = await fetchTutorScheduleToOfferAndBook(tutorId, startDate, endDate);
           setScheduleData(scheduleData);
@@ -253,8 +256,11 @@ const TutorWeeklyPatternDetailModal = ({
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
       
-      const startDate = monday.toISOString().split('T')[0];
-      const endDate = sunday.toISOString().split('T')[0];
+      // Fix: Use local date formatting instead of toISOString() to avoid timezone issues
+      const startDate = monday.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+      const endDate = sunday.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+      
+      console.log("🔍 Fetching schedule with dates:", { startDate, endDate });
       
       const scheduleData = await fetchTutorScheduleToOfferAndBook(tutorId, startDate, endDate);
       setScheduleData(scheduleData);
@@ -275,12 +281,19 @@ const TutorWeeklyPatternDetailModal = ({
     const dayIndex = dayInWeekOrder.indexOf(dayInWeek);
     dayDate.setDate(monday.getDate() + dayIndex);
     
+    // Fix: Use toLocaleDateString for consistent date comparison
+    const targetDateStr = dayDate.toLocaleDateString("en-CA");
+    
     const dayData = scheduleData.find(day => {
       const scheduleDate = new Date(day.date);
-      return scheduleDate.toDateString() === dayDate.toDateString();
+      const scheduleDateStr = scheduleDate.toLocaleDateString("en-CA");
+      return scheduleDateStr === targetDateStr;
     });
 
-    if (!dayData) return 'unavailable';
+    if (!dayData) {
+      console.log(`🔍 No schedule data found for day ${dayInWeek} (${targetDateStr})`);
+      return 'unavailable';
+    }
 
     const slot = dayData.timeSlots.find(slot => slot.slotIndex === slotIndex);
     if (!slot) return 'unavailable';
@@ -391,8 +404,12 @@ const TutorWeeklyPatternDetailModal = ({
         const minute = slot.slotIndex % 2 === 0 ? 0 : 30;
         slotDate.setHours(hour, minute, 0, 0);
         
+        // Convert to UTC+7 instead of UTC+0
+        // Add 7 hours to convert from UTC+0 to UTC+7
+        const utcPlus7Date = new Date(slotDate.getTime() + (7 * 60 * 60 * 1000));
+        
         return {
-          slotDate: slotDate.toISOString(),
+          slotDate: utcPlus7Date.toISOString(),
           slotIndex: slot.slotIndex
         };
       });

@@ -11,7 +11,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { fetchTutorBookings, fetchBookingDetail } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
-import { formatCentralTimestamp } from '../../utils/formatCentralTimestamp';
+import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from '../../utils/formatCentralTimestamp';
+import { calculateUTC7SlotIndex } from '../../utils/formatSlotTime';
 import { formatSlotDateTime } from '../../utils/formatSlotTime';
 
 // Skeleton Component for Teaching History
@@ -190,7 +191,9 @@ const TeachingHistory = () => {
         allBookings.map(async (booking) => {
           try {
             const detail = await fetchBookingDetail(booking.id);
-            return { ...booking, detail };
+            // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+            const convertedDetail = convertBookingDetailToUTC7(detail);
+            return { ...booking, detail: convertedDetail };
           } catch (error) {
             console.error(`Error fetching detail for booking ${booking.id}:`, error);
             return { ...booking, detail: null };
@@ -234,7 +237,9 @@ const TeachingHistory = () => {
         setBookingDetail(booking.detail);
       } else {
         const detail = await fetchBookingDetail(booking.id);
-        setBookingDetail(detail);
+        // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+        const convertedDetail = convertBookingDetailToUTC7(detail);
+        setBookingDetail(convertedDetail);
       }
     } catch (error) {
       console.error("Error loading booking detail:", error);
@@ -451,7 +456,7 @@ const TeachingHistory = () => {
                     <div className="space-y-2">
                       <div className="flex items-center text-gray-700">
                         <FaCalendarAlt className="w-4 h-4 mr-2" />
-                        <span>{formatCentralTimestamp(item.createdTime)}</span>
+                                                 <span>{formatUTC0ToUTC7(item.createdTime)}</span>
                       </div>
                       <div className="flex items-center text-gray-700">
                         <FaClock className="w-4 h-4 mr-2" />
@@ -623,11 +628,11 @@ const TeachingHistory = () => {
                       </div>
                       <div>
                         <p className="text-gray-700">Ngày tạo:</p>
-                        <p className="font-medium text-gray-900">{formatCentralTimestamp(selectedBooking?.createdTime)}</p>
+                                                  <p className="font-medium text-gray-900">{formatUTC0ToUTC7(selectedBooking?.createdTime)}</p>
                       </div>
                       <div>
                         <p className="text-gray-700">Buổi đầu tiên:</p>
-                        <p className="font-medium text-gray-900">{formatCentralTimestamp(selectedBooking?.earliestBookedDate)}</p>
+                                                  <p className="font-medium text-gray-900">{formatUTC0ToUTC7(selectedBooking?.earliestBookedDate)}</p>
                       </div>
                     </div>
                   </div>
@@ -661,12 +666,12 @@ const TeachingHistory = () => {
                                   </div>
                                   <div>
                                     <p className="font-medium text-gray-900">
-                                      Slot {slot.slotIndex || index + 1}
+                                      Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
                                     </p>
                                     <div className="flex items-center gap-4 text-sm text-gray-600">
                                       <span className="flex items-center gap-1">
                                         <FaCalendarAlt className="w-3 h-3" />
-                                        {formatSlotDateTime(slot.slotIndex, slot.bookedDate)}
+                                        {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
                                       </span>
                                       {slot.slotNote && (
                                         <span className="text-xs text-gray-500">

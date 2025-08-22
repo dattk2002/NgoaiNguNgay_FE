@@ -4,6 +4,7 @@ import Button from "@mui/material/Button";
 import StarIconRender from "../../utils/starIconRender";
 import { fetchTutorWeekSchedule, fetchTutorLesson, fetchTutorRating } from "../api/auth";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
+import VideoPlayer from "../VideoPlayer";
 
 const TutorCard = memo(
   ({
@@ -318,15 +319,12 @@ const TutorCard = memo(
             onMouseLeave={handleHoverBoxLeave}
           >
             {/* Video Player */}
-            <div className="relative aspect-video mb-4 rounded-t-lg overflow-hidden">
-              <iframe
-                src={hoveredTutor.videoUrl}
-                title={`Video của ${hoveredTutor.name}`}
+            <div className="mb-4">
+              <VideoPlayer 
+                videoUrl={hoveredTutor.introductionVideoUrl || hoveredTutor.videoUrl}
                 width="100%"
-                height="100%"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute top-0 left-0 w-full h-full"
+                height="225"
+                title={`Video giới thiệu của ${hoveredTutor.name}`}
               />
             </div>
             {/* Availability Grid */}

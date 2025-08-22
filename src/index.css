@@ -96,3 +96,25 @@ button:focus-visible {
 .Toastify__toast-body {
   color: white !important;
 }
+
+/* Video Player Styles */
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.video-container iframe {
+  border-radius: 8px;
+}
+
+.video-container img {
+  border-radius: 8px;
+}
+
+/* Responsive video container */
+@media (max-width: 768px) {
+  .video-container {
+    aspect-ratio: 16/9;
+  }
+}

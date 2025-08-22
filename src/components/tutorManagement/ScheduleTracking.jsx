@@ -12,8 +12,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { fetchTutorBookings, fetchBookingDetail, completeBookedSlot } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
-import { formatCentralTimestamp } from '../../utils/formatCentralTimestamp';
-import { formatSlotDateTime } from '../../utils/formatSlotTime';
+import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from '../../utils/formatCentralTimestamp';
+import { formatSlotDateTime, calculateUTC7SlotIndex } from '../../utils/formatSlotTime';
 
 
 // Skeleton Component for Booking Items
@@ -112,7 +112,7 @@ const getSlotStatusInfo = (status) => {
     case 3: // Cancelled
       return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
     case 4: // CancelledDisputed
-      return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
+      return { text: 'Đang bị khiếu nại', color: 'bg-orange-100 text-orange-700' };
     default:
       return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
   }
@@ -294,7 +294,9 @@ const ScheduleTracking = () => {
       setDetailLoading(true);
       
       const detail = await fetchBookingDetail(booking.id);
-      setBookingDetail(detail);
+      // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+      const convertedDetail = convertBookingDetailToUTC7(detail);
+      setBookingDetail(convertedDetail);
     } catch (error) {
       console.error("Error loading booking detail:", error);
     } finally {
@@ -335,21 +337,21 @@ const ScheduleTracking = () => {
         return;
       }
 
-      // Check if this slot is in "awaiting confirmation" status
-      if (targetSlot.status !== 1) {
+      // Check if this slot is in "pending" status (status = 0)
+      if (targetSlot.status !== 0) {
         toast.error("Slot này không thể hoàn thành. Vui lòng kiểm tra trạng thái slot.");
         return;
       }
 
-      // Find the first slot with status 1 (awaiting confirmation)
-      const firstAwaitingSlot = bookingDetail.bookedSlots.find(slot => slot.status === 1);
-      if (!firstAwaitingSlot) {
-        toast.error("Không có slot nào đang chờ xác nhận.");
+      // Find the first slot with status 0 (pending)
+      const firstPendingSlot = bookingDetail.bookedSlots.find(slot => slot.status === 0);
+      if (!firstPendingSlot) {
+        toast.error("Không có slot nào đang chờ.");
         return;
       }
 
       // Check if the target slot is the first one that can be completed
-      if (firstAwaitingSlot.id !== bookedSlotId) {
+      if (firstPendingSlot.id !== bookedSlotId) {
         toast.error("Bạn phải hoàn thành các slot theo thứ tự. Vui lòng hoàn thành slot trước đó trước.");
         return;
       }
@@ -362,7 +364,9 @@ const ScheduleTracking = () => {
       // Refresh booking detail to get updated status
       if (selectedBooking) {
         const updatedDetail = await fetchBookingDetail(selectedBooking.id);
-        setBookingDetail(updatedDetail);
+        // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+        const convertedDetail = convertBookingDetailToUTC7(updatedDetail);
+        setBookingDetail(convertedDetail);
       }
       
       // Also refresh the main bookings list and statuses
@@ -462,7 +466,7 @@ const ScheduleTracking = () => {
                      <div className="space-y-2">
                        <div className="flex items-center text-gray-700">
                          <FaCalendarAlt className="w-4 h-4 mr-2" />
-                         <span>{formatCentralTimestamp(booking.createdTime)}</span>
+                         <span>{formatUTC0ToUTC7(booking.createdTime)}</span>
                        </div>
                        <div className="flex items-center text-gray-700">
                          <FaClock className="w-4 h-4 mr-2" />
@@ -672,17 +676,17 @@ const ScheduleTracking = () => {
                         </div>
                         <div>
                           <p className="text-gray-700">Ngày tạo:</p>
-                          <p className="font-medium text-gray-900">{formatCentralTimestamp(selectedBooking?.createdTime)}</p>
+                          <p className="font-medium text-gray-900">{formatUTC0ToUTC7(selectedBooking?.createdTime)}</p>
                         </div>
                         <div>
                           <p className="text-gray-700">Buổi đầu tiên:</p>
                           <p className="font-medium text-gray-900">
                             {bookingDetail?.bookedSlots && bookingDetail.bookedSlots.length > 0 
                               ? formatSlotDateTime(
-                                  bookingDetail.bookedSlots[0].slotIndex, 
+                                  bookingDetail.bookedSlots[0].slotIndex - 1, 
                                   bookingDetail.bookedSlots[0].bookedDate
                                 )
-                              : formatCentralTimestamp(selectedBooking?.earliestBookedDate)
+                              : formatUTC0ToUTC7(selectedBooking?.earliestBookedDate)
                             }
                           </p>
                         </div>
@@ -707,12 +711,12 @@ const ScheduleTracking = () => {
                                     </div>
                                     <div>
                                       <p className="font-medium text-gray-900">
-                                        Slot {slot.slotIndex || index + 1}
+                                        Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
                                       </p>
                                       <div className="flex items-center gap-4 text-sm text-gray-600">
                                         <span className="flex items-center gap-1">
                                           <FaCalendarAlt className="w-3 h-3" />
-                                          {formatSlotDateTime(slot.slotIndex, slot.bookedDate)}
+                                          {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
                                         </span>
                                         {slot.slotNote && (
                                           <span className="text-xs text-gray-500">
@@ -733,7 +737,7 @@ const ScheduleTracking = () => {
                                         </div>
                                       )}
                                     </div>
-                                    {slot.status === 1 && ( // Show complete button only for "Chờ xác nhận" status
+                                    {slot.status === 0 && ( // Show complete button only for "Đang chờ" status
                                       <button
                                         type="button"
                                         onClick={(e) => handleCompleteSlot(slot.id, e)}

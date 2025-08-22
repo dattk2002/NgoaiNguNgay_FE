@@ -82,6 +82,9 @@ import {
   fetchWeeklyPatternBlockedSlotsByPatternId,
   fetchTutorBookingConfigByTutorId,
   updateTutorBookingConfig,
+  uploadTutorIntroductionVideo,
+  getTutorIntroductionVideo,
+  deleteTutorIntroductionVideo,
 } from "../../components/api/auth";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import ConfirmDialog from "../modals/ConfirmDialog";
@@ -91,6 +94,7 @@ import formatPriceInputWithCommas from "../../utils/formatPriceInputWithCommas";
 import getWeekDates from "../../utils/getWeekDates";
 import ConfirmDeleteWeeklyPattern from "../modals/ConfirmDeleteWeeklyPattern";
 import { motion, AnimatePresence } from "framer-motion";
+import { convertUTC7ToUTC0 } from "../../utils/formatCentralTimestamp";
 
 // Global styles to remove focus borders and improve UI
 const globalStyles = (
@@ -557,7 +561,12 @@ function getSlotDateTime(weekStart, dayInWeek, slotIndex) {
   const dayOffset = dayInWeek === 1 ? 6 : dayInWeek - 2;
 
   slotDate.setDate(slotDate.getDate() + dayOffset);
-  slotDate.setHours(slotIndex, 0, 0, 0);
+  
+  // Calculate hours and minutes from slotIndex (0-47 for 48 slots per day)
+  const hour = Math.floor(slotIndex / 2);
+  const minute = slotIndex % 2 === 0 ? 0 : 30;
+  slotDate.setHours(hour, minute, 0, 0);
+  
   return slotDate;
 }
 
@@ -1547,12 +1556,17 @@ const TutorProfile = ({
           slot.dayInWeek,
           slot.slotIndex
         );
+        
+        // Convert UTC+7 to UTC+0 for backend
+        const utc0DateTime = convertUTC7ToUTC0(slotDateTime);
+        
         console.log("Generated slot:", {
           slotDateTime,
+          utc0DateTime,
           slotIndex: slot.slotIndex,
         });
         return {
-          slotDateTime,
+          slotDateTime: utc0DateTime,
           slotIndex: slot.slotIndex,
         };
       });
@@ -2849,6 +2863,16 @@ const TutorProfile = ({
   const [bookingConfigLoading, setBookingConfigLoading] = useState(false);
   const [bookingConfigError, setBookingConfigError] = useState(null);
 
+  // Video introduction state
+  const [introductionVideos, setIntroductionVideos] = useState([]);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState(null);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoForm, setVideoForm] = useState({ url: "" });
+  const [videoFormErrors, setVideoFormErrors] = useState({});
+  const [videoToDelete, setVideoToDelete] = useState(null);
+  const [deleteVideoModalOpen, setDeleteVideoModalOpen] = useState(false);
+
   // Add function to fetch booking configuration
   const fetchBookingConfiguration = async () => {
     try {
@@ -2890,6 +2914,84 @@ const TutorProfile = ({
   useEffect(() => {
     if (id) {
       fetchBookingConfiguration();
+    }
+  }, [id]);
+
+  // Video introduction functions
+  const fetchIntroductionVideos = async () => {
+    try {
+      setVideoLoading(true);
+      setVideoError(null);
+      const response = await getTutorIntroductionVideo();
+      if (response && response.data) {
+        setIntroductionVideos(response.data.items || response.data || []);
+      } else {
+        setIntroductionVideos([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch introduction videos:", error);
+      setVideoError(error.message);
+      setIntroductionVideos([]);
+    } finally {
+      setVideoLoading(false);
+    }
+  };
+
+  const handleVideoUpload = async () => {
+    try {
+      setVideoUploading(true);
+      setVideoFormErrors({});
+
+      // Validate form
+      const errors = {};
+      if (!videoForm.url.trim()) {
+        errors.url = "URL video là bắt buộc";
+      } else if (!videoForm.url.startsWith("http://") && !videoForm.url.startsWith("https://")) {
+        errors.url = "URL phải bắt đầu với http:// hoặc https://";
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setVideoFormErrors(errors);
+        return;
+      }
+
+      await uploadTutorIntroductionVideo({ url: videoForm.url.trim() });
+      toast.success("Tải lên video giới thiệu thành công!");
+      setVideoForm({ url: "" });
+      fetchIntroductionVideos(); // Refresh the list
+    } catch (error) {
+      console.error("Failed to upload video:", error);
+      toast.error(`Tải lên video thất bại: ${error.message}`);
+    } finally {
+      setVideoUploading(false);
+    }
+  };
+
+  const handleDeleteVideo = (video) => {
+    setVideoToDelete(video);
+    setDeleteVideoModalOpen(true);
+  };
+
+  const confirmDeleteVideo = async () => {
+    if (!videoToDelete) return;
+
+    try {
+      await deleteTutorIntroductionVideo(videoToDelete.id);
+      toast.success("Xóa video giới thiệu thành công!");
+      fetchIntroductionVideos(); // Refresh the list
+    } catch (error) {
+      console.error("Failed to delete video:", error);
+      toast.error(`Xóa video thất bại: ${error.message}`);
+    } finally {
+      setDeleteVideoModalOpen(false);
+      setVideoToDelete(null);
+    }
+  };
+
+  // Fetch videos when component mounts
+  useEffect(() => {
+    if (id) {
+      fetchIntroductionVideos();
     }
   }, [id]);
 
@@ -3102,6 +3204,7 @@ const TutorProfile = ({
                   <Tab label="Cấu hình đặt lịch" />
                   <Tab label="Bài học" />
                   <Tab label="Lịch trình tuần" />
+                  <Tab label="Video giới thiệu" />
                 </Tabs>
               </Box>
               <Box
@@ -4722,6 +4825,198 @@ const TutorProfile = ({
                     </Box>
                   </Box>
                 )}
+
+                {selectedTab === 4 && (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      maxWidth: "100%",
+                      overflow: "hidden",
+                      minWidth: 0,
+                      flex: "1 1 auto",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                    role="tabpanel"
+                    hidden={selectedTab !== 4}
+                  >
+                    <Box
+                      sx={{
+                        textAlign: "left",
+                        width: "100%",
+                        maxWidth: "100%",
+                        mb: 4,
+                        minWidth: 0,
+                        flex: "0 0 auto",
+                      }}
+                    >
+                      {/* Header Section with Title and Upload Form */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mb: 3,
+                        }}
+                      >
+                        <SectionTitle variant="h6">Video giới thiệu</SectionTitle>
+                      </Box>
+
+                      {/* Upload Form */}
+                      <Box sx={{ p: 3, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0", mb: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: "#1e293b" }}>
+                          Tải lên video giới thiệu
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 3, color: "#64748b" }}>
+                          Chia sẻ video giới thiệu từ YouTube hoặc các nền tảng video khác để học viên có thể hiểu rõ hơn về phương pháp giảng dạy của bạn.
+                        </Typography>
+                        
+                        <Box sx={{ display: "flex", gap: 2, alignItems: "flex-end" }}>
+                          <TextField
+                            label="URL Video"
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            fullWidth
+                            value={videoForm.url}
+                            onChange={(e) => {
+                              setVideoForm({ url: e.target.value });
+                              if (videoFormErrors.url) {
+                                setVideoFormErrors({ ...videoFormErrors, url: "" });
+                              }
+                            }}
+                            error={!!videoFormErrors.url}
+                            sx={{ flex: 1 }}
+                          />
+                          <Button
+                            variant="contained"
+                            onClick={handleVideoUpload}
+                            disabled={videoUploading || !videoForm.url.trim()}
+                            startIcon={
+                              videoUploading ? (
+                                <CircularProgress size={16} color="inherit" />
+                              ) : (
+                                <Box sx={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center"}}>
+                                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                  </svg>
+                                </Box>
+                              )
+                            }
+                          >
+                            {videoUploading ? "Đang tải..." : "Tải lên"}
+                          </Button>
+                        </Box>
+                      </Box>
+
+                      {/* Videos List */}
+                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" }}>
+                        {videoLoading ? (
+                          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                            <CircularProgress />
+                          </Box>
+                        ) : videoError ? (
+                          <Alert severity="error" sx={{ mb: 2 }}>{videoError}</Alert>
+                        ) : (
+                          <TableContainer component={Paper}>
+                            <Table>
+                              <TableHead>
+                                <TableRow sx={{ backgroundColor: "#f8fafc" }}>
+                                  <TableCell sx={{ fontWeight: 600 }}>URL Video</TableCell>
+                                  <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
+                                  <TableCell sx={{ fontWeight: 600 }}>Hành động</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {introductionVideos.length === 0 ? (
+                                  <TableRow>
+                                    <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
+                                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", color: "#64748b" }}>
+                                        <Box sx={{ width: "64px", height: "64px", mb: 2, opacity: 0.5 }}>
+                                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                          </svg>
+                                        </Box>
+                                        <Typography variant="body1" sx={{ fontWeight: 500 }}>Chưa có video nào</Typography>
+                                        <Typography variant="body2">Tải lên video giới thiệu đầu tiên của bạn</Typography>
+                                      </Box>
+                                    </TableCell>
+                                  </TableRow>
+                                ) : (
+                                  introductionVideos.map((video) => (
+                                    <TableRow
+                                      key={video.id}
+                                      hover
+                                      sx={{
+                                        "&:hover": {
+                                          backgroundColor: "#f8fafc",
+                                        },
+                                        transition: "background-color 0.2s ease",
+                                      }}
+                                    >
+                                      <TableCell>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Box sx={{ width: "20px", height: "20px", color: "#ef4444" }}>
+                                            <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                            </svg>
+                                          </Box>
+                                          <Typography
+                                            variant="body2"
+                                            sx={{
+                                              color: "#3b82f6",
+                                              textDecoration: "underline",
+                                              cursor: "pointer",
+                                              wordBreak: "break-all",
+                                            }}
+                                            onClick={() => window.open(video.url, "_blank")}
+                                          >
+                                            {video.url}
+                                          </Typography>
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Typography variant="body2" color="textSecondary">
+                                          {new Date(video.createdAt || video.createdTime || Date.now()).toLocaleDateString("vi-VN")}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell>
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => handleDeleteVideo(video)}
+                                          sx={{
+                                            color: "#ef4444",
+                                            "&:hover": {
+                                              backgroundColor: "rgba(239, 68, 68, 0.1)",
+                                            },
+                                          }}
+                                          title="Xóa video"
+                                        >
+                                          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
+                                        </IconButton>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
+                                )}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        )}
+
+                        {introductionVideos.length > 0 && (
+                          <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1 }}>
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem" }}>
+                              <strong>Tổng cộng:</strong> {introductionVideos.length} video giới thiệu
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
+                              Video được sắp xếp theo thứ tự thời gian tạo (mới nhất trước)
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
               </Box>
             </StyledPaper>
           </Grid>
@@ -6225,6 +6520,24 @@ const TutorProfile = ({
           certificateToDelete
             ? `Bạn có chắc chắn muốn xóa chứng chỉ "${certificateToDelete.name}" không? Hành động này không thể hoàn tác.`
             : "Bạn có chắc chắn muốn xóa chứng chỉ này không? Hành động này không thể hoàn tác."
+        }
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmColor="error"
+      />
+
+      <ConfirmDialog
+        open={deleteVideoModalOpen}
+        onClose={() => {
+          setDeleteVideoModalOpen(false);
+          setVideoToDelete(null);
+        }}
+        onConfirm={confirmDeleteVideo}
+        title="Xác nhận xóa video"
+        description={
+          videoToDelete
+            ? `Bạn có chắc chắn muốn xóa video giới thiệu này không? Hành động này không thể hoàn tác.`
+            : "Bạn có chắc chắn muốn xóa video giới thiệu này không? Hành động này không thể hoàn tác."
         }
         confirmText="Xóa"
         cancelText="Hủy"

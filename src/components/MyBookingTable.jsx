@@ -306,14 +306,16 @@ export default function MyBookingTable({
                   Tên gia sư
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Thời gian gửi yêu cầu
+                  Khóa học
                 </th>
-                {/* NEW COLUMN */}
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                  Giá đề xuất
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                   Trạng thái
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Thông tin đề xuất
+                  Thời gian tạo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider"></th>
               </tr>
@@ -329,14 +331,16 @@ export default function MyBookingTable({
                       <Skeleton variant="text" width={120} height={28} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Skeleton variant="text" width={160} height={28} />
+                      <Skeleton variant="text" width={100} height={28} />
                     </td>
-                    {/* NEW SKELETON CELL */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Skeleton variant="text" width={80} height={28} />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Skeleton variant="text" width={100} height={28} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Skeleton variant="text" width={120} height={28} />
+                      <Skeleton variant="text" width={160} height={28} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Skeleton variant="rectangular" width={60} height={28} />
@@ -345,7 +349,7 @@ export default function MyBookingTable({
                 ))
               ) : sentRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={6} align="center" className="py-8">
+                  <td colSpan={7} align="center" className="py-8">
                     <div className="flex flex-col items-center justify-center">
                       <svg
                         width="64"
@@ -363,7 +367,7 @@ export default function MyBookingTable({
                         />
                       </svg>
                       <span className="text-gray-400 text-sm">
-                        Không có yêu cầu nào.
+                        Không có đề xuất nào.
                       </span>
                     </div>
                   </td>
@@ -403,46 +407,57 @@ export default function MyBookingTable({
                       </Typography>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Typography className="text-gray-700">
-                        {new Date(req.latestRequestTime).toLocaleString()}
+                      <Typography className="text-gray-700 text-sm">
+                        {req.lessonName}
+                      </Typography>
+                      <Typography className="text-gray-500 text-xs">
+                        {req.durationInMinutes} phút/Slot
                       </Typography>
                     </td>
-                    {/* STATUS CELL - NO FLEX */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Typography className="text-green-600 font-medium">
+                        {req.pricePerSlot?.toLocaleString()} VNĐ/Slot
+                      </Typography>
+                      <Typography className="text-gray-500 text-xs">
+                        Tổng: {req.totalPrice?.toLocaleString()} VNĐ
+                      </Typography>
+                    </td>
+                    {/* STATUS CELL */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1">
-                        {req.tutorBookingOfferId ? (
+                        {req.isExpired ? (
                           <>
-                            <FiCheckCircle className="text-green-500" />
-                            <span className="text-green-600 font-medium">
-                              Đã được đề xuất
+                            <FiXCircle className="text-red-500" />
+                            <span className="text-red-600 font-medium text-sm">
+                              Hết hạn
+                            </span>
+                          </>
+                        ) : req.isRejected ? (
+                          <>
+                            <FiXCircle className="text-red-500" />
+                            <span className="text-red-600 font-medium text-sm">
+                              Đã từ chối
                             </span>
                           </>
                         ) : (
                           <>
-                            <FiXCircle className="text-red-500" />
-                            <span className="text-red-600 font-medium">
-                              Chưa được đề xuất
+                            <FiCheckCircle className="text-green-500" />
+                            <span className="text-green-600 font-medium text-sm">
+                              Có hiệu lực
                             </span>
                           </>
                         )}
                       </span>
                     </td>
-                    {/* OFFER INFO CELL */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {req.tutorBookingOfferId ? (
-                        <div className="text-sm">
-                          <div className="text-gray-600">Có đề xuất mới</div>
-                          <div className="text-xs text-blue-600 font-medium">
-                            Nhấp để xem chi tiết
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-sm text-gray-400">
-                          Chưa có đề xuất
-                        </div>
-                      )}
+                      <Typography className="text-gray-700 text-sm">
+                        {new Date(req.latestRequestTime).toLocaleDateString()}
+                      </Typography>
+                      <Typography className="text-gray-500 text-xs">
+                        {new Date(req.latestRequestTime).toLocaleTimeString()}
+                      </Typography>
                     </td>
-                    {/* ACTIONS CELL - NO FLEX */}
+                    {/* ACTIONS CELL */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex gap-2">
                         <button
@@ -500,13 +515,18 @@ export default function MyBookingTable({
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pr: 2 }}>
               <Box>
                 <Typography variant="h6" component="div">
-                  Chi tiết khung giờ đã đặt{" "}
+                  Chi tiết đề xuất từ gia sư{" "}
                   {selectedTutor &&
-                    `- Gia sư: ${
+                    `- ${
                       sentRequests.find((t) => t.tutorId === selectedTutor)
                         ?.tutorName || ""
                     }`}
                 </Typography>
+                {offerDetail && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Khóa học: {offerDetail.lessonName} • Giá: {offerDetail.pricePerSlot?.toLocaleString()} VNĐ/slot
+                  </Typography>
+                )}
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Tooltip title="Tuần trước">
@@ -538,6 +558,79 @@ export default function MyBookingTable({
             </Box>
           </DialogTitle>
           <DialogContent>
+            {/* Show offer details if available */}
+            {offerDetail && (
+              <Paper sx={{ p: 3, mb: 3, backgroundColor: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                <Typography variant="h6" sx={{ mb: 2, color: "#1976d2", fontWeight: 600 }}>
+                  Thông tin đề xuất
+                </Typography>
+                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 3 }}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
+                      Tên bài học:
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "#1f2937", fontWeight: 500 }}>
+                      {offerDetail.lessonName}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
+                      Giá mỗi slot:
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "#10b981", fontWeight: 600 }}>
+                      {offerDetail.pricePerSlot?.toLocaleString()} VNĐ
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
+                      Tổng giá:
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                      {offerDetail.totalPrice?.toLocaleString()} VNĐ
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
+                      Số lượng slot:
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: "#6b7280" }}>
+                      {offerDetail.offeredSlots?.length || 0} slots
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
+                      Thời gian tạo:
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                      {new Date(offerDetail.createdAt).toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
+                      Hết hạn:
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: offerDetail.isExpired ? "#dc2626" : "#6b7280" }}>
+                      {new Date(offerDetail.expirationTime).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
+                {offerDetail.isExpired && (
+                  <Box sx={{ mt: 2, p: 2, backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 500 }}>
+                      ⚠️ Đề xuất này đã hết hạn và không thể chấp nhận
+                    </Typography>
+                  </Box>
+                )}
+                {offerDetail.isRejected && (
+                  <Box sx={{ mt: 2, p: 2, backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 500 }}>
+                      ❌ Đề xuất này đã bị từ chối
+                    </Typography>
+                  </Box>
+                )}
+              </Paper>
+            )}
+            
             {/* Show expectedStartDate if available */}
             {bookingDetailExpectedStartDate && (
               <Box sx={{ mb: 2 }}>
@@ -546,57 +639,6 @@ export default function MyBookingTable({
                   {new Date(bookingDetailExpectedStartDate).toLocaleString()}
                 </Typography>
               </Box>
-            )}
-            
-            {/* Show offer details if available */}
-            {offerDetail && (
-              <Paper sx={{ p: 2, mb: 3, backgroundColor: "#f8fafc", border: "1px solid #e2e8f0" }}>
-                <Typography variant="h6" sx={{ mb: 2, color: "#1976d2", fontWeight: 600 }}>
-                  Thông tin đề xuất từ gia sư
-                </Typography>
-                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
-                  {offerDetail.lessonName && (
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151" }}>
-                        Tên bài học:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                        {offerDetail.lessonName}
-                      </Typography>
-                    </Box>
-                  )}
-                  {offerDetail.pricePerSlot && (
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151" }}>
-                        Giá mỗi slot:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#10b981", fontWeight: 600 }}>
-                        {offerDetail.pricePerSlot?.toLocaleString()} VND
-                      </Typography>
-                    </Box>
-                  )}
-                  {offerDetail.totalPrice && (
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151" }}>
-                        Tổng giá:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
-                        {offerDetail.totalPrice?.toLocaleString()} VND
-                      </Typography>
-                    </Box>
-                  )}
-                  {offerDetail.slotCount && (
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151" }}>
-                        Số lượng slot:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                        {offerDetail.slotCount} slots
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Paper>
             )}
             {bookingDetailLoading ? (
               <MuiTable>
@@ -703,32 +745,29 @@ export default function MyBookingTable({
                                 slot.slotIndex === slotIdx
                                                         );
 
-                          const isOffered =
-                            Array.isArray(tutorOfferedSlots) &&
-                            tutorOfferedSlots.some((slot) => {
-                              if (!slot.slotDateTime || slot.slotIndex === undefined) return false;
-                              
-                              // Parse the slot date from API (UTC)
-                              const slotDate = new Date(slot.slotDateTime);
-                              
-                              // Get UTC date parts to avoid timezone issues
-                              const slotYear = slotDate.getUTCFullYear();
-                              const slotMonth = slotDate.getUTCMonth() + 1; // getUTCMonth() returns 0-11, we need 1-12
-                              const slotDay = slotDate.getUTCDate();
-                              
-                              // Check if this slot matches the current cell
-                              const dateMatches = (
-                                slotYear === currentDayInfo.year &&
-                                slotMonth === currentDayInfo.month &&
-                                slotDay === currentDayInfo.date
-                              );
-                              
-                              const slotIndexMatches = slot.slotIndex === slotIdx;
-                              
-                              const isMatching = dateMatches && slotIndexMatches;
-                              
-                              return isMatching;
-                            });
+                          const isOffered = Array.isArray(tutorOfferedSlots) && tutorOfferedSlots.some((slot) => {
+                            if (!slot.slotDateTime || slot.slotIndex === undefined) return false;
+                            
+                            // Parse the slot date from API (UTC)
+                            const slotDate = new Date(slot.slotDateTime);
+                            
+                            // Get UTC date parts to avoid timezone issues
+                            const slotYear = slotDate.getUTCFullYear();
+                            const slotMonth = slotDate.getUTCMonth() + 1;
+                            const slotDay = slotDate.getUTCDate();
+                            
+                            // Check if this slot matches the current cell
+                            const dateMatches = (
+                              slotYear === currentDayInfo.year &&
+                              slotMonth === currentDayInfo.month &&
+                              slotDay === currentDayInfo.date
+                            );
+                            
+                            // Use slotIndex directly without conversion since API returns UTC+0
+                            const slotIndexMatches = slot.slotIndex === slotIdx;
+                            
+                            return dateMatches && slotIndexMatches;
+                          });
 
                           let bgColor = "#f1f5f9";
                           let color = "#333";
@@ -829,7 +868,7 @@ export default function MyBookingTable({
               </Box>
             </Box>
             <Box sx={{ display: "flex", gap: 2 }}>
-              {offerDetail && (
+              {offerDetail && !offerDetail.isExpired && !offerDetail.isRejected && (
                 <>
                   <Button 
                     variant="contained" 
@@ -844,27 +883,48 @@ export default function MyBookingTable({
                   >
                     {acceptingOffer ? "Đang xử lý..." : "Chấp nhận đề xuất"}
                   </Button>
-                  <Tooltip 
-                    title={offerDetail?.isExpired ? "Đề xuất đã hết hạn, không thể từ chối" : ""}
-                    placement="top"
+                  <Button 
+                    variant="contained" 
+                    color="error" 
+                    onClick={handleRejectOffer}
+                    disabled={acceptingOffer || rejectingOffer}
+                    sx={{ 
+                      bgcolor: "#dc2626", 
+                      "&:hover": { bgcolor: "#b91c1c" },
+                      fontWeight: 600
+                    }}
                   >
-                    <span>
-                      <Button 
-                        variant="contained" 
-                        color="error" 
-                        onClick={handleRejectOffer}
-                        disabled={acceptingOffer || rejectingOffer || offerDetail?.isExpired}
-                        sx={{ 
-                          bgcolor: "#dc2626", 
-                          "&:hover": { bgcolor: "#b91c1c" },
-                          fontWeight: 600
-                        }}
-                      >
-                        {rejectingOffer ? "Đang xử lý..." : offerDetail?.isExpired ? "Đã hết hạn" : "Từ chối đề xuất"}
-                      </Button>
-                    </span>
-                  </Tooltip>
+                    {rejectingOffer ? "Đang xử lý..." : "Từ chối đề xuất"}
+                  </Button>
                 </>
+              )}
+              {offerDetail && offerDetail.isExpired && (
+                <Button 
+                  variant="outlined" 
+                  color="error"
+                  disabled
+                  sx={{ 
+                    borderColor: "#dc2626",
+                    color: "#dc2626",
+                    fontWeight: 600
+                  }}
+                >
+                  Đề xuất đã hết hạn
+                </Button>
+              )}
+              {offerDetail && offerDetail.isRejected && (
+                <Button 
+                  variant="outlined" 
+                  color="error"
+                  disabled
+                  sx={{ 
+                    borderColor: "#dc2626",
+                    color: "#dc2626",
+                    fontWeight: 600
+                  }}
+                >
+                  Đề xuất đã bị từ chối
+                </Button>
               )}
               <Button onClick={handleCloseDialog} variant="outlined">
                 Đóng
@@ -882,8 +942,8 @@ export default function MyBookingTable({
             Bạn có chắc chắn muốn chấp nhận đề xuất này không?
           </Typography>
           {offerDetail && (
-            <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
                 Thông tin đề xuất:
               </Typography>
               {offerDetail.lessonName && (
@@ -891,14 +951,19 @@ export default function MyBookingTable({
                   • Bài học: {offerDetail.lessonName}
                 </Typography>
               )}
-              {offerDetail.totalPrice && (
-                <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
-                  • Tổng giá: {offerDetail.totalPrice?.toLocaleString()} VND
+              {offerDetail.pricePerSlot && (
+                <Typography variant="body2">
+                  • Giá mỗi slot: {offerDetail.pricePerSlot?.toLocaleString()} VNĐ
                 </Typography>
               )}
-              {offerDetail.slotCount && (
+              {offerDetail.totalPrice && (
+                <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                  • Tổng giá: {offerDetail.totalPrice?.toLocaleString()} VNĐ
+                </Typography>
+              )}
+              {offerDetail.offeredSlots && (
                 <Typography variant="body2">
-                  • Số slots: {offerDetail.slotCount}
+                  • Số slots: {offerDetail.offeredSlots.length}
                 </Typography>
               )}
             </Box>
@@ -946,14 +1011,19 @@ export default function MyBookingTable({
                   • Bài học: {offerDetail.lessonName}
                 </Typography>
               )}
-              {offerDetail.totalPrice && (
-                <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
-                  • Tổng giá: {offerDetail.totalPrice?.toLocaleString()} VND
+              {offerDetail.pricePerSlot && (
+                <Typography variant="body2">
+                  • Giá mỗi slot: {offerDetail.pricePerSlot?.toLocaleString()} VNĐ
                 </Typography>
               )}
-              {offerDetail.slotCount && (
+              {offerDetail.totalPrice && (
+                <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                  • Tổng giá: {offerDetail.totalPrice?.toLocaleString()} VNĐ
+                </Typography>
+              )}
+              {offerDetail.offeredSlots && (
                 <Typography variant="body2">
-                  • Số slots: {offerDetail.slotCount}
+                  • Số slots: {offerDetail.offeredSlots.length}
                 </Typography>
               )}
             </Box>

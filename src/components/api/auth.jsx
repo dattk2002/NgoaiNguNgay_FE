@@ -629,9 +629,14 @@ export async function fetchChatConversationsByUserId(userId, page = 1, size = 20
           (p) => p.id !== userId
         );
 
+        // Sort messages by creation time to ensure we get the latest message
+        const sortedMessages = conv.messages.sort((a, b) => 
+          new Date(a.createdTime).getTime() - new Date(b.createdTime).getTime()
+        );
+        
         const lastMessageObj =
-          conv.messages.length > 0
-            ? conv.messages[conv.messages.length - 1]
+          sortedMessages.length > 0
+            ? sortedMessages[sortedMessages.length - 1]
             : null;
 
         let lastMessageText = "Chưa có tin nhắn nào";
@@ -3682,3 +3687,654 @@ export async function learnerCreateInstantBooking(bookingData) {
 }
 
 import { convertBookingOfferResponseToUTC7 } from '../../utils/formatCentralTimestamp';
+
+// ==================== LEGAL DOCUMENT API FUNCTIONS ====================
+
+/**
+ * Fetch legal documents with pagination and filtering
+ * @param {Object} params - Query parameters { category, page, size }
+ * @returns {Promise<Object>} API response with legal documents data
+ */
+export async function fetchLegalDocuments(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add pagination parameters with defaults
+    queryParams.append('page', (params.page || 1).toString());
+    queryParams.append('size', (params.size || 10).toString());
+    
+    // Add optional filter parameters
+    if (params.category) {
+      queryParams.append('category', params.category);
+    }
+
+    const url = `/api/legaldocument${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log("🔍 Calling legal documents API:", url);
+    console.log("🔍 Parameters:", params);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Legal documents fetched successfully:", response);
+      return response; // Return the entire response object
+    } else {
+      throw new Error("Invalid response format for legal documents.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch legal documents:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a new legal document
+ * @param {Object} documentData - { name, description, category }
+ * @returns {Promise<Object>} API response
+ */
+export async function createLegalDocument(documentData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!documentData.name || !documentData.name.trim()) {
+      throw new Error("Document name is required");
+    }
+
+    console.log("🔍 Creating legal document with data:", documentData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/legaldocument", "POST", documentData, token);
+
+    if (response) {
+      console.log("✅ Legal document created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document creation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to create legal document:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing legal document
+ * @param {string} documentId - The ID of the document to update
+ * @param {Object} documentData - { name, description, category }
+ * @returns {Promise<Object>} API response
+ */
+export async function updateLegalDocument(documentId, documentData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!documentId) {
+      throw new Error("Document ID is required");
+    }
+
+    // Validate required fields
+    if (!documentData.name || !documentData.name.trim()) {
+      throw new Error("Document name is required");
+    }
+
+    // Prepare request body with ID included as per API specification
+    const requestBody = {
+      id: documentId,
+      name: documentData.name,
+      description: documentData.description || '',
+      category: documentData.category || ''
+    };
+
+    console.log("🔍 Updating legal document with ID:", documentId);
+    console.log("🔍 Update data:", requestBody);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/legaldocument", "PUT", requestBody, token);
+
+    if (response) {
+      console.log("✅ Legal document updated successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document update.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to update legal document:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete a legal document
+ * @param {string} documentId - The ID of the document to delete
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteLegalDocument(documentId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!documentId) {
+      throw new Error("Document ID is required");
+    }
+
+    console.log("🔍 Deleting legal document with ID:", documentId);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi(`/api/legaldocument/${documentId}`, "DELETE", null, token);
+
+    if (response) {
+      console.log("✅ Legal document deleted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document deletion.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to delete legal document:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get a single legal document by ID
+ * @param {string} documentId - The ID of the document to fetch
+ * @returns {Promise<Object>} API response
+ */
+export async function getLegalDocumentById(documentId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!documentId) {
+      throw new Error("Document ID is required");
+    }
+
+    console.log("🔍 Fetching legal document with ID:", documentId);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi(`/api/legaldocument/${documentId}`, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Legal document fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document fetch.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch legal document:", error.message);
+    throw error;
+  }
+}
+
+// ==================== LEGAL DOCUMENT VERSION API FUNCTIONS ====================
+
+/**
+ * Fetch legal document versions with pagination and filtering
+ * @param {Object} params - Query parameters { legalDocumentId, page, size }
+ * @returns {Promise<Object>} API response with legal document versions data
+ */
+export async function fetchLegalDocumentVersions(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Check for both camelCase and PascalCase versions of the parameter
+    const legalDocumentId = params.legalDocumentId || params.LegalDocumentId;
+    
+    if (!legalDocumentId) {
+      throw new Error("Legal document ID is required");
+    }
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add pagination parameters with defaults
+    queryParams.append('page', (params.page || 1).toString());
+    queryParams.append('size', (params.size || 10).toString());
+
+    const url = `/api/legaldocument/version/${legalDocumentId}`;
+    console.log("🔍 Calling legal document versions API:", url);
+    console.log("🔍 Parameters:", params);
+    console.log("🔍 Using legalDocumentId:", legalDocumentId);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Legal document versions fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document versions.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch legal document versions:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a new legal document version
+ * @param {Object} versionData - { legalDocumentId, version, status, content, contentType }
+ * @returns {Promise<Object>} API response
+ */
+export async function createLegalDocumentVersion(versionData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!versionData.legalDocumentId || !versionData.legalDocumentId.trim()) {
+      throw new Error("Legal document ID is required");
+    }
+    if (!versionData.version || !versionData.version.trim()) {
+      throw new Error("Version is required");
+    }
+    if (versionData.status === undefined || versionData.status === null) {
+      throw new Error("Status is required");
+    }
+    if (!versionData.content || !versionData.content.trim()) {
+      throw new Error("Content is required");
+    }
+    if (!versionData.contentType || !versionData.contentType.trim()) {
+      throw new Error("Content type is required");
+    }
+
+    console.log("🔍 Creating legal document version with data:", versionData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/legaldocument/version", "POST", versionData, token);
+
+    if (response) {
+      console.log("✅ Legal document version created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document version creation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to create legal document version:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing legal document version
+ * @param {string} versionId - The ID of the version to update
+ * @param {Object} versionData - { legalDocumentId, version, status, content, contentType }
+ * @returns {Promise<Object>} API response
+ */
+export async function updateLegalDocumentVersion(versionId, versionData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!versionId) {
+      throw new Error("Version ID is required");
+    }
+
+    // Validate required fields
+    if (!versionData.legalDocumentId || !versionData.legalDocumentId.trim()) {
+      throw new Error("Legal document ID is required");
+    }
+    if (!versionData.version || !versionData.version.trim()) {
+      throw new Error("Version is required");
+    }
+    if (versionData.status === undefined || versionData.status === null) {
+      throw new Error("Status is required");
+    }
+    if (!versionData.content || !versionData.content.trim()) {
+      throw new Error("Content is required");
+    }
+    if (!versionData.contentType || !versionData.contentType.trim()) {
+      throw new Error("Content type is required");
+    }
+
+    // Prepare request body with ID included
+    const requestBody = {
+      id: versionId,
+      legalDocumentId: versionData.legalDocumentId,
+      version: versionData.version,
+      status: versionData.status,
+      content: versionData.content,
+      contentType: versionData.contentType
+    };
+
+    console.log("🔍 Updating legal document version with ID:", versionId);
+    console.log("🔍 Update data:", requestBody);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/legaldocument/version", "PUT", requestBody, token);
+
+    if (response) {
+      console.log("✅ Legal document version updated successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document version update.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to update legal document version:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete a legal document version
+ * @param {string} versionId - The ID of the version to delete
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteLegalDocumentVersion(versionId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!versionId) {
+      throw new Error("Version ID is required");
+    }
+
+    console.log("🔍 Deleting legal document version with ID:", versionId);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi(`/api/legaldocument/version/${versionId}`, "DELETE", null, token);
+
+    if (response) {
+      console.log("✅ Legal document version deleted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document version deletion.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to delete legal document version:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch a single legal document version by ID
+ * @param {string} versionId - The ID of the version to fetch
+ * @returns {Promise<Object>} The version data
+ */
+export async function fetchLegalDocumentVersionById(versionId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!versionId) {
+      throw new Error("Version ID is required");
+    }
+
+    console.log("🔍 Fetching legal document version with ID:", versionId);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi(`/api/legaldocument/version/${versionId}`, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Legal document version fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for legal document version fetch.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch legal document version:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Update tutor profile information
+ * @param {Object} profileData - { nickName, brief, description, teachingMethod }
+ * @returns {Promise<Object>} API response
+ */
+export async function updateTutorProfile(profileData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!profileData.nickName || !profileData.nickName.trim()) {
+      throw new Error("Nickname is required");
+    }
+    if (!profileData.brief || !profileData.brief.trim()) {
+      throw new Error("Brief description is required");
+    }
+    if (!profileData.description || !profileData.description.trim()) {
+      throw new Error("Detailed description is required");
+    }
+    if (!profileData.teachingMethod || !profileData.teachingMethod.trim()) {
+      throw new Error("Teaching method is required");
+    }
+
+    console.log("🔍 Updating tutor profile with data:", profileData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/tutor/update-profile", "PUT", profileData, token);
+
+    if (response) {
+      console.log("✅ Tutor profile updated successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for tutor profile update.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to update tutor profile:", error.message);
+    throw error;
+  }
+}
+
+// ==================== TUTOR INTRODUCTION VIDEO API FUNCTIONS ====================
+
+/**
+ * Upload tutor introduction video URL
+ * @param {Object} videoData - { url: string } - YouTube or other video platform URL
+ * @returns {Promise<Object>} API response
+ */
+export async function uploadTutorIntroductionVideo(videoData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!videoData.url || !videoData.url.trim()) {
+      throw new Error("Video URL is required");
+    }
+
+    // Basic URL validation
+    const urlPattern = /^https?:\/\/.+/;
+    if (!urlPattern.test(videoData.url)) {
+      throw new Error("Please enter a valid video URL (must start with http:// or https://)");
+    }
+
+    console.log("🔍 Uploading tutor introduction video with URL:", videoData.url);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/tutorintroductionvideo", "POST", videoData, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video uploaded successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for video upload.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to upload tutor introduction video:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get tutor introduction video for current user
+ * @param {number} page - Page number (default: 1)
+ * @param {number} size - Number of items per page (default: 10)
+ * @returns {Promise<Object>} API response with video data
+ */
+export async function getTutorIntroductionVideo(page = 1, size = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString()
+    });
+
+    const url = `/api/tutorintroductionvideo/current-user?${params.toString()}`;
+    console.log("🔍 Calling tutor introduction video API:", url);
+    console.log("🔍 Parameters:", { page, size });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for tutor introduction video.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor introduction video:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete tutor introduction video
+ * @param {string} videoId - The ID of the video to delete
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteTutorIntroductionVideo(videoId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!videoId) {
+      throw new Error("Video ID is required");
+    }
+
+    console.log("🔍 Deleting tutor introduction video with ID:", videoId);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi(`/api/tutorintroductionvideo/${videoId}`, "DELETE", null, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video deleted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for video deletion.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to delete tutor introduction video:", error.message);
+    throw error;
+  }
+}
+
+// ==================== STAFF VIDEO MANAGEMENT API FUNCTIONS ====================
+
+/**
+ * Get pending tutor introduction videos for staff review
+ * @param {number} page - Page number (default: 1)
+ * @param {number} size - Number of items per page (default: 20)
+ * @param {number} status - Status filter: 0=pending, 1=approved, 2=rejected (optional)
+ * @returns {Promise<Object>} API response with pending video data
+ */
+export async function getPendingTutorIntroductionVideos(page = 1, size = 20, status = 0) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString()
+    });
+
+    // Add status parameter if provided (0=pending, 1=approved, 2=rejected)
+    if (status !== undefined && status !== null) {
+      params.append('status', status.toString());
+    }
+
+    const url = `/api/tutorintroductionvideo?${params.toString()}`;
+    console.log("🔍 Calling tutor introduction videos API:", url);
+    console.log("🔍 Parameters:", { page, size, status });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction videos fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for tutor introduction videos.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor introduction videos:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Review tutor introduction video (approve/reject)
+ * @param {Object} reviewData - { id: string, status: number } - status: 0=pending, 1=approve, 2=reject
+ * @returns {Promise<Object>} API response
+ */
+export async function reviewTutorIntroductionVideo(reviewData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!reviewData.id || !reviewData.id.trim()) {
+      throw new Error("Video ID is required");
+    }
+    if (reviewData.status === undefined || reviewData.status === null) {
+      throw new Error("Status is required");
+    }
+    if (![0, 1, 2].includes(reviewData.status)) {
+      throw new Error("Status must be 0 (pending), 1 (approve), or 2 (reject)");
+    }
+
+    console.log("🔍 Reviewing tutor introduction video with data:", reviewData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/tutorintroductionvideo/review", "POST", reviewData, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video reviewed successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for video review.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to review tutor introduction video:", error.message);
+    throw error;
+  }
+}
