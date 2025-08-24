@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,6 +12,7 @@ import {
   FaEdit,
   FaTrash,
   FaChevronDown,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { fetchChatConversationsByUserId } from "../components/api/auth";
 import { fetchConversationList } from "../components/api/auth";
@@ -24,6 +25,45 @@ import MenuItem from "@mui/material/MenuItem";
 import { FaUser, FaBan, FaFlag, FaTimes } from "react-icons/fa";
 import TutorScheduleCalendarModal from '../components/modals/TutorScheduleCalendarModal';
 import { toast } from 'react-toastify'; // Add this import
+
+// Utility functions for role checking
+const hasRole = (user, roleName) => {
+  if (!user || !user.roles) return false;
+
+  // Handle both string and array formats
+  const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+
+  // Handle case variations and string matching
+  return roles.some((role) => {
+    if (typeof role === "string") {
+      return role.toLowerCase() === roleName.toLowerCase();
+    }
+    // Handle object format if roles are objects with name property
+    if (role && role.name) {
+      return role.name.toLowerCase() === roleName.toLowerCase();
+    }
+    return false;
+  });
+};
+
+const isLearner = (user) => hasRole(user, "Learner");
+const isTutor = (user) => hasRole(user, "Tutor");
+
+// Check if user has only learner role (no other roles)
+const hasOnlyLearnerRole = (user) => {
+  if (!user || !user.roles) return false;
+  
+  const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+  
+  // Check if user has exactly one role and it's Learner
+  if (roles.length === 1) {
+    const role = roles[0];
+    const roleName = typeof role === "string" ? role : role.name;
+    return roleName.toLowerCase() === "learner";
+  }
+  
+  return false;
+};
 
 const MessagePage = ({ user }) => {
   const { id: tutorId } = useParams();
@@ -73,6 +113,10 @@ const MessagePage = ({ user }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showMessageMenu]);
+
+
+
+
 
   const refetchConversationData = async () => {
     try {
@@ -603,6 +647,8 @@ const MessagePage = ({ user }) => {
     loadMessagesForSelectedConversation();
   }, [selectedConversation, currentPage, messagesPerPage]);
 
+
+
   useEffect(() => {
     if (selectedConversation && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "auto" });
@@ -887,6 +933,12 @@ const MessagePage = ({ user }) => {
   const handleOpenCalendar = () => {
     if (!selectedConversation) {
       setError('Vui lòng chọn một cuộc trò chuyện trước');
+      return;
+    }
+
+    // Check if current user is a learner only
+    if (hasOnlyLearnerRole(user)) {
+      setError('Học viên không thể gửi lời mời đặt lịch');
       return;
     }
 
@@ -1190,14 +1242,17 @@ const MessagePage = ({ user }) => {
             </div>
           </div>
           <div className="flex items-center">
-            {selectedConversation?.type === "tutor" && (
-              <div
-                className="text-gray-600 cursor-pointer hover:text-blue-600 transition"
+            {selectedConversation?.type === "tutor" && !hasOnlyLearnerRole(user) && (
+              <Tooltip 
                 title="Xem lịch và gửi lời mời đặt lịch"
-                onClick={handleOpenCalendar}
               >
-                <FaCalendarAlt />
-              </div>
+                <div
+                  className="text-gray-600 cursor-pointer hover:text-blue-600 transition"
+                  onClick={handleOpenCalendar}
+                >
+                  <FaCalendarAlt />
+                </div>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -1213,6 +1268,20 @@ const MessagePage = ({ user }) => {
             </div>
           </div>
         )}
+
+        {/* Role-based notification */}
+        {selectedConversation?.type === "tutor" && hasOnlyLearnerRole(user) && (
+          <div className="flex justify-center py-2">
+            <div className="text-gray-600 px-4 py-1 rounded-full text-xs font-medium bg-gray-100">
+              <span className="flex items-center gap-2">
+                <FaInfoCircle className="text-gray-500" />
+                Học viên không thể gửi lời mời đặt lịch
+              </span>
+            </div>
+          </div>
+        )}
+
+
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
           {!selectedConversation && (

@@ -27,7 +27,6 @@ import {
   CardContent,
   Divider,
   IconButton,
-  CircularProgress,
   Autocomplete,
   TextField,
   Alert,
@@ -394,7 +393,13 @@ const TutorScheduleCalendarModal = ({
 
       await createTutorBookingOffer(offerData);
 
-      // Close modal first
+      // Reset all states after successful submission
+      setSelectedSlots([]);
+      setSelectedLesson(null);
+      setLessonSelectionDialogOpen(false);
+      setError(null);
+
+      // Close modal
       onClose();
 
       // Call the success callback with learner name
@@ -549,26 +554,74 @@ const TutorScheduleCalendarModal = ({
       <Dialog
         open={lessonSelectionDialogOpen}
         onClose={handleClose}
-        maxWidth="sm"
+        maxWidth="lg"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: 2,
-            maxHeight: "80vh",
+            maxHeight: "85vh",
+            width: "1200px",
+            maxWidth: "95vw",
+            minHeight: "600px",
           },
         }}
         style={{ zIndex: 1500 }}
       >
         <DialogTitle>Chọn bài học cho đề xuất</DialogTitle>
-        <DialogContent sx={{ minHeight: "400px" }}>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+        <DialogContent sx={{ minHeight: "600px", p: 3 }}>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
             Vui lòng chọn bài học bạn muốn đề xuất cho học viên trước khi chọn
             khung giờ:
           </Typography>
 
           {lessonsLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-              <CircularProgress />
+            <Box sx={{ 
+              height: "450px", 
+              overflowY: "auto", 
+              pr: 1,
+              "&::-webkit-scrollbar": {
+                width: "8px",
+              },
+              "&::-webkit-scrollbar-track": {
+                background: "#f1f1f1",
+                borderRadius: "4px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                background: "#c1c1c1",
+                borderRadius: "4px",
+                "&:hover": {
+                  background: "#a8a8a8",
+                },
+              },
+            }}>
+              {[1, 2, 3, 4, 5].map((index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    p: 2.5,
+                    mb: 2,
+                    border: "1px solid #e0e0e0",
+                    borderRadius: 3,
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2 }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ width: "70%", height: 24, backgroundColor: "#e2e8f0", borderRadius: 1, mb: 1 }} />
+                      <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
+                        <Box sx={{ width: 80, height: 20, backgroundColor: "#e2e8f0", borderRadius: 2 }} />
+                        <Box sx={{ width: 60, height: 20, backgroundColor: "#e2e8f0", borderRadius: 2 }} />
+                      </Box>
+                      <Box sx={{ width: "90%", height: 16, backgroundColor: "#e2e8f0", borderRadius: 1, mb: 0.5 }} />
+                      <Box sx={{ width: "60%", height: 16, backgroundColor: "#e2e8f0", borderRadius: 1 }} />
+                    </Box>
+                    <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                      <Box sx={{ width: 80, height: 28, backgroundColor: "#e2e8f0", borderRadius: 1, mb: 0.5 }} />
+                      <Box sx={{ width: 40, height: 12, backgroundColor: "#e2e8f0", borderRadius: 1 }} />
+                    </Box>
+                  </Box>
+                </Box>
+              ))}
             </Box>
           ) : availableLessons.length === 0 ? (
             <Alert severity="warning">
@@ -576,72 +629,266 @@ const TutorScheduleCalendarModal = ({
               xuất.
             </Alert>
           ) : (
-            <Autocomplete
-              options={availableLessons}
-              getOptionLabel={(option) => option.name || ""}
-              value={selectedLesson}
-              onChange={(event, newValue) => {
-                setSelectedLesson(newValue);
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Chọn bài học"
-                  variant="outlined"
-                  fullWidth
-                />
-              )}
-              renderOption={(props, option) => (
-                <Box component="li" {...props}>
-                  <Box>
-                    <Typography variant="subtitle1">{option.name}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {formatLanguageCode(option.languageCode)}
-                      {option.category && ` | ${option.category}`}
-                      {" | "}
-                      {typeof option.price === "number" ||
-                      typeof option.price === "string"
-                        ? formatPriceWithCommas(option.price)
-                        : "Không có"}{" "}
-                      VND
-                    </Typography>
+            <Box sx={{ 
+              height: "450px", 
+              overflowY: "auto", 
+              pr: 1,
+              "&::-webkit-scrollbar": {
+                width: "8px",
+              },
+              "&::-webkit-scrollbar-track": {
+                background: "#f1f1f1",
+                borderRadius: "4px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                background: "#c1c1c1",
+                borderRadius: "4px",
+                "&:hover": {
+                  background: "#a8a8a8",
+                },
+              },
+            }}>
+              {availableLessons.map((lesson) => (
+                <Box
+                  key={lesson.id}
+                  sx={{
+                    p: 2.5,
+                    mb: 2,
+                    border: selectedLesson?.id === lesson.id ? "2px solid #1976d2" : "1px solid #e0e0e0",
+                    borderRadius: 3,
+                    cursor: "pointer",
+                    backgroundColor: selectedLesson?.id === lesson.id ? "#f8fbff" : "#ffffff",
+                    transition: "all 0.3s ease",
+                    boxShadow: selectedLesson?.id === lesson.id ? "0 4px 12px rgba(25, 118, 210, 0.15)" : "0 2px 8px rgba(0, 0, 0, 0.08)",
+                    "&:hover": {
+                      backgroundColor: selectedLesson?.id === lesson.id ? "#f8fbff" : "#fafafa",
+                      borderColor: "#1976d2",
+                      boxShadow: "0 6px 16px rgba(0, 0, 0, 0.12)",
+                      transform: "translateY(-2px)",
+                    },
+                  }}
+                  onClick={() => setSelectedLesson(lesson)}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2 }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          fontWeight: 700, 
+                          mb: 1,
+                          color: selectedLesson?.id === lesson.id ? "#1976d2" : "#1a1a1a",
+                          fontSize: "1.05rem"
+                        }}
+                      >
+                        {lesson.name}
+                      </Typography>
+                      
+                      <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1, flexWrap: "wrap" }}>
+                        <Box
+                          sx={{
+                            px: 1.2,
+                            py: 0.4,
+                            bgcolor: "#e3f2fd",
+                            borderRadius: 2,
+                            border: "1px solid #bbdefb"
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#1976d2", fontSize: "0.8rem" }}>
+                            {formatLanguageCode(lesson.languageCode)}
+                          </Typography>
+                        </Box>
+                        {lesson.category && (
+                          <Box
+                            sx={{
+                              px: 1.2,
+                              py: 0.4,
+                              bgcolor: "#f3e5f5",
+                              borderRadius: 2,
+                              border: "1px solid #e1bee7"
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#7b1fa2", fontSize: "0.8rem" }}>
+                              {lesson.category}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                      
+                      {lesson.description && (
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            mb: 1, 
+                            fontStyle: "italic", 
+                            color: "#666",
+                            lineHeight: 1.4,
+                            fontSize: "0.85rem",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                          }}
+                        >
+                          {lesson.description}
+                        </Typography>
+                      )}
+                    </Box>
+                    
+                    <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                      <Typography 
+                        variant="h5" 
+                        color="primary" 
+                        sx={{ 
+                          fontWeight: 800,
+                          fontSize: "1.3rem",
+                          mb: 0.3
+                        }}
+                      >
+                        {typeof lesson.price === "number" ||
+                        typeof lesson.price === "string"
+                          ? formatPriceWithCommas(lesson.price)
+                          : "0"}{" "}
+                        <Typography component="span" variant="body2" sx={{ fontWeight: 400, fontSize: "0.8rem" }}>
+                          VND
+                        </Typography>
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem" }}>
+                         30 phút / 1 slot
+                      </Typography>
+                    </Box>
                   </Box>
+                  
+                  {selectedLesson?.id === lesson.id && (
+                    <Box 
+                      sx={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        mt: 1.5,
+                        pt: 1.5,
+                        borderTop: "1px solid #e3f2fd"
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          px: 1.5,
+                          py: 0.5,
+                          bgcolor: "#e8f5e8",
+                          borderRadius: 2,
+                          border: "1px solid #c8e6c9"
+                        }}
+                      >
+                        <FaCheck size={14} color="#2e7d32" />
+                        <Typography variant="body2" color="#2e7d32" sx={{ ml: 1, fontWeight: 600, fontSize: "0.8rem" }}>
+                          Đã chọn
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
-              )}
-              PopperComponent={(props) => (
-                <div {...props} style={{ ...props.style, zIndex: 9999 }} />
-              )}
-            />
+              ))}
+            </Box>
           )}
 
           {selectedLesson && (
-            <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: "bold", mb: 1 }}
-              >
-                Bài học đã chọn:
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: "medium" }}>
-                {selectedLesson.name}
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                {formatLanguageCode(selectedLesson.languageCode)}
-                {selectedLesson.category && ` | ${selectedLesson.category}`}
-              </Typography>
-              <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
-                {typeof selectedLesson.price === "number" ||
-                typeof selectedLesson.price === "string"
-                  ? formatPriceWithCommas(selectedLesson.price)
-                  : "Không có"}{" "}
-                VND
-              </Typography>
-              {selectedLesson.description && (
-                <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
-                  {selectedLesson.description}
+            <>
+              {/* Divider */}
+              <Box sx={{ 
+                my: 4, 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 2 
+              }}>
+                <Box sx={{ 
+                  flex: 1, 
+                  height: "1px", 
+                  background: "linear-gradient(90deg, transparent, #e0e0e0, transparent)" 
+                }} />
+                <Box sx={{ 
+                  px: 2, 
+                  py: 0.5, 
+                  bgcolor: "#f5f5f5", 
+                  borderRadius: 2,
+                  border: "1px solid #e0e0e0"
+                }}>
+                  <Typography variant="body2" sx={{ 
+                    color: "#666", 
+                    fontWeight: 500, 
+                    fontSize: "0.8rem" 
+                  }}>
+                    BÀI HỌC ĐÃ CHỌN
+                  </Typography>
+                </Box>
+                <Box sx={{ 
+                  flex: 1, 
+                  height: "1px", 
+                  background: "linear-gradient(90deg, transparent, #e0e0e0, transparent)" 
+                }} />
+              </Box>
+
+              <Box sx={{ 
+                p: 2.5, 
+                bgcolor: "#f8fbff", 
+                borderRadius: 3,
+                border: "2px solid #e3f2fd"
+              }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ fontWeight: 700, mb: 1.5, color: "#1976d2" }}
+                >
+                  ✓ Bài học đã chọn
                 </Typography>
-              )}
-            </Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: "#1a1a1a" }}>
+                  {selectedLesson.name}
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 1.5, gap: 1 }}>
+                  <Box
+                    sx={{
+                      px: 1.2,
+                      py: 0.4,
+                      bgcolor: "#e3f2fd",
+                      borderRadius: 2,
+                      border: "1px solid #bbdefb"
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#1976d2", fontSize: "0.8rem" }}>
+                      {formatLanguageCode(selectedLesson.languageCode)}
+                    </Typography>
+                  </Box>
+                  {selectedLesson.category && (
+                    <Box
+                      sx={{
+                        px: 1.2,
+                        py: 0.4,
+                        bgcolor: "#f3e5f5",
+                        borderRadius: 2,
+                        border: "1px solid #e1bee7"
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#7b1fa2", fontSize: "0.8rem" }}>
+                        {selectedLesson.category}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+                <Typography variant="h5" color="primary" sx={{ fontWeight: 800, mb: 0.5 }}>
+                  {typeof selectedLesson.price === "number" ||
+                  typeof selectedLesson.price === "string"
+                    ? formatPriceWithCommas(selectedLesson.price)
+                    : "0"}{" "}
+                  <Typography component="span" variant="body2" sx={{ fontWeight: 400, fontSize: "0.8rem" }}>
+                    VND/slot
+                  </Typography>
+                </Typography>
+                {selectedLesson.description && (
+                  <Typography variant="body2" sx={{ mt: 1.5, fontStyle: "italic", color: "#666", lineHeight: 1.4, fontSize: "0.85rem" }}>
+                    {selectedLesson.description}
+                  </Typography>
+                )}
+              </Box>
+            </>
           )}
         </DialogContent>
         <DialogActions>
@@ -797,16 +1044,24 @@ const TutorScheduleCalendarModal = ({
 
         <DialogContent>
           {loading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "400px",
-              }}
-            >
-              <CircularProgress />
-              <Typography sx={{ ml: 2 }}>Đang tải lịch trình...</Typography>
+            <Box sx={{ p: 2 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: "140px repeat(7, 1fr)", minWidth: "900px", gap: 1 }}>
+                {/* Header skeleton */}
+                <Box sx={{ p: 1.5, backgroundColor: "#e2e8f0", borderRadius: 1, height: 40 }} />
+                {[1, 2, 3, 4, 5, 6, 7].map((index) => (
+                  <Box key={index} sx={{ p: 1.5, backgroundColor: "#e2e8f0", borderRadius: 1, height: 40 }} />
+                ))}
+                
+                {/* Time slots skeleton */}
+                {Array.from({ length: 48 }).map((_, slotIdx) => (
+                  <React.Fragment key={slotIdx}>
+                    <Box sx={{ p: 1, backgroundColor: "#e2e8f0", borderRadius: 1, height: 32 }} />
+                    {[1, 2, 3, 4, 5, 6, 7].map((dayIdx) => (
+                      <Box key={dayIdx} sx={{ p: 1, backgroundColor: "#e2e8f0", borderRadius: 1, height: 32 }} />
+                    ))}
+                  </React.Fragment>
+                ))}
+              </Box>
             </Box>
           ) : error ? (
             <Box
@@ -820,7 +1075,7 @@ const TutorScheduleCalendarModal = ({
               <Typography>{error}</Typography>
             </Box>
           ) : (
-            <Box sx={{ display: "flex", gap: 3, height: "100%" }}>
+                          <Box sx={{ display: "flex", gap: 3, height: "100%" }}>
               {/* Left side - Calendar table */}
               <Box sx={{ flex: 1, overflowX: "auto" }}>
                 <Box
@@ -1205,11 +1460,11 @@ const TutorScheduleCalendarModal = ({
             >
               {submitting ? (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <CircularProgress size={16} color="inherit" />
+                  <Box sx={{ width: 16, height: 16, backgroundColor: "currentColor", borderRadius: "50%", opacity: 0.7 }} />
                   Đang gửi...
                 </Box>
               ) : (
-                `Gửi lời mời (${selectedSlots.length}/3)`
+                `Gửi dề xuất (${selectedSlots.length}/3)`
               )}
             </Button>
           </Box>
