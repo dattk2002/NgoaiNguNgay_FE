@@ -106,7 +106,7 @@ const getSlotStatusInfo = (status) => {
     case 0: // Pending
       return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
     case 1: // AwaitingConfirmation  
-      return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
+      return { text: 'Hoàn thành, đợi 24h', color: 'bg-blue-100 text-blue-700' };
     case 2: // Completed
       return { text: 'Đã hoàn thành', color: 'bg-green-100 text-green-700' };
     case 3: // Cancelled

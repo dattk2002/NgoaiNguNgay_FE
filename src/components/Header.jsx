@@ -1321,13 +1321,6 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                           user.name || user.fullName
                         }`}</div>
                         <Link
-                          to="/dashboard"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          Bảng điều khiển của tôi
-                        </Link>
-                        <Link
                           to="/wallet"
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
                           onClick={() => setIsDropdownOpen(false)}

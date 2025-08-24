@@ -674,7 +674,7 @@ const LessonManagement = () => {
                                 'bg-blue-50 text-blue-700 border border-blue-200'
                               }`}>
                                 {overallStatus === 2 ? 'Hoàn thành' : 
-                                 overallStatus === 1 ? 'Đang chờ thanh toán' :
+                                 overallStatus === 1 ? 'Hoàn thành, khiếu nại trong 24h nếu có' :
                                  overallStatus === 3 ? 'Đã hủy' : 
                                  overallStatus === 4 ? 'Đã hủy do tranh chấp' :
                                  'Đang diễn ra'}
