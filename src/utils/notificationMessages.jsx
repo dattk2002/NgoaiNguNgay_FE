@@ -12,7 +12,7 @@ const notificationMessages = {
   
   // Tutor receives time slot request from learner
   PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST: {
-    title: "Bạn có 1 yêu cầu đặt lịch mới",
+    title: "Bạn có 1 đề xuất mới từ gia sư",
     content: "1 học viên đã gửi cho bạn một yêu cầu"
   },
   
@@ -23,7 +23,7 @@ const notificationMessages = {
   },
   
   PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST_BODY: {
-    title: "Bạn có 1 yêu cầu đặt lịch mới",
+    title: "Bạn có 1 đề xuất mới từ gia sư",
     content: "1 học viên đã gửi cho bạn một yêu cầu"
   }
 };

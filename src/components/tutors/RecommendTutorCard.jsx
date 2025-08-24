@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import StarIconRender from "../../utils/starIconRender";
+import { fetchTutorLesson } from "../api/auth";
+import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 
 import { FaCheckCircle } from "react-icons/fa";
 
@@ -19,6 +21,10 @@ const AmbassadorIcon = ({ className = "w-4 h-4" }) => (
 
 const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
   const [isPriceHovered, setIsPriceHovered] = useState(false);
+  const [lessons, setLessons] = useState([]);
+  const [loadingLessons, setLoadingLessons] = useState(true);
+  const [lowestLessonPrice, setLowestLessonPrice] = useState(null);
+  const [lowestLessonName, setLowestLessonName] = useState("");
   const navigate = useNavigate();
 
   if (!tutor) {
@@ -37,6 +43,41 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
 
   const imageUrl = tutor.imageUrl || "https://picsum.photos/300/200?random=1";
   const subjects = formatLanguageCode(tutor.subjects) || "N/A";
+
+  // Fetch lessons for this tutor
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        setLoadingLessons(true);
+        const lessonsData = await fetchTutorLesson(tutor.tutorId || tutor.id);
+        setLessons(lessonsData || []);
+      } catch (error) {
+        console.error(`Failed to fetch lessons for tutor ${tutor.tutorId || tutor.id}:`, error);
+        setLessons([]);
+      } finally {
+        setLoadingLessons(false);
+      }
+    };
+
+    fetchLessons();
+  }, [tutor.tutorId, tutor.id]);
+
+  // Find lesson with minimum price from lessons array
+  useEffect(() => {
+    if (Array.isArray(lessons) && lessons.length > 0) {
+      let minLesson = lessons[0];
+      for (const lesson of lessons) {
+        if (Number(lesson.price) < Number(minLesson.price)) {
+          minLesson = lesson;
+        }
+      }
+      setLowestLessonPrice(Number(minLesson.price));
+      setLowestLessonName(minLesson.name || "");
+    } else {
+      setLowestLessonPrice(null);
+      setLowestLessonName("");
+    }
+  }, [lessons]);
 
   // New function for 'Contact Now' button click
   const handleContactClick = (event) => {
@@ -123,10 +164,22 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
             onMouseLeave={() => setIsPriceHovered(false)}
             style={{ minHeight: 40 }}
           >
-            <span className="font-bold text-base">{price.toFixed(2)} VND/h</span>
-            <span className="text-red-500 ml-2">
-              • Buổi học đầu tiên miễn phí
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sm">
+                {loadingLessons ? (
+                  <span className="text-gray-500">Đang tải...</span>
+                ) : lowestLessonPrice !== null ? (
+                  `${formatPriceWithCommas(lowestLessonPrice)} VND / 30 phút / 1 slot`
+                ) : (
+                  "Không có khóa học"
+                )}
+              </span>
+              {!loadingLessons && lowestLessonName && (
+                <span className="text-xs text-gray-600">
+                  {lowestLessonName}
+                </span>
+              )}
+            </div>
           </div>
         ) : (
           <button

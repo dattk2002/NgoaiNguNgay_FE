@@ -608,16 +608,16 @@ function AppWithNotifications() {
       } else if (notification.title === "PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST") {
         try {
           const additionalData = notification.additionalData ? JSON.parse(notification.additionalData) : {};
-          displayTitle = "Yêu cầu đặt lịch mới";
-          displayContent = `Bạn có yêu cầu đặt lịch mới cho bài học. Ngày bắt đầu dự kiến: ${new Date(additionalData.ExpectedStartDate).toLocaleDateString('vi-VN')}`;
+          displayTitle = "Đề xuất mới từ gia sư";
+          displayContent = `Bạn có đề xuất mới từ gia sư cho bài học. Ngày bắt đầu dự kiến: ${new Date(additionalData.ExpectedStartDate).toLocaleDateString('vi-VN')}`;
           priority = "Info";
         } catch (error) {
           console.error("Error parsing PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST data:", error);
-          displayTitle = "Yêu cầu đặt lịch mới";
-          displayContent = "Bạn có yêu cầu đặt lịch mới";
+          displayTitle = "Đề xuất mới từ gia sư";
+          displayContent = "Bạn có đề xuất mới từ gia sư";
           priority = "Info";
         }
-      } else if (notification.title === "Bạn có 1 yêu cầu đặt lịch mới") {
+      } else if (notification.title === "Bạn có 1 đề xuất mới từ gia sưi") {
         displayTitle = notification.title;
         displayContent = notification.content;
         priority = "Warning";

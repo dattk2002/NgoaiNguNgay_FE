@@ -39,6 +39,7 @@ import {
 } from '../../components/api/auth';
 import { formatLanguageCode } from '../../utils/formatLanguageCode';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
+import { FaCheck } from 'react-icons/fa';
 
 const StudentRequests = () => {
   const [learnerRequests, setLearnerRequests] = useState([]);
@@ -972,8 +973,8 @@ const StudentRequests = () => {
         maxWidth={false}
         PaperProps={{
           sx: {
-            width: '800px',
-            maxWidth: '90vw',
+            width: '1200px',
+            maxWidth: '120vw',
             minHeight: '400px',
             maxHeight: '80vh',
           }
@@ -982,93 +983,229 @@ const StudentRequests = () => {
       >
         <DialogTitle>Chọn bài học cho đề xuất</DialogTitle>
         <DialogContent sx={{ minHeight: '400px' }}>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
             Vui lòng chọn bài học bạn muốn đề xuất cho học viên trước khi chọn khung giờ:
           </Typography>
 
           {lessonsLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
               <CircularProgress />
             </Box>
           ) : availableLessons.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 3 }}>
-              <Alert severity="warning" sx={{ mb: 2 }}>
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Alert severity="warning" sx={{ mb: 3 }}>
                 Bạn chưa có bài học nào. Vui lòng tạo bài học trước khi gửi đề xuất.
               </Alert>
               <Button 
                 variant="contained" 
                 color="primary"
+                size="large"
                 onClick={() => {
-                  // Navigate to lesson creation page or open lesson creation modal
-                  window.location.href = '/tutor-management'; // Adjust this path as needed
+                  window.location.href = '/tutor-management';
                 }}
               >
                 Tạo bài học mới
               </Button>
             </Box>
           ) : (
-            <Autocomplete
-              options={availableLessons}
-              getOptionLabel={(option) => option.name || ''}
-              value={selectedLesson}
-              onChange={(event, newValue) => {
-                setSelectedLesson(newValue);
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Chọn bài học"
-                  variant="outlined"
-                  fullWidth
-                />
-              )}
-              renderOption={(props, option) => (
-                <Box component="li" {...props}>
-                  <Box>
-                    <Typography variant="subtitle1">{option.name}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {formatLanguageCode(option.languageCode)}
-                      {option.category && ` | ${option.category}`}
-                      {" | "}
-                      {typeof option.price === "number" ||
-                      typeof option.price === "string"
-                        ? formatPriceWithCommas(option.price)
-                        : "Không có"}{" "}
-                      VND
-                    </Typography>
+            <Box sx={{ maxHeight: 350, overflowY: "auto", pr: 1 }}>
+              {availableLessons.map((lesson) => (
+                <Box
+                  key={lesson.id}
+                  sx={{
+                    p: 3,
+                    mb: 2,
+                    border: selectedLesson?.id === lesson.id ? "2px solid #1976d2" : "1px solid #e0e0e0",
+                    borderRadius: 3,
+                    cursor: "pointer",
+                    backgroundColor: selectedLesson?.id === lesson.id ? "#f8fbff" : "#ffffff",
+                    transition: "all 0.3s ease",
+                    boxShadow: selectedLesson?.id === lesson.id ? "0 4px 12px rgba(25, 118, 210, 0.15)" : "0 2px 8px rgba(0, 0, 0, 0.08)",
+                    "&:hover": {
+                      backgroundColor: selectedLesson?.id === lesson.id ? "#f8fbff" : "#fafafa",
+                      borderColor: "#1976d2",
+                      boxShadow: "0 6px 16px rgba(0, 0, 0, 0.12)",
+                      transform: "translateY(-2px)",
+                    },
+                  }}
+                  onClick={() => setSelectedLesson(lesson)}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2 }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          fontWeight: 700, 
+                          mb: 1.5,
+                          color: selectedLesson?.id === lesson.id ? "#1976d2" : "#1a1a1a",
+                          fontSize: "1.1rem"
+                        }}
+                      >
+                        {lesson.name}
+                      </Typography>
+                      
+                      <Box sx={{ display: "flex", alignItems: "center", mb: 1.5, gap: 1 }}>
+                        <Box
+                          sx={{
+                            px: 1.5,
+                            py: 0.5,
+                            bgcolor: "#e3f2fd",
+                            borderRadius: 2,
+                            border: "1px solid #bbdefb"
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#1976d2", fontSize: "0.875rem" }}>
+                            {formatLanguageCode(lesson.languageCode)}
+                          </Typography>
+                        </Box>
+                        {lesson.category && (
+                          <Box
+                            sx={{
+                              px: 1.5,
+                              py: 0.5,
+                              bgcolor: "#f3e5f5",
+                              borderRadius: 2,
+                              border: "1px solid #e1bee7"
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#7b1fa2", fontSize: "0.875rem" }}>
+                              {lesson.category}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                      
+                      {lesson.description && (
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            mb: 2, 
+                            fontStyle: "italic", 
+                            color: "#666",
+                            lineHeight: 1.5,
+                            fontSize: "0.9rem"
+                          }}
+                        >
+                          {lesson.description}
+                        </Typography>
+                      )}
+                    </Box>
+                    
+                    <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                      <Typography 
+                        variant="h5" 
+                        color="primary" 
+                        sx={{ 
+                          fontWeight: 800,
+                          fontSize: "1.5rem",
+                          mb: 0.5
+                        }}
+                      >
+                        {typeof lesson.price === "number" ||
+                        typeof lesson.price === "string"
+                          ? formatPriceWithCommas(lesson.price)
+                          : "0"}{" "}
+                        <Typography component="span" variant="body2" sx={{ fontWeight: 400, fontSize: "0.875rem" }}>
+                          VND
+                        </Typography>
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.8rem" }}>
+                        / slot
+                      </Typography>
+                    </Box>
                   </Box>
+                  
+                  {selectedLesson?.id === lesson.id && (
+                    <Box 
+                      sx={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        mt: 2,
+                        pt: 2,
+                        borderTop: "1px solid #e3f2fd"
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          px: 2,
+                          py: 1,
+                          bgcolor: "#e8f5e8",
+                          borderRadius: 2,
+                          border: "1px solid #c8e6c9"
+                        }}
+                      >
+                        <FiCheck size={16} color="#2e7d32" />
+                        <Typography variant="body2" color="#2e7d32" sx={{ ml: 1, fontWeight: 600 }}>
+                          Đã chọn
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
-              )}
-              PopperComponent={(props) => (
-                <div {...props} style={{ ...props.style, zIndex: 9999 }} />
-              )}
-            />
+              ))}
+            </Box>
           )}
 
           {selectedLesson && (
-            <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+            <Box sx={{ 
+              mt: 4, 
+              p: 3, 
+              bgcolor: "#f8fbff", 
+              borderRadius: 3,
+              border: "2px solid #e3f2fd"
+            }}>
               <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: "bold", mb: 1 }}
+                variant="subtitle1"
+                sx={{ fontWeight: 700, mb: 2, color: "#1976d2" }}
               >
-                Bài học đã chọn:
+                ✓ Bài học đã chọn
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: "medium" }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: "#1a1a1a" }}>
                 {selectedLesson.name}
               </Typography>
-              <Typography variant="body2" color="textSecondary">
-                {formatLanguageCode(selectedLesson.languageCode)}
-                {selectedLesson.category && ` | ${selectedLesson.category}`}
-              </Typography>
-              <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 1 }}>
+                <Box
+                  sx={{
+                    px: 1.5,
+                    py: 0.5,
+                    bgcolor: "#e3f2fd",
+                    borderRadius: 2,
+                    border: "1px solid #bbdefb"
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#1976d2" }}>
+                    {formatLanguageCode(selectedLesson.languageCode)}
+                  </Typography>
+                </Box>
+                {selectedLesson.category && (
+                  <Box
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      bgcolor: "#f3e5f5",
+                      borderRadius: 2,
+                      border: "1px solid #e1bee7"
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#7b1fa2" }}>
+                      {selectedLesson.category}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+              <Typography variant="h5" color="primary" sx={{ fontWeight: 800, mb: 1 }}>
                 {typeof selectedLesson.price === "number" ||
                 typeof selectedLesson.price === "string"
                   ? formatPriceWithCommas(selectedLesson.price)
-                  : "Không có"}{" "}
-                VND
+                  : "0"}{" "}
+                <Typography component="span" variant="body2" sx={{ fontWeight: 400 }}>
+                  VND/slot
+                </Typography>
               </Typography>
               {selectedLesson.description && (
-                <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
+                <Typography variant="body2" sx={{ mt: 2, fontStyle: "italic", color: "#666", lineHeight: 1.5 }}>
                   {selectedLesson.description}
                 </Typography>
               )}
