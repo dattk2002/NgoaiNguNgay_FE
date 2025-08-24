@@ -228,10 +228,10 @@ const OfferManagement = () => {
                   {offer.offeredSlots && offer.offeredSlots.map((slot, index) => (
                     <div key={index} className="bg-gray-50 p-3 rounded-md">
                       <p className="text-sm font-medium text-black">
-                        Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.slotDateTime)}
+                        Slot {slot.slotIndex}
                       </p>
                       <p className="text-xs text-gray-600">
-                                                 {formatSlotDateTimeFromTimestamp(slot.slotDateTime)}
+                        {formatSlotDateTimeFromTimestamp(slot.slotDateTime)}
                       </p>
                     </div>
                   ))}

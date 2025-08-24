@@ -28,7 +28,7 @@ import {
   Card,
   CardContent,
   Divider,
-  CircularProgress,
+
   Alert,
   Rating,
   Accordion,
@@ -80,6 +80,7 @@ import {
   deleteDocument,
   fetchTutorWeeklyPatternDetailByPatternId,
   fetchWeeklyPatternBlockedSlotsByPatternId,
+  fetchTutorScheduleToOfferAndBook,
   fetchTutorBookingConfigByTutorId,
   updateTutorBookingConfig,
   uploadTutorIntroductionVideo,
@@ -1105,6 +1106,7 @@ const TutorProfile = ({
   const [selectedPatternDetail, setSelectedPatternDetail] = useState(null);
   const [patternDetailLoading, setPatternDetailLoading] = useState(false);
   const [patternDetailError, setPatternDetailError] = useState(null);
+  const [patternDetailWeekStart, setPatternDetailWeekStart] = useState(new Date());
 
   const handlePrevWeek = () => {
     setCurrentWeekStart((prev) => {
@@ -2045,41 +2047,41 @@ const TutorProfile = ({
     });
   };
 
-  // Update the isSlotActiveInAnyPattern function to convert 30-min slots to 1-hour slots
+  // Simple function to check if a slot is active in any pattern
   const isSlotActiveInAnyPattern = (dayInWeek, slotIndex) => {
     if (!allPatternDetails || allPatternDetails.length === 0) return false;
 
     // Get patterns that apply to the current week
     const patternsForWeek = getPatternsForWeek(currentWeekStart);
 
-    // Convert 30-minute slot index to 1-hour slot index
-    const hourSlotIndex = Math.floor(slotIndex / 2);
-
     // Check if this slot is active in any pattern for this week
     return patternsForWeek.some((pattern) => {
       if (!pattern.detail || !pattern.detail.slots) return false;
 
       return pattern.detail.slots.some(
-        (slot) => slot.dayInWeek === dayInWeek && slot.slotIndex === hourSlotIndex
+        (slot) => {
+          // Use slotIndex directly since API returns 30-minute slot indices
+          return slot.dayInWeek === dayInWeek && slot.slotIndex === slotIndex;
+        }
       );
     });
   };
 
-  // Update the getPatternInfoForSlot function similarly
+  // Simple function to get pattern info for a slot
   const getPatternInfoForSlot = (dayInWeek, slotIndex) => {
     if (!allPatternDetails || allPatternDetails.length === 0) return null;
 
     // Get patterns that apply to the current week
     const patternsForWeek = getPatternsForWeek(currentWeekStart);
 
-    // Convert 30-minute slot index to 1-hour slot index
-    const hourSlotIndex = Math.floor(slotIndex / 2);
-
     const activePatterns = patternsForWeek.filter((pattern) => {
       if (!pattern.detail || !pattern.detail.slots) return false;
 
       return pattern.detail.slots.some(
-        (slot) => slot.dayInWeek === dayInWeek && slot.slotIndex === hourSlotIndex
+        (slot) => {
+          // Use slotIndex directly since API returns 30-minute slot indices
+          return slot.dayInWeek === dayInWeek && slot.slotIndex === slotIndex;
+        }
       );
     });
 
@@ -2090,6 +2092,8 @@ const TutorProfile = ({
   const getCurrentWeekInfo = () => {
     return getWeekDates(currentWeekStart);
   };
+
+
 
   // Calendar input for appliedFrom
   const [calendarInputDialogOpen, setCalendarInputDialogOpen] = useState(false);
@@ -2131,6 +2135,11 @@ const TutorProfile = ({
           ...pattern,
           detail: patternDetail // patternDetail is already the data object
         });
+        
+        // Set the week start to the pattern's appliedFrom date
+        const appliedFromDate = new Date(pattern.appliedFrom);
+        const weekStart = getWeekRange(appliedFromDate).monday;
+        setPatternDetailWeekStart(weekStart);
       } else {
         throw new Error("No pattern detail data received");
       }
@@ -2147,6 +2156,81 @@ const TutorProfile = ({
     setPatternDetailDialogOpen(false);
     setSelectedPatternDetail(null);
     setPatternDetailError(null);
+    setPatternDetailWeekStart(new Date());
+  };
+  
+  // Add navigation functions for pattern detail dialog
+  const handlePatternDetailPrevWeek = () => {
+    setPatternDetailWeekStart((prev) => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() - 7);
+      newDate.setHours(0, 0, 0, 0);
+
+      // Check if we're trying to go before the pattern's start date
+      if (selectedPatternDetail && selectedPatternDetail.appliedFrom) {
+        const patternStartDate = new Date(selectedPatternDetail.appliedFrom);
+        patternStartDate.setHours(0, 0, 0, 0);
+        
+        if (newDate < patternStartDate) {
+          return prev; // Don't allow going before pattern start date
+        }
+      }
+
+      return newDate;
+    });
+  };
+
+  const handlePatternDetailNextWeek = () => {
+    setPatternDetailWeekStart((prev) => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + 7);
+      newDate.setHours(0, 0, 0, 0);
+      
+      // Check if we're trying to go after the pattern's end date
+      if (selectedPatternDetail && selectedPatternDetail.endDate) {
+        const patternEndDate = new Date(selectedPatternDetail.endDate);
+        patternEndDate.setHours(23, 59, 59, 999);
+        
+        if (newDate > patternEndDate) {
+          return prev; // Don't allow going after pattern end date
+        }
+      }
+      
+      return newDate;
+    });
+  };
+  
+  // Add helper functions for pattern detail navigation
+  const canNavigatePatternDetailToPast = () => {
+    if (!selectedPatternDetail) return false;
+    
+    // Kiểm tra xem có thể navigate về trước không (không vượt quá ngày bắt đầu)
+    if (selectedPatternDetail.appliedFrom) {
+      const patternStartDate = new Date(selectedPatternDetail.appliedFrom);
+      patternStartDate.setHours(0, 0, 0, 0);
+      return patternDetailWeekStart > patternStartDate;
+    }
+    
+    return false;
+  };
+  
+  const canNavigatePatternDetailToFuture = () => {
+    if (!selectedPatternDetail) return false;
+    
+    // Kiểm tra xem có thể navigate về sau không (không vượt quá ngày kết thúc)
+    if (selectedPatternDetail.endDate) {
+      const patternEndDate = new Date(selectedPatternDetail.endDate);
+      patternEndDate.setHours(23, 59, 59, 999);
+      
+      const nextWeekStart = new Date(patternDetailWeekStart);
+      nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+      nextWeekStart.setHours(0, 0, 0, 0);
+      
+      return nextWeekStart <= patternEndDate;
+    }
+    
+    // Nếu không có endDate, luôn cho phép navigate về tương lai
+    return true;
   };
 
   // Update the renderPatternDetailCalendar function to match the main calendar layout
@@ -2165,9 +2249,8 @@ const TutorProfile = ({
       slotMap[slot.dayInWeek].add(slot.slotIndex);
     });
 
-    // Get week dates for display - starting from the pattern's appliedFrom date
-    const weekStart = new Date(pattern.appliedFrom);
-    const weekDates = getWeekDates(weekStart);
+    // Get week dates for display - using the current patternDetailWeekStart
+    const weekDates = getWeekDates(patternDetailWeekStart);
     
     // Day order for the calendar (Monday = 2, Tuesday = 3, ..., Sunday = 1)
     const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // 2=Monday, 3=Tuesday, ..., 1=Sunday
@@ -2199,6 +2282,7 @@ const TutorProfile = ({
 
     // Helper function to check if a slot is available
     const isSlotAvailable = (dayInWeek, slotIndex) => {
+      // Use slotIndex directly since API returns 30-minute slot indices
       return slotMap[dayInWeek] && slotMap[dayInWeek].has(slotIndex);
     };
 
@@ -2650,10 +2734,13 @@ const TutorProfile = ({
       setEditPatternSlots(slotMap);
       
       // Set blocked slots - fix the data structure
+      console.log("🔍 Blocked slots response:", blockedSlotsResponse);
       if (blockedSlotsResponse && blockedSlotsResponse.data) {
         // The response.data is directly an array, not data.items
+        console.log("📋 Setting blocked slots:", blockedSlotsResponse.data);
         setEditPatternBlockedSlots(blockedSlotsResponse.data || []);
       } else {
+        console.log("❌ No blocked slots data");
         setEditPatternBlockedSlots([]);
       }
       
@@ -2700,10 +2787,14 @@ const TutorProfile = ({
       newDate.setDate(newDate.getDate() - 7);
       newDate.setHours(0, 0, 0, 0);
 
-      // Check if we're trying to go before current week
-      const currentWeek = getWeekRange().monday;
-      if (newDate < currentWeek) {
-        return prev; // Don't allow going before current week
+      // Check if we're trying to go before the pattern's start date
+      if (editingPattern && editingPattern.appliedFrom) {
+        const patternStartDate = new Date(editingPattern.appliedFrom);
+        patternStartDate.setHours(0, 0, 0, 0);
+        
+        if (newDate < patternStartDate) {
+          return prev; // Don't allow going before pattern start date
+        }
       }
 
       return newDate;
@@ -2715,10 +2806,62 @@ const TutorProfile = ({
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() + 7);
       newDate.setHours(0, 0, 0, 0);
+      
+      // Check if we're trying to go after the pattern's end date
+      if (editingPattern && editingPattern.endDate) {
+        const patternEndDate = new Date(editingPattern.endDate);
+        patternEndDate.setHours(23, 59, 59, 999);
+        
+        if (newDate > patternEndDate) {
+          return prev; // Don't allow going after pattern end date
+        }
+      }
+      
       return newDate;
     });
   };
 
+  const canNavigatePattern = () => {
+    if (!editingPattern) return false;
+    
+    // Luôn cho phép navigate trong phạm vi của pattern
+    return true;
+  };
+  
+  // Thêm hàm helper để kiểm tra có thể navigate về quá khứ hay không
+  const canNavigateToPast = () => {
+    if (!editingPattern) return false;
+    
+    // Kiểm tra xem có thể navigate về trước không (không vượt quá ngày bắt đầu)
+    if (editingPattern.appliedFrom) {
+      const patternStartDate = new Date(editingPattern.appliedFrom);
+      patternStartDate.setHours(0, 0, 0, 0);
+      return editPatternWeekStart > patternStartDate;
+    }
+    
+    return false;
+  };
+  
+  // Thêm hàm helper để kiểm tra có thể navigate về tương lai hay không
+  const canNavigateToFuture = () => {
+    if (!editingPattern) return false;
+    
+    // Kiểm tra xem có thể navigate về sau không (không vượt quá ngày kết thúc)
+    if (editingPattern.endDate) {
+      const patternEndDate = new Date(editingPattern.endDate);
+      patternEndDate.setHours(23, 59, 59, 999);
+      
+      const nextWeekStart = new Date(editPatternWeekStart);
+      nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+      nextWeekStart.setHours(0, 0, 0, 0);
+      
+      return nextWeekStart <= patternEndDate;
+    }
+    
+    // Nếu không có endDate, luôn cho phép navigate về tương lai
+    return true;
+  };
+  
   // Add function to get selected slots count for edit dialog
   const getEditSelectedSlotsCount = () => {
     let count = 0;
@@ -2848,11 +2991,19 @@ const TutorProfile = ({
     }
   };
 
+
+
   // Add after the handleEditPattern function (around line 2640)
   const isSlotBlocked = (dayInWeek, slotIndex) => {
-    return editPatternBlockedSlots.some(blockedSlot => 
+    const isBlocked = editPatternBlockedSlots.some(blockedSlot => 
       blockedSlot.dayInWeek === dayInWeek && blockedSlot.slotIndex === slotIndex
     );
+    
+    if (isBlocked) {
+      console.log(`🚫 Slot blocked: Day ${dayInWeek}, Slot ${slotIndex}`);
+    }
+    
+    return isBlocked;
   };
 
   // Add new state variables for booking configuration
@@ -3572,6 +3723,8 @@ const TutorProfile = ({
                                         dayInWeek,
                                         slotIdx
                                       );
+                                      
+
 
                                       return (
                                         <Tooltip
@@ -4277,7 +4430,7 @@ const TutorProfile = ({
                           >
                             {bookingConfigLoading ? (
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <CircularProgress size={16} color="inherit" />
+                                <Box sx={{ width: 16, height: 16, backgroundColor: "currentColor", borderRadius: "50%", opacity: 0.7 }} />
                                 Đang cập nhật...
                               </Box>
                             ) : (
@@ -4688,7 +4841,7 @@ const TutorProfile = ({
                             <Table>
                               <TableHead>
                                 <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-                                  <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
+                                  <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>STT</TableCell>
                                   <TableCell sx={{ fontWeight: 600 }}>Ngày bắt đầu áp dụng</TableCell>
                                   <TableCell sx={{ fontWeight: 600 }}>Ngày kết thúc</TableCell>
                                   <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
@@ -4698,7 +4851,7 @@ const TutorProfile = ({
                               <TableBody>
                                 {weeklyPatternsList.length === 0 ? (
                                   <TableRow>
-                                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
+                                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                                       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", color: "#64748b" }}>
                                         <Box sx={{ width: "64px", height: "64px", mb: 2, opacity: 0.5 }}>
                                           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -4711,10 +4864,11 @@ const TutorProfile = ({
                                     </TableCell>
                                   </TableRow>
                                 ) : (
-                                  weeklyPatternsList.map((pattern) => (
+                                  weeklyPatternsList.map((pattern, index) => (
                                     <TableRow
                                       key={pattern.id}
                                       hover
+                                      onClick={() => handlePatternRowClick(pattern)}
                                       sx={{
                                         cursor: "pointer",
                                         "&:hover": {
@@ -4723,8 +4877,8 @@ const TutorProfile = ({
                                         transition: "background-color 0.2s ease",
                                       }}
                                     >
-                                      <TableCell sx={{ fontWeight: 500, fontFamily: "monospace" }}>
-                                        {pattern.id.substring(0, 8)}...
+                                      <TableCell sx={{ fontWeight: 500, textAlign: "center" }}>
+                                        {index + 1}
                                       </TableCell>
                                       <TableCell>
                                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -4746,61 +4900,50 @@ const TutorProfile = ({
                                       </TableCell>
                                       <TableCell>
                                         <Box sx={{ display: "flex", gap: 1 }}>
-                                          <IconButton
-                                            size="small"
-                                            onClick={(e) => {
-                                              e.stopPropagation(); // Prevent row click
-                                              handlePatternRowClick(pattern);
-                                            }}
-                                            sx={{
-                                              color: "#3b82f6",
-                                              "&:hover": {
-                                                backgroundColor: "rgba(59, 130, 246, 0.1)",
-                                              },
-                                            }}
-                                            title="Xem chi tiết"
-                                          >
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                          </IconButton>
-                                          <IconButton
+                                          <Button
                                             size="small"
                                             onClick={(e) => {
                                               e.stopPropagation(); // Prevent row click
                                               handleEditPattern(pattern);
                                             }}
                                             sx={{
-                                              color: "#f59e0b",
+                                              color: "#e65100",
+                                              backgroundColor: "#fff3e0",
+                                              textTransform: "none",
+                                              fontWeight: 600,
+                                              fontSize: "0.75rem",
+                                              px: 2,
+                                              py: 0.5,
+                                              borderRadius: 1,
                                               "&:hover": {
-                                                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                                                backgroundColor: "#ffe0b2",
                                               },
                                             }}
-                                            title="Chỉnh sửa"
                                           >
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                          </IconButton>
-                                          <IconButton
+                                            Sửa
+                                          </Button>
+                                          <Button
                                             size="small"
                                             onClick={(e) => {
                                               e.stopPropagation(); // Prevent row click
                                               handleDeletePattern(pattern);
                                             }}
                                             sx={{
-                                              color: "#ef4444",
+                                              color: "#b71c1c",
+                                              backgroundColor: "#ffebee",
+                                              textTransform: "none",
+                                              fontWeight: 600,
+                                              fontSize: "0.75rem",
+                                              px: 2,
+                                              py: 0.5,
+                                              borderRadius: 1,
                                               "&:hover": {
-                                                backgroundColor: "rgba(239, 68, 68, 0.1)",
+                                                backgroundColor: "#ffcdd2",
                                               },
                                             }}
-                                            title="Xóa"
                                           >
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                          </IconButton>
+                                            Xóa
+                                          </Button>
                                         </Box>
                                       </TableCell>
                                     </TableRow>
@@ -4892,7 +5035,7 @@ const TutorProfile = ({
                             disabled={videoUploading || !videoForm.url.trim()}
                             startIcon={
                               videoUploading ? (
-                                <CircularProgress size={16} color="inherit" />
+                                <Box sx={{ width: 16, height: 16, backgroundColor: "currentColor", borderRadius: "50%", opacity: 0.7 }} />
                               ) : (
                                 <Box sx={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center"}}>
                                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -4910,8 +5053,19 @@ const TutorProfile = ({
                       {/* Videos List */}
                       <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" }}>
                         {videoLoading ? (
-                          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                            <CircularProgress />
+                          <Box sx={{ p: 2 }}>
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                              {[1, 2, 3].map((index) => (
+                                <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 2, p: 2, border: "1px solid #e2e8f0", borderRadius: 1 }}>
+                                  <Box sx={{ width: 20, height: 20, backgroundColor: "#e2e8f0", borderRadius: "50%" }} />
+                                  <Box sx={{ flex: 1 }}>
+                                    <Box sx={{ width: "60%", height: 16, backgroundColor: "#e2e8f0", borderRadius: 1, mb: 1 }} />
+                                    <Box sx={{ width: "30%", height: 12, backgroundColor: "#e2e8f0", borderRadius: 1 }} />
+                                  </Box>
+                                  <Box sx={{ width: 24, height: 24, backgroundColor: "#e2e8f0", borderRadius: 1 }} />
+                                </Box>
+                              ))}
+                            </Box>
                           </Box>
                         ) : videoError ? (
                           <Alert severity="error" sx={{ mb: 2 }}>{videoError}</Alert>
@@ -5312,7 +5466,20 @@ const TutorProfile = ({
                   Ngày bắt đầu áp dụng:
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                  {formatDate(editingPattern.appliedFrom)}
+                  {/* Convert UTC+7 to UTC+0 for display */}
+                  {(() => {
+                    const utc0Date = convertUTC7ToUTC0(editingPattern.appliedFrom);
+                    if (utc0Date) {
+                      return utc0Date.toLocaleDateString("vi-VN", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                    }
+                    return formatDate(editingPattern.appliedFrom);
+                  })()}
                 </Typography>
               </Box>
             )}
@@ -5320,7 +5487,7 @@ const TutorProfile = ({
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <IconButton
-              disabled={true}
+              disabled={!canNavigatePattern() || !canNavigateToPast()}
               onClick={handleEditPatternPrevWeek}
               sx={{
                 color: "primary.main",
@@ -5341,7 +5508,7 @@ const TutorProfile = ({
               })()}
             </Typography>
             <IconButton
-              disabled={true}
+              disabled={!canNavigatePattern() || !canNavigateToFuture()}
               onClick={handleEditPatternNextWeek}
               sx={{
                 color: "primary.main",
@@ -5357,8 +5524,24 @@ const TutorProfile = ({
         </DialogTitle>
         <DialogContent>
           {editPatternLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-              <CircularProgress />
+            <Box sx={{ p: 2 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: "140px repeat(7, 1fr)", minWidth: "900px", gap: 1 }}>
+                {/* Header skeleton */}
+                <Box sx={{ p: 1.5, backgroundColor: "#e2e8f0", borderRadius: 1, height: 40 }} />
+                {[1, 2, 3, 4, 5, 6, 7].map((index) => (
+                  <Box key={index} sx={{ p: 1.5, backgroundColor: "#e2e8f0", borderRadius: 1, height: 40 }} />
+                ))}
+                
+                {/* Time slots skeleton */}
+                {Array.from({ length: 48 }).map((_, slotIdx) => (
+                  <React.Fragment key={slotIdx}>
+                    <Box sx={{ p: 1, backgroundColor: "#e2e8f0", borderRadius: 1, height: 32 }} />
+                    {[1, 2, 3, 4, 5, 6, 7].map((dayIdx) => (
+                      <Box key={dayIdx} sx={{ p: 1, backgroundColor: "#e2e8f0", borderRadius: 1, height: 32 }} />
+                    ))}
+                  </React.Fragment>
+                ))}
+              </Box>
             </Box>
           ) : (
             <Box sx={{ display: "flex", gap: 3, height: "100%" }}>
@@ -6544,134 +6727,6 @@ const TutorProfile = ({
         confirmColor="error"
       />
 
-      <Dialog
-        open={lessonSelectionDialogOpen}
-        onClose={() => {
-          setLessonSelectionDialogOpen(false);
-          setSelectedLesson(null);
-          setSelectedLearner(null);
-          setLearnerLessonDetails(null);
-          setBookingDetailDialogOpen(false);
-        }}
-        maxWidth={false} // Remove width constraint
-        PaperProps={{
-          sx: {
-            width: "800px", // Set custom width
-            maxWidth: "90vw", // Don't exceed 90% of viewport width
-            minHeight: "400px", // Set minimum height
-            maxHeight: "80vh", // Don't exceed 80% of viewport height
-          },
-        }}
-        style={{ zIndex: 1500 }}
-      >
-        <DialogTitle>Chọn bài học cho đề xuất</DialogTitle>
-        <DialogContent sx={{ minHeight: "400px" }}>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Vui lòng chọn bài học bạn muốn đề xuất cho học viên trước khi chọn
-            khung giờ:
-          </Typography>
-
-          {lessonsLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-              <CircularProgress />
-            </Box>
-          ) : availableLessons.length === 0 ? (
-            <Alert severity="warning">
-              Bạn chưa có bài học nào. Vui lòng tạo bài học trước khi gửi đề
-              xuất.
-            </Alert>
-          ) : (
-            <Autocomplete
-              options={availableLessons}
-              getOptionLabel={(option) => option.name || ""}
-              value={selectedLesson}
-              onChange={(event, newValue) => {
-                setSelectedLesson(newValue);
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Chọn bài học"
-                  variant="outlined"
-                  fullWidth
-                />
-              )}
-              renderOption={(props, option) => (
-                <Box component="li" {...props}>
-                  <Box>
-                    <Typography variant="subtitle1">{option.name}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {formatLanguageCode(option.languageCode)}
-                      {option.category && ` | ${option.category}`}
-                      {" | "}
-                      {typeof option.price === "number" ||
-                      typeof option.price === "string"
-                        ? formatPriceWithCommas(option.price)
-                        : "Không có"}{" "}
-                      VND
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-              PopperComponent={(props) => (
-                <div {...props} style={{ ...props.style, zIndex: 9999 }} />
-              )}
-            />
-          )}
-
-          {selectedLesson && (
-            <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: "bold", mb: 1 }}
-              >
-                Bài học đã chọn:
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: "medium" }}>
-                {selectedLesson.name}
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                {formatLanguageCode(selectedLesson.languageCode)}
-                {selectedLesson.category && ` | ${selectedLesson.category}`}
-              </Typography>
-              <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
-                {typeof selectedLesson.price === "number" ||
-                typeof selectedLesson.price === "string"
-                  ? formatPriceWithCommas(selectedLesson.price)
-                  : "Không có"}{" "}
-                VND
-              </Typography>
-              {selectedLesson.description && (
-                <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
-                  {selectedLesson.description}
-                </Typography>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setLessonSelectionDialogOpen(false);
-              setSelectedLesson(null);
-              setSelectedLearner(null); // Also clear selected learner
-              setLearnerLessonDetails(null); // Clear learner lesson details
-              // Also close the booking detail dialog if lesson selection is cancelled
-              setBookingDetailDialogOpen(false);
-            }}
-          >
-            Hủy
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleLessonSelected} // Use new handler
-            disabled={!selectedLesson || availableLessons.length === 0}
-          >
-            Tiếp tục chọn khung giờ
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -7216,17 +7271,53 @@ const TutorProfile = ({
                 Xem chi tiết các khung giờ có sẵn trong lịch trình này
               </Typography>
             </Box>
-            <IconButton
-              onClick={handleClosePatternDetailDialog}
-              sx={{ 
-                color: "#64748b",
-                "&:hover": {
-                  backgroundColor: "#f1f5f9",
-                }
-              }}
-            >
-              <FiX />
-            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <IconButton
+                disabled={!canNavigatePatternDetailToPast()}
+                onClick={handlePatternDetailPrevWeek}
+                sx={{
+                  color: "primary.main",
+                  "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
+                  "&.Mui-disabled": {
+                    color: "rgba(0, 0, 0, 0.26)",
+                  }
+                }}
+              >
+                <FiChevronLeft />
+              </IconButton>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {(() => {
+                  const startDate = new Date(patternDetailWeekStart);
+                  const endDate = new Date(patternDetailWeekStart);
+                  endDate.setDate(endDate.getDate() + 6);
+                  return formatDateRange(startDate, endDate);
+                })()}
+              </Typography>
+              <IconButton
+                disabled={!canNavigatePatternDetailToFuture()}
+                onClick={handlePatternDetailNextWeek}
+                sx={{
+                  color: "primary.main",
+                  "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
+                  "&.Mui-disabled": {
+                    color: "rgba(0, 0, 0, 0.26)",
+                  }
+                }}
+              >
+                <FiChevronRight />
+              </IconButton>
+              <IconButton
+                onClick={handleClosePatternDetailDialog}
+                sx={{ 
+                  color: "#64748b",
+                  "&:hover": {
+                    backgroundColor: "#f1f5f9",
+                  }
+                }}
+              >
+                <FiX />
+              </IconButton>
+            </Box>
           </Box>
         </DialogTitle>
         

@@ -4338,3 +4338,230 @@ export async function reviewTutorIntroductionVideo(reviewData) {
     throw error;
   }
 }
+
+/**
+ * Fetch learner booking list with pagination
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Number of items per page (default: 10)
+ * @returns {Promise<Object>} API response with booking list data including pagination info
+ */
+export async function learnerBookingList(page = 1, pageSize = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate parameters
+    if (page < 1) {
+      throw new Error("Page number must be greater than 0");
+    }
+    if (pageSize < 1 || pageSize > 100) {
+      throw new Error("Page size must be between 1 and 100");
+    }
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString()
+    });
+
+    const url = `/api/booking/learner?${params.toString()}`;
+    console.log("🔍 Calling learner booking list API:", url);
+    console.log("🔍 Parameters:", { page, pageSize });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Learner booking list fetched successfully:", response);
+      return response; // Return the entire response object with pagination data
+    } else {
+      console.error("Invalid API response format for learnerBookingList:", response);
+      throw new Error("API response did not contain expected booking list data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch learner booking list:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch tutor booking list with pagination and booking type filter
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Number of items per page (default: 10)
+ * @param {number} bookingType - Booking type filter: 0=All, 1=Instant, 2=Offer (default: 0)
+ * @returns {Promise<Object>} API response with booking list data including pagination info and booking type metadata
+ */
+export async function tutorBookingList(page = 1, pageSize = 10, bookingType = 0) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate parameters
+    if (page < 1) {
+      throw new Error("Page number must be greater than 0");
+    }
+    if (pageSize < 1 || pageSize > 100) {
+      throw new Error("Page size must be between 1 and 100");
+    }
+    if (![0, 1, 2].includes(bookingType)) {
+      throw new Error("Booking type must be 0 (All), 1 (Instant), or 2 (Offer)");
+    }
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+      bookingType: bookingType.toString()
+    });
+
+    const url = `/api/booking/tutor?${params.toString()}`;
+    console.log("🔍 Calling tutor booking list API:", url);
+    console.log("🔍 Parameters:", { page, pageSize, bookingType });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Tutor booking list fetched successfully:", response);
+      return response; // Return the entire response object with pagination data and booking type metadata
+    } else {
+      console.error("Invalid API response format for tutorBookingList:", response);
+      throw new Error("API response did not contain expected booking list data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch tutor booking list:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch booking detail by booking ID
+ * @param {string} bookingId - The booking ID to fetch details for
+ * @returns {Promise<Object>} API response with detailed booking information
+ */
+export async function fetchBookingDetailbyBookingId(bookingId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate booking ID
+    if (!bookingId || !bookingId.trim()) {
+      throw new Error("Booking ID is required");
+    }
+
+    const url = `/api/booking/${bookingId}`;
+    console.log("🔍 Calling booking detail API:", url);
+    console.log("🔍 Booking ID:", bookingId);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Booking detail fetched successfully:", response);
+      return response; // Return the entire response object with booking detail data
+    } else {
+      console.error("Invalid API response format for fetchBookingDetailbyBookingId:", response);
+      throw new Error("API response did not contain expected booking detail data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch booking detail:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Cancel a learner booking by booking ID
+ * @param {string} bookingId - The booking ID to cancel
+ * @param {string} reason - The reason for cancellation
+ * @returns {Promise<Object>} API response
+ */
+export async function learnerCancelBookingByBookingId(bookingId, reason) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate booking ID
+    if (!bookingId || !bookingId.trim()) {
+      throw new Error("Booking ID is required");
+    }
+
+    // Validate reason
+    if (!reason || !reason.trim()) {
+      throw new Error("Cancellation reason is required");
+    }
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      reason: reason
+    });
+
+    const url = `/api/learner-bookings/bookings/${bookingId}/cancel?${params.toString()}`;
+    console.log("🔍 Calling cancel booking API:", url);
+    console.log("🔍 Booking ID:", bookingId);
+    console.log("🔍 Reason:", reason);
+    
+    const response = await callApi(url, "POST", null, token);
+
+    if (response) {
+      console.log("✅ Booking cancelled successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for booking cancellation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to cancel booking:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Cancel a tutor booking by booking ID
+ * @param {string} bookingId - The booking ID to cancel
+ * @param {string} reason - The reason for cancellation
+ * @returns {Promise<Object>} API response
+ */
+export async function tutorCancelBookingByBookingId(bookingId, reason) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate booking ID
+    if (!bookingId || !bookingId.trim()) {
+      throw new Error("Booking ID is required");
+    }
+
+    // Validate reason
+    if (!reason || !reason.trim()) {
+      throw new Error("Cancellation reason is required");
+    }
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      reason: reason
+    });
+
+    const url = `/api/tutor-bookings/bookings/${bookingId}/cancel?${params.toString()}`;
+    console.log("🔍 Calling tutor cancel booking API:", url);
+    console.log("🔍 Booking ID:", bookingId);
+    console.log("🔍 Reason:", reason);
+    
+    const response = await callApi(url, "POST", null, token);
+
+    if (response) {
+      console.log("✅ Tutor booking cancelled successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for tutor booking cancellation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to cancel tutor booking:", error.message);
+    throw error;
+  }
+}

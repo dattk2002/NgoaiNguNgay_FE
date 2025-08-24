@@ -519,28 +519,6 @@ function ChangePasswordPage() {
               </Button>
             </Box>
           )}
-
-          {/* Footer */}
-          <Box sx={{ mt: 5, textAlign: 'center' }}>
-            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem' }}>
-              Nhớ mật khẩu?{" "}
-              <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
-                <Typography
-                  component="span"
-                  variant="body1"
-                  sx={{ 
-                    color: 'primary.main', 
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    '&:hover': { color: 'primary.dark' }
-                  }}
-                >
-                  Đăng nhập
-                </Typography>
-              </Link>
-            </Typography>
-          </Box>
         </CardContent>
       </Card>
     </Box>

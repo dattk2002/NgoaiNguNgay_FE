@@ -269,15 +269,22 @@ const TutorCard = memo(
             </p>
             {/* Price, Availability & Actions */}
             <div className="flex items-center justify-between mt-2">
-              <span className="text-[#333333] font-semibold">
-                {loadingLessons ? (
-                  <span className="text-gray-500">Đang tải...</span>
-                ) : lowestLessonPrice !== null ? (
-                  `${formatPriceWithCommas(lowestLessonPrice)} VND / ${lowestLessonName}`
-                ) : (
-                  "Không có khóa học"
+              <div className="flex flex-col">
+                <span className="text-[#333333] font-semibold">
+                  {loadingLessons ? (
+                    <span className="text-gray-500">Đang tải...</span>
+                  ) : lowestLessonPrice !== null ? (
+                    `${formatPriceWithCommas(lowestLessonPrice)} VND / 30 phút / 1 slot`
+                  ) : (
+                    "Không có khóa học"
+                  )}
+                </span>
+                {!loadingLessons && lowestLessonName && (
+                  <span className="text-sm text-gray-600 mt-1">
+                    {lowestLessonName}
+                  </span>
                 )}
-              </span>
+              </div>
               <span className="text-md text-green-600">
                 Lịch rảnh của gia sư: {availabilityText}
               </span>

@@ -13,7 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { fetchTutorBookings, fetchBookingDetail, completeBookedSlot } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from '../../utils/formatCentralTimestamp';
-import { formatSlotDateTime, calculateUTC7SlotIndex } from '../../utils/formatSlotTime';
+import { formatSlotDateTime, calculateUTC7SlotIndex, formatSlotDateTimeUTC0 } from '../../utils/formatSlotTime';
 
 
 // Skeleton Component for Booking Items
@@ -106,7 +106,7 @@ const getSlotStatusInfo = (status) => {
     case 0: // Pending
       return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
     case 1: // AwaitingConfirmation  
-      return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
+      return { text: 'Hoàn thành, đợi 24h', color: 'bg-blue-100 text-blue-700' };
     case 2: // Completed
       return { text: 'Đã hoàn thành', color: 'bg-green-100 text-green-700' };
     case 3: // Cancelled
@@ -198,6 +198,8 @@ const ScheduleTracking = () => {
 
   useEffect(() => {
     loadBookings();
+    // Test toast to verify it's working
+    // toast.info("ScheduleTracking component loaded");
   }, []);
 
   const loadBookings = async (page = 1) => {
@@ -361,19 +363,18 @@ const ScheduleTracking = () => {
       
       await completeBookedSlot(bookedSlotId);
       
-      // Refresh booking detail to get updated status
-      if (selectedBooking) {
-        const updatedDetail = await fetchBookingDetail(selectedBooking.id);
-        // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
-        const convertedDetail = convertBookingDetailToUTC7(updatedDetail);
-        setBookingDetail(convertedDetail);
-      }
+      // Close the modal first
+      closeDetailModal();
       
-      // Also refresh the main bookings list and statuses
-      loadBookings(pagination.pageIndex);
+      // Then refresh the main bookings list and statuses
+      await loadBookings(pagination.pageIndex);
       
-      // Show success message
-      toast.success("Slot đã được hoàn thành thành công!");
+      // Finally show success message with a small delay to ensure modal is closed
+      console.log("About to show success toast");
+      setTimeout(() => {
+        console.log("Showing success toast now");
+        toast.success("Slot đã được hoàn thành thành công!");
+      }, 100);
       
     } catch (error) {
       console.error("Error completing slot:", error);
@@ -401,8 +402,10 @@ const ScheduleTracking = () => {
           <h2 className="text-2xl font-bold text-gray-900">Khóa học đã được đặt</h2>
           <p className="text-gray-600 mt-1">Quản lý các khóa học mà học viên đã đặt</p>
         </div>
-        <div className="text-sm text-gray-500">
-          Tổng cộng: {pagination.totalItems} khóa học
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-500">
+            Tổng cộng: {pagination.totalItems} khóa học
+          </div>
         </div>
       </div>
 
@@ -682,8 +685,8 @@ const ScheduleTracking = () => {
                           <p className="text-gray-700">Buổi đầu tiên:</p>
                           <p className="font-medium text-gray-900">
                             {bookingDetail?.bookedSlots && bookingDetail.bookedSlots.length > 0 
-                              ? formatSlotDateTime(
-                                  bookingDetail.bookedSlots[0].slotIndex - 1, 
+                              ? formatSlotDateTimeUTC0(
+                                  bookingDetail.bookedSlots[0].slotIndex, 
                                   bookingDetail.bookedSlots[0].bookedDate
                                 )
                               : formatUTC0ToUTC7(selectedBooking?.earliestBookedDate)
@@ -711,12 +714,12 @@ const ScheduleTracking = () => {
                                     </div>
                                     <div>
                                       <p className="font-medium text-gray-900">
-                                        Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
+                                        Slot {slot.slotIndex}
                                       </p>
                                       <div className="flex items-center gap-4 text-sm text-gray-600">
                                         <span className="flex items-center gap-1">
                                           <FaCalendarAlt className="w-3 h-3" />
-                                          {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
+                                          {formatSlotDateTimeUTC0(slot.slotIndex, slot.bookedDate)}
                                         </span>
                                         {slot.slotNote && (
                                           <span className="text-xs text-gray-500">
@@ -792,15 +795,17 @@ const ScheduleTracking = () => {
       {/* Toast Container for notifications */}
       <ToastContainer
         position="top-right"
-        autoClose={3000}
+        autoClose={5000}
         hideProgressBar={false}
-        newestOnTop={false}
+        newestOnTop={true}
         closeOnClick
         rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
         theme="light"
+        limit={3}
+        style={{ zIndex: 99999 }}
       />
 
     </div>

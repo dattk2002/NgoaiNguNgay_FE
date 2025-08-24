@@ -89,6 +89,7 @@ export default function MyBookingTable({
   onDeleteRequest,
   onCreateDispute,
   selectedBookingId, // <-- new prop
+  onRefreshRequests, // <-- Add this new prop
 }) {
   const navigate = useNavigate();
 
@@ -180,8 +181,10 @@ export default function MyBookingTable({
       await acceptLearnerBookingOffer(offerDetail.id);
       toast.success("Đã chấp nhận đề xuất thành công!", toastConfig);
       handleCloseDialog();
-      // Optionally refresh the data
-      window.location.reload();
+      // Call the refresh callback instead of reloading the page
+      if (onRefreshRequests) {
+        onRefreshRequests();
+      }
     } catch (error) {
       console.error("Error accepting offer:", error);
       
@@ -231,8 +234,10 @@ export default function MyBookingTable({
       await rejectLearnerBookingOffer(offerDetail.id);
       toast.success("Đã từ chối đề xuất thành công!", toastConfig);
       handleCloseDialog();
-      // Optionally refresh the data
-      window.location.reload();
+      // Call the refresh callback instead of reloading the page
+      if (onRefreshRequests) {
+        onRefreshRequests();
+      }
     } catch (error) {
       console.error("Error rejecting offer:", error);
       
