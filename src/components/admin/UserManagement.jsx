@@ -142,10 +142,54 @@ const UserManagement = () => {
 
     if (loading && users.length === 0) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+            <div className="space-y-6">
+                {/* Filters Skeleton */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1">
+                            <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                        </div>
+                        <div className="h-10 bg-gray-200 rounded-lg animate-pulse" style={{ width: '200px' }}></div>
+                        <div className="h-10 bg-gray-200 rounded-lg animate-pulse" style={{ width: '120px' }}></div>
+                    </div>
+                </div>
+
+                {/* User Statistics Skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((index) => (
+                        <div key={index} className="bg-white rounded-lg border border-gray-200 p-6">
+                            <div className="text-center">
+                                <div className="h-8 bg-gray-200 rounded animate-pulse mx-auto mb-2" style={{ width: '60px' }}></div>
+                                <div className="h-4 bg-gray-200 rounded animate-pulse mx-auto" style={{ width: '100px' }}></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Users Table Skeleton */}
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-200">
+                        <div className="h-6 bg-gray-200 rounded animate-pulse" style={{ width: '150px' }}></div>
+                    </div>
+                    <div className="divide-y divide-gray-200">
+                        {[1, 2, 3, 4, 5].map((index) => (
+                            <div key={index} className="px-6 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+                                        <div>
+                                            <div className="h-5 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '150px' }}></div>
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                                        <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         );

@@ -115,8 +115,48 @@ const OfferManagement = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
+          <div className="h-6 bg-gray-200 rounded animate-pulse" style={{ width: '150px' }}></div>
+        </div>
+        
+        <div className="grid gap-6">
+          {[1, 2, 3].map((index) => (
+            <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+                  <div>
+                    <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '180px' }}></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '120px' }}></div>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                  <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '50px' }}></div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="h-5 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '140px' }}></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '180px' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="h-5 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '120px' }}></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '160px' }}></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '140px' }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
