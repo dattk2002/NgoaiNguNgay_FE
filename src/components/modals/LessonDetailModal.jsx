@@ -117,13 +117,7 @@ const LessonDetailModal = ({
                   "N/A"}
               </div>
 
-              {/* Category */}
-              <div className="text-xs text-gray-400 font-semibold mb-1">
-                DANH MỤC
-              </div>
-              <div className="mb-3 text-gray-900">
-                {lesson.category || "Kiến thức ngôn ngữ cơ bản"}
-              </div>
+
 
               {/* Tags */}
               <div className="flex gap-2 mb-4">

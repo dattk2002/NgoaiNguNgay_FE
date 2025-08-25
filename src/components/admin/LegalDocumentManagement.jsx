@@ -743,11 +743,46 @@ const LegalDocumentManagement = () => {
             {/* Documents Table */}
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
                 {loading ? (
-                    <div className="p-8 text-center">
-                        <div className="inline-flex items-center space-x-2">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                            <span className="text-gray-600">Đang tải...</span>
-                        </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    {['Tên tài liệu', 'Mô tả', 'Danh mục', 'Ngày tạo', 'Cập nhật lần cuối', 'Thao tác'].map((header, index) => (
+                                        <th key={index} className="px-6 py-3 text-left">
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '120px' }}></div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {[1, 2, 3, 4, 5].map((index) => (
+                                    <tr key={index}>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '150px' }}></div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '80px' }}></div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '100px' }}></div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '100px' }}></div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex space-x-2">
+                                                <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '32px' }}></div>
+                                                <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '32px' }}></div>
+                                                <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '32px' }}></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 ) : (
                     <>
@@ -1292,10 +1327,51 @@ const LegalDocumentManagement = () => {
                                 </h2>
                                 
                                 {loadingDetail ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <div className="inline-flex items-center space-x-2">
-                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                                            <span className="text-gray-600">Đang tải chi tiết...</span>
+                                    <div className="space-y-6">
+                                        {/* Document Name Skeleton */}
+                                        <div>
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '100px' }}></div>
+                                            <div className="h-6 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
+                                        </div>
+
+                                        {/* Description Skeleton */}
+                                        <div>
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '60px' }}></div>
+                                            <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                                        </div>
+
+                                        {/* Category Skeleton */}
+                                        <div>
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '80px' }}></div>
+                                            <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '100px' }}></div>
+                                        </div>
+
+                                        {/* Date Grid Skeleton */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '80px' }}></div>
+                                                <div className="h-6 bg-gray-200 rounded animate-pulse" style={{ width: '150px' }}></div>
+                                            </div>
+                                            <div>
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '120px' }}></div>
+                                                <div className="h-6 bg-gray-200 rounded animate-pulse" style={{ width: '150px' }}></div>
+                                            </div>
+                                        </div>
+
+                                        {/* Versions Section Skeleton */}
+                                        <div>
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '100px' }}></div>
+                                            <div className="space-y-3">
+                                                {[1, 2, 3].map((index) => (
+                                                    <div key={index} className="p-3 border border-gray-200 rounded-lg">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '100px' }}></div>
+                                                            <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '80px' }}></div>
+                                                        </div>
+                                                        <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: '150px' }}></div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 ) : detailedDocument ? (

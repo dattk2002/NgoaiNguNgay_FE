@@ -571,64 +571,68 @@ function getSlotDateTime(weekStart, dayInWeek, slotIndex) {
   return slotDate;
 }
 
+// Real-time validation functions
+const validateName = (name) => {
+  if (!name) return "Tên bài học không được để trống";
+  if (name.length < 5) return "Tên bài học phải có ít nhất 5 ký tự";
+  if (name.length > 100) return "Tên bài học không được quá 100 ký tự";
+  return "";
+};
+
+const validateDescription = (description) => {
+  if (!description) return "Mô tả không được để trống";
+  if (description.length < 10) return "Mô tả phải có ít nhất 10 ký tự";
+  if (description.length > 1000) return "Mô tả không được quá 1000 ký tự";
+  return "";
+};
+
+const validateNote = (note) => {
+  if (note && note.length < 10) return "Ghi chú phải có ít nhất 10 ký tự";
+  if (note && note.length > 1000) return "Ghi chú không được quá 1000 ký tự";
+  return "";
+};
+
+const validateTargetAudience = (targetAudience) => {
+  if (!targetAudience) return "Đối tượng không được để trống";
+  if (targetAudience.length < 1) return "Đối tượng phải có ít nhất 1 ký tự";
+  if (targetAudience.length > 200) return "Đối tượng không được quá 200 ký tự";
+  return "";
+};
+
+const validatePrerequisites = (prerequisites) => {
+  if (!prerequisites) return "Yêu cầu trước không được để trống";
+  if (prerequisites.length < 10) return "Yêu cầu trước phải có ít nhất 10 ký tự";
+  if (prerequisites.length > 300) return "Yêu cầu trước không được quá 300 ký tự";
+  return "";
+};
+
+const validateLanguageCode = (languageCode) => {
+  if (!languageCode) return "Vui lòng chọn ngôn ngữ";
+  return "";
+};
+
+const validatePrice = (price) => {
+  if (!price) return "Vui lòng nhập giá tiền";
+  const numericPrice = Number(price.toString().replace(/,/g, ""));
+  if (isNaN(numericPrice) || numericPrice <= 0) return "Giá tiền phải là số dương";
+  return "";
+};
+
 const validateLessonForm = (form) => {
   const errors = {};
 
-  // Tên bài học: 5-50 characters
-  if (!form.name || form.name.length < 5 || form.name.length > 100) {
-    errors.name = "Tên bài học phải từ 5-100 ký tự";
-  }
+  errors.name = validateName(form.name);
+  errors.description = validateDescription(form.description);
+  errors.note = validateNote(form.note);
+  errors.targetAudience = validateTargetAudience(form.targetAudience);
+  errors.prerequisites = validatePrerequisites(form.prerequisites);
+  errors.languageCode = validateLanguageCode(form.languageCode);
+  errors.price = validatePrice(form.price);
 
-  // Mô tả: 10-100 characters
-  if (
-    !form.description ||
-    form.description.length < 10 ||
-    form.description.length > 1000
-  ) {
-    errors.description = "Mô tả phải từ 10-1000 ký tự";
-  }
-
-  // Ghi chú: 10-100 characters (optional field)
-  if (form.note && (form.note.length < 10 || form.note.length > 1000)) {
-    errors.note = "Ghi chú phải từ 10-1000 ký tự";
-  }
-
-  // Đối tượng: 1-20 characters
-  if (
-    !form.targetAudience ||
-    form.targetAudience.length < 1 ||
-    form.targetAudience.length > 200
-  ) {
-    errors.targetAudience = "Đối tượng phải từ 1-200 ký tự";
-  }
-
-  // Yêu cầu trước: 10-100 characters
-  if (
-    !form.prerequisites ||
-    form.prerequisites.length < 10 ||
-    form.prerequisites.length > 300
-  ) {
-    errors.prerequisites = "Yêu cầu trước phải từ 10-300 ký tự";
-  }
-
-  // Danh mục: 5-50 characters
-  if (
-    !form.category ||
-    form.category.length < 5 ||
-    form.category.length > 100
-  ) {
-    errors.category = "Danh mục phải từ 5-100 ký tự";
-  }
-
-  // Language code is required
-  if (!form.languageCode) {
-    errors.languageCode = "Vui lòng chọn ngôn ngữ";
-  }
-
-  // Price is required
-  if (!form.price) {
-    errors.price = "Vui lòng nhập giá tiền";
-  }
+  // Remove empty error messages
+  Object.keys(errors).forEach(key => {
+    if (!errors[key]) delete errors[key];
+  });
 
   return errors;
 };
@@ -930,7 +934,6 @@ const TutorProfile = ({
     targetAudience: "",
     prerequisites: "",
     languageCode: "",
-    category: "",
     price: 0,
     currency: "",
   });
@@ -4488,7 +4491,6 @@ const TutorProfile = ({
                               targetAudience: "",
                               prerequisites: "",
                               languageCode: "",
-                              category: "",
                               price: "",
                               currency: "",
                             });
@@ -4700,7 +4702,6 @@ const TutorProfile = ({
                                               lesson.prerequisites || "",
                                             languageCode:
                                               lesson.languageCode || "",
-                                            category: lesson.category || "",
                                             price: formatPriceInputWithCommas(
                                               lesson.price?.toString() || "0"
                                             ),
@@ -5182,6 +5183,17 @@ const TutorProfile = ({
         onClose={() => {
           setLessonDialogOpen(false);
           setLessonFormErrors({});
+          setEditLesson(null);
+          setLessonForm({
+            name: "",
+            description: "",
+            note: "",
+            targetAudience: "",
+            prerequisites: "",
+            languageCode: "",
+            price: 0,
+            currency: "",
+          });
         }}
         maxWidth={false}
         fullWidth={false}
@@ -5194,10 +5206,10 @@ const TutorProfile = ({
             margin="normal"
             value={lessonForm.name}
             onChange={(e) => {
-              setLessonForm({ ...lessonForm, name: e.target.value });
-              if (lessonFormErrors.name) {
-                setLessonFormErrors({ ...lessonFormErrors, name: "" });
-              }
+              const newValue = e.target.value;
+              setLessonForm({ ...lessonForm, name: newValue });
+              const error = validateName(newValue);
+              setLessonFormErrors({ ...lessonFormErrors, name: error });
             }}
             required
             error={!!lessonFormErrors.name}
@@ -5211,10 +5223,10 @@ const TutorProfile = ({
             rows={3}
             value={lessonForm.description}
             onChange={(e) => {
-              setLessonForm({ ...lessonForm, description: e.target.value });
-              if (lessonFormErrors.description) {
-                setLessonFormErrors({ ...lessonFormErrors, description: "" });
-              }
+              const newValue = e.target.value;
+              setLessonForm({ ...lessonForm, description: newValue });
+              const error = validateDescription(newValue);
+              setLessonFormErrors({ ...lessonFormErrors, description: error });
             }}
             required
             error={!!lessonFormErrors.description}
@@ -5228,10 +5240,10 @@ const TutorProfile = ({
             rows={2}
             value={lessonForm.note}
             onChange={(e) => {
-              setLessonForm({ ...lessonForm, note: e.target.value });
-              if (lessonFormErrors.note) {
-                setLessonFormErrors({ ...lessonFormErrors, note: "" });
-              }
+              const newValue = e.target.value;
+              setLessonForm({ ...lessonForm, note: newValue });
+              const error = validateNote(newValue);
+              setLessonFormErrors({ ...lessonFormErrors, note: error });
             }}
             error={!!lessonFormErrors.note}
             helperText={lessonFormErrors.note || ""}
@@ -5242,13 +5254,10 @@ const TutorProfile = ({
             margin="normal"
             value={lessonForm.targetAudience}
             onChange={(e) => {
-              setLessonForm({ ...lessonForm, targetAudience: e.target.value });
-              if (lessonFormErrors.targetAudience) {
-                setLessonFormErrors({
-                  ...lessonFormErrors,
-                  targetAudience: "",
-                });
-              }
+              const newValue = e.target.value;
+              setLessonForm({ ...lessonForm, targetAudience: newValue });
+              const error = validateTargetAudience(newValue);
+              setLessonFormErrors({ ...lessonFormErrors, targetAudience: error });
             }}
             required
             error={!!lessonFormErrors.targetAudience}
@@ -5262,10 +5271,10 @@ const TutorProfile = ({
             rows={2}
             value={lessonForm.prerequisites}
             onChange={(e) => {
-              setLessonForm({ ...lessonForm, prerequisites: e.target.value });
-              if (lessonFormErrors.prerequisites) {
-                setLessonFormErrors({ ...lessonFormErrors, prerequisites: "" });
-              }
+              const newValue = e.target.value;
+              setLessonForm({ ...lessonForm, prerequisites: newValue });
+              const error = validatePrerequisites(newValue);
+              setLessonFormErrors({ ...lessonFormErrors, prerequisites: error });
             }}
             required
             error={!!lessonFormErrors.prerequisites}
@@ -5283,13 +5292,10 @@ const TutorProfile = ({
               value={lessonForm.languageCode}
               label="Ngôn ngữ"
               onChange={(e) => {
-                setLessonForm({ ...lessonForm, languageCode: e.target.value });
-                if (lessonFormErrors.languageCode) {
-                  setLessonFormErrors({
-                    ...lessonFormErrors,
-                    languageCode: "",
-                  });
-                }
+                const newValue = e.target.value;
+                setLessonForm({ ...lessonForm, languageCode: newValue });
+                const error = validateLanguageCode(newValue);
+                setLessonFormErrors({ ...lessonFormErrors, languageCode: error });
               }}
             >
               {languageList.map((lang) => (
@@ -5304,21 +5310,7 @@ const TutorProfile = ({
               </Typography>
             )}
           </FormControl>
-          <TextField
-            label="Danh mục"
-            fullWidth
-            margin="normal"
-            value={lessonForm.category}
-            onChange={(e) => {
-              setLessonForm({ ...lessonForm, category: e.target.value });
-              if (lessonFormErrors.category) {
-                setLessonFormErrors({ ...lessonFormErrors, category: "" });
-              }
-            }}
-            required
-            error={!!lessonFormErrors.category}
-            helperText={lessonFormErrors.category || ""}
-          />
+
           <TextField
             label="Giá"
             type="text"
@@ -5328,9 +5320,8 @@ const TutorProfile = ({
             onChange={(e) => {
               const formatted = formatPriceInputWithCommas(e.target.value);
               setLessonForm({ ...lessonForm, price: formatted });
-              if (lessonFormErrors.price) {
-                setLessonFormErrors({ ...lessonFormErrors, price: "" });
-              }
+              const error = validatePrice(formatted);
+              setLessonFormErrors({ ...lessonFormErrors, price: error });
             }}
             required
             error={!!lessonFormErrors.price}
@@ -5342,6 +5333,7 @@ const TutorProfile = ({
             onClick={() => {
               setLessonDialogOpen(false);
               setLessonFormErrors({});
+              setEditLesson(null);
             }}
           >
             Hủy
@@ -5349,6 +5341,7 @@ const TutorProfile = ({
           <Button
             variant="contained"
             onClick={async () => {
+              // Final validation before submit
               const errors = validateLessonForm(lessonForm);
               setLessonFormErrors(errors);
 
@@ -5379,13 +5372,14 @@ const TutorProfile = ({
                 }
                 setLessonDialogOpen(false);
                 setLessonFormErrors({});
+                setEditLesson(null);
               } catch (err) {
                 toast.error("Lưu bài học thất bại: " + err.message);
               } finally {
                 setLessonLoading(false);
               }
             }}
-            disabled={lessonLoading}
+            disabled={lessonLoading || Object.keys(lessonFormErrors).length > 0}
           >
             {editLesson ? "Lưu bài học" : "Tạo bài học"}
           </Button>
