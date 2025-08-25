@@ -4505,7 +4505,7 @@ export async function learnerCancelBookingByBookingId(bookingId, reason) {
     console.log("🔍 Booking ID:", bookingId);
     console.log("🔍 Reason:", reason);
     
-    const response = await callApi(url, "POST", null, token);
+    const response = await callApi(url, "PATCH", null, token);
 
     if (response) {
       console.log("✅ Booking cancelled successfully:", response);
@@ -4552,7 +4552,7 @@ export async function tutorCancelBookingByBookingId(bookingId, reason) {
     console.log("🔍 Booking ID:", bookingId);
     console.log("🔍 Reason:", reason);
     
-    const response = await callApi(url, "POST", null, token);
+    const response = await callApi(url, "PATCH", null, token);
 
     if (response) {
       console.log("✅ Tutor booking cancelled successfully:", response);

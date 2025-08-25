@@ -117,8 +117,70 @@ const VideoManagement = () => {
 
   if (loading && videos.length === 0) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '250px' }}></div>
+              <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+              <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Videos Table Skeleton */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['Video', 'Thông tin gia sư', 'Trạng thái', 'Hành động'].map((header, index) => (
+                    <th key={index} className="px-6 py-3 text-left">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '100px' }}></div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {[1, 2, 3].map((index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-16 w-24 bg-gray-200 rounded-lg animate-pulse"></div>
+                        <div>
+                          <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '150px' }}></div>
+                          <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: '100px' }}></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+                        <div>
+                          <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '120px' }}></div>
+                          <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: '100px' }}></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '80px' }}></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex space-x-2">
+                        <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                        <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   }
@@ -241,9 +303,12 @@ const VideoManagement = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
                           {loadingTutors[video.tutorUserId] ? (
-                            <div className="flex items-center space-x-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                              <span className="text-sm text-gray-500">Đang tải...</span>
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+                              <div>
+                                <div className="h-4 bg-gray-200 rounded animate-pulse mb-1" style={{ width: '100px' }}></div>
+                                <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: '120px' }}></div>
+                              </div>
                             </div>
                           ) : tutorInfo[video.tutorUserId] ? (
                             <div className="flex items-center space-x-3">

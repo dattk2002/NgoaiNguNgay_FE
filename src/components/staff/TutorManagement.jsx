@@ -559,9 +559,75 @@ const TutorManagement = () => {
 
                         <div className="p-6">
                     {detailsLoading ? (
-                        <div className="flex justify-center items-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                            <span className="ml-2">Đang tải thông tin chi tiết...</span>
+                        <div className="space-y-6">
+                            {/* Basic Information Skeleton */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Left Column Skeleton */}
+                                <div className="space-y-4">
+                                    {/* Avatar Section Skeleton */}
+                                    <div className="bg-gray-50 p-4 rounded-lg flex items-center space-x-4">
+                                        <div className="w-20 h-20 rounded-full bg-gray-200 animate-pulse"></div>
+                                        <div className="flex-1">
+                                            <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '150px' }}></div>
+                                            <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '100px' }}></div>
+                                            <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '80px' }}></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Contact Info Skeleton */}
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <div className="h-5 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '140px' }}></div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '120px' }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Application Info Skeleton */}
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <div className="h-5 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '160px' }}></div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Column Skeleton */}
+                                <div className="space-y-4">
+                                    {/* Tutor Details Skeleton */}
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <div className="h-5 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '130px' }}></div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '100px' }}></div>
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '140px' }}></div>
+                                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Languages Skeleton */}
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <div className="h-5 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '80px' }}></div>
+                                        <div className="space-y-2">
+                                            {[1, 2, 3].map((index) => (
+                                                <div key={index} className="flex justify-between items-center">
+                                                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '100px' }}></div>
+                                                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     ) : selectedTutorDetails ? (
                         <div className="space-y-6">
@@ -1010,9 +1076,26 @@ const TutorManagement = () => {
                 <>
                     {/* Loading and Error States */}
                     {loading && (
-                        <div className="flex justify-center items-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                            <span className="ml-2">Đang tải thông tin gia sư...</span>
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                            <ul className="divide-y divide-gray-200">
+                                {[1, 2, 3, 4, 5].map((index) => (
+                                    <li key={index} className="px-6 py-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse mr-4"></div>
+                                                <div>
+                                                    <div className="h-5 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '150px' }}></div>
+                                                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '120px' }}></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                                                <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     )}
 
@@ -1109,9 +1192,26 @@ const TutorManagement = () => {
                 <>
                     {/* Loading and Error States */}
                     {loading && (
-                        <div className="flex justify-center items-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                            <span className="ml-2">Đang tải thông tin gia sư...</span>
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                            <ul className="divide-y divide-gray-200">
+                                {[1, 2, 3, 4, 5].map((index) => (
+                                    <li key={index} className="px-6 py-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse mr-4"></div>
+                                                <div>
+                                                    <div className="h-5 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '150px' }}></div>
+                                                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '120px' }}></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                                                <div className="h-8 bg-gray-200 rounded animate-pulse" style={{ width: '60px' }}></div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     )}
 

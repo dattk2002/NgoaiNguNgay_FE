@@ -13,7 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { fetchTutorBookings, fetchBookingDetail, completeBookedSlot } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from '../../utils/formatCentralTimestamp';
-import { formatSlotDateTime, calculateUTC7SlotIndex, formatSlotDateTimeUTC0 } from '../../utils/formatSlotTime';
+import { formatSlotDateTime, calculateUTC7SlotIndex, formatSlotDateTimeUTC0, sortSlotsByProximityToCurrentDate } from '../../utils/formatSlotTime';
 
 
 // Skeleton Component for Booking Items
@@ -296,8 +296,12 @@ const ScheduleTracking = () => {
       setDetailLoading(true);
       
       const detail = await fetchBookingDetail(booking.id);
-      // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+      // Convert UTC+0 to UTC+7 and sort booked slots by proximity to current date
       const convertedDetail = convertBookingDetailToUTC7(detail);
+      // Sort slots by proximity to current date (closest first)
+      if (convertedDetail.bookedSlots && Array.isArray(convertedDetail.bookedSlots)) {
+        convertedDetail.bookedSlots = sortSlotsByProximityToCurrentDate(convertedDetail.bookedSlots);
+      }
       setBookingDetail(convertedDetail);
     } catch (error) {
       console.error("Error loading booking detail:", error);

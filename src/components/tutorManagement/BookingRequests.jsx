@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { tutorBookingList, tutorCancelBookingByBookingId, fetchBookingDetailbyBookingId } from '../api/auth';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { motion, AnimatePresence } from "framer-motion";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 // import { formatPriceWithCommas } from '../../utils/formatPriceWithCommas';
@@ -15,7 +16,7 @@ const BookingRequests = () => {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [bookingType, setBookingType] = useState(0); // 0=All, 1=Instant, 2=Offer
+  const [bookingType, setBookingType] = useState(1); // Chỉ hiển thị Book thẳng (1=Instant)
   const [cancelBookingModalOpen, setCancelBookingModalOpen] = useState(false);
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -27,15 +28,40 @@ const BookingRequests = () => {
   const [bookingDetail, setBookingDetail] = useState(null);
   const [loadingBookingDetail, setLoadingBookingDetail] = useState(false);
 
-  // Toast configuration
-  const toastConfig = useMemo(() => ({
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-  }), []);
+  // Booking status mapping
+  const bookingStatusMap = {
+    0: "Đã xác nhận",
+    1: "Đã yêu cầu khiếu nại", 
+    2: "Đang tranh chấp",
+    3: "Đã hủy"
+  };
+
+  // Held fund status mapping (assuming similar structure)
+  const heldFundStatusMap = {
+    0: "Đã xác nhận",
+    1: "Đã yêu cầu khiếu nại", 
+    2: "Đang tranh chấp",
+    3: "Đã hủy"
+  };
+
+  // Function to sort booked slots by time (slotIndex)
+  const sortBookedSlotsByTime = (slots) => {
+    if (!slots || !Array.isArray(slots)) return [];
+    return [...slots].sort((a, b) => {
+      // Sort by slotIndex (time) in ascending order
+      return (a.slotIndex || 0) - (b.slotIndex || 0);
+    });
+  };
+
+  // Function to get status text
+  const getStatusText = (status) => {
+    return bookingStatusMap[status] || "Không xác định";
+  };
+
+  // Function to get held fund status text
+  const getHeldFundStatusText = (status) => {
+    return heldFundStatusMap[status] || "Không xác định";
+  };
 
   // Load bookings
   const loadBookings = async () => {
@@ -61,7 +87,7 @@ const BookingRequests = () => {
     } catch (err) {
       setError(err.message);
       console.error('Error loading bookings:', err);
-      toast.error("Không thể tải danh sách booking. Vui lòng thử lại!", toastConfig);
+      toast.error("Không thể tải danh sách booking. Vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
@@ -78,11 +104,7 @@ const BookingRequests = () => {
     }
   };
 
-  // Handle booking type change
-  const handleBookingTypeChange = (newType) => {
-    setBookingType(newType);
-    setCurrentPage(1); // Reset to first page when changing type
-  };
+
 
   // Handle cancel booking
   const handleCancelBooking = (booking) => {
@@ -104,7 +126,7 @@ const BookingRequests = () => {
       setBookingDetail(response.data);
     } catch (error) {
       console.error('Error fetching booking detail:', error);
-      toast.error("Không thể tải thông tin chi tiết booking. Vui lòng thử lại!", toastConfig);
+      toast.error("Không thể tải thông tin chi tiết booking. Vui lòng thử lại!");
     } finally {
       setLoadingBookingDetail(false);
     }
@@ -113,27 +135,43 @@ const BookingRequests = () => {
   // Handle confirm cancel booking
   const handleConfirmCancelBooking = async () => {
     if (!selectedBookingForCancel || !cancelReason.trim()) {
-      toast.error("Vui lòng nhập lý do hủy booking!", toastConfig);
+      console.log("🚫 Toast: Vui lòng nhập lý do hủy booking!");
+      toast.error("Vui lòng nhập lý do hủy booking!");
       return;
     }
 
     setCancellingBooking(true);
     try {
       await tutorCancelBookingByBookingId(selectedBookingForCancel.id, cancelReason.trim());
-      toast.success("Đã hủy booking thành công!", toastConfig);
       
-      // Remove the cancelled booking from the list
-      setBookings(prev => prev.filter(booking => booking.id !== selectedBookingForCancel.id));
-      
-      // Update total items count
-      setTotalItems(prev => prev - 1);
-      
+      // Close modal first
       setCancelBookingModalOpen(false);
       setSelectedBookingForCancel(null);
       setCancelReason("");
+      
+      // Reload the booking list to get updated data
+      await loadBookings();
+      
+      // Show success toast after a small delay
+      setTimeout(() => {
+        console.log("✅ Toast: Đã hủy booking thành công!");
+        toast.success("Đã hủy booking thành công!");
+      }, 100);
+      
     } catch (error) {
       console.error("Error cancelling booking:", error);
-      toast.error("Hủy booking thất bại. Vui lòng thử lại!", toastConfig);
+      
+      // Show error toast with more specific message
+      let errorMessage = "Hủy booking thất bại. Vui lòng thử lại!";
+      
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      console.log("❌ Toast:", errorMessage);
+      toast.error(errorMessage);
     } finally {
       setCancellingBooking(false);
     }
@@ -141,9 +179,9 @@ const BookingRequests = () => {
 
   // Load bookings when component mounts or dependencies change
   useEffect(() => {
-    console.log('🔄 useEffect triggered with dependencies:', { currentPage, bookingType });
+    console.log('🔄 useEffect triggered with dependencies:', { currentPage });
     loadBookings();
-  }, [currentPage, bookingType]);
+  }, [currentPage]);
 
   // Debug: Log state changes
   useEffect(() => {
@@ -151,10 +189,10 @@ const BookingRequests = () => {
       currentPage, 
       totalPages, 
       totalItems, 
-      bookingType, 
+      bookingType: 1, // Fixed to Book thẳng
       bookingsCount: bookings.length 
     });
-  }, [currentPage, totalPages, totalItems, bookingType, bookings.length]);
+  }, [currentPage, totalPages, totalItems, bookings.length]);
 
   // Reset currentPage if it exceeds totalPages
   useEffect(() => {
@@ -164,243 +202,271 @@ const BookingRequests = () => {
     }
   }, [totalPages, currentPage]);
 
-  // Get booking type text
-  const getBookingTypeText = (type) => {
-    switch (type) {
-      case 1:
-        return "Book thẳng";
-      case 2:
-        return "Offer";
-      default:
-        return "Tất cả";
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Yêu cầu booking</h2>
-          <p className="text-gray-600">Quản lý các yêu cầu booking từ học viên</p>
-        </div>
-        
-        {/* Booking Type Filter */}
-        <div className="flex gap-2">
-          {[0, 1, 2].map((type) => (
-            <NoFocusOutLineButton
-              key={type}
-              onClick={() => handleBookingTypeChange(type)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                bookingType === type
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {getBookingTypeText(type)}
-            </NoFocusOutLineButton>
-          ))}
+          <h2 className="text-2xl font-bold text-gray-900">Học viên đã book thẳng</h2>
+          <p className="text-gray-600">Quản lý booking từ học viên</p>
         </div>
       </div>
 
       {/* Statistics */}
-      <div className="bg-blue-50 rounded-lg p-4">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 shadow-sm">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-blue-800">
-              Tổng số booking: {totalItems}
-            </p>
-            <p className="text-xs text-blue-600">
-              Trang {currentPage} / {totalPages}
-            </p>
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-blue-900">
+                Tổng số booking: {totalItems}
+              </p>
+              <p className="text-sm text-blue-600">
+                Trang {currentPage} / {totalPages}
+              </p>
+            </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-medium text-blue-800">
-              Loại: {getBookingTypeText(bookingType)}
-            </p>
+            <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Book thẳng từ học viên
+            </div>
           </div>
         </div>
       </div>
 
       {/* Loading State */}
       {loading && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {Array.from({ length: 3 }, (_, index) => (
-              <li key={index} className="px-6 py-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center flex-1">
+        <div className="space-y-4">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Header Section Skeleton */}
+              <div className="p-6 border-b border-gray-50">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-4">
                     {/* Skeleton Avatar */}
-                    <div className="flex-shrink-0 h-16 w-16">
-                      <div className="h-16 w-16 rounded-full bg-gray-200 animate-pulse"></div>
+                    <div className="relative">
+                      <div className="h-16 w-16 rounded-full bg-gray-200 animate-pulse ring-2 ring-gray-100"></div>
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gray-200 rounded-full animate-pulse"></div>
                     </div>
 
-                    {/* Skeleton Content */}
-                    <div className="ml-6 flex-1">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '150px' }}></div>
-                          <div className="h-5 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
-                        </div>
+                    {/* Skeleton Learner Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="h-6 bg-gray-200 rounded animate-pulse" style={{ width: '150px' }}></div>
+                        <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '100px' }}></div>
                       </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {/* Skeleton Cards */}
-                        {Array.from({ length: 4 }, (_, cardIndex) => (
-                          <div key={cardIndex} className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-                            <div className="flex-shrink-0 w-8 h-8 bg-gray-200 rounded-full animate-pulse mr-3"></div>
-                            <div className="flex-1">
-                              <div className="h-3 bg-gray-200 rounded animate-pulse mb-1" style={{ width: '60px' }}></div>
-                              <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <div className="h-5 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
                     </div>
                   </div>
 
-                  {/* Skeleton Button */}
-                  <div className="flex items-center space-x-3 ml-6">
-                    <div className="h-10 bg-gray-200 rounded-lg animate-pulse" style={{ width: '120px' }}></div>
+                  {/* Skeleton Action Buttons */}
+                  <div className="flex items-center space-x-2">
+                    <div className="h-9 bg-gray-200 rounded-lg animate-pulse" style={{ width: '80px' }}></div>
+                    <div className="h-9 bg-gray-200 rounded-lg animate-pulse" style={{ width: '60px' }}></div>
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+              </div>
+
+              {/* Stats Section Skeleton */}
+              <div className="p-6 bg-gray-50">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }, (_, cardIndex) => (
+                    <div key={cardIndex} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                        <div className="ml-3 flex-1">
+                          <div className="h-3 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '60px' }}></div>
+                          <div className="h-5 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Lỗi! </strong>
-          <span className="block sm:inline">{error}</span>
+        <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6" role="alert">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-semibold text-red-800">Đã xảy ra lỗi!</h3>
+              <p className="mt-1 text-red-700">{error}</p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Bookings List */}
       {!loading && !error && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        <div className="space-y-4">
           {bookings.length === 0 ? (
-            <div className="text-center py-8">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Không có booking nào</h3>
-              <p className="mt-1 text-sm text-gray-500">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+              <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Không có booking nào</h3>
+              <p className="text-gray-500">
                 Chưa có yêu cầu booking nào từ học viên.
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-200">
+            <div className="grid gap-4">
               {bookings.map((booking) => (
-                <li key={booking.id} className="px-6 py-6 hover:bg-gray-50 transition-all duration-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center flex-1">
-                      {/* Learner Avatar */}
-                      <div className="flex-shrink-0 h-16 w-16">
-                        {booking.learnerAvatarUrl ? (
-                          <img
-                            src={booking.learnerAvatarUrl}
-                            alt={booking.learnerName || 'Learner'}
-                            className="h-16 w-16 rounded-full object-cover border-3 border-gradient-to-r from-blue-500 to-purple-600 shadow-lg"
-                          />
-                        ) : (
-                          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                            {(booking.learnerName || 'L').charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
+                <div key={booking.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden">
+                  {/* Header Section */}
+                  <div className="p-6 border-b border-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-4">
+                        {/* Learner Avatar */}
+                        <div className="relative">
+                          {booking.learnerAvatarUrl ? (
+                            <img
+                              src={booking.learnerAvatarUrl}
+                              alt={booking.learnerName || 'Learner'}
+                              className="h-16 w-16 rounded-full object-cover border-4 border-white shadow-lg ring-2 ring-blue-100"
+                            />
+                          ) : (
+                            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-blue-100">
+                              {(booking.learnerName || 'L').charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          {/* Online indicator */}
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 border-2 border-white rounded-full"></div>
+                        </div>
 
-                      {/* Booking Details */}
-                      <div className="ml-6 flex-1">
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        {/* Learner Info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900">
                               {booking.learnerName || 'Không có tên'}
                             </h3>
-                            <p className="text-base text-gray-600 font-medium">{booking.lessonName || 'Không có tên bài học'}</p>
+                            <StatusTag status={booking.status} />
+                          </div>
+                          <p className="text-gray-600 font-medium flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            {booking.lessonName || 'Không có tên bài học'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-2">
+                        <NoFocusOutLineButton
+                          onClick={() => handleViewBookingDetail(booking)}
+                          className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium hover:bg-blue-100 transition-all duration-200 shadow-sm"
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Chi tiết
+                        </NoFocusOutLineButton>
+                        <NoFocusOutLineButton
+                          onClick={() => handleCancelBooking(booking)}
+                          disabled={booking.status === 3}
+                          className={`inline-flex items-center px-4 py-2 border rounded-lg text-sm font-medium transition-all duration-200 shadow-sm ${
+                            booking.status === 3
+                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                              : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                          }`}
+                          title={booking.status === 3 ? "Booking đã được hủy" : "Hủy booking"}
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Hủy
+                        </NoFocusOutLineButton>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats Section */}
+                  <div className="p-6 bg-gray-50">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Total Price */}
+                      <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tổng giá</p>
+                            <p className="text-lg font-bold text-gray-900">{booking.totalPrice || 0} VNĐ</p>
                           </div>
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
-                            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                              <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-xs text-blue-600 font-medium">Tổng giá</p>
-                              <p className="text-sm font-bold text-gray-900">{booking.totalPrice || 0} VNĐ</p>
-                            </div>
+                      </div>
+                      
+                      {/* Slot Count */}
+                      <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                           </div>
-                          
-                          <div className="flex items-center p-3 bg-green-50 rounded-lg border border-green-100">
-                            <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                              <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-xs text-green-600 font-medium">Số slot</p>
-                              <p className="text-sm font-bold text-gray-900">{booking.slotCount || 0}</p>
-                            </div>
+                          <div className="ml-3">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Số slot</p>
+                            <p className="text-lg font-bold text-gray-900">{booking.slotCount || 0}</p>
                           </div>
-                          
-                          <div className="flex items-center p-3 bg-purple-50 rounded-lg border border-purple-100">
-                            <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                              <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-3h14a2 2 0 002-2v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-xs text-purple-600 font-medium">Ngày tạo</p>
-                              <p className="text-sm font-bold text-gray-900">{booking.createdTime ? formatTutorDate(booking.createdTime) : 'N/A'}</p>
-                            </div>
+                        </div>
+                      </div>
+                      
+                      {/* Created Date */}
+                      <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-3h14a2 2 0 002-2v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                            </svg>
                           </div>
-                          
-                          <div className="flex items-center p-3 bg-orange-50 rounded-lg border border-orange-100">
-                            <div className="flex-shrink-0 w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                              <svg className="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-3h14a2 2 0 002-2v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-xs text-orange-600 font-medium">Ngày sớm nhất</p>
-                              <p className="text-sm font-bold text-gray-900">{booking.earliestBookedDate ? formatTutorDate(booking.earliestBookedDate) : 'N/A'}</p>
-                            </div>
+                          <div className="ml-3">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Ngày tạo</p>
+                            <p className="text-sm font-semibold text-gray-900">{booking.createdTime ? formatTutorDate(booking.createdTime) : 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Earliest Date */}
+                      <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <svg className="h-5 w-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-3h14a2 2 0 002-2v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Ngày sớm nhất</p>
+                            <p className="text-sm font-semibold text-gray-900">{booking.earliestBookedDate ? formatTutorDate(booking.earliestBookedDate) : 'N/A'}</p>
                           </div>
                         </div>
                       </div>
                     </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center space-x-3 ml-6">
-                      <NoFocusOutLineButton
-                        onClick={() => handleViewBookingDetail(booking)}
-                        className="inline-flex items-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                      >
-                        <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        Chi tiết
-                      </NoFocusOutLineButton>
-                      <NoFocusOutLineButton
-                        onClick={() => handleCancelBooking(booking)}
-                        className="inline-flex items-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                      >
-                        <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Hủy booking
-                      </NoFocusOutLineButton>
-                    </div>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       )}
@@ -579,293 +645,526 @@ const BookingRequests = () => {
       <AnimatePresence>
         {bookingDetailModalOpen && (
           <motion.div
-            className="fixed inset-0 bg-black/50 flex justify-center items-center z-[1000] p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[1000] p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setBookingDetailModalOpen(false)}
           >
             <motion.div
-              className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden relative"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-800">Chi tiết booking</h3>
-                <NoFocusOutLineButton
-                  className="text-gray-500 hover:text-gray-700"
-                  onClick={() => setBookingDetailModalOpen(false)}
-                  aria-label="Close modal"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </NoFocusOutLineButton>
+              {/* Header */}
+              <div className="bg-[#333333] text-white p-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold">Chi tiết booking</h3>
+                      <p className="text-blue-100 text-sm">Thông tin chi tiết về booking này</p>
+                    </div>
+                  </div>
+                  <NoFocusOutLineButton
+                    className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10"
+                    onClick={() => setBookingDetailModalOpen(false)}
+                    aria-label="Close modal"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </NoFocusOutLineButton>
+                </div>
               </div>
-              
-              {loadingBookingDetail ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                  <span className="ml-3 text-gray-600">Đang tải thông tin chi tiết...</span>
+
+              {/* Content */}
+              <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
+                {loadingBookingDetail ? (
+                  <div className="p-6 space-y-6">
+                    {/* Booking Overview Skeleton */}
+                    <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-100">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="h-6 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
+                        <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '100px' }}></div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[1, 2, 3].map((index) => (
+                          <div key={index} className="bg-white rounded-lg p-4 border border-gray-100">
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse mr-3"></div>
+                              <div className="flex-1">
+                                <div className="h-3 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '60px' }}></div>
+                                <div className="h-5 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Participants Section Skeleton */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {[1, 2].map((index) => (
+                        <div key={index} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                          <div className="h-12 bg-gray-200 animate-pulse"></div>
+                          <div className="p-6">
+                            <div className="flex items-center space-x-4">
+                              <div className="h-20 w-20 rounded-full bg-gray-200 animate-pulse"></div>
+                              <div className="flex-1">
+                                <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '150px' }}></div>
+                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Lesson Information Skeleton */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                      <div className="h-12 bg-gray-200 animate-pulse"></div>
+                      <div className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => (
+                            <div key={index} className="space-y-2">
+                              <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: '80px' }}></div>
+                              <div className="h-5 bg-gray-200 rounded animate-pulse" style={{ width: '120px' }}></div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Booked Slots Skeleton */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                      <div className="h-12 bg-gray-200 animate-pulse"></div>
+                      <div className="p-6">
+                        <div className="space-y-4">
+                          {[1, 2, 3].map((index) => (
+                            <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                                  <div>
+                                    <div className="h-5 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '100px' }}></div>
+                                    <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '120px' }}></div>
+                                  </div>
+                                </div>
+                                <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '80px' }}></div>
+                              </div>
+                              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                                <div className="h-4 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '140px' }}></div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                  {[1, 2, 3, 4].map((subIndex) => (
+                                    <div key={subIndex} className="space-y-1">
+                                      <div className="h-2 bg-gray-200 rounded animate-pulse" style={{ width: '50px' }}></div>
+                                      <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '70px' }}></div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : bookingDetail ? (
+                  <div className="p-6 space-y-6">
+                    {/* Booking Overview */}
+                    <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-100">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-xl font-bold text-gray-900 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Tổng quan booking
+                        </h4>
+                        <StatusTag status={bookingDetail.status} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white rounded-lg p-4 border border-gray-100">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-3h14a2 2 0 002-2v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500 font-medium">Ngày tạo</p>
+                              <p className="text-lg font-bold text-gray-900">
+                                {bookingDetail.createdTime ? formatTutorDate(bookingDetail.createdTime) : 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 border border-gray-100">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500 font-medium">Tổng giá</p>
+                              <p className="text-lg font-bold text-gray-900">{bookingDetail.totalPrice || 0} VND</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 border border-gray-100">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500 font-medium">Số slot</p>
+                              <p className="text-lg font-bold text-gray-900">{bookingDetail.bookedSlots ? bookingDetail.bookedSlots.length : 0}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Participants Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Tutor Information */}
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-4">
+                          <h4 className="text-lg font-bold text-white flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Thông tin Tutor
+                          </h4>
+                        </div>
+                        <div className="p-6">
+                          <div className="flex items-center space-x-4">
+                            {bookingDetail.tutorAvatarUrl ? (
+                              <img
+                                src={bookingDetail.tutorAvatarUrl}
+                                alt={bookingDetail.tutorName || 'Tutor'}
+                                className="h-20 w-20 rounded-full object-cover border-4 border-white shadow-lg ring-2 ring-green-100"
+                              />
+                            ) : (
+                              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg ring-2 ring-green-100">
+                                {(bookingDetail.tutorName || 'T').charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <h5 className="text-xl font-bold text-gray-900 mb-1">{bookingDetail.tutorName || 'N/A'}</h5>
+                              <p className="text-gray-600">Tutor</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Learner Information */}
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-purple-500 to-violet-600 p-4">
+                          <h4 className="text-lg font-bold text-white flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Thông tin Học viên
+                          </h4>
+                        </div>
+                        <div className="p-6">
+                          <div className="flex items-center space-x-4">
+                            {bookingDetail.learnerAvatarUrl ? (
+                              <img
+                                src={bookingDetail.learnerAvatarUrl}
+                                alt={bookingDetail.learnerName || 'Learner'}
+                                className="h-20 w-20 rounded-full object-cover border-4 border-white shadow-lg ring-2 ring-purple-100"
+                              />
+                            ) : (
+                              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg ring-2 ring-purple-100">
+                                {(bookingDetail.learnerName || 'L').charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <h5 className="text-xl font-bold text-gray-900 mb-1">{bookingDetail.learnerName || 'N/A'}</h5>
+                              <p className="text-gray-600">Học viên</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lesson Information */}
+                    {bookingDetail.lessonSnapshot && (
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-4">
+                          <h4 className="text-lg font-bold text-white flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            Thông tin Bài học
+                          </h4>
+                        </div>
+                        <div className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Tên bài học</p>
+                              <p className="text-lg font-bold text-gray-900">{bookingDetail.lessonSnapshot.name || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Mô tả</p>
+                              <p className="text-gray-900">{bookingDetail.lessonSnapshot.description || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Ghi chú</p>
+                              <p className="text-gray-900">{bookingDetail.lessonSnapshot.note || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Đối tượng mục tiêu</p>
+                              <p className="text-gray-900">{bookingDetail.lessonSnapshot.targetAudience || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Yêu cầu đầu vào</p>
+                              <p className="text-gray-900">{bookingDetail.lessonSnapshot.prerequisites || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Ngôn ngữ</p>
+                              <p className="text-gray-900">{bookingDetail.lessonSnapshot.languageCode || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Danh mục</p>
+                              <p className="text-gray-900">{bookingDetail.lessonSnapshot.category || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Giá mỗi slot</p>
+                              <p className="text-lg font-bold text-green-600">{bookingDetail.lessonSnapshot.price || 0} {bookingDetail.lessonSnapshot.currency || 'VND'}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-500 font-medium">Thời lượng</p>
+                              <p className="text-gray-900">{bookingDetail.lessonSnapshot.durationInMinutes || 0} phút</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Booked Slots */}
+                    {bookingDetail.bookedSlots && bookingDetail.bookedSlots.length > 0 && (
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-teal-500 to-cyan-600 p-4">
+                          <h4 className="text-lg font-bold text-white flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Các slot đã book ({bookingDetail.bookedSlots.length})
+                          </h4>
+                        </div>
+                        <div className="p-6">
+                          <div className="space-y-4">
+                            {sortBookedSlotsByTime(bookingDetail.bookedSlots).map((slot, index) => (
+                              <div key={slot.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                                      <span className="text-teal-600 font-bold">{index + 1}</span>
+                                    </div>
+                                    <div>
+                                      <h5 className="text-lg font-bold text-gray-900">
+                                        Slot {slot.slotIndex !== undefined ? formatSlotTime(slot.slotIndex) : 'N/A'}
+                                      </h5>
+                                      <p className="text-gray-600">
+                                        {slot.bookedDate ? formatTutorDate(slot.bookedDate) : 'N/A'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <StatusTag status={slot.status} />
+                                </div>
+                                
+                                {/* Held Fund Information */}
+                                {slot.heldFund && (
+                                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                                    <h6 className="text-sm font-bold text-gray-700 mb-3 flex items-center">
+                                      <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                                      </svg>
+                                      Thông tin quỹ giữ
+                                    </h6>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-gray-500 font-medium">Số tiền</p>
+                                        <p className="text-lg font-bold text-gray-900">{slot.heldFund.amount || 0} VND</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-gray-500 font-medium">Trạng thái</p>
+                                        <p className="text-sm font-semibold text-gray-900">{getHeldFundStatusText(slot.heldFund.status)}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-gray-500 font-medium">Ngày giải phóng</p>
+                                        <p className="text-sm text-gray-900">
+                                          {slot.heldFund.releaseAt ? formatTutorDate(slot.heldFund.releaseAt) : 'N/A'}
+                                        </p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-gray-500 font-medium">Ngày giải quyết</p>
+                                        <p className="text-sm text-gray-900">
+                                          {slot.heldFund.resolvedAt ? formatTutorDate(slot.heldFund.resolvedAt) : 'N/A'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {slot.slotNote && (
+                                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <p className="text-sm text-blue-800">
+                                      <span className="font-medium">Ghi chú:</span> {slot.slotNote}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Information */}
+                    {bookingDetail.note && (
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-gray-500 to-gray-600 p-4">
+                          <h4 className="text-lg font-bold text-white flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Thông tin bổ sung
+                          </h4>
+                        </div>
+                        <div className="p-6">
+                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <p className="text-gray-900">{bookingDetail.note}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Không có thông tin chi tiết</h3>
+                    <p className="text-gray-500">
+                      Không thể tải thông tin chi tiết booking.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div className="flex justify-end">
+                  <NoFocusOutLineButton
+                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                    onClick={() => setBookingDetailModalOpen(false)}
+                  >
+                    Đóng
+                  </NoFocusOutLineButton>
                 </div>
-              ) : bookingDetail ? (
-                                 <div className="space-y-6">
-                   {/* Basic Information */}
-                   <div className="bg-blue-50 rounded-lg p-4">
-                     <h4 className="text-lg font-semibold text-blue-800 mb-3">Thông tin cơ bản</h4>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div>
-                         <p className="text-sm text-blue-600 font-medium">ID Booking</p>
-                         <p className="text-gray-900 font-semibold">{bookingDetail.id || 'N/A'}</p>
-                       </div>
-                       <div>
-                         <p className="text-sm text-blue-600 font-medium">ID Tutor</p>
-                         <p className="text-gray-900 font-semibold">{bookingDetail.tutorId || 'N/A'}</p>
-                       </div>
-                       <div>
-                         <p className="text-sm text-blue-600 font-medium">ID Learner</p>
-                         <p className="text-gray-900 font-semibold">{bookingDetail.learnerId || 'N/A'}</p>
-                       </div>
-                       <div>
-                         <p className="text-sm text-blue-600 font-medium">Ngày tạo</p>
-                         <p className="text-gray-900 font-semibold">
-                           {bookingDetail.createdTime ? formatTutorDate(bookingDetail.createdTime) : 'N/A'}
-                         </p>
-                       </div>
-                     </div>
-                   </div>
-
-                   {/* Tutor Information */}
-                   <div className="bg-green-50 rounded-lg p-4">
-                     <h4 className="text-lg font-semibold text-green-800 mb-3">Thông tin tutor</h4>
-                     <div className="flex items-center mb-4">
-                       {bookingDetail.tutorAvatarUrl ? (
-                         <img
-                           src={bookingDetail.tutorAvatarUrl}
-                           alt={bookingDetail.tutorName || 'Tutor'}
-                           className="h-16 w-16 rounded-full object-cover border-2 border-green-200 shadow-lg mr-4"
-                         />
-                       ) : (
-                         <div className="h-16 w-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-xl shadow-lg mr-4">
-                           {(bookingDetail.tutorName || 'T').charAt(0).toUpperCase()}
-                         </div>
-                       )}
-                       <div>
-                         <p className="text-lg font-semibold text-gray-900">{bookingDetail.tutorName || 'N/A'}</p>
-                       </div>
-                     </div>
-                   </div>
-
-                   {/* Learner Information */}
-                   <div className="bg-purple-50 rounded-lg p-4">
-                     <h4 className="text-lg font-semibold text-purple-800 mb-3">Thông tin học viên</h4>
-                     <div className="flex items-center mb-4">
-                       {bookingDetail.learnerAvatarUrl ? (
-                         <img
-                           src={bookingDetail.learnerAvatarUrl}
-                           alt={bookingDetail.learnerName || 'Learner'}
-                           className="h-16 w-16 rounded-full object-cover border-2 border-purple-200 shadow-lg mr-4"
-                         />
-                       ) : (
-                         <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg mr-4">
-                           {(bookingDetail.learnerName || 'L').charAt(0).toUpperCase()}
-                         </div>
-                       )}
-                       <div>
-                         <p className="text-lg font-semibold text-gray-900">{bookingDetail.learnerName || 'N/A'}</p>
-                       </div>
-                     </div>
-                   </div>
-
-                   {/* Lesson Information */}
-                   {bookingDetail.lessonSnapshot && (
-                     <div className="bg-orange-50 rounded-lg p-4">
-                       <h4 className="text-lg font-semibold text-orange-800 mb-3">Thông tin bài học</h4>
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Tên bài học</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.name || 'N/A'}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Mô tả</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.description || 'N/A'}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Ghi chú</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.note || 'N/A'}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Đối tượng mục tiêu</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.targetAudience || 'N/A'}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Yêu cầu đầu vào</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.prerequisites || 'N/A'}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Ngôn ngữ</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.languageCode || 'N/A'}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Danh mục</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.category || 'N/A'}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Giá mỗi slot</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.price || 0} {bookingDetail.lessonSnapshot.currency || 'VND'}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">Thời lượng (phút)</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.durationInMinutes || 0}</p>
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600 font-medium">ID Bài học gốc</p>
-                           <p className="text-gray-900 font-semibold">{bookingDetail.lessonSnapshot.originalLessonId || 'N/A'}</p>
-                         </div>
-                       </div>
-                     </div>
-                   )}
-
-                   {/* Financial Information */}
-                   <div className="bg-indigo-50 rounded-lg p-4">
-                     <h4 className="text-lg font-semibold text-indigo-800 mb-3">Thông tin tài chính</h4>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div>
-                         <p className="text-sm text-indigo-600 font-medium">Tổng giá</p>
-                         <p className="text-gray-900 font-semibold">{bookingDetail.totalPrice || 0} VND</p>
-                       </div>
-                       <div>
-                         <p className="text-sm text-indigo-600 font-medium">Số slot đã book</p>
-                         <p className="text-gray-900 font-semibold">{bookingDetail.bookedSlots ? bookingDetail.bookedSlots.length : 0}</p>
-                       </div>
-                       <div>
-                         <p className="text-sm text-indigo-600 font-medium">ID Offer gốc</p>
-                         <p className="text-gray-900 font-semibold">{bookingDetail.originalOfferId || 'Không có'}</p>
-                       </div>
-                     </div>
-                   </div>
-
-                   {/* Booked Slots */}
-                   {bookingDetail.bookedSlots && bookingDetail.bookedSlots.length > 0 && (
-                     <div className="bg-teal-50 rounded-lg p-4">
-                       <h4 className="text-lg font-semibold text-teal-800 mb-3">Các slot đã book ({bookingDetail.bookedSlots.length})</h4>
-                       <div className="space-y-4">
-                         {bookingDetail.bookedSlots.map((slot, index) => (
-                           <div key={slot.id} className="bg-white rounded-lg p-4 border border-teal-200">
-                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                               <div>
-                                 <p className="text-sm text-teal-600 font-medium">ID Slot</p>
-                                 <p className="text-gray-900 font-semibold text-xs">{slot.id}</p>
-                               </div>
-                               <div>
-                                 <p className="text-sm text-teal-600 font-medium">Ngày</p>
-                                 <p className="text-gray-900 font-semibold">
-                                   {slot.bookedDate ? formatTutorDate(slot.bookedDate) : 'N/A'}
-                                 </p>
-                               </div>
-                               <div>
-                                 <p className="text-sm text-teal-600 font-medium">Slot</p>
-                                 <p className="text-gray-900 font-semibold">
-                                   {slot.slotIndex !== undefined ? formatSlotTime(slot.slotIndex) : 'N/A'}
-                                 </p>
-                               </div>
-                               <div>
-                                 <p className="text-sm text-teal-600 font-medium">Trạng thái</p>
-                                 <p className="text-gray-900 font-semibold">{slot.status || 'N/A'}</p>
-                               </div>
-                             </div>
-                             
-                             {/* Held Fund Information */}
-                             {slot.heldFund && (
-                               <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                 <h5 className="text-sm font-semibold text-gray-700 mb-2">Thông tin quỹ giữ</h5>
-                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                   <div>
-                                     <p className="text-xs text-gray-500 font-medium">ID Quỹ</p>
-                                     <p className="text-gray-900 text-xs">{slot.heldFund.id}</p>
-                                   </div>
-                                   <div>
-                                     <p className="text-xs text-gray-500 font-medium">Số tiền</p>
-                                     <p className="text-gray-900 font-semibold">{slot.heldFund.amount || 0} VND</p>
-                                   </div>
-                                   <div>
-                                     <p className="text-xs text-gray-500 font-medium">Trạng thái</p>
-                                     <p className="text-gray-900 font-semibold">{slot.heldFund.status || 'N/A'}</p>
-                                   </div>
-                                   <div>
-                                     <p className="text-xs text-gray-500 font-medium">Ngày giải phóng</p>
-                                     <p className="text-gray-900 text-xs">
-                                       {slot.heldFund.releaseAt ? formatTutorDate(slot.heldFund.releaseAt) : 'N/A'}
-                                     </p>
-                                   </div>
-                                   <div>
-                                     <p className="text-xs text-gray-500 font-medium">Ngày giải quyết</p>
-                                     <p className="text-gray-900 text-xs">
-                                       {slot.heldFund.resolvedAt ? formatTutorDate(slot.heldFund.resolvedAt) : 'N/A'}
-                                     </p>
-                                   </div>
-                                   <div>
-                                     <p className="text-xs text-gray-500 font-medium">Ngày tạo</p>
-                                     <p className="text-gray-900 text-xs">
-                                       {slot.heldFund.createdAt ? formatTutorDate(slot.heldFund.createdAt) : 'N/A'}
-                                     </p>
-                                   </div>
-                                 </div>
-                               </div>
-                             )}
-                             
-                             {slot.slotNote && (
-                               <div className="mt-2">
-                                 <p className="text-sm text-gray-600 font-medium">Ghi chú slot:</p>
-                                 <p className="text-gray-900 text-sm">{slot.slotNote}</p>
-                               </div>
-                             )}
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   )}
-
-                   {/* Additional Information */}
-                   <div className="bg-gray-50 rounded-lg p-4">
-                     <h4 className="text-lg font-semibold text-gray-800 mb-3">Thông tin bổ sung</h4>
-                     <div className="space-y-3">
-                       {bookingDetail.note && (
-                         <div>
-                           <p className="text-sm text-gray-600 font-medium">Ghi chú booking</p>
-                           <p className="text-gray-900">{bookingDetail.note}</p>
-                         </div>
-                       )}
-                     </div>
-                   </div>
-                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">Không có thông tin chi tiết</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Không thể tải thông tin chi tiết booking.
-                  </p>
-                </div>
-              )}
-              
-              <div className="flex justify-end mt-6">
-                <NoFocusOutLineButton
-                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                  onClick={() => setBookingDetailModalOpen(false)}
-                >
-                  Đóng
-                </NoFocusOutLineButton>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+       
+       {/* Toast Container for this component */}
+       <ToastContainer
+         position="top-right"
+         autoClose={4000}
+         hideProgressBar={false}
+         newestOnTop={false}
+         closeOnClick
+         rtl={false}
+         pauseOnFocusLoss
+         draggable
+         pauseOnHover
+         theme="light"
+         style={{ zIndex: 99999 }}
+       />
+     </div>
+   );
+ };
+
+// Status Tag Component
+const StatusTag = ({ status }) => {
+  const getStatusInfo = (status) => {
+    switch (status) {
+      case 0:
+        return {
+          text: "Đã xác nhận",
+          className: "bg-green-50 text-green-700 border border-green-200",
+          icon: (
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          )
+        };
+      case 1:
+        return {
+          text: "Đã yêu cầu khiếu nại",
+          className: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+          icon: (
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          )
+        };
+      case 2:
+        return {
+          text: "Đang tranh chấp",
+          className: "bg-orange-50 text-orange-700 border border-orange-200",
+          icon: (
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clipRule="evenodd" />
+            </svg>
+          )
+        };
+      case 3:
+        return {
+          text: "Đã hủy",
+          className: "bg-red-50 text-red-700 border border-red-200",
+          icon: (
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          )
+        };
+      default:
+        return {
+          text: "Không xác định",
+          className: "bg-gray-50 text-gray-700 border border-gray-200",
+          icon: (
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+          )
+        };
+    }
+  };
+
+  const statusInfo = getStatusInfo(status);
+  
+  return (
+    <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${statusInfo.className} shadow-sm`}>
+      {statusInfo.icon}
+      {statusInfo.text}
     </div>
   );
 };

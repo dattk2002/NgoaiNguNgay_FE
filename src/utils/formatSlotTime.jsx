@@ -172,3 +172,71 @@ export function formatSlotDateTimeUTC0(slotIndex, bookedDate) {
   
   return `${formattedDate} ${startTime} - ${endTime}`;
 }
+
+/**
+ * Sort slots by proximity to current date (closest date first)
+ * @param {Array} slots - Array of slot objects with bookedDate and slotIndex
+ * @returns {Array} Sorted array of slots with closest date first
+ */
+export const sortSlotsByProximityToCurrentDate = (slots) => {
+  if (!Array.isArray(slots)) return slots;
+  
+  try {
+    const now = new Date();
+    
+    return [...slots].sort((a, b) => {
+      // Create actual slot datetime for slot A
+      const dateA = new Date(a.bookedDate);
+      const hourA = Math.floor(a.slotIndex / 2);
+      const minuteA = a.slotIndex % 2 === 0 ? 0 : 30;
+      dateA.setHours(hourA, minuteA, 0, 0);
+      
+      // Create actual slot datetime for slot B
+      const dateB = new Date(b.bookedDate);
+      const hourB = Math.floor(b.slotIndex / 2);
+      const minuteB = b.slotIndex % 2 === 0 ? 0 : 30;
+      dateB.setHours(hourB, minuteB, 0, 0);
+      
+      // Calculate time difference from now (absolute value)
+      const diffA = Math.abs(dateA.getTime() - now.getTime());
+      const diffB = Math.abs(dateB.getTime() - now.getTime());
+      
+      // Sort by proximity (smallest difference first)
+      return diffA - diffB;
+    });
+  } catch (error) {
+    console.error("Lỗi sắp xếp slots theo độ gần ngày hiện tại:", error);
+    return slots;
+  }
+};
+
+/**
+ * Sort slots by chronological order (earliest first)
+ * @param {Array} slots - Array of slot objects with bookedDate and slotIndex
+ * @returns {Array} Sorted array of slots with earliest date first
+ */
+export const sortSlotsByChronologicalOrder = (slots) => {
+  if (!Array.isArray(slots)) return slots;
+  
+  try {
+    return [...slots].sort((a, b) => {
+      // Create actual slot datetime for slot A
+      const dateA = new Date(a.bookedDate);
+      const hourA = Math.floor(a.slotIndex / 2);
+      const minuteA = a.slotIndex % 2 === 0 ? 0 : 30;
+      dateA.setHours(hourA, minuteA, 0, 0);
+      
+      // Create actual slot datetime for slot B
+      const dateB = new Date(b.bookedDate);
+      const hourB = Math.floor(b.slotIndex / 2);
+      const minuteB = b.slotIndex % 2 === 0 ? 0 : 30;
+      dateB.setHours(hourB, minuteB, 0, 0);
+      
+      // Sort by chronological order (earliest first)
+      return dateA.getTime() - dateB.getTime();
+    });
+  } catch (error) {
+    console.error("Lỗi sắp xếp slots theo thứ tự thời gian:", error);
+    return slots;
+  }
+};
