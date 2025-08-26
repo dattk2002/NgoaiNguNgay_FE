@@ -8,7 +8,10 @@ import TransactionSummary from './TransactionSummary';
 import HeldFundsSummary from './HeldFundsSummary';
 import ManagerStatistics from './ManagerStatistics';
 import TopTutorsRevenue from './TopTutorsRevenue';
+import FeeManagement from './FeeManagement';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
+
+console.log('ManagerDashboard loaded, FeeManagement imported:', !!FeeManagement);
 
 const ManagerDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -111,10 +114,21 @@ const ManagerDashboard = () => {
                 </svg>
             ),
             description: 'Wallet System Management'
+        },
+        {
+            id: 'fee-management',
+            title: 'Quản lý phí',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+            ),
+            description: 'System Fee Management'
         }
     ];
 
     const renderActiveComponent = () => {
+        console.log('Active tab:', activeTab);
         switch (activeTab) {
             case 'overview':
                 return <ManagerOverview />;
@@ -132,6 +146,9 @@ const ManagerDashboard = () => {
                 return <WithdrawalManagement />;
             case 'wallet-management':
                 return <WalletManagement />;
+            case 'fee-management':
+                console.log('Rendering FeeManagement component');
+                return <FeeManagement />;
             default:
                 return <ManagerOverview />;
         }
@@ -158,6 +175,7 @@ const ManagerDashboard = () => {
 
                 {/* Navigation */}
                 <nav className="p-4 space-y-2">
+                    {console.log('Menu items count:', menuItems.length)}
                     {menuItems.map((item) => (
                         <NoFocusOutLineButton
                             key={item.id}

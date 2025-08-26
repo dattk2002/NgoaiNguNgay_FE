@@ -63,7 +63,7 @@ const DisputeManagement = () => {
       });
     } catch (error) {
       console.error("Error loading disputes:", error);
-      toast.error("Không thể tải danh sách khiếu nại. Vui lòng thử lại!");
+      toast.error("Không thể tải danh sách báo cáo. Vui lòng thử lại!");
       setDisputes([]);
     } finally {
       setLoading(false);
@@ -138,17 +138,13 @@ const DisputeManagement = () => {
   };
 
   const getReasonLabel = (reason) => {
+    // Map reason dài về label ngắn
     const reasonMap = {
-      "poor_teaching_quality": "Chất lượng giảng dạy kém",
-      "no_show": "Giáo viên không xuất hiện",
-      "late_arrival": "Giáo viên đến muộn",
-      "technical_issues": "Vấn đề kỹ thuật",
-      "inappropriate_behavior": "Hành vi không phù hợp",
-      "content_mismatch": "Nội dung không đúng với mô tả",
-      "payment_issues": "Vấn đề thanh toán",
-      "other": "Khác"
+      "Giáo viên vắng mặt không thông báo trước": "Vắng mặt",
+      "Giáo viên đến muộn quá 15 phút": "Trễ",
+      "Vấn đề khác cần báo cáo": "Khác"
     };
-    return reasonMap[reason] || reason;
+    return reasonMap[reason] || reason || "Không xác định";
   };
 
   const formatDate = (dateString) => {
@@ -190,8 +186,8 @@ const DisputeManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Quản lý khiếu nại</h2>
-          <p className="text-gray-600 mt-1">Xử lý và quản lý các khiếu nại từ học viên và giáo viên</p>
+          <h2 className="text-2xl font-bold text-gray-900">Quản lý báo cáo</h2>
+          <p className="text-gray-600 mt-1">Xử lý và quản lý các báo cáo từ học viên và giáo viên</p>
         </div>
         
         {/* Stats */}
@@ -267,12 +263,12 @@ const DisputeManagement = () => {
         <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
           <FaExclamationTriangle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {filters.status || filters.priority || filters.searchTerm ? "Không có khiếu nại nào" : "Chưa có khiếu nại nào"}
+            {filters.status || filters.priority || filters.searchTerm ? "Không có báo cáo nào" : "Chưa có báo cáo nào"}
           </h3>
           <p className="text-gray-500">
             {filters.status || filters.priority || filters.searchTerm 
-              ? "Không có khiếu nại nào phù hợp với bộ lọc hiện tại."
-              : "Các khiếu nại sẽ hiển thị tại đây khi có người gửi."
+              ? "Không có báo cáo nào phù hợp với bộ lọc hiện tại."
+              : "Các báo cáo sẽ hiển thị tại đây khi có người gửi."
             }
           </p>
         </div>

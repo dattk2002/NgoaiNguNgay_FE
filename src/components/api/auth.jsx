@@ -15,7 +15,7 @@ if (!MOCK_TUTORS_URL) {
   );
 }
 
-async function callApi(endpoint, method, body, token) {
+export async function callApi(endpoint, method, body, token) {
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -26,6 +26,16 @@ async function callApi(endpoint, method, body, token) {
 
   const fullUrl = `${BASE_API_URL}${endpoint}`;
 
+  // Debug logging for fee update API calls
+  if (endpoint === "/api/fees/setup") {
+    console.log("🔍 callApi - Fee update request details:");
+    console.log("🔍 callApi - Full URL:", fullUrl);
+    console.log("🔍 callApi - Method:", method);
+    console.log("🔍 callApi - Headers:", headers);
+    console.log("🔍 callApi - Body:", body);
+    console.log("🔍 callApi - Token present:", !!token);
+  }
+
   try {
     const response = await fetch(fullUrl, {
       method: method,
@@ -34,39 +44,54 @@ async function callApi(endpoint, method, body, token) {
       credentials: 'include',
     });
 
-    if (!response.ok) {
-      let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
-      let originalErrorData = null;
+    if (endpoint === "/api/fees/setup") {
+      console.log("🔍 callApi - Fee update response status:", response.status);
+      console.log("🔍 callApi - Fee update response ok:", response.ok);
+      console.log("🔍 callApi - Fee update response headers:", Object.fromEntries(response.headers.entries()));
+    }
 
-      // Debug logging for rating API errors
-    
+          if (!response.ok) {
+        let formattedErrorMessage = `API Error: ${response.status} ${response.statusText} for ${fullUrl}`;
+        let originalErrorData = null;
 
-      try {
-        const errorData = await response.json();
-        originalErrorData = errorData;
-        console.error("API Error Details Received:", errorData);
-  
+        // Debug logging for fee update API errors
+        if (endpoint === "/api/fees/setup") {
+          console.error("❌ callApi - Fee update failed with status:", response.status);
+          console.error("❌ callApi - Fee update status text:", response.statusText);
+        }
 
-        if (errorData) {
-          if (typeof errorData.errorMessage === 'string') {
-            formattedErrorMessage = errorData.errorMessage;
-          } else if (typeof errorData.errorMessage === 'object' && errorData.errorMessage !== null) {
-            const fieldErrors = Object.keys(errorData.errorMessage)
-              .map(field => {
-                const messages = Array.isArray(errorData.errorMessage[field])
-                  ? errorData.errorMessage[field].join(', ')
-                  : String(errorData.errorMessage[field]);
-                return `${field}: ${messages}`;
-              })
-              .join('; ');
-            formattedErrorMessage = `Validation Error: ${fieldErrors}`;
-          } else if (typeof errorData.message === 'string') {
-            formattedErrorMessage = errorData.message;
+        try {
+          const errorData = await response.json();
+          originalErrorData = errorData;
+          console.error("API Error Details Received:", errorData);
+          
+          if (endpoint === "/api/fees/setup") {
+            console.error("❌ callApi - Fee update error data:", errorData);
+          }
+
+          if (errorData) {
+            if (typeof errorData.errorMessage === 'string') {
+              formattedErrorMessage = errorData.errorMessage;
+            } else if (typeof errorData.errorMessage === 'object' && errorData.errorMessage !== null) {
+              const fieldErrors = Object.keys(errorData.errorMessage)
+                .map(field => {
+                  const messages = Array.isArray(errorData.errorMessage[field])
+                    ? errorData.errorMessage[field].join(', ')
+                    : String(errorData.errorMessage[field]);
+                  return `${field}: ${messages}`;
+                })
+                .join('; ');
+              formattedErrorMessage = `Validation Error: ${fieldErrors}`;
+            } else if (typeof errorData.message === 'string') {
+              formattedErrorMessage = errorData.message;
+            }
+          }
+        } catch (jsonError) {
+          console.warn("Failed to parse error response as JSON.", jsonError);
+          if (endpoint === "/api/fees/setup") {
+            console.error("❌ callApi - Fee update JSON parse error:", jsonError);
           }
         }
-      } catch (jsonError) {
-        console.warn("Failed to parse error response as JSON.", jsonError);
-      }
 
       const error = new Error(originalErrorData?.errorMessage || originalErrorData?.message || formattedErrorMessage);
       error.status = response.status;
@@ -77,11 +102,21 @@ async function callApi(endpoint, method, body, token) {
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const jsonData = await response.json();
+      
+      if (endpoint === "/api/fees/setup") {
+        console.log("✅ callApi - Fee update success response:", jsonData);
+      }
+      
       return jsonData;
     } else {
       console.warn(
         `API response for ${fullUrl} was not JSON, content-type: ${contentType}`
       );
+      
+      if (endpoint === "/api/fees/setup") {
+        console.warn("⚠️ callApi - Fee update response was not JSON");
+      }
+      
       return { success: true, status: response.status, rawResponse: response };
     }
   } catch (error) {
@@ -4064,6 +4099,120 @@ export async function deleteLegalDocumentVersion(versionId) {
     }
   } catch (error) {
     console.error("❌ Failed to delete legal document version:", error.message);
+    throw error;
+  }
+}
+
+// ==================== FEE MANAGEMENT API FUNCTIONS ====================
+
+/**
+ * Fetch all system fees with metadata
+ * @returns {Promise<Object>} API response with fees data and additional metadata
+ */
+export async function fetchSystemFees() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi("/api/fees", "GET", null, token);
+
+    if (response) {
+      console.log("✅ System fees fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for system fees.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch system fees:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch a single system fee by fee code
+ * @param {string} feeCode - The fee code to fetch (e.g., 'WITHDRAWAL_FEE', 'COMMISSION_FEE')
+ * @returns {Promise<Object>} API response with fee data
+ */
+export async function fetchSystemFeeByCode(feeCode) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!feeCode || !feeCode.trim()) {
+      throw new Error("Fee code is required");
+    }
+
+    console.log("🔍 Fetching system fee with code:", feeCode);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi(`/api/fees/${feeCode}`, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ System fee fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for fetchSystemFeeByCode:", response);
+      throw new Error("API response did not contain expected fee data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch system fee by code:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Update existing system fee
+ * @param {Object} feeData - { feeCode, value, type, description }
+ * @returns {Promise<Object>} API response
+ */
+export async function updateSystemFee(feeData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!feeData.feeCode || !feeData.feeCode.trim()) {
+      throw new Error("Fee code is required");
+    }
+    if (feeData.value === undefined || feeData.value === null) {
+      throw new Error("Fee value is required");
+    }
+    if (feeData.type === undefined || feeData.type === null) {
+      throw new Error("Fee type is required");
+    }
+    if (!feeData.description || !feeData.description.trim()) {
+      throw new Error("Fee description is required");
+    }
+
+    // Validate fee code is one of the allowed codes
+    const allowedFeeCodes = ['WITHDRAWAL_FEE', 'COMMISSION_FEE'];
+    if (!allowedFeeCodes.includes(feeData.feeCode)) {
+      throw new Error(`Fee code must be one of: ${allowedFeeCodes.join(', ')}`);
+    }
+
+    console.log("🔍 updateSystemFee - Input data:", feeData);
+    console.log("🔍 updateSystemFee - Token present:", !!token);
+    console.log("🔍 updateSystemFee - About to call callApi with endpoint: /api/fees/setup");
+    
+    const response = await callApi("/api/fees/setup", "POST", feeData, token);
+
+    console.log("🔍 updateSystemFee - callApi response received:", response);
+
+    if (response) {
+      console.log("✅ System fee updated successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for fee update.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to update system fee:", error.message);
+    console.error("❌ updateSystemFee - Full error object:", error);
     throw error;
   }
 }

@@ -400,10 +400,10 @@ const LessonManagement = () => {
     // Pending = 0, AwaitingPayout = 1, Completed = 2, Cancelled = 3, CancelledDisputed = 4
     const statusMap = {
       0: { label: "Đang chờ", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-      1: { label: "Hoàn thành, nếu có vấn đề khiếu nại trong 24h", class: "bg-blue-50 text-blue-700 border border-blue-200" },
+      1: { label: "Hoàn thành, nếu có vấn đề báo cáo trong 24h", class: "bg-blue-50 text-blue-700 border border-blue-200" },
       2: { label: "Hoàn thành", class: "bg-green-50 text-green-700 border border-green-200" },
       3: { label: "Đã hủy", class: "bg-red-50 text-red-700 border border-red-200" },
-      4: { label: "Đang khiếu nại", class: "bg-orange-50 text-orange-700 border border-orange-200" }
+      4: { label: "Đang báo cáo", class: "bg-orange-50 text-orange-700 border border-orange-200" }
     };
     const statusInfo = statusMap[status] || { label: "Không xác định", class: "bg-gray-50 text-gray-700 border border-gray-200" };
     
@@ -530,13 +530,13 @@ const LessonManagement = () => {
     }
   };
 
-  // Handle creating dispute
-  const handleCreateDispute = (slot) => {
-    // Kiểm tra slot đã hoàn thành chưa (status = 1: AwaitingPayout)
-    if (slot.status !== 1) {
-      toast.error("Chỉ có thể khiếu nại slot đã hoàn thành!");
-      return;
-    }
+      // Handle creating dispute
+    const handleCreateDispute = (slot) => {
+      // Kiểm tra slot đã hoàn thành chưa (status = 1: AwaitingPayout)
+      if (slot.status !== 1) {
+        toast.error("Chỉ có thể báo cáo slot đã hoàn thành!");
+        return;
+      }
     
     setSelectedBookingForDispute({
       bookedSlotId: slot.id, // Sử dụng slot.id làm bookedSlotId
@@ -551,7 +551,7 @@ const LessonManagement = () => {
   const handleDisputeSuccess = () => {
     // Refresh disputes list after successful creation
     fetchDisputes();
-    toast.success("Khiếu nại đã được gửi thành công!");
+    toast.success("Báo cáo đã được gửi thành công!");
   };
 
   // Modal animation variants
@@ -690,7 +690,7 @@ const LessonManagement = () => {
                                 'bg-blue-50 text-blue-700 border border-blue-200'
                               }`}>
                                 {overallStatus === 2 ? 'Hoàn thành' : 
-                                 overallStatus === 1 ? 'Hoàn thành, khiếu nại trong 24h nếu có' :
+                                 overallStatus === 1 ? 'Hoàn thành, báo cáo trong 24h nếu có' :
                                  overallStatus === 3 ? 'Đã hủy' : 
                                  overallStatus === 4 ? 'Đã hủy do tranh chấp' :
                                  'Đang diễn ra'}

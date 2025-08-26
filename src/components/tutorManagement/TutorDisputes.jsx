@@ -62,7 +62,7 @@ const TutorDisputes = () => {
       }
     } catch (error) {
       console.error('Failed to fetch tutor disputes:', error);
-      toast.error('Không thể tải danh sách khiếu nại');
+      toast.error('Không thể tải danh sách báo cáo');
       setDisputes([]);
     } finally {
       setLoading(false);
@@ -132,8 +132,8 @@ const TutorDisputes = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Quản lý khiếu nại</h2>
-          <p className="text-gray-600 mt-1">Xem và phản hồi các khiếu nại từ học viên</p>
+                  <h2 className="text-2xl font-bold text-gray-900">Quản lý báo cáo</h2>
+        <p className="text-gray-600 mt-1">Xem và phản hồi các báo cáo từ học viên</p>
         </div>
       </div>
 
@@ -150,7 +150,7 @@ const TutorDisputes = () => {
               <FaExclamationTriangle className="w-5 h-5 text-blue-600" />
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Tổng khiếu nại</p>
+              <p className="text-sm font-medium text-gray-600">Tổng báo cáo</p>
               <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
           </div>
@@ -194,15 +194,15 @@ const TutorDisputes = () => {
       {/* Disputes List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Danh sách khiếu nại</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Danh sách báo cáo</h3>
         </div>
 
         <div className="divide-y divide-gray-200">
           {disputes.length === 0 ? (
             <div className="p-8 text-center">
               <FaExclamationTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Không có khiếu nại nào</h3>
-              <p className="text-gray-600">Hiện tại không có khiếu nại nào được gửi đến bạn.</p>
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Không có báo cáo nào</h3>
+            <p className="text-gray-600">Hiện tại không có báo cáo nào được gửi đến bạn.</p>
             </div>
           ) : (
             <AnimatePresence>

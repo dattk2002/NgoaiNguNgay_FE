@@ -30,9 +30,10 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
   const [disputeMetadata, setDisputeMetadata] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [tutorResponse, setTutorResponse] = useState('');
+  const [tutorResponseType, setTutorResponseType] = useState('');
   const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
   const [showResponseForm, setShowResponseForm] = useState(false);
-  const [staffResolution, setStaffResolution] = useState(3); // Default to StaffLearnerWin
+  const [staffResolution, setStaffResolution] = useState(3); // Default to learner 100% refund (resolution = 3)
   const [staffNotes, setStaffNotes] = useState('');
   const [isResolvingDispute, setIsResolvingDispute] = useState(false);
   const [showResolveForm, setShowResolveForm] = useState(false);
@@ -249,7 +250,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
            await loadBookingInfo(dispute.bookingId);
          }
        } else {
-         toast.error(error.message || "Không thể tải chi tiết khiếu nại");
+         toast.error(error.message || "Không thể tải chi tiết báo cáo");
        }
     } finally {
       setIsLoadingDetail(false);
@@ -335,9 +336,19 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
     }
   };
 
+  const getReasonLabel = (reason) => {
+    // Map reason dài về label ngắn
+    const reasonMap = {
+      "Giáo viên vắng mặt không thông báo trước": "Vắng mặt",
+      "Giáo viên đến muộn quá 15 phút": "Trễ",
+      "Vấn đề khác cần báo cáo": "Khác"
+    };
+    return reasonMap[reason] || reason || "Không xác định";
+  };
+
   const handleWithdrawDispute = async () => {
     if (!disputeDetail || !disputeDetail.id) {
-      toast.error("Không thể rút khiếu nại");
+      toast.error("Không thể rút báo cáo");
       return;
     }
 
@@ -350,7 +361,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
     
     try {
       await withdrawDispute({ disputeId: disputeDetail.id });
-      toast.success("Đã rút khiếu nại thành công!");
+      toast.success("Đã rút báo cáo thành công!");
       
       // Refresh dispute detail
       await loadDisputeDetail();
@@ -360,7 +371,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
       
     } catch (error) {
       console.error("Error withdrawing dispute:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi rút khiếu nại. Vui lòng thử lại.");
+      toast.error(error.message || "Có lỗi xảy ra khi rút báo cáo. Vui lòng thử lại.");
     } finally {
       setIsWithdrawing(false);
     }
@@ -421,6 +432,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
   const handleSubmitResponse = async () => {
     console.log("🚀 handleSubmitResponse called");
     console.log("disputeDetail:", disputeDetail);
+    console.log("tutorResponseType:", tutorResponseType);
     console.log("tutorResponse:", tutorResponse);
     
     if (!disputeDetail || !disputeDetail.id) {
@@ -429,9 +441,15 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
       return;
     }
 
-    if (tutorResponse.trim().length < 10) {
-      console.log("❌ Response too short:", tutorResponse.trim().length);
-      toast.error("Phản hồi phải có ít nhất 10 ký tự");
+    if (!tutorResponseType) {
+      console.log("❌ No response type selected");
+      toast.error("Vui lòng chọn quyết định");
+      return;
+    }
+
+    if (tutorResponseType === 'disagree' && tutorResponse.trim().length < 10) {
+      console.log("❌ Response too short for disagree:", tutorResponse.trim().length);
+      toast.error("Bằng chứng hỗ trợ phải có ít nhất 10 ký tự");
       return;
     }
 
@@ -440,15 +458,18 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
     try {
       const responseData = {
         disputeId: disputeDetail.id,
-        response: tutorResponse.trim()
+        responseType: tutorResponseType,
+        response: tutorResponseType === 'disagree' ? tutorResponse.trim() : ''
       };
       console.log("📤 Sending response data:", responseData);
       
       const result = await respondToDispute(responseData);
       console.log("✅ Response submitted successfully:", result);
       
-      toast.success("Phản hồi đã được gửi thành công!");
+      // Hiển thị toast thông báo thành công
+      toast.success("Phản hồi đã được gửi thành công! Học viên sẽ được thông báo về quyết định của bạn.");
       setTutorResponse('');
+      setTutorResponseType('');
       setShowResponseForm(false);
       
       // Refresh dispute detail
@@ -480,7 +501,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
 
   const handleResolveDispute = async () => {
     if (!disputeDetail || !disputeDetail.id) {
-      toast.error("Không thể giải quyết khiếu nại");
+      toast.error("Không thể giải quyết báo cáo");
       return;
     }
 
@@ -501,7 +522,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
       const result = await resolveDispute(resolveData);
       console.log("✅ Dispute resolved successfully:", result);
       
-      toast.success("Đã giải quyết khiếu nại thành công!");
+      toast.success("Đã giải quyết báo cáo thành công!");
       setStaffNotes('');
       setShowResolveForm(false);
       
@@ -518,7 +539,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
         stack: error.stack,
         name: error.name
       });
-      toast.error(error.message || "Có lỗi xảy ra khi giải quyết khiếu nại. Vui lòng thử lại.");
+      toast.error(error.message || "Có lỗi xảy ra khi giải quyết báo cáo. Vui lòng thử lại.");
     } finally {
       setIsResolvingDispute(false);
     }
@@ -577,7 +598,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
             <div className="flex items-center justify-center space-x-3">
               <FaSpinner className="w-6 h-6 text-blue-600 animate-spin" />
               <span className="text-lg font-medium text-gray-700">
-                {isLoadingDetail ? "Đang tải chi tiết khiếu nại..." : "Đang tải thông tin khóa học..."}
+                {isLoadingDetail ? "Đang tải chi tiết báo cáo..." : "Đang tải thông tin khóa học..."}
               </span>
             </div>
           </motion.div>
@@ -615,10 +636,10 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                 <FaExclamationTriangle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">Chi tiết khiếu nại</h3>
-                                 <p className="text-sm text-gray-500">
-                   Mã khiếu nại: {displayDispute?.caseNumber || displayDispute?.id || "N/A"}
-                 </p>
+                <h3 className="text-xl font-semibold text-gray-900">Chi tiết báo cáo</h3>
+                <p className="text-sm text-gray-500">
+                  Mã báo cáo: {displayDispute?.caseNumber || displayDispute?.id || "N/A"}
+                </p>
               </div>
             </div>
             <button
@@ -636,7 +657,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
               <div className="text-center py-12">
                 <FaExclamationTriangle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Không thể tải chi tiết khiếu nại
+                  Không thể tải chi tiết báo cáo
                 </h3>
                 <p className="text-gray-500">
                   Vui lòng thử lại sau hoặc liên hệ hỗ trợ nếu vấn đề vẫn tiếp tục.
@@ -653,7 +674,8 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                 {/* Status and Basic Info */}
                                  {(() => {
                    const statusInfo = getStatusInfo(displayDispute.status);
-                   const canWithdraw = displayDispute.status === 0 && !isTutorView; // Only allow withdrawal for PendingReconciliation status and not for tutor view
+                   // Chỉ cho phép rút báo cáo khi là học viên (không phải tutor) và trạng thái là PendingReconciliation
+                   const canWithdraw = displayDispute.status === 0 && !isTutorView && !isStaffView;
                   return (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -679,7 +701,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                           ) : (
                             <>
                               <FaUndo className="w-4 h-4" />
-                              Rút khiếu nại
+                              Rút báo cáo
                             </>
                           )}
                         </button>
@@ -723,7 +745,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                 <div className="bg-orange-50 rounded-lg p-4">
                   <h4 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
                     <FaGraduationCap className="w-4 h-4" />
-                    Thông tin khóa học bị khiếu nại
+                    Thông tin slot học bị báo cáo
                   </h4>
                   {isLoadingBooking ? (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -765,7 +787,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                     </div>
                   ) : (
                     <div className="text-sm text-gray-500">
-                                             Không thể tải thông tin khóa học. Mã booking: {displayDispute.bookingId || "N/A"}
+                                             Mã slot booking: {displayDispute.bookedSlotId || "N/A"}
                     </div>
                   )}
                 </div>
@@ -774,51 +796,69 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <FaExclamationTriangle className="w-4 h-4" />
-                    Chi tiết khiếu nại
+                    Chi tiết báo cáo
                   </h4>
                   <div className="space-y-3">
                     <div>
                       <span className="text-sm font-medium text-gray-700">Lý do:</span>
-                                             <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{displayDispute.learnerReason || "N/A"}</p>
+                      <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
+                        {getReasonLabel(displayDispute.reason || displayDispute.learnerReason)}
+                      </p>
                     </div>
-                                         {displayDispute.tutorResponse && (
-                       <div>
-                         <span className="text-sm font-medium text-gray-700">Phản hồi của giáo viên:</span>
-                         <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{displayDispute.tutorResponse}</p>
-                       </div>
-                     )}
+                    {displayDispute.tutorResponse && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Phản hồi của giáo viên:</span>
+                        <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{displayDispute.tutorResponse}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Evidence URLs */}
-                                 {displayDispute.evidenceUrls && displayDispute.evidenceUrls.length > 0 && (
-                   <div className="bg-green-50 rounded-lg p-4">
-                     <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
-                       <FaPaperclip className="w-4 h-4" />
-                       Tài liệu hỗ trợ ({displayDispute.evidenceUrls.length} liên kết)
-                     </h4>
-                     <div className="space-y-2">
-                       {displayDispute.evidenceUrls.map((url, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <FaLink className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate"
-                            >
-                              {url}
-                            </a>
+                {/* Evidence URLs and Description */}
+                {displayDispute.evidenceUrls && displayDispute.evidenceUrls.length > 0 && (
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                      <FaPaperclip className="w-4 h-4" />
+                      Thông tin hỗ trợ ({displayDispute.evidenceUrls.length} mục)
+                    </h4>
+                    <div className="space-y-2">
+                      {displayDispute.evidenceUrls.map((item, index) => {
+                        // Check if it's a URL
+                        const isUrl = item.startsWith('http://') || item.startsWith('https://');
+                        return (
+                          <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              {isUrl ? (
+                                <FaLink className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                              ) : (
+                                <FaPaperclip className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              )}
+                              {isUrl ? (
+                                <a
+                                  href={item}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate"
+                                >
+                                  {item}
+                                </a>
+                              ) : (
+                                <span className="text-sm font-medium text-gray-900 break-words">
+                                  {item}
+                                </span>
+                              )}
+                            </div>
+                            {isUrl && (
+                              <button
+                                onClick={() => window.open(item, '_blank')}
+                                className="p-1 hover:bg-blue-100 rounded text-blue-600 flex-shrink-0"
+                              >
+                                <FaDownload className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
-                          <button
-                            onClick={() => window.open(url, '_blank')}
-                            className="p-1 hover:bg-blue-100 rounded text-blue-600 flex-shrink-0"
-                          >
-                            <FaDownload className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -866,116 +906,144 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                    </div>
                  )}
 
-                {/* Tutor Response Section - Only show in tutor view */}
-                {isTutorView && (
-                  <div className="bg-blue-50 rounded-lg p-4">
-                                         {console.log("🔍 Rendering tutor response section")}
-                     {console.log("displayDispute.tutorResponse:", displayDispute.tutorResponse)}
-                     {console.log("canRespondToDispute():", canRespondToDispute())}
-                    <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                      <FaUser className="w-4 h-4" />
-                      Phản hồi của bạn
-                    </h4>
-                    
-                                         {displayDispute.tutorResponse ? (
-                       <div className="bg-white rounded-lg p-4 border border-blue-200">
-                         <p className="text-sm text-gray-900 whitespace-pre-wrap">{displayDispute.tutorResponse}</p>
-                         {displayDispute.tutorRespondedAt && (
-                           <p className="text-xs text-gray-500 mt-2">
-                             Phản hồi lúc: {formatDate(displayDispute.tutorRespondedAt)}
-                           </p>
-                         )}
+                                 {/* Tutor Response Section - Only show in tutor view when can respond */}
+                 {isTutorView && canRespondToDispute() && !displayDispute.tutorResponse && (
+                   <div className="bg-blue-50 rounded-lg p-4">
+                     <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                       <FaUser className="w-4 h-4" />
+                       Phản hồi báo cáo
+                     </h4>
+                     
+                     <div className="space-y-4">
+                       {!showResponseForm ? (
+                         <button
+                           onClick={() => setShowResponseForm(true)}
+                           className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                         >
+                           Phản hồi báo cáo
+                         </button>
+                       ) : (
+                         <div className="space-y-4">
+                           <div>
+                             <label className="block text-sm font-medium text-gray-700 mb-3">
+                               Chọn quyết định <span className="text-red-500">*</span>
+                             </label>
+                             <div className="space-y-3">
+                               <label className="flex items-center space-x-3 cursor-pointer">
+                                 <input
+                                   type="radio"
+                                   name="tutorResponseType"
+                                   value="agree_100"
+                                   checked={tutorResponseType === 'agree_100'}
+                                   onChange={(e) => setTutorResponseType(e.target.value)}
+                                   disabled={isSubmittingResponse}
+                                   className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
+                                 />
+                                 <div>
+                                   <span className="text-sm font-medium text-gray-900">Đồng ý hoàn 100% cho học viên</span>
+                                   <p className="text-xs text-gray-600">Slot sẽ chuyển sang trạng thái hủy bỏ</p>
+                                 </div>
+                               </label>
+                               
+                               <label className="flex items-center space-x-3 cursor-pointer">
+                                 <input
+                                   type="radio"
+                                   name="tutorResponseType"
+                                   value="propose_50"
+                                   checked={tutorResponseType === 'propose_50'}
+                                   onChange={(e) => setTutorResponseType(e.target.value)}
+                                   disabled={isSubmittingResponse}
+                                   className="w-4 h-4 text-yellow-600 border-gray-300 focus:ring-yellow-500"
+                                 />
+                                 <div>
+                                   <span className="text-sm font-medium text-gray-900">Đề xuất hoàn 50% cho học viên</span>
+                                   <p className="text-xs text-gray-600">Slot sẽ chuyển sang trạng thái hủy bỏ</p>
+                                 </div>
+                               </label>
+                               
+                               <label className="flex items-center space-x-3 cursor-pointer">
+                                 <input
+                                   type="radio"
+                                   name="tutorResponseType"
+                                   value="disagree"
+                                   checked={tutorResponseType === 'disagree'}
+                                   onChange={(e) => setTutorResponseType(e.target.value)}
+                                   disabled={isSubmittingResponse}
+                                   className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                 />
+                                 <div>
+                                   <span className="text-sm font-medium text-gray-900">Không đồng ý & Chuyển lên Staff</span>
+                                   <p className="text-xs text-gray-600">Cung cấp bằng chứng và chuyển cho đội ngũ Staff xử lý</p>
+                                 </div>
+                               </label>
+                             </div>
+                           </div>
+                           
+                           {tutorResponseType === 'disagree' && (
+                             <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-2">
+                                 Bằng chứng hỗ trợ <span className="text-red-500">*</span>
+                               </label>
+                               <textarea
+                                 value={tutorResponse}
+                                 onChange={(e) => setTutorResponse(e.target.value)}
+                                 placeholder="Cung cấp bằng chứng (link video ghi hình, tài liệu...) để chứng minh..."
+                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-black"
+                                 rows={4}
+                                 maxLength={1000}
+                               />
+                               <div className="flex justify-between items-center mt-1">
+                                 <span className="text-xs text-gray-500">
+                                   {tutorResponse.length}/1000 ký tự
+                                 </span>
+                                 <span className={`text-xs ${tutorResponse.length >= 10 ? 'text-green-600' : 'text-red-500'}`}>
+                                   {tutorResponse.length >= 10 ? '✓ Đủ ký tự' : 'Cần ít nhất 10 ký tự'}
+                                 </span>
+                               </div>
+                             </div>
+                           )}
+                           
+                           <div className="flex gap-2">
+                             <button
+                               onClick={handleSubmitResponse}
+                               disabled={!tutorResponseType || (tutorResponseType === 'disagree' && tutorResponse.trim().length < 10) || isSubmittingResponse}
+                               className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                             >
+                               {isSubmittingResponse ? (
+                                 <>
+                                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                   Đang gửi...
+                                 </>
+                               ) : (
+                                 <>
+                                   <FaCheck className="w-4 h-4" />
+                                   Gửi phản hồi
+                                 </>
+                               )}
+                             </button>
+                             <button
+                               onClick={() => {
+                                 setShowResponseForm(false);
+                                 setTutorResponse('');
+                                 setTutorResponseType('');
+                               }}
+                               disabled={isSubmittingResponse}
+                               className="px-4 py-2 bg-gray-500 text-white text-sm rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
+                             >
+                               Hủy
+                             </button>
+                           </div>
+                         </div>
+                       )}
+                       <div className="text-xs text-gray-600 bg-blue-100 rounded-lg p-3">
+                         <p className="font-medium mb-1">Lưu ý:</p>
+                         <ul className="space-y-1">
+                           <li>• Bạn chỉ có thể phản hồi trong vòng 24 giờ kể từ khi nhận báo cáo</li>
+                           <li>• Nếu không phản hồi sau 24 giờ, hệ thống tự động hoàn 100% cho học viên</li>
+                           <li>• Sau khi gửi phản hồi, bạn không thể chỉnh sửa</li>
+                         </ul>
                        </div>
-                     ) : canRespondToDispute() ? (
-                      <div className="space-y-4">
-                        {!showResponseForm ? (
-                          <button
-                            onClick={() => {
-                              console.log("🔘 'Phản hồi khiếu nại' button clicked");
-                              console.log("canRespondToDispute():", canRespondToDispute());
-                              setShowResponseForm(true);
-                            }}
-                            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            Phản hồi khiếu nại
-                          </button>
-                        ) : (
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Nội dung phản hồi <span className="text-red-500">*</span>
-                              </label>
-                              <textarea
-                                value={tutorResponse}
-                                onChange={(e) => setTutorResponse(e.target.value)}
-                                placeholder="Nhập phản hồi của bạn (tối thiểu 10 ký tự)..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-black"
-                                rows={4}
-                                maxLength={1000}
-                              />
-                              <div className="flex justify-between items-center mt-1">
-                                <span className="text-xs text-gray-500">
-                                  {tutorResponse.length}/1000 ký tự
-                                </span>
-                                <span className={`text-xs ${tutorResponse.length >= 10 ? 'text-green-600' : 'text-red-500'}`}>
-                                  {tutorResponse.length >= 10 ? '✓ Đủ ký tự' : 'Cần ít nhất 10 ký tự'}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => {
-                                  console.log("🔘 'Gửi phản hồi' button clicked");
-                                  console.log("tutorResponse length:", tutorResponse.trim().length);
-                                  console.log("isSubmittingResponse:", isSubmittingResponse);
-                                  handleSubmitResponse();
-                                }}
-                                disabled={tutorResponse.trim().length < 10 || isSubmittingResponse}
-                                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                              >
-                                {isSubmittingResponse ? (
-                                  <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Đang gửi...
-                                  </>
-                                ) : (
-                                  <>
-                                    <FaCheck className="w-4 h-4" />
-                                    Gửi phản hồi
-                                  </>
-                                )}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowResponseForm(false);
-                                  setTutorResponse('');
-                                }}
-                                disabled={isSubmittingResponse}
-                                className="px-4 py-2 bg-gray-500 text-white text-sm rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
-                              >
-                                Hủy
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-600 bg-blue-100 rounded-lg p-3">
-                          <p className="font-medium mb-1">Lưu ý:</p>
-                          <ul className="space-y-1">
-                            <li>• Bạn chỉ có thể phản hồi trong vòng 24 giờ kể từ khi nhận khiếu nại</li>
-                            <li>• Phản hồi phải có ít nhất 10 ký tự</li>
-                            <li>• Sau khi gửi phản hồi, bạn không thể chỉnh sửa</li>
-                          </ul>
-                        </div>
-                      </div>
-                    ) : (
-                                             <div className="text-sm text-gray-600">
-                         {displayDispute.status !== 0 ? (
-                           <p>Không thể phản hồi khiếu nại này vì đã vượt quá thời gian hòa giải.</p>
-                         ) : (
-                           <p>Thời gian phản hồi đã hết hạn.</p>
-                         )}
-                       </div>
-                                         )}
+                     </div>
                    </div>
                  )}
                </div>
@@ -986,54 +1054,97 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                <div className="bg-purple-50 rounded-lg p-4">
                  <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
                    <FaExclamationTriangle className="w-4 h-4" />
-                   Giải quyết khiếu nại
+                   Giải quyết báo cáo
                  </h4>
                  
-                                   {displayDispute.resolution && displayDispute.resolution !== 0 ? (
-                    <div className="bg-white rounded-lg p-4 border border-purple-200">
-                      <div className="mb-3">
-                        <span className="text-sm font-medium text-gray-700">Quyết định:</span>
-                        <span className="ml-2 text-sm text-gray-900">
-                          {displayMetadata?.DisputeResolution?.find(r => r.numericValue === displayDispute.resolution)?.description || 'Không xác định'}
-                        </span>
-                      </div>
-                      {displayDispute.staffNotes && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Ghi chú:</span>
-                          <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{displayDispute.staffNotes}</p>
-                        </div>
-                      )}
-                      {displayDispute.resolvedAt && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Giải quyết lúc: {formatDate(displayDispute.resolvedAt)}
-                        </p>
-                      )}
-                    </div>
-                  ) : canResolveDispute() ? (
+                 {displayDispute.resolution && displayDispute.resolution !== 0 ? (
+                   <div className="bg-white rounded-lg p-4 border border-purple-200">
+                     <div className="mb-3">
+                       <span className="text-sm font-medium text-gray-700">Quyết định:</span>
+                       <span className="ml-2 text-sm text-gray-900">
+                         {displayDispute.resolution === 3 && 'Hoàn 100% cho học viên'}
+                         {displayDispute.resolution === 5 && 'Hoàn 50% cho học viên, 50% cho gia sư'}
+                         {displayDispute.resolution === 4 && 'Bác bỏ báo cáo, trả 100% cho gia sư'}
+                       </span>
+                     </div>
+                     {displayDispute.staffNotes && (
+                       <div>
+                         <span className="text-sm font-medium text-gray-700">Ghi chú:</span>
+                         <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{displayDispute.staffNotes}</p>
+                       </div>
+                     )}
+                     {displayDispute.resolvedAt && (
+                       <p className="text-xs text-gray-500 mt-2">
+                         Giải quyết lúc: {formatDate(displayDispute.resolvedAt)}
+                       </p>
+                     )}
+                   </div>
+                 ) : canResolveDispute() ? (
                    <div className="space-y-4">
                      {!showResolveForm ? (
                        <button
                          onClick={() => setShowResolveForm(true)}
                          className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
                        >
-                         Giải quyết khiếu nại
+                         Giải quyết báo cáo
                        </button>
                      ) : (
-                       <div className="space-y-3">
+                       <div className="space-y-4">
                          <div>
-                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                             Quyết định <span className="text-red-500">*</span>
+                           <label className="block text-sm font-medium text-gray-700 mb-3">
+                             Chọn quyết định <span className="text-red-500">*</span>
                            </label>
-                           <select
-                             value={staffResolution}
-                             onChange={(e) => setStaffResolution(parseInt(e.target.value))}
-                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
-                           >
-                             <option value={3}>Học viên thắng</option>
-                             <option value={4}>Gia sư thắng</option>
-                             <option value={5}>Hòa</option>
-                           </select>
+                                                        <div className="space-y-3">
+                               <label className="flex items-center space-x-3 cursor-pointer">
+                                 <input
+                                   type="radio"
+                                   name="staffResolution"
+                                   value="3"
+                                   checked={staffResolution === 3}
+                                   onChange={(e) => setStaffResolution(parseInt(e.target.value))}
+                                   disabled={isResolvingDispute}
+                                   className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
+                                 />
+                                 <div>
+                                   <span className="text-sm font-medium text-gray-900">Hoàn 100% cho học viên</span>
+                                   <p className="text-xs text-gray-600">Slot chuyển sang trạng thái hủy bỏ</p>
+                                 </div>
+                               </label>
+                               
+                               <label className="flex items-center space-x-3 cursor-pointer">
+                                 <input
+                                   type="radio"
+                                   name="staffResolution"
+                                   value="5"
+                                   checked={staffResolution === 5}
+                                   onChange={(e) => setStaffResolution(parseInt(e.target.value))}
+                                   disabled={isResolvingDispute}
+                                   className="w-4 h-4 text-yellow-600 border-gray-300 focus:ring-yellow-500"
+                                 />
+                                 <div>
+                                   <span className="text-sm font-medium text-gray-900">Hoàn 50% cho học viên, 50% cho gia sư</span>
+                                   <p className="text-xs text-gray-600">Slot chuyển sang trạng thái hủy bỏ</p>
+                                 </div>
+                               </label>
+                               
+                               <label className="flex items-center space-x-3 cursor-pointer">
+                                 <input
+                                   type="radio"
+                                   name="staffResolution"
+                                   value="4"
+                                   checked={staffResolution === 4}
+                                   onChange={(e) => setStaffResolution(parseInt(e.target.value))}
+                                   disabled={isResolvingDispute}
+                                   className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                 />
+                                 <div>
+                                   <span className="text-sm font-medium text-gray-900">Bác bỏ báo cáo, trả 100% cho gia sư</span>
+                                   <p className="text-xs text-gray-600">Slot chuyển sang trạng thái chờ thanh toán</p>
+                                 </div>
+                               </label>
+                             </div>
                          </div>
+                         
                          <div>
                            <label className="block text-sm font-medium text-gray-700 mb-2">
                              Ghi chú giải quyết <span className="text-red-500">*</span>
@@ -1041,7 +1152,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                            <textarea
                              value={staffNotes}
                              onChange={(e) => setStaffNotes(e.target.value)}
-                             placeholder="Nhập ghi chú giải quyết khiếu nại..."
+                             placeholder="Nhập ghi chú giải quyết báo cáo..."
                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-black"
                              rows={4}
                              maxLength={1000}
@@ -1052,10 +1163,11 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                              </span>
                            </div>
                          </div>
+                         
                          <div className="flex gap-2">
                            <button
                              onClick={handleResolveDispute}
-                             disabled={!staffNotes.trim() || isResolvingDispute}
+                             disabled={!staffResolution || !staffNotes.trim() || isResolvingDispute}
                              className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                            >
                              {isResolvingDispute ? (
@@ -1074,6 +1186,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                              onClick={() => {
                                setShowResolveForm(false);
                                setStaffNotes('');
+                               setStaffResolution(3);
                              }}
                              disabled={isResolvingDispute}
                              className="px-4 py-2 bg-gray-500 text-white text-sm rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
@@ -1086,20 +1199,21 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                      <div className="text-xs text-gray-600 bg-purple-100 rounded-lg p-3">
                        <p className="font-medium mb-1">Lưu ý:</p>
                        <ul className="space-y-1">
-                         <li>• Chỉ có thể giải quyết khiếu nại đang chờ xem xét</li>
+                         <li>• Chỉ có thể giải quyết báo cáo đang chờ xem xét</li>
                          <li>• Quyết định sẽ được gửi đến cả học viên và gia sư</li>
+                         <li>• Nếu không xử lý sau 24 giờ, hệ thống tự động phân xử 50/50</li>
                          <li>• Ghi chú giải quyết là bắt buộc</li>
                        </ul>
                      </div>
                    </div>
                  ) : (
-                                        <div className="text-sm text-gray-600">
-                       {displayDispute.status !== 3 ? (
-                         <p>Không thể giải quyết khiếu nại này vì không ở trạng thái chờ xem xét.</p>
-                       ) : (
-                         <p>Khiếu nại này đã được giải quyết.</p>
-                       )}
-                     </div>
+                   <div className="text-sm text-gray-600">
+                     {displayDispute.status !== 3 ? (
+                       <p>Không thể giải quyết báo cáo này vì không ở trạng thái chờ xem xét.</p>
+                     ) : (
+                       <p>Báo cáo này đã được giải quyết.</p>
+                     )}
+                   </div>
                  )}
                </div>
              )}
@@ -1128,13 +1242,13 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                   <FaExclamationTriangle className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Xác nhận rút khiếu nại</h3>
-                                     <p className="text-sm text-gray-500">Mã khiếu nại: {displayDispute?.caseNumber || "N/A"}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Xác nhận rút báo cáo</h3>
+                  <p className="text-sm text-gray-500">Mã báo cáo: {displayDispute?.caseNumber || "N/A"}</p>
                 </div>
               </div>
               
               <p className="text-gray-700 mb-6">
-                Bạn có chắc chắn muốn rút khiếu nại này? Hành động này không thể hoàn tác.
+                Bạn có chắc chắn muốn rút báo cáo này? Hành động này không thể hoàn tác.
               </p>
               
               <div className="flex gap-3 justify-end">
@@ -1158,7 +1272,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                   ) : (
                     <>
                       <FaUndo className="w-4 h-4" />
-                      Rút khiếu nại
+                      Rút báo cáo
                     </>
                   )}
                 </button>
