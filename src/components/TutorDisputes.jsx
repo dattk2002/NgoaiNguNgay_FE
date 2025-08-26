@@ -39,7 +39,7 @@ const TutorDisputes = () => {
       });
     } catch (error) {
       console.error("Error loading disputes:", error);
-      toast.error("Không thể tải danh sách khiếu nại. Vui lòng thử lại!");
+      toast.error("Không thể tải danh sách báo cáo. Vui lòng thử lại!");
       setDisputes([]);
     } finally {
       setLoading(false);
@@ -101,17 +101,13 @@ const TutorDisputes = () => {
   };
 
   const getReasonLabel = (reason) => {
+    // Map reason dài về label ngắn
     const reasonMap = {
-      "poor_teaching_quality": "Chất lượng giảng dạy kém",
-      "no_show": "Giáo viên không xuất hiện",
-      "late_arrival": "Giáo viên đến muộn",
-      "technical_issues": "Vấn đề kỹ thuật",
-      "inappropriate_behavior": "Hành vi không phù hợp",
-      "content_mismatch": "Nội dung không đúng với mô tả",
-      "payment_issues": "Vấn đề thanh toán",
-      "other": "Khác"
+      "Giáo viên vắng mặt không thông báo trước": "Vắng mặt",
+      "Giáo viên đến muộn quá 15 phút": "Trễ",
+      "Vấn đề khác cần báo cáo": "Khác"
     };
-    return reasonMap[reason] || reason;
+    return reasonMap[reason] || reason || "Không xác định";
   };
 
   const formatDate = (dateString) => {
@@ -129,8 +125,8 @@ const TutorDisputes = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Khiếu nại của tôi</h1>
-          <p className="text-gray-600 mt-1">Xem và quản lý các khiếu nại liên quan đến bạn</p>
+          <h1 className="text-2xl font-bold text-gray-900">Báo cáo của tôi</h1>
+          <p className="text-gray-600 mt-1">Xem và quản lý các báo cáo liên quan đến bạn</p>
         </div>
       </div>
 
@@ -178,8 +174,8 @@ const TutorDisputes = () => {
         ) : disputes.length === 0 ? (
           <div className="p-8 text-center">
             <FaExclamationTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Không có khiếu nại nào</h3>
-            <p className="text-gray-500">Hiện tại không có khiếu nại nào liên quan đến bạn.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không có báo cáo nào</h3>
+            <p className="text-gray-500">Hiện tại không có báo cáo nào liên quan đến bạn.</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -204,7 +200,7 @@ const TutorDisputes = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <h3 className="text-lg font-semibold text-gray-900">
-                            Khiếu nại #{dispute.id}
+                            Báo cáo #{dispute.id}
                           </h3>
                           <span className={`px-2 py-1 text-xs rounded-full font-medium ${statusInfo.color}`}>
                             {statusInfo.text}
@@ -215,7 +211,7 @@ const TutorDisputes = () => {
                           <div className="flex items-center space-x-4">
                             <span className="flex items-center space-x-1">
                               <FaUser className="w-3 h-3" />
-                              <span>Người khiếu nại: {dispute.complainantName || 'N/A'}</span>
+                              <span>Người báo cáo: {dispute.complainantName || 'N/A'}</span>
                             </span>
                             <span className="flex items-center space-x-1">
                               <FaBook className="w-3 h-3" />

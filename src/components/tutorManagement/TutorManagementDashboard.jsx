@@ -15,7 +15,7 @@ const TutorManagementDashboard = () => {
     // { id: 'requests', label: 'Yêu cầu từ học viên', component: StudentRequests }, // Đã xóa
     { id: 'booking-requests', label: 'Quản lí booking từ học viên', component: BookingRequests },
     { id: 'offers', label: 'Quản lý yêu cầu', component: OfferManagement },
-    { id: 'disputes', label: 'Quản lý khiếu nại', component: TutorDisputes },
+            { id: 'disputes', label: 'Quản lý báo cáo', component: TutorDisputes },
     { id: 'history', label: 'Lịch sử dạy học', component: TeachingHistory },
   ];
 

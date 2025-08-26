@@ -7,6 +7,7 @@ import { createDispute } from "../api/auth";
 const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }) => {
   const [formData, setFormData] = useState({
     reason: "",
+    description: "",
     evidence: [],
     evidenceUrls: []
   });
@@ -18,14 +19,9 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
   const modalRef = useRef(null);
 
   const disputeReasons = [
-    { value: "poor_teaching_quality", label: "Chất lượng giảng dạy kém" },
-    { value: "no_show", label: "Giáo viên không xuất hiện" },
-    { value: "late_arrival", label: "Giáo viên đến muộn" },
-    { value: "technical_issues", label: "Vấn đề kỹ thuật" },
-    { value: "inappropriate_behavior", label: "Hành vi không phù hợp" },
-    { value: "content_mismatch", label: "Nội dung không đúng với mô tả" },
-    { value: "payment_issues", label: "Vấn đề thanh toán" },
-    { value: "other", label: "Khác" }
+    { value: "Giáo viên vắng mặt không thông báo trước", label: "Vắng mặt" },
+    { value: "Giáo viên đến muộn quá 15 phút", label: "Trễ" },
+    { value: "Vấn đề khác cần báo cáo", label: "Khác" }
   ];
 
   useEffect(() => {
@@ -40,13 +36,26 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
 
   const validateForm = () => {
     const newErrors = {};
+    
+    console.log("🔍 Validating form data:", {
+      reason: formData.reason,
+      description: formData.description,
+      descriptionLength: formData.description?.length,
+      descriptionTrimLength: formData.description?.trim().length
+    });
 
-    if (!formData.reason.trim()) {
-      newErrors.reason = "Vui lòng mô tả chi tiết lý do khiếu nại";
-    } else if (formData.reason.trim().length < 10) {
-      newErrors.reason = "Mô tả lý do phải có ít nhất 10 ký tự";
+    if (!formData.reason) {
+      newErrors.reason = "Vui lòng chọn lý do báo cáo";
     }
 
+    // Bỏ validation description vì server sẽ validate evidenceUrls
+    // if (!formData.description) {
+    //   newErrors.description = "Vui lòng nhập mô tả chi tiết";
+    // } else if (formData.description.trim().length < 10) {
+    //   newErrors.description = "Mô tả chi tiết phải có ít nhất 10 ký tự";
+    // }
+
+    console.log("🔍 Validation errors:", newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -58,22 +67,14 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
     }
   };
 
-  const addUrl = () => {
+  const addEvidence = () => {
     if (!newUrl.trim()) {
-      toast.error("Vui lòng nhập URL");
-      return;
-    }
-    
-    // Basic URL validation
-    try {
-      new URL(newUrl.trim());
-    } catch {
-      toast.error("URL không hợp lệ");
+      toast.error("Vui lòng nhập thông tin");
       return;
     }
 
     if (formData.evidenceUrls.includes(newUrl.trim())) {
-      toast.error("URL này đã được thêm");
+      toast.error("Thông tin này đã được thêm");
       return;
     }
 
@@ -84,7 +85,7 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
     setNewUrl("");
   };
 
-  const removeUrl = (index) => {
+  const removeEvidence = (index) => {
     setFormData(prev => ({
       ...prev,
       evidenceUrls: prev.evidenceUrls.filter((_, i) => i !== index)
@@ -154,9 +155,9 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
     setIsSubmitting(true);
     
     try {
-      // Combine file names and URLs
+      // Combine file names, URLs, and description
       const fileUrls = formData.evidence.map(file => file.name);
-      const allEvidenceUrls = [...fileUrls, ...formData.evidenceUrls];
+      const allEvidenceUrls = [...fileUrls, ...formData.evidenceUrls, formData.description];
       
       const disputeData = {
         bookedSlotId: displayData.bookedSlotId, // Sử dụng bookedSlotId thay vì bookingId
@@ -166,12 +167,12 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
 
       await createDispute(disputeData);
       
-      toast.success("Khiếu nại đã được gửi thành công!");
+      toast.success("Báo cáo đã được gửi thành công!");
       onSuccess?.();
       handleClose();
       
     } catch (error) {
-      toast.error(error.message || "Có lỗi xảy ra khi gửi khiếu nại. Vui lòng thử lại.");
+      toast.error(error.message || "Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -179,7 +180,7 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setFormData({ reason: "", evidence: [], evidenceUrls: [] });
+      setFormData({ reason: "", description: "", evidence: [], evidenceUrls: [] });
       setErrors({});
       setNewUrl("");
       onClose();
@@ -237,7 +238,7 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
                 <FaExclamationTriangle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">Tạo khiếu nại</h3>
+                <h3 className="text-xl font-semibold text-gray-900">Tạo báo cáo</h3>
                 <p className="text-sm text-gray-500">
                   Slot học: {displayData?.lessonName || slotDetails?.lessonName || "N/A"}
                 </p>
@@ -286,98 +287,134 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
 
 
 
-              {/* Reason Details */}
+              {/* Reason Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Lý do báo cáo <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-3">
+                  {disputeReasons.map((reason) => (
+                    <label key={reason.value} className="flex items-center space-x-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="reason"
+                        value={reason.value}
+                        checked={formData.reason === reason.value}
+                        onChange={(e) => handleInputChange("reason", e.target.value)}
+                        disabled={isSubmitting}
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900">{reason.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.reason && (
+                  <p className="text-sm text-red-600 mt-1">{errors.reason}</p>
+                )}
+              </div>
+
+              {/* Description Details */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lý do khiếu nại <span className="text-red-500">*</span>
+                  Mô tả chi tiết <span className="text-red-500">*</span>
                 </label>
                 <textarea
-                  value={formData.reason}
-                  onChange={(e) => handleInputChange("reason", e.target.value)}
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
                   rows={4}
                   placeholder="Vui lòng mô tả chi tiết vấn đề bạn gặp phải (tối thiểu 10 ký tự)..."
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-black ${
-                    errors.reason ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-black"
                   disabled={isSubmitting}
                 />
                 <div className="flex justify-between items-center mt-1">
-                  {errors.reason && (
-                    <p className="text-sm text-red-600">{errors.reason}</p>
-                  )}
+                  {/* Bỏ validation error display */}
                   <p className="text-sm text-gray-500 ml-auto text-black">
-                    {formData.reason.length}/500
+                    {formData.description.length}/500
                   </p>
                 </div>
               </div>
 
 
 
-              {/* Evidence URLs Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Liên kết hỗ trợ
-                </label>
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={newUrl}
-                      onChange={(e) => setNewUrl(e.target.value)}
-                      placeholder="Nhập URL tài liệu hỗ trợ..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                      disabled={isSubmitting}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addUrl();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={addUrl}
-                      disabled={isSubmitting || !newUrl.trim()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
-                      <FaPlus className="w-4 h-4" />
-                      Thêm
-                    </button>
-                  </div>
-                  
-                  {/* URL List */}
-                  {formData.evidenceUrls.length > 0 && (
-                    <div className="space-y-2">
-                      {formData.evidenceUrls.map((url, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-blue-50 rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <FaLink className="w-4 h-4 text-blue-500" />
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate max-w-xs"
-                            >
-                              {url}
-                            </a>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeUrl(index)}
-                            disabled={isSubmitting}
-                            className="p-1 hover:bg-red-100 rounded text-red-600 disabled:opacity-50"
-                          >
-                            <FaTrash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+                             {/* Evidence Input */}
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                   Thông tin hỗ trợ
+                 </label>
+                 <div className="space-y-3">
+                   <div className="flex gap-2">
+                     <input
+                       type="text"
+                       value={newUrl}
+                       onChange={(e) => setNewUrl(e.target.value)}
+                       placeholder="Nhập thông tin hỗ trợ (link, mô tả, bằng chứng...)"
+                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                       disabled={isSubmitting}
+                       onKeyPress={(e) => {
+                         if (e.key === 'Enter') {
+                           e.preventDefault();
+                           addEvidence();
+                         }
+                       }}
+                     />
+                     <button
+                       type="button"
+                       onClick={addEvidence}
+                       disabled={isSubmitting || !newUrl.trim()}
+                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                     >
+                       <FaPlus className="w-4 h-4" />
+                       Thêm
+                     </button>
+                   </div>
+                   
+                   {/* Evidence List */}
+                   {formData.evidenceUrls.length > 0 && (
+                     <div className="space-y-2">
+                       {formData.evidenceUrls.map((evidence, index) => {
+                         // Check if it's a URL
+                         const isUrl = evidence.startsWith('http://') || evidence.startsWith('https://');
+                         return (
+                           <div
+                             key={index}
+                             className="flex items-center justify-between p-3 bg-blue-50 rounded-lg"
+                           >
+                             <div className="flex items-center gap-3 flex-1">
+                               {isUrl ? (
+                                 <FaLink className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                               ) : (
+                                 <FaPaperclip className="w-4 h-4 text-green-500 flex-shrink-0" />
+                               )}
+                               {isUrl ? (
+                                 <a
+                                   href={evidence}
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate"
+                                 >
+                                   {evidence}
+                                 </a>
+                               ) : (
+                                 <span className="text-sm font-medium text-gray-900 break-words">
+                                   {evidence}
+                                 </span>
+                               )}
+                             </div>
+                             <button
+                               type="button"
+                               onClick={() => removeEvidence(index)}
+                               disabled={isSubmitting}
+                               className="p-1 hover:bg-red-100 rounded text-red-600 disabled:opacity-50 flex-shrink-0"
+                             >
+                               <FaTrash className="w-4 h-4" />
+                             </button>
+                           </div>
+                         );
+                       })}
+                     </div>
+                   )}
+                 </div>
+               </div>
 
               {/* Submit Button */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
@@ -401,8 +438,8 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
                     </>
                   ) : (
                     <>
-                      <FaExclamationTriangle className="w-4 h-4" />
-                      Gửi khiếu nại
+                                        <FaExclamationTriangle className="w-4 h-4" />
+                  Gửi báo cáo
                     </>
                   )}
                 </button>

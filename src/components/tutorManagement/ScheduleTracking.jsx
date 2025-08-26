@@ -112,7 +112,7 @@ const getSlotStatusInfo = (status) => {
     case 3: // Cancelled
       return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
     case 4: // CancelledDisputed
-      return { text: 'Đang bị khiếu nại', color: 'bg-orange-100 text-orange-700' };
+      return { text: 'Đang bị báo cáo', color: 'bg-orange-100 text-orange-700' };
     default:
       return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
   }
@@ -198,8 +198,6 @@ const ScheduleTracking = () => {
 
   useEffect(() => {
     loadBookings();
-    // Test toast to verify it's working
-    // toast.info("ScheduleTracking component loaded");
   }, []);
 
   const loadBookings = async (page = 1) => {
@@ -367,18 +365,19 @@ const ScheduleTracking = () => {
       
       await completeBookedSlot(bookedSlotId);
       
-      // Close the modal first
-      closeDetailModal();
+      // Refresh booking detail to get updated status
+      if (selectedBooking) {
+        const updatedDetail = await fetchBookingDetail(selectedBooking.id);
+        // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
+        const convertedDetail = convertBookingDetailToUTC7(updatedDetail);
+        setBookingDetail(convertedDetail);
+      }
       
-      // Then refresh the main bookings list and statuses
-      await loadBookings(pagination.pageIndex);
+      // Also refresh the main bookings list and statuses
+      loadBookings(pagination.pageIndex);
       
-      // Finally show success message with a small delay to ensure modal is closed
-      console.log("About to show success toast");
-      setTimeout(() => {
-        console.log("Showing success toast now");
-        toast.success("Slot đã được hoàn thành thành công!");
-      }, 100);
+      // Show success message
+      toast.success("Slot đã được hoàn thành thành công!");
       
     } catch (error) {
       console.error("Error completing slot:", error);
@@ -406,10 +405,8 @@ const ScheduleTracking = () => {
           <h2 className="text-2xl font-bold text-gray-900">Khóa học đã được đặt</h2>
           <p className="text-gray-600 mt-1">Quản lý các khóa học mà học viên đã đặt</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500">
-            Tổng cộng: {pagination.totalItems} khóa học
-          </div>
+        <div className="text-sm text-gray-500">
+          Tổng cộng: {pagination.totalItems} khóa học
         </div>
       </div>
 
@@ -689,8 +686,8 @@ const ScheduleTracking = () => {
                           <p className="text-gray-700">Buổi đầu tiên:</p>
                           <p className="font-medium text-gray-900">
                             {bookingDetail?.bookedSlots && bookingDetail.bookedSlots.length > 0 
-                              ? formatSlotDateTimeUTC0(
-                                  bookingDetail.bookedSlots[0].slotIndex, 
+                              ? formatSlotDateTime(
+                                  bookingDetail.bookedSlots[0].slotIndex - 1, 
                                   bookingDetail.bookedSlots[0].bookedDate
                                 )
                               : formatUTC0ToUTC7(selectedBooking?.earliestBookedDate)
@@ -718,12 +715,12 @@ const ScheduleTracking = () => {
                                     </div>
                                     <div>
                                       <p className="font-medium text-gray-900">
-                                        Slot {slot.slotIndex}
+                                        Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
                                       </p>
                                       <div className="flex items-center gap-4 text-sm text-gray-600">
                                         <span className="flex items-center gap-1">
                                           <FaCalendarAlt className="w-3 h-3" />
-                                          {formatSlotDateTimeUTC0(slot.slotIndex, slot.bookedDate)}
+                                          {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
                                         </span>
                                         {slot.slotNote && (
                                           <span className="text-xs text-gray-500">
@@ -799,17 +796,15 @@ const ScheduleTracking = () => {
       {/* Toast Container for notifications */}
       <ToastContainer
         position="top-right"
-        autoClose={5000}
+        autoClose={3000}
         hideProgressBar={false}
-        newestOnTop={true}
+        newestOnTop={false}
         closeOnClick
         rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
         theme="light"
-        limit={3}
-        style={{ zIndex: 99999 }}
       />
 
     </div>
