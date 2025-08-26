@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createDepositRequest, fetchBankAccounts as apiFetchBankAccounts, createWithdrawalRequest } from '../api/auth';
+import { createDepositRequest, fetchBankAccounts as apiFetchBankAccounts, createWithdrawalRequest, fetchSystemFeeByCode } from '../api/auth';
 import { toast } from 'react-toastify';
 
 const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
@@ -14,6 +14,10 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   const [selectedBankAccountId, setSelectedBankAccountId] = useState('');
   const [loadingBankAccounts, setLoadingBankAccounts] = useState(false);
 
+  // Withdrawal fee management
+  const [withdrawalFee, setWithdrawalFee] = useState(null);
+  const [loadingWithdrawalFee, setLoadingWithdrawalFee] = useState(false);
+
   const quickAmounts = [50000, 100000, 200000, 500000, 1000000, 2000000];
   const withdrawAmounts = [50000, 100000, 200000, 500000, 1000000];
 
@@ -26,6 +30,53 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
 
   const handleAmountChange = (value) => {
     setAmount(value.toString());
+  };
+
+  // Calculate withdrawal fee and net amount
+  const calculateWithdrawalDetails = (grossAmount) => {
+    if (!withdrawalFee || !grossAmount) {
+      return {
+        feeAmount: 0,
+        netAmount: grossAmount,
+        feeDisplay: '0 VND'
+      };
+    }
+
+    let feeAmount = 0;
+    let feeDisplay = '0 VND';
+
+    if (withdrawalFee.type === 1) {
+      // Flat fee
+      feeAmount = withdrawalFee.value;
+      feeDisplay = formatCurrency(feeAmount);
+    } else if (withdrawalFee.type === 0) {
+      // Percentage fee
+      feeAmount = Math.round(grossAmount * withdrawalFee.value);
+      feeDisplay = `${Math.round(withdrawalFee.value * 100)}% (${formatCurrency(feeAmount)})`;
+    }
+
+    const netAmount = Math.max(0, grossAmount - feeAmount);
+
+    return {
+      feeAmount,
+      netAmount,
+      feeDisplay
+    };
+  };
+
+  // Fetch withdrawal fee
+  const fetchWithdrawalFee = async () => {
+    try {
+      setLoadingWithdrawalFee(true);
+      const feeData = await fetchSystemFeeByCode('WITHDRAWAL_FEE');
+      setWithdrawalFee(feeData);
+    } catch (error) {
+      console.error('Failed to fetch withdrawal fee:', error);
+      // Don't show error toast for fee fetch failure, just log it
+      setWithdrawalFee(null);
+    } finally {
+      setLoadingWithdrawalFee(false);
+    }
   };
 
   // Fetch bank accounts when component mounts or when withdraw tab is selected
@@ -52,6 +103,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   useEffect(() => {
     if (activeTab === 'withdraw') {
       fetchBankAccounts();
+      fetchWithdrawalFee();
     }
   }, [activeTab]);
 
@@ -100,8 +152,12 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       return;
     }
 
-    if (parseInt(amount) > currentBalance) {
-      toast.error('Số dư không đủ để thực hiện giao dịch');
+    // Calculate withdrawal details including fee
+    const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount));
+    const totalDeduction = parseInt(amount) + withdrawalDetails.feeAmount;
+
+    if (totalDeduction > currentBalance) {
+      toast.error(`Số dư không đủ để thực hiện giao dịch. Cần ${formatCurrency(totalDeduction)} (bao gồm phí ${withdrawalDetails.feeDisplay})`);
       return;
     }
 
@@ -197,11 +253,38 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                 {amount ? (
                   activeTab === 'deposit' 
                     ? formatCurrency(currentBalance + parseInt(amount))
-                    : formatCurrency(Math.max(0, currentBalance - parseInt(amount)))
+                    : (() => {
+                        const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount));
+                        return formatCurrency(Math.max(0, currentBalance - parseInt(amount)));
+                      })()
                 ) : formatCurrency(currentBalance)}
               </div>
             </div>
           </div>
+          
+          {/* Withdrawal Fee Information */}
+          {activeTab === 'withdraw' && amount && withdrawalFee && (
+            <div className="mt-4 pt-4 border-t border-gray-500/30">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="opacity-75 mb-1">💰 Số tiền rút</div>
+                  <div className="font-semibold">{formatCurrency(parseInt(amount))}</div>
+                </div>
+                <div>
+                  <div className="opacity-75 mb-1">💸 Phí rút tiền</div>
+                  <div className="font-semibold text-yellow-300">
+                    {loadingWithdrawalFee ? 'Đang tải...' : calculateWithdrawalDetails(parseInt(amount)).feeDisplay}
+                  </div>
+                </div>
+                <div>
+                  <div className="opacity-75 mb-1">💳 Số tiền thực nhận</div>
+                  <div className="font-semibold text-green-300">
+                    {loadingWithdrawalFee ? 'Đang tải...' : formatCurrency(calculateWithdrawalDetails(parseInt(amount)).netAmount)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Deposit Tab Content */}
@@ -360,9 +443,25 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-800 text-lg transition-all outline-none"
                 />
                 {amount && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    Số tiền rút: <span className="font-medium text-red-600">{formatCurrency(parseInt(amount) || 0)}</span>
-                  </p>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm text-gray-600">
+                      Số tiền rút: <span className="font-medium text-red-600">{formatCurrency(parseInt(amount) || 0)}</span>
+                    </p>
+                    {withdrawalFee && (
+                      <p className="text-sm text-gray-600">
+                        Phí rút tiền: <span className="font-medium text-yellow-600">
+                          {loadingWithdrawalFee ? 'Đang tải...' : calculateWithdrawalDetails(parseInt(amount)).feeDisplay}
+                        </span>
+                      </p>
+                    )}
+                    {withdrawalFee && (
+                      <p className="text-sm text-gray-600">
+                        Số tiền thực nhận: <span className="font-medium text-green-600">
+                          {loadingWithdrawalFee ? 'Đang tải...' : formatCurrency(calculateWithdrawalDetails(parseInt(amount)).netAmount)}
+                        </span>
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -452,11 +551,33 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
             {/* Submit Button */}
             <button
               onClick={handleWithdraw}
-              disabled={!amount || parseInt(amount) < 50000 || parseInt(amount) > currentBalance || !selectedBankAccountId || loading || bankAccounts.length === 0}
+              disabled={(() => {
+                const basicValidation = !amount || parseInt(amount) < 50000 || !selectedBankAccountId || loading || bankAccounts.length === 0;
+                if (basicValidation) return true;
+                
+                // Check if total amount (including fee) exceeds balance
+                if (withdrawalFee && amount) {
+                  const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount));
+                  const totalDeduction = parseInt(amount) + withdrawalDetails.feeAmount;
+                  return totalDeduction > currentBalance;
+                }
+                
+                return parseInt(amount) > currentBalance;
+              })()}
               className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-200 outline-none ${
-                !amount || parseInt(amount) < 50000 || parseInt(amount) > currentBalance || !selectedBankAccountId || loading || bankAccounts.length === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg'
+                (() => {
+                  const basicValidation = !amount || parseInt(amount) < 50000 || !selectedBankAccountId || loading || bankAccounts.length === 0;
+                  if (basicValidation) return 'bg-gray-300 text-gray-500 cursor-not-allowed';
+                  
+                  // Check if total amount (including fee) exceeds balance
+                  if (withdrawalFee && amount) {
+                    const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount));
+                    const totalDeduction = parseInt(amount) + withdrawalDetails.feeAmount;
+                    return totalDeduction > currentBalance ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg';
+                  }
+                  
+                  return parseInt(amount) > currentBalance ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg';
+                })()
               }`}
             >
               {loading ? (
@@ -481,6 +602,18 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                     <span>•</span>
                     <span>Số tiền rút tối thiểu: 50,000 VND</span>
                   </li>
+                  {withdrawalFee && (
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>
+                        Phí rút tiền: {loadingWithdrawalFee ? 'Đang tải...' : (
+                          withdrawalFee.type === 1 
+                            ? `${formatCurrency(withdrawalFee.value)} (phí cố định)`
+                            : `${Math.round(withdrawalFee.value * 100)}% (phí theo phần trăm)`
+                        )}
+                      </span>
+                    </li>
+                  )}
                   <li className="flex items-start gap-2">
                     <span>•</span>
                     <span>Thời gian xử lý: 1-3 ngày làm việc</span>

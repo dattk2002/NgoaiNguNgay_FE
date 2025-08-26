@@ -170,7 +170,7 @@ const StaffDisputes = () => {
       }
     } catch (error) {
       console.error('Failed to fetch staff disputes:', error);
-      toast.error('Không thể tải danh sách khiếu nại');
+      toast.error('Không thể tải danh sách báo cáo');
       setDisputes([]);
     } finally {
       setLoading(false);
@@ -254,8 +254,8 @@ const StaffDisputes = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Quản lý khiếu nại</h2>
-          <p className="text-gray-600 mt-1">Xem xét và giải quyết các khiếu nại từ học viên</p>
+                  <h2 className="text-2xl font-bold text-gray-900">Quản lý báo cáo</h2>
+        <p className="text-gray-600 mt-1">Xem xét và giải quyết các báo cáo từ học viên</p>
         </div>
       </div>
 
@@ -269,7 +269,7 @@ const StaffDisputes = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Tổng số khiếu nại</p>
+              <p className="text-sm font-medium text-gray-600">Tổng số báo cáo</p>
               <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -322,7 +322,7 @@ const StaffDisputes = () => {
                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                <input
                  type="text"
-                 placeholder="Tìm kiếm khiếu nại..."
+                 placeholder="Tìm kiếm báo cáo..."
                  value={filters.search}
                  onChange={(e) => setFilters(prev => ({ 
                    ...prev, 
@@ -369,7 +369,7 @@ const StaffDisputes = () => {
       {/* Disputes List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Danh sách khiếu nại</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Danh sách báo cáo</h3>
         </div>
 
         <div className="divide-y divide-gray-200">
@@ -381,12 +381,12 @@ const StaffDisputes = () => {
             <div className="p-8 text-center">
               <FaExclamationTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {filters.search || filters.status ? 'Không tìm thấy khiếu nại nào' : 'Không có khiếu nại nào'}
+                {filters.search || filters.status ? 'Không tìm thấy báo cáo nào' : 'Không có báo cáo nào'}
               </h3>
               <p className="text-gray-600">
                 {filters.search || filters.status 
                   ? 'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.'
-                  : 'Hiện tại không có khiếu nại nào cần xử lý.'
+                  : 'Hiện tại không có báo cáo nào cần xử lý.'
                 }
               </p>
             </div>
@@ -468,7 +468,7 @@ const StaffDisputes = () => {
         <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-600">
-              Hiển thị {((filters.pageIndex - 1) * filters.pageSize) + 1} - {Math.min(filters.pageIndex * filters.pageSize, paginationInfo.totalItems)} của {paginationInfo.totalItems} khiếu nại
+              Hiển thị {((filters.pageIndex - 1) * filters.pageSize) + 1} - {Math.min(filters.pageIndex * filters.pageSize, paginationInfo.totalItems)} của {paginationInfo.totalItems} báo cáo
             </span>
           </div>
           <div className="flex items-center space-x-2">
