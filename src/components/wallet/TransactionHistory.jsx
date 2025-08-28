@@ -25,6 +25,88 @@ const TransactionHistory = () => {
   const [error, setError] = useState(null);
   const itemsPerPage = 10;
 
+  // Translation function for transaction descriptions
+  const translateDescription = (description) => {
+    if (!description) return 'Giao dịch ví';
+    
+    let translatedDescription = String(description);
+    
+    // Common English patterns to Vietnamese translations
+    const translations = {
+      'payment release from escrow for booking slot': 'Giải phóng tiền từ ký quỹ cho lịch học',
+      'payment for completed lesson': 'Thanh toán cho buổi học đã hoàn thành',
+      'heldfund': 'Ký quỹ',
+      'booking slot': 'Lịch học',
+      'completed lesson': 'Buổi học đã hoàn thành',
+      'lesson payment': 'Thanh toán buổi học',
+      'tutor payment': 'Thanh toán cho gia sư',
+      'student payment': 'Thanh toán của học viên',
+      'refund': 'Hoàn tiền',
+      'fee': 'Phí',
+      'commission': 'Hoa hồng',
+      'service fee': 'Phí dịch vụ',
+      'transaction fee': 'Phí giao dịch',
+      'withdrawal fee': 'Phí rút tiền',
+      'deposit fee': 'Phí nạp tiền',
+      'escrow': 'Ký quỹ',
+      'release': 'Giải phóng',
+      'payment': 'Thanh toán',
+      'for': 'cho',
+      'from': 'từ',
+      'to': 'về',
+      'withdrawal': 'Rút tiền',
+      'deposit': 'Nạp tiền',
+      'transfer': 'Chuyển khoản',
+      'wallet transaction': 'Giao dịch ví',
+      'transaction': 'Giao dịch',
+      'successful': 'Thành công',
+      'pending': 'Đang xử lý',
+      'failed': 'Thất bại',
+      'completed': 'Đã hoàn thành',
+      'cancelled': 'Đã hủy',
+      'rejected': 'Bị từ chối',
+      'payos': 'PayOS',
+      'vnpay': 'VNPay',
+      'momo': 'MoMo',
+      'zalopay': 'ZaloPay',
+      'bank transfer': 'Chuyển khoản ngân hàng',
+      'cash deposit': 'Nạp tiền mặt',
+      'online payment': 'Thanh toán trực tuyến'
+    };
+
+    // Apply translations in order of specificity (longer phrases first)
+    const sortedTranslations = Object.entries(translations).sort((a, b) => b[0].length - a[0].length);
+    
+    sortedTranslations.forEach(([english, vietnamese]) => {
+      translatedDescription = translatedDescription.replace(
+        new RegExp(english, 'gi'),
+        vietnamese
+      );
+    });
+
+    // Special handling for HeldFund IDs - replace with more readable format
+    translatedDescription = translatedDescription.replace(
+      /(HeldFund:\s*)([a-f0-9]+)/gi,
+      'Ký quỹ: $2'
+    );
+
+    // Special handling for booking slot IDs - make them more readable
+    translatedDescription = translatedDescription.replace(
+      /([a-f0-9]{32})/g,
+      (match) => `#${match.substring(0, 8)}...`
+    );
+
+    // Special handling for specific patterns
+    if (translatedDescription.toLowerCase().includes('payment release from escrow for booking slot')) {
+      translatedDescription = translatedDescription.replace(
+        /payment release from escrow for booking slot ([a-f0-9]+)/gi,
+        'Giải phóng tiền từ ký quỹ cho lịch học #$1...'
+      );
+    }
+
+    return translatedDescription;
+  };
+
   // Load data on component mount
   useEffect(() => {
     loadTransactionData();
@@ -138,6 +220,9 @@ const TransactionHistory = () => {
                 transactionType = 'deposit';
               }
 
+              // Translate English descriptions to Vietnamese
+              const translatedDescription = translateDescription(t.description || t.transactionType || t.note);
+
               // Handle status safely
               let statusValue = 'pending';
               if (typeof t.status === 'number') {
@@ -157,7 +242,7 @@ const TransactionHistory = () => {
                 id: t.id || t.transactionId || `wallet_${index}_${Date.now()}`,
                 type: transactionType,
                 amount: parseFloat(t.amount) || 0,
-                description: t.description || t.transactionType || t.note || 'Giao dịch ví',
+                description: translatedDescription,
                 date: t.createdAt || t.transactionDate || t.createdTime || new Date().toISOString(),
                 status: statusValue
               };

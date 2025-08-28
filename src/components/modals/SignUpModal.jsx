@@ -4,6 +4,7 @@ import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { motion, AnimatePresence } from "framer-motion";
 import { register } from "../api/auth"; // Adjust the import path to your API file
+import LegalDocumentModal from "./LegalDocumentModal";
 
 // Placeholder icons
 const EyeIcon = () => (
@@ -78,20 +79,21 @@ const PASSWORD_MISMATCH_MESSAGE = "Mật khẩu xác nhận không khớp.";
 const FIELD_REQUIRED_MESSAGE = (fieldName) => `${fieldName} không được để trống.`;
 
 function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [termsAgreed, setTermsAgreed] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [termsAgreed, setTermsAgreed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [passwordValidationError, setPasswordValidationError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [fullName, setFullName] = useState("");
   const [fullNameError, setFullNameError] = useState("");
+  const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
 
-  const modalRef = useRef(null);
+  const modalRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -123,8 +125,13 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
         }
       };
     }
-    return undefined;
-  }, [isOpen]);
+        return undefined;
+  }, [isOpen]);
+
+  const handleLegalDocumentClick = (e) => {
+    e.preventDefault();
+    setShowLegalDocumentModal(true);
+  };
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -233,7 +240,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
         >
           <motion.div
             ref={modalRef}
-            className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-md mx-auto relative overflow-y-auto max-h-[95vh]"
+            className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-lg mx-auto relative overflow-y-auto max-h-[95vh]"
             variants={modalVariants}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
@@ -261,50 +268,23 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
             <h2 className="text-black text-2xl font-semibold text-center mb-3">
               Tạo tài khoản
             </h2>
-            <p className="text-sm text-gray-500 text-center mb-3">
-              Tham gia NgoaiNguNgay ngay hôm nay. Bằng cách tạo tài khoản, bạn đồng ý với{" "}
-              <a
-                href="/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-gray-700"
-              >
-                Điều khoản dịch vụ
-              </a>{" "}
-              và{" "}
-              <a
-                href="/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-gray-700"
-              >
-                Chính sách bảo mật
-              </a>
-              .
-            </p>
+                        <p className="text-sm text-gray-500 text-center mb-3">
+              Tham gia NgoaiNguNgay ngay hôm nay. Bằng cách tạo tài khoản, bạn đồng ý với
+              <a
+                onClick={handleLegalDocumentClick}
+                className="no-underline hover:text-blue-700 hover:cursor-pointer text-[#333333]"
+              >
+                {" "}Điều khoản dịch vụ và Chính sách bảo mật
+              </a>{" "}
+
+              .
+            </p>
 
             {error && (
               <div className="bg-red-50 border border-red-500 text-red-600 p-3 rounded text-sm text-center mb-4">
                 {error}
               </div>
             )}
-
-            <div className="grid grid-cols-2 gap-4 mb-2">
-              <button className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                <FaFacebook className="w-6 h-6 text-blue-800" />
-              </button>
-              <button className="flex justify-center items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                <FcGoogle className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="flex items-center mb-6">
-              <div className="flex-grow border-t border-gray-200"></div>
-              <span className="flex-shrink mx-4 text-gray-400 text-sm">
-                hoặc đăng ký bằng email
-              </span>
-              <div className="flex-grow border-t border-gray-200"></div>
-            </div>
 
             <form onSubmit={handleSignUp} className="flex flex-col gap-4">
               <div className="relative">
@@ -444,29 +424,22 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                     <label htmlFor="terms" className="ml-2 text-sm text-gray-700">
                       Tôi đồng ý với{" "}
                       <a
-                        href="/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-[#333333] hover:text-black underline"
+                        onClick={handleLegalDocumentClick}
+                        className="font-medium text-[#333333] hover:text-blue-700 hover:cursor-pointer"
                       >
-                        Điều khoản dịch vụ
-                      </a>{" "}
-                      và{" "}
-                      <a
-                        href="/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-[#333333] hover:text-black underline"
-                      >
-                        Chính sách bảo mật
+                        Điều khoản dịch vụ và Chính sách bảo mật
                       </a>
                     </label>
                   </div>
 
                   <button
                     type="submit"
-                    className={`w-full flex justify-center items-center bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    disabled={isLoading}
+                    className={`w-full flex justify-center items-center py-3 rounded-lg font-semibold transition duration-200 ${
+                      isLoading || !termsAgreed 
+                        ? 'opacity-50 cursor-not-allowed bg-gray-400 text-gray-600' 
+                        : 'bg-[#333333] text-white hover:bg-black'
+                    }`}
+                    disabled={isLoading || !termsAgreed}
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center">
@@ -494,6 +467,13 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
               </motion.div>
             </motion.div>
           )}
+
+          {/* Legal Document Modal */}
+          <LegalDocumentModal
+            isOpen={showLegalDocumentModal}
+            onClose={() => setShowLegalDocumentModal(false)}
+            category="Đăng ký"
+          />
         </AnimatePresence>
       );
     }

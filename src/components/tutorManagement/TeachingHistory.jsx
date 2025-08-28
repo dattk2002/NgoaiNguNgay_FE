@@ -100,7 +100,25 @@ const TeachingHistorySkeleton = () => (
   </Box>
 );
 
-// Helper function to get booking overall status based on slots
+// Helper function to get booking status from API
+const getBookingStatusFromAPI = (status) => {
+  switch (status) {
+    case 0: // Confirmed - Đang diễn ra
+      return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
+    case 1: // DisputeRequested - Đã yêu cầu khiếu nại
+      return { text: 'Đã yêu cầu khiếu nại', color: 'bg-orange-100 text-orange-700' };
+    case 2: // Disputed - Đang tranh chấp
+      return { text: 'Đang tranh chấp', color: 'bg-red-100 text-red-700' };
+    case 3: // Cancelled - Đã hủy
+      return { text: 'Đã hủy', color: 'bg-gray-100 text-gray-700' };
+    case 4: // Complete - Hoàn thành
+      return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
+    default:
+      return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
+  }
+};
+
+// Helper function to get booking overall status based on slots (kept for backward compatibility)
 const getBookingOverallStatus = (booking) => {
   // If no booking detail is available, we can't determine the status
   if (!booking.bookedSlots || booking.bookedSlots.length === 0) {
@@ -186,27 +204,10 @@ const TeachingHistory = () => {
       const response = await fetchTutorBookings(page, 10);
       const allBookings = response.items || [];
       
-      // Fetch detailed booking info for each booking to determine status
-      const detailedBookings = await Promise.all(
-        allBookings.map(async (booking) => {
-          try {
-            const detail = await fetchBookingDetail(booking.id);
-            // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
-            const convertedDetail = convertBookingDetailToUTC7(detail);
-            return { ...booking, detail: convertedDetail };
-          } catch (error) {
-            console.error(`Error fetching detail for booking ${booking.id}:`, error);
-            return { ...booking, detail: null };
-          }
-        })
-      );
-
-      // Filter bookings to only show completed and cancelled due to dispute
-      const filteredBookings = detailedBookings.filter(booking => {
-        if (!booking.detail) return false;
-        
-        const status = getBookingOverallStatus(booking.detail);
-        return status && (status.text === 'Hoàn thành' || status.text === 'Đã hủy do tranh chấp');
+      // Filter bookings to only show completed and cancelled
+      const filteredBookings = allBookings.filter(booking => {
+        // Status 4: Complete - Hoàn thành, Status 3: Cancelled - Đã hủy
+        return booking.status === 4 || booking.status === 3;
       });
 
       setHistory(filteredBookings);
@@ -289,11 +290,10 @@ const TeachingHistory = () => {
   const sortedAndFilteredHistory = history
     .filter(item => {
       if (filter === 'all') return true;
-      if (!item.detail) return false;
       
-      const status = getBookingOverallStatus(item.detail);
+      const status = getBookingStatusFromAPI(item.status);
       if (filter === 'completed') return status?.text === 'Hoàn thành';
-      if (filter === 'cancelled') return status?.text === 'Đã hủy do tranh chấp';
+      if (filter === 'cancelled') return status?.text === 'Đã hủy';
       return false;
     })
     .sort((a, b) => {
@@ -309,22 +309,19 @@ const TeachingHistory = () => {
 
   const totalEarnings = history
     .filter(item => {
-      if (!item.detail) return false;
-      const status = getBookingOverallStatus(item.detail);
+      const status = getBookingStatusFromAPI(item.status);
       return status?.text === 'Hoàn thành';
     })
     .reduce((total, item) => total + (item.totalPrice || 0), 0);
 
   const completedLessons = history.filter(item => {
-    if (!item.detail) return false;
-    const status = getBookingOverallStatus(item.detail);
+    const status = getBookingStatusFromAPI(item.status);
     return status?.text === 'Hoàn thành';
   }).length;
 
   const averageRating = history
     .filter(item => {
-      if (!item.detail) return false;
-      const status = getBookingOverallStatus(item.detail);
+      const status = getBookingStatusFromAPI(item.status);
       return status?.text === 'Hoàn thành';
     })
     .reduce((sum, item, _, arr) => {
@@ -397,7 +394,7 @@ const TeachingHistory = () => {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Đã hủy do tranh chấp
+              Đã hủy
             </button>
           </div>
           
@@ -422,7 +419,7 @@ const TeachingHistory = () => {
         <>
           <div className="space-y-4">
             {sortedAndFilteredHistory.map((item) => {
-              const status = item.detail ? getBookingOverallStatus(item.detail) : null;
+              const status = getBookingStatusFromAPI(item.status);
               return (
                 <div
                   key={item.id}
@@ -500,7 +497,7 @@ const TeachingHistory = () => {
                     </div>
                   )}
 
-                  {status?.text === 'Đã hủy do tranh chấp' && (
+                  {status?.text === 'Đã hủy' && (
                     <div className="bg-orange-50 p-4 rounded-lg">
                       <h4 className="font-medium text-orange-900 mb-2">Lý do hủy:</h4>
                       <p className="text-orange-700 text-sm">Booking bị hủy do có tranh chấp giữa học viên và giáo viên.</p>
@@ -608,7 +605,7 @@ const TeachingHistory = () => {
                       <h4 className="font-semibold text-gray-900">Thông tin đặt lịch</h4>
                       <div className="flex items-center gap-3">
                         {(() => {
-                          const overallStatus = getBookingOverallStatus(bookingDetail);
+                          const overallStatus = getBookingStatusFromAPI(selectedBooking?.status);
                           return overallStatus ? (
                             <span className={`px-3 py-1 text-sm rounded-full font-medium ${overallStatus.color}`}>
                               {overallStatus.text}
@@ -666,12 +663,12 @@ const TeachingHistory = () => {
                                   </div>
                                   <div>
                                     <p className="font-medium text-gray-900">
-                                      Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
+                                      {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
                                     </p>
                                     <div className="flex items-center gap-4 text-sm text-gray-600">
                                       <span className="flex items-center gap-1">
                                         <FaCalendarAlt className="w-3 h-3" />
-                                        {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
+                                        Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
                                       </span>
                                       {slot.slotNote && (
                                         <span className="text-xs text-gray-500">

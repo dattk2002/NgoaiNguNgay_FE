@@ -137,6 +137,12 @@ Hệ thống quản lý khiếu nại cho phép học viên tạo khiếu nại,
 - Props: `{ isOpen, onClose, dispute, disputeId, isTutorView, isStaffView, onDisputeUpdated, disputeMetadata }`
 - Features: Conditional rendering theo role, actions theo trạng thái
 
+#### `LegalDocumentModal.jsx`
+- Modal hiển thị tài liệu pháp lý theo category
+- Props: `{ isOpen, onClose, category }`
+- Features: Fetch và hiển thị legal document, responsive design, loading states
+- Usage: Được sử dụng trong LoginModal và SignUpModal để hiển thị điều khoản dịch vụ
+
 #### `MyDisputes.jsx`
 - Component hiển thị danh sách khiếu nại cho học viên
 - Features: Filter, statistics, dispute list

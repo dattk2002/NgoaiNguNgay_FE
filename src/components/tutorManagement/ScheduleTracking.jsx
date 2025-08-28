@@ -100,6 +100,24 @@ const BookingTrackingSkeleton = () => (
   </Box>
 );
 
+// Helper function to get booking status from API
+const getBookingStatusFromAPI = (status) => {
+  switch (status) {
+    case 0: // Confirmed - Đang diễn ra
+      return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
+    case 1: // DisputeRequested - Đã yêu cầu khiếu nại
+      return { text: 'Đã yêu cầu khiếu nại', color: 'bg-orange-100 text-orange-700' };
+    case 2: // Disputed - Đang tranh chấp
+      return { text: 'Đang tranh chấp', color: 'bg-red-100 text-red-700' };
+    case 3: // Cancelled - Đã hủy
+      return { text: 'Đã hủy', color: 'bg-gray-100 text-gray-700' };
+    case 4: // Complete - Hoàn thành
+      return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
+    default:
+      return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
+  }
+};
+
 // Helper function to get slot status text and color
 const getSlotStatusInfo = (status) => {
   switch (status) {
@@ -236,45 +254,10 @@ const ScheduleTracking = () => {
     setStatusLoading(loadingSet);
 
     try {
-      // Load status for each booking in parallel
-      const statusPromises = bookingsList.map(async (booking) => {
-        try {
-          console.log(`Loading status for booking ${booking.id}...`);
-          const detail = await fetchBookingDetail(booking.id);
-          console.log(`Booking ${booking.id} detail:`, detail);
-          
-          // Check if detail has the expected structure
-          if (!detail || !detail.bookedSlots || !Array.isArray(detail.bookedSlots)) {
-            console.warn(`Booking ${booking.id} has invalid detail structure:`, detail);
-            // Try to create a fallback status based on booking data
-            const fallbackStatus = {
-              text: 'Đang chờ',
-              color: 'bg-yellow-100 text-yellow-700'
-            };
-            return { bookingId: booking.id, status: fallbackStatus };
-          }
-          
-          const status = getBookingOverallStatus(detail);
-          console.log(`Booking ${booking.id} status:`, status);
-          
-          return { bookingId: booking.id, status };
-        } catch (error) {
-          console.error(`Error loading status for booking ${booking.id}:`, error);
-          // Return a fallback status instead of null
-          const fallbackStatus = {
-            text: 'Đang chờ',
-            color: 'bg-yellow-100 text-yellow-700'
-          };
-          return { bookingId: booking.id, status: fallbackStatus };
-        }
-      });
-
-      const statusResults = await Promise.all(statusPromises);
-      console.log('All status results:', statusResults);
-      
-      // Update statuses
-      statusResults.forEach(({ bookingId, status }) => {
-        newStatuses[bookingId] = status;
+      // Use booking status directly from API response
+      bookingsList.forEach((booking) => {
+        const status = getBookingStatusFromAPI(booking.status);
+        newStatuses[booking.id] = status;
       });
 
       console.log('New statuses object:', newStatuses);
@@ -373,8 +356,40 @@ const ScheduleTracking = () => {
         setBookingDetail(convertedDetail);
       }
       
-      // Also refresh the main bookings list and statuses
-      loadBookings(pagination.pageIndex);
+      // Update the booking status in the main list without reloading
+      setBookings(prevBookings => 
+        prevBookings.map(booking => {
+          if (booking.id === selectedBooking?.id) {
+            // Update the booking status to reflect the completion
+            // If all slots are completed, change status to 4 (Complete)
+            const updatedSlots = bookingDetail?.bookedSlots?.map(slot => 
+              slot.id === bookedSlotId ? { ...slot, status: 1 } : slot
+            ) || [];
+            
+            const allSlotsCompleted = updatedSlots.every(slot => slot.status === 1 || slot.status === 2);
+            const newStatus = allSlotsCompleted ? 4 : booking.status;
+            
+            return { ...booking, status: newStatus };
+          }
+          return booking;
+        })
+      );
+      
+      // Update booking statuses without reloading
+      setBookingStatuses(prev => {
+        const newStatuses = { ...prev };
+        if (selectedBooking?.id) {
+          const updatedSlots = bookingDetail?.bookedSlots?.map(slot => 
+            slot.id === bookedSlotId ? { ...slot, status: 1 } : slot
+          ) || [];
+          
+          const allSlotsCompleted = updatedSlots.every(slot => slot.status === 1 || slot.status === 2);
+          const newStatus = allSlotsCompleted ? 4 : selectedBooking.status;
+          
+          newStatuses[selectedBooking.id] = getBookingStatusFromAPI(newStatus);
+        }
+        return newStatuses;
+      });
       
       // Show success message
       toast.success("Slot đã được hoàn thành thành công!");
@@ -450,14 +465,7 @@ const ScheduleTracking = () => {
                      <span
                        className={`px-3 py-1 rounded-full text-xs font-medium ${
                          statusLoading.has(booking.id) ? 'bg-gray-100 text-gray-800' :
-                         status && status.text ? 
-                           (status.text === 'Hoàn thành' ? 'bg-green-100 text-green-800' :
-                            status.text === 'Đã hủy' ? 'bg-red-100 text-red-800' :
-                            status.text === 'Đã hủy do tranh chấp' ? 'bg-orange-100 text-orange-800' :
-                            status.text === 'Đang chờ' ? 'bg-yellow-100 text-yellow-800' :
-                            status.text === 'Đang chờ xác nhận' ? 'bg-blue-100 text-blue-800' :
-                            status.text === 'Đang diễn ra' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800') :
+                         status && status.color ? status.color :
                          'bg-gray-100 text-gray-800'
                        }`}
                      >
@@ -522,7 +530,7 @@ const ScheduleTracking = () => {
                      </div>
                    )}
 
-                   {status && status.text === 'Đã hủy do tranh chấp' && (
+                   {status && status.text === 'Đang tranh chấp' && (
                      <div className="bg-orange-50 p-4 rounded-lg">
                        <h4 className="font-medium text-orange-900 mb-2">Lý do hủy:</h4>
                        <p className="text-orange-700 text-sm">Booking bị hủy do có tranh chấp giữa học viên và giáo viên.</p>
@@ -536,7 +544,7 @@ const ScheduleTracking = () => {
                      </div>
                    )}
 
-                   {status && status.text === 'Đang chờ xác nhận' && (
+                   {status && status.text === 'Đã yêu cầu khiếu nại' && (
                      <div className="bg-yellow-50 p-4 rounded-lg">
                        <h4 className="font-medium text-yellow-900 mb-2">Trạng thái hiện tại:</h4>
                        <p className="text-yellow-700 text-sm">Khóa học đang chờ xác nhận từ giáo viên. Vui lòng chờ thông báo.</p>
@@ -657,8 +665,8 @@ const ScheduleTracking = () => {
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-gray-900">Thông tin đặt lịch</h4>
                         <div className="flex items-center gap-3">
-                          {bookingDetail && (() => {
-                            const overallStatus = getBookingOverallStatus(bookingDetail);
+                          {selectedBooking && (() => {
+                            const overallStatus = getBookingStatusFromAPI(selectedBooking.status);
                             return overallStatus ? (
                               <span className={`px-3 py-1 text-sm rounded-full font-medium ${overallStatus.color}`}>
                                 {overallStatus.text}
@@ -713,22 +721,22 @@ const ScheduleTracking = () => {
                                     <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
                                       {index + 1}
                                     </div>
-                                    <div>
-                                      <p className="font-medium text-gray-900">
+                                                                      <div>
+                                    <p className="font-medium text-gray-900">
+                                      {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
+                                    </p>
+                                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                                      <span className="flex items-center gap-1">
+                                        <FaCalendarAlt className="w-3 h-3" />
                                         Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
-                                      </p>
-                                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                                        <span className="flex items-center gap-1">
-                                          <FaCalendarAlt className="w-3 h-3" />
-                                          {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
+                                      </span>
+                                      {slot.slotNote && (
+                                        <span className="text-xs text-gray-500">
+                                          Ghi chú: {slot.slotNote}
                                         </span>
-                                        {slot.slotNote && (
-                                          <span className="text-xs text-gray-500">
-                                            Ghi chú: {slot.slotNote}
-                                          </span>
-                                        )}
-                                      </div>
+                                      )}
                                     </div>
+                                  </div>
                                   </div>
                                   <div className="flex items-center gap-3">
                                     <div className="text-right">

@@ -4,7 +4,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion, AnimatePresence } from "framer-motion";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
-// import { formatPriceWithCommas } from '../../utils/formatPriceWithCommas';
+import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatSlotTime } from '../../utils/formatSlotTime';
 import { formatTutorDate } from '../../utils/formatTutorDate';
 
@@ -976,10 +976,10 @@ const BookingRequests = () => {
                                     </div>
                                     <div>
                                       <h5 className="text-lg font-bold text-gray-900">
-                                        Slot {slot.slotIndex !== undefined ? formatSlotTime(slot.slotIndex) : 'N/A'}
+                                        {slot.slotIndex !== undefined ? formatSlotTime(slot.slotIndex) : 'N/A'}
                                       </h5>
                                       <p className="text-gray-600">
-                                        {slot.bookedDate ? formatTutorDate(slot.bookedDate) : 'N/A'}
+                                        Slot {slot.slotIndex !== undefined ? slot.slotIndex : 'N/A'} • {slot.bookedDate ? formatTutorDate(slot.bookedDate) : 'N/A'}
                                       </p>
                                     </div>
                                   </div>
@@ -995,25 +995,19 @@ const BookingRequests = () => {
                                       </svg>
                                       Thông tin quỹ giữ
                                     </h6>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                       <div className="space-y-1">
                                         <p className="text-xs text-gray-500 font-medium">Số tiền</p>
-                                        <p className="text-lg font-bold text-gray-900">{slot.heldFund.amount || 0} VND</p>
+                                        <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)} VND</p>
                                       </div>
                                       <div className="space-y-1">
                                         <p className="text-xs text-gray-500 font-medium">Trạng thái</p>
                                         <p className="text-sm font-semibold text-gray-900">{getHeldFundStatusText(slot.heldFund.status)}</p>
                                       </div>
                                       <div className="space-y-1">
-                                        <p className="text-xs text-gray-500 font-medium">Ngày giải phóng</p>
+                                        <p className="text-xs text-gray-500 font-medium">Ngày trả tiền</p>
                                         <p className="text-sm text-gray-900">
                                           {slot.heldFund.releaseAt ? formatTutorDate(slot.heldFund.releaseAt) : 'N/A'}
-                                        </p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-gray-500 font-medium">Ngày giải quyết</p>
-                                        <p className="text-sm text-gray-900">
-                                          {slot.heldFund.resolvedAt ? formatTutorDate(slot.heldFund.resolvedAt) : 'N/A'}
                                         </p>
                                       </div>
                                     </div>

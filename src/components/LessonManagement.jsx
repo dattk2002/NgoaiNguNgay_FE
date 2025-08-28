@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating, fetchLearnerDisputes, learnerCancelBookingByBookingId } from "./api/auth";
+import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating, fetchLearnerDisputes, learnerCancelBookingByBookingId, fetchBookingDetailbyBookingId } from "./api/auth";
 import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from "../utils/formatCentralTimestamp";
 import { calculateUTC7SlotIndex } from "../utils/formatSlotTime";
 import { formatSlotDateTime, sortSlotsByProximityToCurrentDate } from "../utils/formatSlotTime";
@@ -49,55 +49,7 @@ const LessonManagement = () => {
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingBooking, setCancellingBooking] = useState(false);
 
-  // Helper function to get booking overall status based on all slots in a group
-  const getGroupOverallStatus = (group) => {
-    // Collect all slots from all bookings in the group
-    const allSlots = [];
-    group.bookings.forEach(booking => {
-      if (booking.bookedSlots && Array.isArray(booking.bookedSlots)) {
-        allSlots.push(...booking.bookedSlots);
-      }
-    });
-    
-    if (allSlots.length === 0) return 0; // Pending if no slots
-    
-    // Count slots by status
-    const pendingSlots = allSlots.filter(slot => slot.status === 0).length;
-    const awaitingPayoutSlots = allSlots.filter(slot => slot.status === 1).length;
-    const completedSlots = allSlots.filter(slot => slot.status === 2).length;
-    const cancelledSlots = allSlots.filter(slot => slot.status === 3).length;
-    const cancelledDisputedSlots = allSlots.filter(slot => slot.status === 4).length;
-    const totalSlots = allSlots.length;
-    
-    // If all slots are completed (status = 2)
-    if (completedSlots === totalSlots) return 2; // Completed
-    
-    // If all slots are cancelled
-    if (cancelledSlots === totalSlots) return 3; // Cancelled
-    
-    // If all slots are cancelled due to dispute
-    if (cancelledDisputedSlots === totalSlots) return 4; // CancelledDisputed
-    
-    // If all slots are pending
-    if (pendingSlots === totalSlots) return 0; // Pending
-    
-    // If all slots are awaiting payout
-    if (awaitingPayoutSlots === totalSlots) return 1; // AwaitingPayout
-    
-    // Mixed status cases:
-    
-    // Case 1: If there are any cancelled disputed slots + other statuses → "Đang diễn ra"
-    if (cancelledDisputedSlots > 0) return 0; // Show as "Đang diễn ra"
-    
-    // Case 2: If there are any awaiting payout slots (status = 1) + other statuses → "Đang diễn ra"
-    if (awaitingPayoutSlots > 0) return 0; // Show as "Đang diễn ra"
-    
-    // Case 3: If there are any pending slots + other statuses → "Đang diễn ra"
-    if (pendingSlots > 0) return 0; // Show as "Đang diễn ra"
-    
-    // Default case: mixed status without pending/awaiting/disputed → "Đang diễn ra"
-    return 0; // Show as "Đang diễn ra"
-  };
+
 
   // Helper function to check if a slot has a dispute
   const hasSlotDispute = (slotId) => {
@@ -146,16 +98,7 @@ const LessonManagement = () => {
     }
   };
 
-  // Helper function to check if group has at least one completed slot
-  const hasCompletedSlots = (group) => {
-    const allSlots = [];
-    group.bookings.forEach(booking => {
-      if (booking.bookedSlots && Array.isArray(booking.bookedSlots)) {
-        allSlots.push(...booking.bookedSlots);
-      }
-    });
-    return allSlots.some(slot => slot.status === 2); // Status 2 = Completed
-  };
+
 
   // Handle cancel booking
   const handleCancelBooking = (booking) => {
@@ -170,10 +113,10 @@ const LessonManagement = () => {
       console.log("🔍 Fetching ratings for bookings...");
       const ratingsMap = new Map();
       
-      // Get unique booking IDs that have completed slots
+      // Get unique booking IDs that are completed
       const bookingIdsToCheck = new Set();
       bookings.forEach(booking => {
-        if (booking.bookedSlots && booking.bookedSlots.some(slot => slot.status === 2)) { // Status 2 = Completed
+        if (booking.status === 4) { // Status 4 = Hoàn thành
           bookingIdsToCheck.add(booking.id);
         }
       });
@@ -296,46 +239,56 @@ const LessonManagement = () => {
       if (response && Array.isArray(response.items)) {
         const bookingList = response.items;
         
-        // Fetch detailed booking info for each booking
-        const detailedBookings = await Promise.all(
+        // Use booking data directly from fetchLearnerBookings and only fetch additional details if needed
+        const processedBookings = await Promise.all(
           bookingList.map(async (booking) => {
             try {
-              const detail = await fetchBookingDetail(booking.id);
-              // Convert UTC+0 to UTC+7 and sort booked slots by proximity to current date
-              const convertedDetail = convertBookingDetailToUTC7(detail);
-              // Sort slots by proximity to current date (closest first)
-              if (convertedDetail.bookedSlots && Array.isArray(convertedDetail.bookedSlots)) {
-                convertedDetail.bookedSlots = sortSlotsByProximityToCurrentDate(convertedDetail.bookedSlots);
+              // Use the booking data from fetchLearnerBookings as base
+              const baseBooking = {
+                ...booking,
+                lessonSnapshot: { name: booking.lessonName }, // Create lessonSnapshot from lessonName
+                bookedSlots: [] // Initialize empty slots array
+              };
+              
+              // Fetch additional details only for slots information
+              try {
+                const detail = await fetchBookingDetail(booking.id);
+                const convertedDetail = convertBookingDetailToUTC7(detail);
+                if (convertedDetail.bookedSlots && Array.isArray(convertedDetail.bookedSlots)) {
+                  baseBooking.bookedSlots = sortSlotsByProximityToCurrentDate(convertedDetail.bookedSlots);
+                }
+                // Keep the status from the original booking data
+                baseBooking.status = booking.status;
+              } catch (detailError) {
+                console.error(`Failed to fetch detail for booking ${booking.id}:`, detailError);
+                // Keep the booking with basic info even if detail fetch fails
               }
-              return convertedDetail;
+              
+              return baseBooking;
             } catch (error) {
-              console.error(`Failed to fetch detail for booking ${booking.id}:`, error);
+              console.error(`Failed to process booking ${booking.id}:`, error);
               return null;
             }
           })
         );
         
         // Filter out failed requests
-        const validBookings = detailedBookings.filter(booking => booking !== null);
+        const validBookings = processedBookings.filter(booking => booking !== null);
+        
+
         
         setLessons(validBookings);
         setTotalCount(response.totalCount || validBookings.length);
-        
-        // Group lessons by lessonName + tutorName
-        // const grouped = groupLessons(validBookings); // This line is removed as per the new_code
-        // setGroupedLessons(grouped); // This line is removed as per the new_code
         
         // Fetch ratings for completed bookings
         await fetchBookingRatings(validBookings);
       } else {
         setLessons([]);
-        // setGroupedLessons([]); // This line is removed as per the new_code
         setTotalCount(0);
       }
     } catch (error) {
       console.error("Lỗi khi tải danh sách buổi học:", error);
       setLessons([]);
-      // setGroupedLessons([]); // This line is removed as per the new_code
       toast.error("Không thể tải danh sách buổi học. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
@@ -395,7 +348,26 @@ const LessonManagement = () => {
     setExpandedItems(newExpanded);
   };
 
-  const getStatusBadge = (status) => {
+  const getBookingStatusBadge = (status) => {
+    // Based on backend BookingStatus enum:
+    // 0: Đang diễn ra, 1: Đã yêu cầu khiếu nại, 2: Đang tranh chấp, 3: Đã hủy, 4: Hoàn thành
+    const statusMap = {
+      0: { label: "Đang diễn ra", class: "bg-blue-50 text-blue-700 border border-blue-200" },
+      1: { label: "Đã yêu cầu khiếu nại", class: "bg-orange-50 text-orange-700 border border-orange-200" },
+      2: { label: "Đang tranh chấp", class: "bg-red-50 text-red-700 border border-red-200" },
+      3: { label: "Đã hủy", class: "bg-gray-50 text-gray-700 border border-gray-200" },
+      4: { label: "Hoàn thành", class: "bg-green-50 text-green-700 border border-green-200" }
+    };
+    const statusInfo = statusMap[status] || { label: "Không xác định", class: "bg-gray-50 text-gray-700 border border-gray-200" };
+    
+    return (
+      <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusInfo.class}`}>
+        {statusInfo.label}
+      </span>
+    );
+  };
+
+  const getSlotStatusBadge = (status) => {
     // Based on backend SlotStatus enum:
     // Pending = 0, AwaitingPayout = 1, Completed = 2, Cancelled = 3, CancelledDisputed = 4
     const statusMap = {
@@ -419,26 +391,51 @@ const LessonManagement = () => {
       setLoadingLessonInfo(true);
       setShowLessonModal(true);
       
-      // Use lesson data from lessonSnapshot (already available from booking detail)
-      if (booking.lessonSnapshot) {
+      // Fetch detailed booking information using fetchBookingDetailbyBookingId
+      const response = await fetchBookingDetailbyBookingId(booking.id);
+      
+      // Check if response has data and lessonSnapshot
+      if (response && response.data && response.data.lessonSnapshot) {
         setSelectedLessonInfo({
-          group: { bookings: [booking] },
-          lessonData: booking.lessonSnapshot,
+          group: { 
+            bookings: [booking],
+            slotCount: booking.slotCount,
+            totalPrice: booking.totalPrice,
+            lessonName: booking.lessonName,
+            tutorName: booking.tutorName
+          },
+          lessonData: response.data.lessonSnapshot,
           error: null
         });
       } else {
+        console.log("🔍 Response structure:", response);
+        console.log("🔍 Response.data:", response?.data);
+        console.log("🔍 Response.data.lessonSnapshot:", response?.data?.lessonSnapshot);
+        
         setSelectedLessonInfo({
-          group: { bookings: [booking] },
+          group: { 
+            bookings: [booking],
+            slotCount: booking.slotCount,
+            totalPrice: booking.totalPrice,
+            lessonName: booking.lessonName,
+            tutorName: booking.tutorName
+          },
           lessonData: null,
-          error: `Không tìm thấy thông tin khóa học "${booking.lessonSnapshot?.name || 'Khóa học'}"`
+          error: `Không tìm thấy thông tin khóa học "${booking.lessonName || 'Khóa học'}"`
         });
       }
     } catch (error) {
-      console.error("Error handling course info:", error);
+      console.error("Error fetching booking detail:", error);
       setSelectedLessonInfo({
-        group: { bookings: [booking] },
+        group: { 
+          bookings: [booking],
+          slotCount: booking.slotCount,
+          totalPrice: booking.totalPrice,
+          lessonName: booking.lessonName,
+          tutorName: booking.tutorName
+        },
         lessonData: null,
-        error: `Không thể hiển thị thông tin khóa học "${booking.lessonSnapshot?.name || 'Khóa học'}". Lỗi: ${error.message}`
+        error: `Không thể tải thông tin khóa học "${booking.lessonName || 'Khóa học'}". Lỗi: ${error.message}`
       });
       toast.error(`Không thể tải thông tin khóa học: ${error.message}`);
     } finally {
@@ -447,30 +444,27 @@ const LessonManagement = () => {
   };
 
   const handleRateBooking = (group) => {
-    // Find the first booking that has completed slots to get bookingId for rating
+    // Find the first booking that is completed to get bookingId for rating
     let validBookingId = null;
     
-    // Look through all bookings in the group to find one with completed slots
+    // Look through all bookings in the group to find one with completed status
     for (const booking of group.bookings) {
-      if (booking.bookedSlots && Array.isArray(booking.bookedSlots)) {
-        const hasCompletedSlot = booking.bookedSlots.some(slot => slot.status === 2); // Status 2 = Completed
-        if (hasCompletedSlot) {
-          validBookingId = booking.id;
-          break;
-        }
+      if (booking.status === 4) { // Status 4 = Hoàn thành
+        validBookingId = booking.id;
+        break;
       }
     }
     
-    console.log("🔍 Debug - Found booking ID with completed slots:", validBookingId);
+    console.log("🔍 Debug - Found booking ID with completed status:", validBookingId);
     
     if (!validBookingId) {
-      toast.error("Không tìm thấy booking có slot đã hoàn thành để đánh giá!");
+      toast.error("Không tìm thấy booking đã hoàn thành để đánh giá!");
       return;
     }
     
     setSelectedBookingForRating({
       bookingId: validBookingId,
-      lessonName: group.bookings[0]?.lessonSnapshot?.name || 'Khóa học',
+      lessonName: group.bookings[0]?.lessonName || group.bookings[0]?.lessonSnapshot?.name || 'Khóa học',
       tutorName: group.bookings[0]?.tutorName || 'Gia sư',
       group: group
     });
@@ -677,26 +671,9 @@ const LessonManagement = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
                           <h3 className="text-lg font-semibold" style={{ color: '#666666' }}>
-                            {booking.lessonSnapshot?.name || 'Chưa có tên khóa học'}
+                            {booking.lessonName || booking.lessonSnapshot?.name || 'Chưa có tên khóa học'}
                           </h3>
-                          {(() => {
-                            const overallStatus = getGroupOverallStatus({ bookings: [booking] });
-                            return overallStatus ? (
-                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                                overallStatus === 2 ? 'bg-green-50 text-green-700 border border-green-200' : 
-                                overallStatus === 1 ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                                overallStatus === 3 ? 'bg-red-50 text-red-700 border border-red-200' : 
-                                overallStatus === 4 ? 'bg-orange-50 text-orange-700 border border-orange-200' :
-                                'bg-blue-50 text-blue-700 border border-blue-200'
-                              }`}>
-                                {overallStatus === 2 ? 'Hoàn thành' : 
-                                 overallStatus === 1 ? 'Hoàn thành, báo cáo trong 24h nếu có' :
-                                 overallStatus === 3 ? 'Đã hủy' : 
-                                 overallStatus === 4 ? 'Đã hủy do tranh chấp' :
-                                 'Đang diễn ra'}
-                               </span>
-                              ) : getStatusBadge(booking.bookedSlots?.[0]?.status || 0);
-                            })()}
+                          {getBookingStatusBadge(booking.status || 0)}
                         </div>
                         <p className="text-sm text-gray-600 mt-1">
                           Gia sư: <span className="font-medium">{booking.tutorName}</span>
@@ -706,13 +683,13 @@ const LessonManagement = () => {
                             <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            {booking.bookedSlots?.length || 0} slot học
+                            {booking.slotCount || booking.bookedSlots?.length || 0} slot học
                           </span>
                           <span>
                             <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                             </svg>
-                            {booking.totalPrice?.toLocaleString('vi-VN') || '0'} VND
+                            {(booking.totalPrice || 0).toLocaleString('vi-VN')} VND
                           </span>
                         </div>
                       </div>
@@ -730,8 +707,8 @@ const LessonManagement = () => {
                         </svg>
                         Thông tin khóa học
                       </button>
-                      {/* Rating button - only show when at least one slot is completed and no rating exists */}
-                      {hasCompletedSlots({ bookings: [booking] }) && !getGroupRating({ bookings: [booking] }) && (
+                      {/* Rating button - only show when booking is completed and no rating exists */}
+                      {booking.status === 4 && !getGroupRating({ bookings: [booking] }) && (
                         <button
                           onClick={() => handleRateBooking({ bookings: [booking] })}
                           className="px-3 py-2 text-sm rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors duration-200 flex items-center space-x-1"
@@ -757,24 +734,15 @@ const LessonManagement = () => {
                                                  {/* Cancel booking button */}
                          <button
                            onClick={() => handleCancelBooking(booking)}
-                           disabled={(() => {
-                             const overallStatus = getGroupOverallStatus({ bookings: [booking] });
-                             return overallStatus === 2 || overallStatus === 1 || overallStatus === 3 || overallStatus === 4;
-                           })()}
+                           disabled={booking.status === 4 || booking.status === 3}
                            className={`px-3 py-2 text-sm rounded-lg transition-colors duration-200 flex items-center space-x-1 ${
-                             (() => {
-                               const overallStatus = getGroupOverallStatus({ bookings: [booking] });
-                               return overallStatus === 2 || overallStatus === 1 || overallStatus === 3 || overallStatus === 4;
-                             })()
+                             booking.status === 4 || booking.status === 3
                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                : 'bg-red-500 text-white hover:bg-red-600'
                            }`}
                            title={(() => {
-                             const overallStatus = getGroupOverallStatus({ bookings: [booking] });
-                             if (overallStatus === 2) return "Booking đã hoàn thành";
-                             if (overallStatus === 1) return "Booking đã hoàn thành, khiếu nại trong 24h nếu có";
-                             if (overallStatus === 3) return "Booking đã được hủy";
-                             if (overallStatus === 4) return "Booking đã hủy do tranh chấp";
+                             if (booking.status === 4) return "Booking đã hoàn thành";
+                             if (booking.status === 3) return "Booking đã được hủy";
                              return "Hủy booking";
                            })()}
                          >
@@ -807,7 +775,7 @@ const LessonManagement = () => {
                   <div className="border-t border-gray-200 bg-gray-50">
                     <div className="p-4">
                       <h4 className="text-sm font-medium mb-3" style={{ color: '#666666' }}>
-                        Chi tiết slot học ({booking.bookedSlots?.length || 0} slot)
+                        Chi tiết slot học ({booking.slotCount || booking.bookedSlots?.length || 0} slot)
                       </h4>
                       <div className="space-y-2">
                         {(() => {
@@ -831,10 +799,10 @@ const LessonManagement = () => {
                                         <div className="flex items-center justify-between">
                                           <div>
                                             <span className="font-medium text-lg" style={{ color: '#666666' }}>
-                                              Slot {slot.slotIndex}
+                                              {formatSlotDateTimeUTC0(slot.slotIndex, slot.bookedDate)}
                                             </span>
                                             <div className="text-xs text-gray-500 mt-1">
-                                              Ngày học: {formatSlotDateTimeUTC0(slot.slotIndex, slot.bookedDate)}
+                                              Slot {slot.slotIndex}
                                             </div>
                                             {slot.slotNote && (
                                               <div className="text-xs text-gray-600 mt-1">
@@ -843,7 +811,7 @@ const LessonManagement = () => {
                                             )}
                                           </div>
                                           <div className="flex items-center gap-2">
-                                            {getStatusBadge(slot.status)}
+                                            {getSlotStatusBadge(slot.status)}
                                             {/* Nút khiếu nại chỉ hiển thị cho slot đã hoàn thành (status = 1: AwaitingPayout) */}
                                             {slot.status === 1 && (
                                               hasSlotDispute(slot.id) ? (
@@ -857,7 +825,7 @@ const LessonManagement = () => {
                                                 <button
                                                   onClick={() => handleCreateDispute({
                                                     ...slot,
-                                                    lessonName: booking.lessonSnapshot?.name || 'Khóa học',
+                                                    lessonName: booking.lessonName || booking.lessonSnapshot?.name || 'Khóa học',
                                                     tutorName: booking.tutorName || 'Gia sư'
                                                   })}
                                                   className="px-2 py-1 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 flex items-center gap-1"
@@ -1084,8 +1052,8 @@ const LessonManagement = () => {
                     <div className="flex-shrink-0">
                       <img
                         className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
-                        src={selectedLessonInfo.group.tutorAvatarUrl || "https://via.placeholder.com/64"}
-                        alt={selectedLessonInfo.group.tutorName}
+                                                 src={selectedLessonInfo.group.tutorAvatarUrl || selectedLessonInfo.group.bookings[0]?.tutorAvatarUrl || "https://via.placeholder.com/64"}
+                                                  alt={selectedLessonInfo.group.tutorName || selectedLessonInfo.group.bookings[0]?.tutorName}
                         onError={(e) => {
                           e.target.src = "https://via.placeholder.com/64";
                         }}
@@ -1093,11 +1061,11 @@ const LessonManagement = () => {
                     </div>
                     <div className="flex-1">
                       <h4 className="text-2xl font-bold mb-2" style={{ color: '#666666' }}>
-                        {selectedLessonInfo.lessonData.name || selectedLessonInfo.group.lessonName}
+                        {selectedLessonInfo.lessonData.name || selectedLessonInfo.group.lessonName || selectedLessonInfo.group.bookings[0]?.lessonName}
                       </h4>
                       <p className="text-gray-600 flex items-center">
                         <span className="font-medium">Gia sư:</span>
-                        <span className="ml-2">{selectedLessonInfo.group.tutorName}</span>
+                        <span className="ml-2">{selectedLessonInfo.group.tutorName || selectedLessonInfo.group.bookings[0]?.tutorName}</span>
                       </p>
                     </div>
                   </div>
@@ -1139,8 +1107,8 @@ const LessonManagement = () => {
                         <h5 className="font-semibold" style={{ color: '#666666' }}>Tổng thời lượng</h5>
                       </div>
                       <p className="text-lg font-bold text-blue-600">
-                        {selectedLessonInfo.lessonData.durationInMinutes && selectedLessonInfo.group.slotCount
-                          ? `${selectedLessonInfo.group.slotCount * selectedLessonInfo.lessonData.durationInMinutes} phút`
+                        {selectedLessonInfo.lessonData.durationInMinutes && (selectedLessonInfo.group.slotCount || selectedLessonInfo.group.bookings[0]?.slotCount)
+                          ? `${(selectedLessonInfo.group.slotCount || selectedLessonInfo.group.bookings[0]?.slotCount) * selectedLessonInfo.lessonData.durationInMinutes} phút`
                           : 'Chưa tính được'
                         }
                       </p>
@@ -1197,20 +1165,21 @@ const LessonManagement = () => {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-blue-600 font-medium">Tổng slot học:</span>
-                        <span className="ml-2" style={{ color: '#666666' }}>{selectedLessonInfo.group.slotCount} slot</span>
+                        <span className="ml-2" style={{ color: '#666666' }}>{selectedLessonInfo.group.slotCount || selectedLessonInfo.group.bookings[0]?.slotCount} slot</span>
                       </div>
                       <div>
                         <span className="text-blue-600 font-medium">Tổng tiền:</span>
-                        <span className="ml-2 font-bold" style={{ color: '#666666' }}>{selectedLessonInfo.group.totalPrice.toLocaleString('vi-VN')} VND</span>
+                        <span className="ml-2 font-bold" style={{ color: '#666666' }}>{(selectedLessonInfo.group.totalPrice || selectedLessonInfo.group.bookings[0]?.totalPrice || 0).toLocaleString('vi-VN')} VND</span>
                       </div>
                       <div className="col-span-2">
                         <span className="text-blue-600 font-medium">Trạng thái:</span>
                         <span className="ml-2">{(() => {
-                          const overallStatus = getGroupOverallStatus(selectedLessonInfo.group);
-                          return overallStatus === 2 ? 'Hoàn thành' : 
-                                 overallStatus === 1 ? 'Đang chờ thanh toán' :
-                                 overallStatus === 3 ? 'Đã hủy' : 
-                                 overallStatus === 4 ? 'Đã hủy do tranh chấp' :
+                          const booking = selectedLessonInfo.group.bookings[0];
+                          const status = booking?.status || 0;
+                          return status === 4 ? 'Hoàn thành' : 
+                                 status === 1 ? 'Đã yêu cầu khiếu nại' :
+                                 status === 2 ? 'Đang tranh chấp' : 
+                                 status === 3 ? 'Đã hủy' :
                                  'Đang diễn ra';
                         })()}</span>
                       </div>
@@ -1421,7 +1390,7 @@ const LessonManagement = () => {
                   <strong>Gia sư:</strong> {selectedBookingForCancel.tutorName}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>Bài học:</strong> {selectedBookingForCancel.lessonSnapshot?.name || 'Khóa học'}
+                                     <strong>Bài học:</strong> {selectedBookingForCancel.lessonName || selectedBookingForCancel.lessonSnapshot?.name || 'Khóa học'}
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 1 }}>
                   <strong>Tổng giá:</strong> {selectedBookingForCancel.totalPrice?.toLocaleString()} VNĐ
