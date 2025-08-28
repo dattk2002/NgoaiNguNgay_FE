@@ -56,7 +56,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
     const loadTutors = async () => {
       try {
         setLoading(true);
-        // Call the new fetchRecommendTutor function
+        // Call the new fetchRecommendTutor function with no language filter initially
         const tutorsData = await fetchRecommendTutor();
         setTutors(tutorsData);
         setFilteredTutors(tutorsData); // Initially show all tutors
@@ -70,17 +70,22 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
     loadTutors();
   }, []);
 
-  // Handle language filter change - Updated to filter based on 'languages' array
-  const handleLanguageFilter = (language) => {
-    setSelectedLanguage(language);
-    setVisibleTutors(3); // Reset visible tutors when changing filter
-    if (language === "") {
-      setFilteredTutors(tutors); // Show all tutors if no language selected
-    } else {
-      const filtered = tutors.filter((tutor) =>
-        tutor.languages?.some((lang) => lang.languageCode === language)
-      );
-      setFilteredTutors(filtered);
+  // Handle language filter change - Updated to call API with languageCode parameter
+  const handleLanguageFilter = async (language) => {
+    try {
+      setSelectedLanguage(language);
+      setVisibleTutors(3); // Reset visible tutors when changing filter
+      setLoading(true);
+      setError(null);
+      
+      // Call API with the selected language code
+      const tutorsData = await fetchRecommendTutor(language === "" ? null : language);
+      setTutors(tutorsData);
+      setFilteredTutors(tutorsData);
+    } catch (err) {
+      setError(err.message || "Could not load recommended tutors for the selected language.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -179,14 +184,14 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
               <RecommendTutorCard
                 key={tutor.tutorId}
                 tutor={{
-                  tutorId: tutor.tutorId, // <-- Fix here
+                  tutorId: tutor.tutorId,
                   name: tutor.fullName,
                   subjects:
                     Array.isArray(tutor.languages) && tutor.languages.length > 0
                       ? tutor.languages.map((lang) => lang.languageCode).join(", ")
                       : "N/A",
                   rating: tutor.rating || 0,
-                  reviews: 0,
+                  reviews: tutor.totalReviews || 0, // Updated to use totalReviews from API
                   price: 0,
                   imageUrl: tutor.profileImageUrl,
                   description: tutor.description,

@@ -4993,7 +4993,7 @@ const TutorProfile = ({
                                         <strong>Từ:</strong> {formatDate(pattern.appliedFrom)}
                                       </Typography>
                                       <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
-                                        <strong>Đến:</strong> {pattern.endDate ? formatDate(pattern.endDate) : "Không có"}
+                                        <strong>Đến:</strong> {pattern.endDate ? formatDate(pattern.endDate) : <span style={{ color: "#ef4444", fontStyle: "italic" }}>Không có</span>}
                                       </Typography>
                                     </Box>
                                     <Chip
@@ -5014,21 +5014,30 @@ const TutorProfile = ({
                                 <Box sx={{ display: "flex", gap: 1 }}>
                                   <Button
                                     size="small"
+                                    disabled={!pattern.endDate}
                                     onClick={(e) => {
                                       e.stopPropagation(); // Prevent row click
-                                      handleEditPattern(pattern);
+                                      if (pattern.endDate) {
+                                        handleEditPattern(pattern);
+                                      }
                                     }}
                                     sx={{
-                                      color: "#e65100",
-                                      backgroundColor: "#fff3e0",
+                                      color: pattern.endDate ? "#e65100" : "#9e9e9e",
+                                      backgroundColor: pattern.endDate ? "#fff3e0" : "#f5f5f5",
                                       textTransform: "none",
                                       fontWeight: 600,
                                       fontSize: "0.75rem",
                                       px: 2,
                                       py: 1,
                                       borderRadius: "8px",
+                                      cursor: pattern.endDate ? "pointer" : "not-allowed",
                                       "&:hover": {
-                                        backgroundColor: "#ffe0b2",
+                                        backgroundColor: pattern.endDate ? "#ffe0b2" : "#f5f5f5",
+                                      },
+                                      "&:disabled": {
+                                        color: "#9e9e9e",
+                                        backgroundColor: "#f5f5f5",
+                                        cursor: "not-allowed",
                                       },
                                     }}
                                     startIcon={
@@ -5036,6 +5045,7 @@ const TutorProfile = ({
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                       </svg>
                                     }
+                                    title={!pattern.endDate ? "Không thể sửa lịch trình không có ngày kết thúc" : "Sửa lịch trình"}
                                   >
                                     Sửa
                                   </Button>

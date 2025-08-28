@@ -627,11 +627,24 @@ export async function fetchAllTutor(
   }
 }
 
-export async function fetchRecommendTutor() {
+export async function fetchRecommendTutor(languageCode = null) {
   try {
-    const response = await callApi("/api/tutor/recommended-tutors", "GET");
+    // Build query parameters
+    const params = new URLSearchParams();
+    
+    // Add languageCode parameter if provided
+    if (languageCode && languageCode.trim() !== "") {
+      params.append('languageCode', languageCode);
+    }
+
+    const url = `/api/tutor/recommended-tutors${params.toString() ? `?${params.toString()}` : ''}`;
+    console.log("🔍 Calling recommended tutors API:", url);
+    console.log("🔍 Language code:", languageCode);
+    
+    const response = await callApi(url, "GET");
 
     if (response && response.data && Array.isArray(response.data)) {
+      console.log("✅ Recommended tutors fetched successfully:", response.data);
       return response.data;
     } else {
       console.error("Invalid API response format for fetchRecommendTutor:", response);
