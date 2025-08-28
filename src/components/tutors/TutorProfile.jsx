@@ -4471,15 +4471,45 @@ const TutorProfile = ({
                         flex: "0 0 auto",
                       }}
                     >
+                      {/* Header Section */}
                       <Box
                         sx={{
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          mb: 3,
+                          mb: 4,
+                          p: 3,
+                          backgroundColor: "#ffffff",
+                          borderRadius: "12px",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
                         }}
                       >
-                        <SectionTitle variant="h6">Tạo bài học</SectionTitle>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                          <Box
+                            sx={{
+                              width: "40px",
+                              height: "40px",
+                              backgroundColor: "#3b82f6",
+                              borderRadius: "10px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                          </Box>
+                          <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                              Quản lý bài học
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem" }}>
+                              Tạo và quản lý các bài học của bạn
+                            </Typography>
+                          </Box>
+                        </Box>
                         <StyledButton
                           variant="contained"
                           onClick={() => {
@@ -4522,259 +4552,242 @@ const TutorProfile = ({
                               </svg>
                             </Box>
                           }
+                          sx={{
+                            borderRadius: "8px",
+                            textTransform: "none",
+                            fontWeight: 600,
+                            px: 3,
+                            py: 1.5,
+                          }}
                         >
                           Tạo bài học
                         </StyledButton>
                       </Box>
 
                       {/* Lessons Table */}
-                      <TableContainer
-                        component={Paper}
-                        sx={{ borderRadius: "16px" }}
-                      >
-                        <Table>
-                          <TableHead>
-                            <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-                              <TableCell sx={{ fontWeight: 600 }}>
-                                Tên bài học
-                              </TableCell>
-                              <TableCell sx={{ fontWeight: 600 }}>
-                                Ngôn ngữ
-                              </TableCell>
-                              <TableCell sx={{ fontWeight: 600 }}>
-                                Giá
-                              </TableCell>
-                              <TableCell sx={{ fontWeight: 600 }}>
-                                Mô tả
-                              </TableCell>
-                              <TableCell
-                                align="center"
-                                sx={{ fontWeight: 600 }}
+                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)" }}>
+                        {lessonsLoading ? (
+                          <Box sx={{ p: 3 }}>
+                            {Array.from({ length: 3 }).map((_, index) => (
+                              <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: "8px" }}>
+                                <Skeleton variant="circular" width={40} height={40} />
+                                <Box sx={{ flex: 1 }}>
+                                  <Skeleton variant="text" width="60%" height={20} />
+                                  <Skeleton variant="text" width="40%" height={16} />
+                                </Box>
+                                <Skeleton variant="rectangular" width={80} height={32} />
+                              </Box>
+                            ))}
+                          </Box>
+                        ) : lessons.length === 0 ? (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              color: "#64748b",
+                              py: 6,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: "80px",
+                                height: "80px",
+                                mb: 3,
+                                opacity: 0.5,
+                                backgroundColor: "#f1f5f9",
+                                borderRadius: "50%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <svg
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                                style={{ width: "40px", height: "40px" }}
                               >
-                                Hành động
-                              </TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {lessonsLoading ? (
-                              Array.from({ length: 3 }).map((_, index) => (
-                                <TableRow key={index}>
-                                  <TableCell>
-                                    <Skeleton
-                                      variant="text"
-                                      width="80%"
-                                      height={24}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Skeleton
-                                      variant="text"
-                                      width="60%"
-                                      height={24}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Skeleton
-                                      variant="text"
-                                      width="50%"
-                                      height={24}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Skeleton
-                                      variant="text"
-                                      width="90%"
-                                      height={24}
-                                    />
-                                  </TableCell>
-                                  <TableCell align="center">
-                                    <Skeleton
-                                      variant="circular"
-                                      width={32}
-                                      height={32}
-                                    />
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            ) : lessons.length === 0 ? (
-                              <TableRow>
-                                <TableCell
-                                  colSpan={5}
-                                  align="center"
-                                  sx={{ py: 4 }}
-                                >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="1.5"
+                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                                />
+                              </svg>
+                            </Box>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                              Chưa có bài học nào
+                            </Typography>
+                            <Typography variant="body2" sx={{ textAlign: "center", maxWidth: "300px" }}>
+                              Hãy tạo bài học đầu tiên của bạn để bắt đầu giảng dạy
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Box sx={{ space: 2 }}>
+                            {lessons.map((lesson) => (
+                              <Box
+                                key={lesson.id}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  p: 3,
+                                  mb: 2,
+                                  backgroundColor: "#f8fafc",
+                                  borderRadius: "12px",
+                                  border: "1px solid #e2e8f0",
+                                  transition: "all 0.2s ease",
+                                  "&:hover": {
+                                    backgroundColor: "#f1f5f9",
+                                    borderColor: "#cbd5e1",
+                                    transform: "translateY(-1px)",
+                                    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
+                                  },
+                                }}
+                              >
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 3, flex: 1 }}>
                                   <Box
                                     sx={{
+                                      width: "48px",
+                                      height: "48px",
+                                      backgroundColor: "#3b82f6",
+                                      borderRadius: "12px",
                                       display: "flex",
-                                      flexDirection: "column",
                                       alignItems: "center",
-                                      color: "#64748b",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontWeight: 600,
+                                      fontSize: "1.2rem",
                                     }}
                                   >
-                                    <Box
-                                      sx={{
-                                        width: "64px",
-                                        height: "64px",
-                                        mb: 2,
-                                        opacity: 0.5,
-                                      }}
-                                    >
-                                      <svg
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                        xmlns="http://www.w3.org/2000/svg"
+                                    {lesson.name.charAt(0).toUpperCase()}
+                                  </Box>
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                                      {lesson.name}
+                                    </Typography>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+                                      <Chip
+                                        label={getLanguageName(lesson.languageCode)}
+                                        size="small"
+                                        sx={{
+                                          backgroundColor: "#e0f2fe",
+                                          color: "#0277bd",
+                                          fontWeight: 600,
+                                          fontSize: "0.75rem",
+                                        }}
+                                      />
+                                      <Typography
+                                        variant="body2"
+                                        sx={{
+                                          color: "#059669",
+                                          fontWeight: 600,
+                                          fontSize: "0.875rem",
+                                        }}
                                       >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth="1.5"
-                                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                                        />
-                                      </svg>
+                                        {formatPriceWithCommas(lesson.price)} VND
+                                      </Typography>
                                     </Box>
                                     <Typography
-                                      variant="body1"
-                                      sx={{ fontWeight: 500 }}
-                                    >
-                                      Chưa có bài học nào
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      Hãy tạo bài học đầu tiên của bạn
-                                    </Typography>
-                                  </Box>
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              lessons.map((lesson) => (
-                                <TableRow key={lesson.id} hover>
-                                  <TableCell sx={{ fontWeight: 500 }}>
-                                    {lesson.name}
-                                  </TableCell>
-                                  <TableCell>
-                                    {getLanguageName(lesson.languageCode)}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Typography
                                       variant="body2"
                                       sx={{
-                                        color: "#059669",
-                                        fontWeight: 600,
-                                      }}
-                                    >
-                                      {formatPriceWithCommas(lesson.price)} VND
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        maxWidth: "200px",
+                                        color: "#64748b",
+                                        fontSize: "0.875rem",
+                                        lineHeight: 1.5,
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: "vertical",
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
                                       }}
                                       title={lesson.description}
                                     >
                                       {lesson.description}
                                     </Typography>
-                                  </TableCell>
-                                  <TableCell align="center">
-                                    <Box
-                                      sx={{
-                                        display: "flex",
-                                        gap: 1,
-                                        justifyContent: "center",
-                                      }}
-                                    >
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                          setEditLesson(lesson);
-                                          setLessonForm({
-                                            name: lesson.name || "",
-                                            description:
-                                              lesson.description || "",
-                                            note: lesson.note || "",
-                                            targetAudience:
-                                              lesson.targetAudience || "",
-                                            prerequisites:
-                                              lesson.prerequisites || "",
-                                            languageCode:
-                                              lesson.languageCode || "",
-                                            price: formatPriceInputWithCommas(
-                                              lesson.price?.toString() || "0"
-                                            ),
-                                            currency: lesson.currency || "",
-                                          });
-                                          setShowValidation(false);
-                                          setLessonDialogOpen(true);
-                                        }}
-                                        sx={{
-                                          color: "#3b82f6",
-                                          "&:hover": {
-                                            backgroundColor:
-                                              "rgba(59, 130, 246, 0.1)",
-                                          },
-                                        }}
-                                      >
-                                        <Box
-                                          sx={{ width: "16px", height: "16px" }}
-                                        >
-                                          <svg
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth="2"
-                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                            />
-                                          </svg>
-                                        </Box>
-                                      </IconButton>
-                                      <IconButton
-                                        size="small"
-                                        onClick={() =>
-                                          handleDeleteLesson(lesson.id)
-                                        }
-                                        sx={{
-                                          color: "#ef4444",
-                                          "&:hover": {
-                                            backgroundColor:
-                                              "rgba(239, 68, 68, 0.1)",
-                                          },
-                                        }}
-                                      >
-                                        <Box
-                                          sx={{ width: "16px", height: "16px" }}
-                                        >
-                                          <svg
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth="2"
-                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                            />
-                                          </svg>
-                                        </Box>
-                                      </IconButton>
-                                    </Box>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
+                                  </Box>
+                                </Box>
+                                <Box sx={{ display: "flex", gap: 1 }}>
+                                  <Button
+                                    size="small"
+                                    onClick={() => {
+                                      setEditLesson(lesson);
+                                      setLessonForm({
+                                        name: lesson.name || "",
+                                        description: lesson.description || "",
+                                        note: lesson.note || "",
+                                        targetAudience: lesson.targetAudience || "",
+                                        prerequisites: lesson.prerequisites || "",
+                                        languageCode: lesson.languageCode || "",
+                                        price: formatPriceInputWithCommas(lesson.price?.toString() || "0"),
+                                        currency: lesson.currency || "",
+                                      });
+                                      setShowValidation(false);
+                                      setLessonDialogOpen(true);
+                                    }}
+                                    sx={{
+                                      color: "#3b82f6",
+                                      backgroundColor: "#eff6ff",
+                                      textTransform: "none",
+                                      fontWeight: 600,
+                                      fontSize: "0.75rem",
+                                      px: 2,
+                                      py: 1,
+                                      borderRadius: "8px",
+                                      "&:hover": {
+                                        backgroundColor: "#dbeafe",
+                                      },
+                                    }}
+                                    startIcon={
+                                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                    }
+                                  >
+                                    Sửa
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    onClick={() => handleDeleteLesson(lesson.id)}
+                                    sx={{
+                                      color: "#ef4444",
+                                      backgroundColor: "#fef2f2",
+                                      textTransform: "none",
+                                      fontWeight: 600,
+                                      fontSize: "0.75rem",
+                                      px: 2,
+                                      py: 1,
+                                      borderRadius: "8px",
+                                      "&:hover": {
+                                        backgroundColor: "#fee2e2",
+                                      },
+                                    }}
+                                    startIcon={
+                                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    }
+                                  >
+                                    Xóa
+                                  </Button>
+                                </Box>
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
+
+                        {lessons.length > 0 && (
+                          <Box sx={{ mt: 3, p: 3, backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                              <strong>Tổng cộng:</strong> {lessons.length} bài học
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
+                              Các bài học được sắp xếp theo thứ tự tạo (mới nhất trước)
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
                     </Box>
                   </Box>
                 )}
@@ -4804,15 +4817,45 @@ const TutorProfile = ({
                       }}
                     >
                       {/* Header Section with Title and Create Button */}
+                      {/* Header Section */}
                       <Box
                         sx={{
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          mb: 3,
+                          mb: 4,
+                          p: 3,
+                          backgroundColor: "#ffffff",
+                          borderRadius: "12px",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
                         }}
                       >
-                        <SectionTitle variant="h6">Danh sách lịch trình tuần</SectionTitle>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                          <Box
+                            sx={{
+                              width: "40px",
+                              height: "40px",
+                              backgroundColor: "#10b981",
+                              borderRadius: "10px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </Box>
+                          <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                              Quản lý lịch trình tuần
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem" }}>
+                              Tạo và quản lý lịch trình giảng dạy hàng tuần
+                            </Typography>
+                          </Box>
+                        </Box>
                         <StyledButton
                           variant="contained"
                           onClick={() => {
@@ -4826,138 +4869,212 @@ const TutorProfile = ({
                               </svg>
                             </Box>
                           }
+                          sx={{
+                            borderRadius: "8px",
+                            textTransform: "none",
+                            fontWeight: 600,
+                            px: 3,
+                            py: 1.5,
+                            backgroundColor: "#10b981",
+                            "&:hover": {
+                              backgroundColor: "#059669",
+                            },
+                          }}
                         >
                           Tạo lịch trình
                         </StyledButton>
                       </Box>
 
                       {/* Weekly Patterns Table */}
-                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" }}>
+                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)" }}>
                         {weeklyPatternsListLoading ? (
-                          <WeeklyPatternsTableSkeleton />
+                          <Box sx={{ p: 3 }}>
+                            {Array.from({ length: 3 }).map((_, index) => (
+                              <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: "8px" }}>
+                                <Skeleton variant="circular" width={40} height={40} />
+                                <Box sx={{ flex: 1 }}>
+                                  <Skeleton variant="text" width="60%" height={20} />
+                                  <Skeleton variant="text" width="40%" height={16} />
+                                </Box>
+                                <Skeleton variant="rectangular" width={80} height={32} />
+                              </Box>
+                            ))}
+                          </Box>
                         ) : weeklyPatternsListError ? (
                           <Alert severity="error" sx={{ mb: 2 }}>{weeklyPatternsListError}</Alert>
+                        ) : weeklyPatternsList.length === 0 ? (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              color: "#64748b",
+                              py: 6,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: "80px",
+                                height: "80px",
+                                mb: 3,
+                                opacity: 0.5,
+                                backgroundColor: "#f1f5f9",
+                                borderRadius: "50%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <svg
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                                style={{ width: "40px", height: "40px" }}
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </Box>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                              Chưa có lịch trình nào
+                            </Typography>
+                            <Typography variant="body2" sx={{ textAlign: "center", maxWidth: "300px" }}>
+                              Tạo lịch trình đầu tiên của bạn để bắt đầu lên lịch giảng dạy
+                            </Typography>
+                          </Box>
                         ) : (
-                          <TableContainer component={Paper}>
-                            <Table>
-                              <TableHead>
-                                <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-                                  <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>STT</TableCell>
-                                  <TableCell sx={{ fontWeight: 600 }}>Ngày bắt đầu áp dụng</TableCell>
-                                  <TableCell sx={{ fontWeight: 600 }}>Ngày kết thúc</TableCell>
-                                  <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-                                  <TableCell sx={{ fontWeight: 600 }}>Hành động</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {weeklyPatternsList.length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", color: "#64748b" }}>
-                                        <Box sx={{ width: "64px", height: "64px", mb: 2, opacity: 0.5 }}>
-                                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                          </svg>
-                                        </Box>
-                                        <Typography variant="body1" sx={{ fontWeight: 500 }}>Chưa có lịch trình nào</Typography>
-                                        <Typography variant="body2">Tạo lịch trình đầu tiên của bạn</Typography>
-                                      </Box>
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  weeklyPatternsList.map((pattern, index) => (
-                                    <TableRow
-                                      key={pattern.id}
-                                      hover
-                                      onClick={() => handlePatternRowClick(pattern)}
+                          <Box sx={{ space: 2 }}>
+                            {weeklyPatternsList.map((pattern, index) => (
+                              <Box
+                                key={pattern.id}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  p: 3,
+                                  mb: 2,
+                                  backgroundColor: "#f8fafc",
+                                  borderRadius: "12px",
+                                  border: "1px solid #e2e8f0",
+                                  transition: "all 0.2s ease",
+                                  cursor: "pointer",
+                                  "&:hover": {
+                                    backgroundColor: "#f1f5f9",
+                                    borderColor: "#cbd5e1",
+                                    transform: "translateY(-1px)",
+                                    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
+                                  },
+                                }}
+                                onClick={() => handlePatternRowClick(pattern)}
+                              >
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 3, flex: 1 }}>
+                                  <Box
+                                    sx={{
+                                      width: "48px",
+                                      height: "48px",
+                                      backgroundColor: "#10b981",
+                                      borderRadius: "12px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontWeight: 600,
+                                      fontSize: "1.2rem",
+                                    }}
+                                  >
+                                    {index + 1}
+                                  </Box>
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                                      Lịch trình #{index + 1}
+                                    </Typography>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+                                      <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
+                                        <strong>Từ:</strong> {formatDate(pattern.appliedFrom)}
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
+                                        <strong>Đến:</strong> {pattern.endDate ? formatDate(pattern.endDate) : "Không có"}
+                                      </Typography>
+                                    </Box>
+                                    <Chip
+                                      label={getStatusLabel(pattern)}
+                                      color={getStatusColor(pattern)}
+                                      size="small"
                                       sx={{
-                                        cursor: "pointer",
-                                        "&:hover": {
-                                          backgroundColor: "#f8fafc",
-                                        },
-                                        transition: "background-color 0.2s ease",
+                                        fontWeight: 600,
+                                        fontSize: "0.75rem",
+                                        backgroundColor: getStatusColor(pattern) === "success" ? "#dcfce7" : 
+                                                       getStatusColor(pattern) === "warning" ? "#fef3c7" : "#fee2e2",
+                                        color: getStatusColor(pattern) === "success" ? "#166534" : 
+                                              getStatusColor(pattern) === "warning" ? "#92400e" : "#991b1b",
                                       }}
-                                    >
-                                      <TableCell sx={{ fontWeight: 500, textAlign: "center" }}>
-                                        {index + 1}
-                                      </TableCell>
-                                      <TableCell>
-                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                          {formatDate(pattern.appliedFrom)}
-                                        </Typography>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Typography variant="body2" color="textSecondary">
-                                          {pattern.endDate ? formatDate(pattern.endDate) : "Không có"}
-                                        </Typography>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Chip
-                                          label={getStatusLabel(pattern)}
-                                          color={getStatusColor(pattern)}
-                                          size="small"
-                                          sx={{ fontWeight: 600, fontSize: "0.75rem" }}
-                                        />
-                                      </TableCell>
-                                      <TableCell>
-                                        <Box sx={{ display: "flex", gap: 1 }}>
-                                          <Button
-                                            size="small"
-                                            onClick={(e) => {
-                                              e.stopPropagation(); // Prevent row click
-                                              handleEditPattern(pattern);
-                                            }}
-                                            sx={{
-                                              color: "#e65100",
-                                              backgroundColor: "#fff3e0",
-                                              textTransform: "none",
-                                              fontWeight: 600,
-                                              fontSize: "0.75rem",
-                                              px: 2,
-                                              py: 0.5,
-                                              borderRadius: 1,
-                                              "&:hover": {
-                                                backgroundColor: "#ffe0b2",
-                                              },
-                                            }}
-                                          >
-                                            Sửa
-                                          </Button>
-                                          <Button
-                                            size="small"
-                                            onClick={(e) => {
-                                              e.stopPropagation(); // Prevent row click
-                                              handleDeletePattern(pattern);
-                                            }}
-                                            sx={{
-                                              color: "#b71c1c",
-                                              backgroundColor: "#ffebee",
-                                              textTransform: "none",
-                                              fontWeight: 600,
-                                              fontSize: "0.75rem",
-                                              px: 2,
-                                              py: 0.5,
-                                              borderRadius: 1,
-                                              "&:hover": {
-                                                backgroundColor: "#ffcdd2",
-                                              },
-                                            }}
-                                          >
-                                            Xóa
-                                          </Button>
-                                        </Box>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))
-                                )}
-                              </TableBody>
-                            </Table>
-                          </TableContainer>
+                                    />
+                                  </Box>
+                                </Box>
+                                <Box sx={{ display: "flex", gap: 1 }}>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Prevent row click
+                                      handleEditPattern(pattern);
+                                    }}
+                                    sx={{
+                                      color: "#e65100",
+                                      backgroundColor: "#fff3e0",
+                                      textTransform: "none",
+                                      fontWeight: 600,
+                                      fontSize: "0.75rem",
+                                      px: 2,
+                                      py: 1,
+                                      borderRadius: "8px",
+                                      "&:hover": {
+                                        backgroundColor: "#ffe0b2",
+                                      },
+                                    }}
+                                    startIcon={
+                                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                    }
+                                  >
+                                    Sửa
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Prevent row click
+                                      handleDeletePattern(pattern);
+                                    }}
+                                    sx={{
+                                      color: "#b71c1c",
+                                      backgroundColor: "#ffebee",
+                                      textTransform: "none",
+                                      fontWeight: 600,
+                                      fontSize: "0.75rem",
+                                      px: 2,
+                                      py: 1,
+                                      borderRadius: "8px",
+                                      "&:hover": {
+                                        backgroundColor: "#ffcdd2",
+                                      },
+                                    }}
+                                    startIcon={
+                                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    }
+                                  >
+                                    Xóa
+                                  </Button>
+                                </Box>
+                              </Box>
+                            ))}
+                          </Box>
                         )}
 
                         {weeklyPatternsList.length > 0 && (
-                          <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1 }}>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem" }}>
+                          <Box sx={{ mt: 3, p: 3, backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
                               <strong>Tổng cộng:</strong> {weeklyPatternsList.length} lịch trình tuần
                             </Typography>
                             <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
@@ -5195,15 +5312,36 @@ const TutorProfile = ({
             currency: "",
           });
         }}
-        maxWidth={false}
-        fullWidth={false}
-      >
-        <DialogTitle>{editLesson ? "Sửa bài học" : "Tạo bài học"}</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Tên bài học"
+        maxWidth="md"
             fullWidth
-            margin="normal"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            maxHeight: '90vh',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          borderBottom: '1px solid #e5e7eb', 
+          pb: 2,
+          backgroundColor: '#f9fafb'
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#374151' }}>
+            {editLesson ? "Sửa bài học" : "Tạo bài học"}
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+          <div style={{ maxHeight: 'calc(90vh - 140px)', overflowY: 'auto', padding: '24px' }}>
+            <div className="space-y-6">
+              {/* Tên bài học */}
+              <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên bài học <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
             value={lessonForm.name}
             onChange={(e) => {
               const newValue = e.target.value;
@@ -5211,16 +5349,32 @@ const TutorProfile = ({
               const error = validateName(newValue);
               setLessonFormErrors({ ...lessonFormErrors, name: error });
             }}
-            required
-            error={!!lessonFormErrors.name}
-            helperText={lessonFormErrors.name || ""}
-          />
-          <TextField
-            label="Mô tả"
-            fullWidth
-            margin="normal"
-            multiline
-            rows={3}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${
+                    lessonFormErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  placeholder="Nhập tên bài học (5-100 ký tự)"
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    Tối thiểu 5 ký tự, tối đa 100 ký tự
+                  </p>
+                  <p className={`text-xs ${lessonFormErrors.name ? 'text-red-500' : 'text-gray-500'}`}>
+                    {lessonForm.name.length}/100 ký tự
+                  </p>
+                </div>
+                {lessonFormErrors.name && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {lessonFormErrors.name}
+                  </p>
+                )}
+              </div>
+
+              {/* Mô tả */}
+              <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mô tả <span className="text-red-500">*</span>
+                </label>
+                <textarea
             value={lessonForm.description}
             onChange={(e) => {
               const newValue = e.target.value;
@@ -5228,16 +5382,33 @@ const TutorProfile = ({
               const error = validateDescription(newValue);
               setLessonFormErrors({ ...lessonFormErrors, description: error });
             }}
-            required
-            error={!!lessonFormErrors.description}
-            helperText={lessonFormErrors.description || ""}
-          />
-          <TextField
-            label="Ghi chú"
-            fullWidth
-            margin="normal"
-            multiline
-            rows={2}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black resize-none ${
+                    lessonFormErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  rows="3"
+                  placeholder="Cung cấp mô tả chi tiết về bài học (10-1000 ký tự)"
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    Tối thiểu 10 ký tự, tối đa 1000 ký tự
+                  </p>
+                  <p className={`text-xs ${lessonFormErrors.description ? 'text-red-500' : 'text-gray-500'}`}>
+                    {lessonForm.description.length}/1000 ký tự
+                  </p>
+                </div>
+                {lessonFormErrors.description && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {lessonFormErrors.description}
+                  </p>
+                )}
+              </div>
+
+              {/* Ghi chú */}
+              <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ghi chú
+                </label>
+                <textarea
             value={lessonForm.note}
             onChange={(e) => {
               const newValue = e.target.value;
@@ -5245,13 +5416,34 @@ const TutorProfile = ({
               const error = validateNote(newValue);
               setLessonFormErrors({ ...lessonFormErrors, note: error });
             }}
-            error={!!lessonFormErrors.note}
-            helperText={lessonFormErrors.note || ""}
-          />
-          <TextField
-            label="Đối tượng"
-            fullWidth
-            margin="normal"
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black resize-none ${
+                    lessonFormErrors.note ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  rows="2"
+                  placeholder="Thêm ghi chú bổ sung (tùy chọn, 10-1000 ký tự)"
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    Tối thiểu 10 ký tự, tối đa 1000 ký tự (tùy chọn)
+                  </p>
+                  <p className={`text-xs ${lessonFormErrors.note ? 'text-red-500' : 'text-gray-500'}`}>
+                    {lessonForm.note.length}/1000 ký tự
+                  </p>
+                </div>
+                {lessonFormErrors.note && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {lessonFormErrors.note}
+                  </p>
+                )}
+              </div>
+
+              {/* Đối tượng */}
+              <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Đối tượng <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
             value={lessonForm.targetAudience}
             onChange={(e) => {
               const newValue = e.target.value;
@@ -5259,16 +5451,32 @@ const TutorProfile = ({
               const error = validateTargetAudience(newValue);
               setLessonFormErrors({ ...lessonFormErrors, targetAudience: error });
             }}
-            required
-            error={!!lessonFormErrors.targetAudience}
-            helperText={lessonFormErrors.targetAudience || ""}
-          />
-          <TextField
-            label="Yêu cầu trước"
-            fullWidth
-            margin="normal"
-            multiline
-            rows={2}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${
+                    lessonFormErrors.targetAudience ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  placeholder="Mô tả đối tượng học viên phù hợp (1-200 ký tự)"
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    Tối thiểu 1 ký tự, tối đa 200 ký tự
+                  </p>
+                  <p className={`text-xs ${lessonFormErrors.targetAudience ? 'text-red-500' : 'text-gray-500'}`}>
+                    {lessonForm.targetAudience.length}/200 ký tự
+                  </p>
+                </div>
+                {lessonFormErrors.targetAudience && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {lessonFormErrors.targetAudience}
+                  </p>
+                )}
+              </div>
+
+              {/* Yêu cầu trước */}
+              <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Yêu cầu trước <span className="text-red-500">*</span>
+                </label>
+                <textarea
             value={lessonForm.prerequisites}
             onChange={(e) => {
               const newValue = e.target.value;
@@ -5276,46 +5484,72 @@ const TutorProfile = ({
               const error = validatePrerequisites(newValue);
               setLessonFormErrors({ ...lessonFormErrors, prerequisites: error });
             }}
-            required
-            error={!!lessonFormErrors.prerequisites}
-            helperText={lessonFormErrors.prerequisites || ""}
-          />
-          <FormControl
-            fullWidth
-            margin="normal"
-            required
-            error={!!lessonFormErrors.languageCode}
-          >
-            <InputLabel id="language-select-label">Ngôn ngữ</InputLabel>
-            <Select
-              labelId="language-select-label"
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black resize-none ${
+                    lessonFormErrors.prerequisites ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  rows="2"
+                  placeholder="Mô tả kiến thức cần có trước khi học (10-300 ký tự)"
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    Tối thiểu 10 ký tự, tối đa 300 ký tự
+                  </p>
+                  <p className={`text-xs ${lessonFormErrors.prerequisites ? 'text-red-500' : 'text-gray-500'}`}>
+                    {lessonForm.prerequisites.length}/300 ký tự
+                  </p>
+                </div>
+                {lessonFormErrors.prerequisites && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {lessonFormErrors.prerequisites}
+                  </p>
+                )}
+              </div>
+
+              {/* Ngôn ngữ */}
+              <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ngôn ngữ <span className="text-red-500">*</span>
+                </label>
+                <select
               value={lessonForm.languageCode}
-              label="Ngôn ngữ"
               onChange={(e) => {
                 const newValue = e.target.value;
                 setLessonForm({ ...lessonForm, languageCode: newValue });
                 const error = validateLanguageCode(newValue);
                 setLessonFormErrors({ ...lessonFormErrors, languageCode: error });
               }}
-            >
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black appearance-none ${
+                    lessonFormErrors.languageCode ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '1.5em 1.5em',
+                    paddingRight: '2.5rem'
+                  }}
+                >
+                  <option value="">Chọn ngôn ngữ</option>
               {languageList.map((lang) => (
-                <MenuItem key={lang.code} value={lang.code}>
+                    <option key={lang.code} value={lang.code}>
                   {lang.name}
-                </MenuItem>
+                    </option>
               ))}
-            </Select>
+                </select>
             {lessonFormErrors.languageCode && (
-              <Typography color="error" variant="caption">
+                  <p className="text-xs text-red-500 mt-1">
                 {lessonFormErrors.languageCode}
-              </Typography>
-            )}
-          </FormControl>
+                  </p>
+                )}
+              </div>
 
-          <TextField
-            label="Giá"
+              {/* Giá */}
+              <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Giá <span className="text-red-500">*</span>
+                </label>
+                <input
             type="text"
-            fullWidth
-            margin="normal"
             value={lessonForm.price}
             onChange={(e) => {
               const formatted = formatPriceInputWithCommas(e.target.value);
@@ -5323,20 +5557,45 @@ const TutorProfile = ({
               const error = validatePrice(formatted);
               setLessonFormErrors({ ...lessonFormErrors, price: error });
             }}
-            required
-            error={!!lessonFormErrors.price}
-            helperText={lessonFormErrors.price || ""}
-          />
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${
+                    lessonFormErrors.price ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  placeholder="Nhập giá tiền (VND)"
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    Giá tiền phải là số dương
+                  </p>
+                </div>
+                {lessonFormErrors.price && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {lessonFormErrors.price}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </DialogContent>
-        <DialogActions>
+
+        <DialogActions sx={{ 
+          borderTop: '1px solid #e5e7eb', 
+          pt: 2, 
+          px: 3, 
+          pb: 3,
+          backgroundColor: '#f9fafb'
+        }}>
           <Button
             onClick={() => {
               setLessonDialogOpen(false);
               setLessonFormErrors({});
               setEditLesson(null);
             }}
+            sx={{ 
+              color: '#3b82f6',
+              '&:hover': { backgroundColor: '#eff6ff' }
+            }}
           >
-            Hủy
+            HỦY
           </Button>
           <Button
             variant="contained"
@@ -5380,8 +5639,13 @@ const TutorProfile = ({
               }
             }}
             disabled={lessonLoading || Object.keys(lessonFormErrors).length > 0}
+            sx={{ 
+              backgroundColor: '#3b82f6',
+              '&:hover': { backgroundColor: '#2563eb' },
+              '&:disabled': { backgroundColor: '#9ca3af' }
+            }}
           >
-            {editLesson ? "Lưu bài học" : "Tạo bài học"}
+            {lessonLoading ? "Đang xử lý..." : (editLesson ? "Lưu bài học" : "Tạo bài học")}
           </Button>
         </DialogActions>
       </Dialog>

@@ -3,11 +3,16 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { GoogleAuthProvider, signInWithPopup, FacebookAuthProvider } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  FacebookAuthProvider,
+} from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { toast } from "react-toastify";
 import { login, loginGoogleToFirebase } from "../api/auth";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
+import LegalDocumentModal from "./LegalDocumentModal";
 
 const EyeIcon = () => (
   <svg
@@ -76,11 +81,14 @@ const SpinnerIcon = () => (
 );
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
-const FIELD_REQUIRED_MESSAGE = (fieldName) => `${fieldName} không được để trống.`;
+const FIELD_REQUIRED_MESSAGE = (fieldName) =>
+  `${fieldName} không được để trống.`;
 const INVALID_EMAIL_MESSAGE = "Vui lòng nhập địa chỉ email hợp lệ.";
 const GENERIC_VALIDATION_ERROR_MESSAGE = "Vui lòng sửa các lỗi được đánh dấu.";
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
-const PASSWORD_STRENGTH_MESSAGE = "Mật khẩu phải có ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, và 1 ký tự đặc biệt.";
+const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+const PASSWORD_STRENGTH_MESSAGE =
+  "Mật khẩu phải có ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, và 1 ký tự đặc biệt.";
 
 const LoginModal = ({
   isOpen,
@@ -99,6 +107,7 @@ const LoginModal = ({
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
   const modalRef = useRef(null);
   const googleDivRef = useRef(null);
 
@@ -116,9 +125,10 @@ const LoginModal = ({
       let originalHeaderPaddingRight = "";
       if (header && window.getComputedStyle(header).position === "fixed") {
         originalHeaderPaddingRight = header.style.paddingRight;
-        header.style.paddingRight = `${scrollbarWidth +
+        header.style.paddingRight = `${
+          scrollbarWidth +
           parseInt(window.getComputedStyle(header).paddingRight || "0")
-          }px`;
+        }px`;
       }
 
       return () => {
@@ -201,14 +211,15 @@ const LoginModal = ({
           response.data.token.user;
 
         // Try to get roles from multiple possible locations
-        let roles = response.data.roles ||
+        let roles =
+          response.data.roles ||
           response.data.token.roles ||
           response.data.token.user.roles ||
           response.data.token.user.role ||
           [];
 
         // Handle single role as string
-        if (typeof roles === 'string') {
+        if (typeof roles === "string") {
           roles = [roles];
         }
 
@@ -262,7 +273,7 @@ const LoginModal = ({
       } else {
         setGeneralError(
           error.message ||
-          "Tên đăng nhập hoặc mật khẩu không đúng hoặc đã xảy ra lỗi."
+            "Tên đăng nhập hoặc mật khẩu không đúng hoặc đã xảy ra lỗi."
         );
         setFieldErrors({ username: "", password: "" });
         toast.error(error.message || "Đăng nhập không thành công.");
@@ -290,15 +301,25 @@ const LoginModal = ({
 
       // ... (rest of your logic, as previously fixed) ...
       if (response?.token?.user) {
-        const { id, fullName, email, profileImageUrl, username, phoneNumber, dateOfBirth, gender } = response.token.user;
+        const {
+          id,
+          fullName,
+          email,
+          profileImageUrl,
+          username,
+          phoneNumber,
+          dateOfBirth,
+          gender,
+        } = response.token.user;
 
-        let roles = response.roles ||
+        let roles =
+          response.roles ||
           response.token.roles ||
           response.token.user.roles ||
           response.token.user.role ||
           [];
 
-        if (typeof roles === 'string') {
+        if (typeof roles === "string") {
           roles = [roles];
         }
 
@@ -331,14 +352,19 @@ const LoginModal = ({
       }
     } catch (error) {
       console.error("Google Sign-In Error:", error);
-      let userFacingErrorMessage = "Đăng nhập Google thất bại. Vui lòng thử lại.";
+      let userFacingErrorMessage =
+        "Đăng nhập Google thất bại. Vui lòng thử lại.";
 
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (error.code === "auth/popup-closed-by-user") {
         userFacingErrorMessage = "Đăng nhập bị hủy. Vui lòng thử lại.";
-      } else if (error.code === 'auth/popup-blocked') {
-        userFacingErrorMessage = "Popup bị chặn. Vui lòng cho phép popup cho trang web này.";
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
-        userFacingErrorMessage = "Tài khoản đã tồn tại với phương thức đăng nhập khác.";
+      } else if (error.code === "auth/popup-blocked") {
+        userFacingErrorMessage =
+          "Popup bị chặn. Vui lòng cho phép popup cho trang web này.";
+      } else if (
+        error.code === "auth/account-exists-with-different-credential"
+      ) {
+        userFacingErrorMessage =
+          "Tài khoản đã tồn tại với phương thức đăng nhập khác.";
       } else if (error.message) {
         userFacingErrorMessage = error.message;
       }
@@ -371,7 +397,8 @@ const LoginModal = ({
       })
       .catch((error) => {
         console.error("Facebook Sign-In Error:", error);
-        let userFacingErrorMessage = "Đăng nhập Facebook thất bại. Vui lòng thử lại.";
+        let userFacingErrorMessage =
+          "Đăng nhập Facebook thất bại. Vui lòng thử lại.";
         setGeneralError(userFacingErrorMessage);
         toast.error(userFacingErrorMessage);
       });
@@ -380,6 +407,11 @@ const LoginModal = ({
   const handleForgotPasswordClick = (e) => {
     e.preventDefault();
     onForgotPassword(); // Use the prop instead of local state
+  };
+
+  const handleLegalDocumentClick = (e) => {
+    e.preventDefault();
+    setShowLegalDocumentModal(true);
   };
 
   const handleBackToLogin = () => {
@@ -451,23 +483,13 @@ const LoginModal = ({
             <p className="text-sm text-gray-500 text-center mb-6">
               Bằng cách đăng nhập hoặc tạo tài khoản, bạn đồng ý với&nbsp;
               <a
-                href="/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-gray-700"
+                onClick={handleLegalDocumentClick}
+                className="underline hover:text-blue-700 hover:cursor-pointer text-[#333333]"
               >
-                Điều khoản dịch vụ của chúng tôi&nbsp;
+                Điều khoản dịch vụ và Chính sách bảo mật
               </a>
-              và&nbsp;
-              <a
-                href="/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-gray-700"
-              >
-                Chính sách bảo mật
-              </a>
-              .
+              <p>của chúng tôi&nbsp;</p>
+              
             </p>
 
             {generalError && (
@@ -519,14 +541,17 @@ const LoginModal = ({
                   }}
                   placeholder="Địa chỉ Email"
                   className={`w-full px-4 py-3 border text-black rounded-lg focus:outline-none focus:ring-1
-                    ${fieldErrors.username
-                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                      : "border-gray-300 focus:ring-black focus:border-black"
+                    ${
+                      fieldErrors.username
+                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                        : "border-gray-300 focus:ring-black focus:border-black"
                     }`}
                   required
                 />
                 {fieldErrors.username && (
-                  <p className="text-red-500 text-xs italic">{fieldErrors.username}</p>
+                  <p className="text-red-500 text-xs italic">
+                    {fieldErrors.username}
+                  </p>
                 )}
               </div>
 
@@ -546,9 +571,10 @@ const LoginModal = ({
                     }}
                     placeholder="Mật khẩu"
                     className={`w-full px-4 py-3 border text-black rounded-lg focus:outline-none focus:ring-1 pr-10
-                      ${fieldErrors.password
-                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300 focus:ring-black focus:border-black"
+                      ${
+                        fieldErrors.password
+                          ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          : "border-gray-300 focus:ring-black focus:border-black"
                       }`}
                     required
                   />
@@ -556,19 +582,24 @@ const LoginModal = ({
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 cursor-pointer"
-                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                    aria-label={
+                      showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"
+                    }
                   >
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                   </NoFocusOutLineButton>
                 </div>
                 {fieldErrors.password && (
-                  <p className="text-red-500 text-xs italic">{fieldErrors.password}</p>
+                  <p className="text-red-500 text-xs italic">
+                    {fieldErrors.password}
+                  </p>
                 )}
               </div>
 
               <div className="flex items-center justify-between mb-6 text-sm">
                 <div className="flex-grow"></div>
                 <NoFocusOutLineButton
+                  type="button"
                   onClick={handleForgotPasswordClick}
                   className="font-medium text-[#333333] hover:text-black"
                 >
@@ -578,8 +609,9 @@ const LoginModal = ({
 
               <NoFocusOutLineButton
                 type="submit"
-                className={`w-full bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200 ${isLoading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                className={`w-full bg-[#333333] text-white py-3 rounded-lg font-semibold hover:bg-black transition duration-200 ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -608,6 +640,13 @@ const LoginModal = ({
           </motion.div>
         </motion.div>
       )}
+
+      {/* Legal Document Modal */}
+      <LegalDocumentModal
+        isOpen={showLegalDocumentModal}
+        onClose={() => setShowLegalDocumentModal(false)}
+        category="Đăng nhập"
+      />
     </AnimatePresence>
   );
 };

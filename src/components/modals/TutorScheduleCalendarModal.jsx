@@ -60,6 +60,7 @@ const TutorScheduleCalendarModal = ({
     return monday;
   });
   const [submitting, setSubmitting] = useState(false);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 
   // Lesson selection states
   const [lessonSelectionDialogOpen, setLessonSelectionDialogOpen] =
@@ -275,7 +276,7 @@ const TutorScheduleCalendarModal = ({
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (selectedSlots.length < 3) {
       setError("Vui lòng chọn ít nhất 3 khung giờ để đề xuất");
       return;
@@ -362,6 +363,11 @@ const TutorScheduleCalendarModal = ({
       }
     }
 
+    // Open confirmation dialog instead of submitting directly
+    setConfirmSubmitOpen(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     try {
       setSubmitting(true);
       setError(null);
@@ -398,6 +404,7 @@ const TutorScheduleCalendarModal = ({
       setSelectedLesson(null);
       setLessonSelectionDialogOpen(false);
       setError(null);
+      setConfirmSubmitOpen(false);
 
       // Close modal
       onClose();
@@ -511,6 +518,7 @@ const TutorScheduleCalendarModal = ({
     setSelectedLesson(null);
     setSelectedSlots([]);
     setError(null);
+    setConfirmSubmitOpen(false);
     onClose();
   };
 
@@ -1464,10 +1472,58 @@ const TutorScheduleCalendarModal = ({
                   Đang gửi...
                 </Box>
               ) : (
-                `Gửi dề xuất (${selectedSlots.length}/3)`
+                `Gửi đề xuất (${selectedSlots.length}/3)`
               )}
             </Button>
           </Box>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirm Submit Dialog */}
+      <Dialog open={confirmSubmitOpen} onClose={() => setConfirmSubmitOpen(false)}>
+        <DialogTitle>Xác nhận gửi đề xuất</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn gửi đề xuất này không?
+          </Typography>
+          {selectedLesson && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
+                Thông tin đề xuất:
+              </Typography>
+              <Typography variant="body2">
+                • Bài học: {selectedLesson.name}
+              </Typography>
+              <Typography variant="body2">
+                • Giá mỗi slot: {formatPriceWithCommas(selectedLesson.price)} VNĐ
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                • Tổng giá: {formatPriceWithCommas(selectedLesson.price * selectedSlots.length)} VNĐ
+              </Typography>
+              <Typography variant="body2">
+                • Số slots: {selectedSlots.length}
+              </Typography>
+              <Typography variant="body2">
+                • Học viên: {learnerName}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmSubmitOpen(false)} disabled={submitting}>
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleConfirmSubmit} 
+            variant="contained"
+            disabled={submitting}
+            sx={{ 
+              bgcolor: "#10b981", 
+              "&:hover": { bgcolor: "#059669" }
+            }}
+          >
+            {submitting ? "Đang gửi..." : "Gửi đề xuất"}
+          </Button>
         </DialogActions>
       </Dialog>
     </>

@@ -4714,3 +4714,76 @@ export async function tutorCancelBookingByBookingId(bookingId, reason) {
     throw error;
   }
 }
+
+/**
+ * Get all legal document categories
+ * @returns {Promise<Object>} API response with categories data
+ */
+export async function getAllLegalDocumentCategories() {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    console.log("🔍 Fetching all legal document categories");
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/legaldocument/all-categories", "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Legal document categories fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for getAllLegalDocumentCategories:", response);
+      throw new Error("API response did not contain expected categories data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch legal document categories:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get legal documents by category with pagination
+ * @param {string} category - The category to filter by
+ * @param {number} page - Page number (default: 1)
+ * @param {number} size - Number of items per page (default: 10)
+ * @returns {Promise<Object>} API response with legal documents data
+ */
+export async function getLegalDocumentByCategory(category, page = 1, size = 10) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!category || !category.trim()) {
+      throw new Error("Category is required");
+    }
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      category: category.trim(),
+      page: page.toString(),
+      size: size.toString()
+    });
+
+    const url = `/api/legaldocument?${params.toString()}`;
+    console.log("🔍 Calling legal documents by category API:", url);
+    console.log("🔍 Parameters:", { category, page, size });
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Legal documents by category fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for getLegalDocumentByCategory:", response);
+      throw new Error("API response did not contain expected legal documents data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch legal documents by category:", error.message);
+    throw error;
+  }
+}

@@ -666,12 +666,12 @@ const TeachingHistory = () => {
                                   </div>
                                   <div>
                                     <p className="font-medium text-gray-900">
-                                      Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
+                                      {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
                                     </p>
                                     <div className="flex items-center gap-4 text-sm text-gray-600">
                                       <span className="flex items-center gap-1">
                                         <FaCalendarAlt className="w-3 h-3" />
-                                        {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
+                                        Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
                                       </span>
                                       {slot.slotNote && (
                                         <span className="text-xs text-gray-500">

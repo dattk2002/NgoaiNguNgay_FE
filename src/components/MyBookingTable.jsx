@@ -82,6 +82,123 @@ function getWeekInfoForDialog(expectedStartDate = null, weekOffset = 0) {
   return weekInfo;
 }
 
+// Function to calculate week offset based on offered slots
+function calculateWeekOffsetForOfferedSlots(offeredSlots, expectedStartDate) {
+  if (!offeredSlots || offeredSlots.length === 0) {
+    return 0; // Default to current week if no slots
+  }
+
+  // Group slots by week to find the week with the most slots
+  const weekSlotCounts = new Map();
+  const baseDate = expectedStartDate ? new Date(expectedStartDate) : new Date();
+  
+  // Get the Monday of the base week
+  const baseDay = baseDate.getDay();
+  const baseDiff = baseDay === 0 ? -6 : 1 - baseDay;
+  const baseMonday = new Date(baseDate);
+  baseMonday.setDate(baseDate.getDate() + baseDiff);
+
+  for (const slot of offeredSlots) {
+    if (slot.slotDateTime) {
+      const slotDate = new Date(slot.slotDateTime);
+      
+      // Get the Monday of the slot week
+      const slotDay = slotDate.getDay();
+      const slotDiff = slotDay === 0 ? -6 : 1 - slotDay;
+      const slotMonday = new Date(slotDate);
+      slotMonday.setDate(slotDate.getDate() + slotDiff);
+
+      // Calculate the week offset
+      const timeDiff = slotMonday.getTime() - baseMonday.getTime();
+      const weekDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24 * 7));
+
+      // Only consider reasonable week offsets
+      if (Math.abs(weekDiff) <= 8) {
+        weekSlotCounts.set(weekDiff, (weekSlotCounts.get(weekDiff) || 0) + 1);
+      }
+    }
+  }
+
+  if (weekSlotCounts.size === 0) {
+    return 0; // Default to current week if no valid dates
+  }
+
+  // Find the week with the most slots, but prioritize current week (offset 0) if it has slots
+  let bestWeekOffset = 0;
+  let maxSlotCount = 0;
+  
+  // First, check if current week has slots
+  const currentWeekSlotCount = weekSlotCounts.get(0) || 0;
+  if (currentWeekSlotCount > 0) {
+    return 0; // Prioritize current week if it has slots
+  }
+  
+  // Otherwise, find the week with the most slots
+  for (const [weekOffset, slotCount] of weekSlotCounts) {
+    if (slotCount > maxSlotCount) {
+      maxSlotCount = slotCount;
+      bestWeekOffset = weekOffset;
+    }
+  }
+
+  return bestWeekOffset;
+}
+
+// Function to open booking detail with automatic week offset calculation
+async function openBookingDetailWithWeekOffset(
+  tutorId, 
+  tutorBookingOfferId, 
+  setBookingDetailLoading,
+  setBookingDetailDialogOpen,
+  setSelectedTutor,
+  setTutorOfferedSlots,
+  setCurrentWeekOffset,
+  setBookingDetailSlots,
+  setBookingDetailExpectedStartDate,
+  setOfferDetail,
+  navigate
+) {
+  setBookingDetailLoading(true);
+  setBookingDetailDialogOpen(true);
+  setSelectedTutor(tutorId);
+  setTutorOfferedSlots([]); // reset
+  setCurrentWeekOffset(0); // reset to show the week containing expectedStartDate
+  
+  try {
+    const res = await learnerBookingTimeSlotByTutorId(tutorId);
+    // Support both { data: { ... } } and { ... }
+    const detail = res?.data ? res.data : res;
+    setBookingDetailSlots(
+      Array.isArray(detail?.timeSlots) ? detail.timeSlots : []
+    );
+    setBookingDetailExpectedStartDate(detail?.expectedStartDate || "");
+
+    // Navigate to /my-bookings/:id
+    if (detail?.id) {
+      navigate(`/my-bookings/${detail.id}`);
+    }
+
+    // If there is an offer, fetch its detail
+    if (tutorBookingOfferId) {
+      const offer = await learnerBookingOfferDetail(tutorBookingOfferId);
+      setOfferDetail(offer);
+      const offeredSlots = Array.isArray(offer?.offeredSlots) ? offer.offeredSlots : [];
+      setTutorOfferedSlots(offeredSlots);
+      
+      // Calculate and set the week offset to show the week with offered slots
+      const weekOffset = calculateWeekOffsetForOfferedSlots(offeredSlots, detail?.expectedStartDate);
+      setCurrentWeekOffset(weekOffset);
+    }
+  } catch (err) {
+    setBookingDetailSlots([]);
+    setBookingDetailExpectedStartDate("");
+    setOfferDetail(null);
+    setTutorOfferedSlots([]);
+  } finally {
+    setBookingDetailLoading(false);
+  }
+}
+
 export default function MyBookingTable({
   sentRequests,
   loadingRequests,
@@ -114,40 +231,19 @@ export default function MyBookingTable({
 
   // Handler to open dialog and fetch booking detail
   const handleOpenBookingDetail = async (tutorId, tutorBookingOfferId) => {
-    setBookingDetailLoading(true);
-    setBookingDetailDialogOpen(true);
-    setSelectedTutor(tutorId);
-    setTutorOfferedSlots([]); // reset
-    setCurrentWeekOffset(0); // reset to show the week containing expectedStartDate
-    try {
-      const res = await learnerBookingTimeSlotByTutorId(tutorId);
-      // Support both { data: { ... } } and { ... }
-      const detail = res?.data ? res.data : res;
-      setBookingDetailSlots(
-        Array.isArray(detail?.timeSlots) ? detail.timeSlots : []
-      );
-      setBookingDetailExpectedStartDate(detail?.expectedStartDate || "");
-
-      // Navigate to /my-bookings/:id
-      if (detail?.id) {
-        navigate(`/my-bookings/${detail.id}`);
-      }
-
-      // If there is an offer, fetch its detail
-      if (tutorBookingOfferId) {
-        const offer = await learnerBookingOfferDetail(tutorBookingOfferId);
-        setOfferDetail(offer);
-        const offeredSlots = Array.isArray(offer?.offeredSlots) ? offer.offeredSlots : [];
-        setTutorOfferedSlots(offeredSlots);
-      }
-    } catch (err) {
-      setBookingDetailSlots([]);
-      setBookingDetailExpectedStartDate("");
-      setOfferDetail(null);
-      setTutorOfferedSlots([]);
-    } finally {
-      setBookingDetailLoading(false);
-    }
+    await openBookingDetailWithWeekOffset(
+      tutorId,
+      tutorBookingOfferId,
+      setBookingDetailLoading,
+      setBookingDetailDialogOpen,
+      setSelectedTutor,
+      setTutorOfferedSlots,
+      setCurrentWeekOffset,
+      setBookingDetailSlots,
+      setBookingDetailExpectedStartDate,
+      setOfferDetail,
+      navigate
+    );
   };
 
   // Open dialog if selectedBookingId changes
@@ -156,7 +252,19 @@ export default function MyBookingTable({
       // Find the tutorId for this bookingId
       const req = sentRequests.find(r => r.id === selectedBookingId);
       if (req) {
-        handleOpenBookingDetail(req.tutorId, req.tutorBookingOfferId);
+        openBookingDetailWithWeekOffset(
+          req.tutorId,
+          req.tutorBookingOfferId,
+          setBookingDetailLoading,
+          setBookingDetailDialogOpen,
+          setSelectedTutor,
+          setTutorOfferedSlots,
+          setCurrentWeekOffset,
+          setBookingDetailSlots,
+          setBookingDetailExpectedStartDate,
+          setOfferDetail,
+          navigate
+        );
       }
     }
     // eslint-disable-next-line
@@ -165,6 +273,7 @@ export default function MyBookingTable({
   // Close dialog and navigate back
   const handleCloseDialog = () => {
     setBookingDetailDialogOpen(false);
+    setCurrentWeekOffset(0); // Reset week offset when closing dialog
     navigate("/my-bookings");
   };
 
@@ -740,7 +849,7 @@ export default function MyBookingTable({
                           const weekInfo = getCurrentWeekInfo();
                           const currentDayInfo = weekInfo[dayIdx];
                           
-                          // Check if this slot is booked - only show when viewing the expected week (offset = 0)
+                          // Check if this slot is booked - show for the expected week (offset = 0)
                           const isBooked =
                             currentWeekOffset === 0 &&
                             Array.isArray(bookingDetailSlots) &&
@@ -748,7 +857,7 @@ export default function MyBookingTable({
                               (slot) =>
                                 slot.dayInWeek === dayInWeek &&
                                 slot.slotIndex === slotIdx
-                                                        );
+                            );
 
                           const isOffered = Array.isArray(tutorOfferedSlots) && tutorOfferedSlots.some((slot) => {
                             if (!slot.slotDateTime || slot.slotIndex === undefined) return false;

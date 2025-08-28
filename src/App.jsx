@@ -32,6 +32,8 @@ import HowItWork from "./components/HowItWork";
 import TutorManagementPage from "./pages/TutorManagementPage"; // Import TutorManagementPage
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ForgotPasswordModal from "./components/modals/ForgotPasswordModal";
+import LegalDocumentsPage from "./pages/LegalDocumentsPage";
+import LegalDocumentDetailPage from "./pages/LegalDocumentDetailPage";
 
 // Import the tutor API functions
 import {
@@ -457,6 +459,37 @@ function AppContent({
             element={
               <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
                 <HowItWork />
+              </BlockedRoute>
+            }
+          />
+
+          {/* NEW ROUTE for Pricing */}
+          <Route
+            path="/pricing"
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                  <h1>Bảng giá dịch vụ</h1>
+                  <p>Tính năng này đang được phát triển...</p>
+                </div>
+              </BlockedRoute>
+            }
+          />
+
+          {/* NEW ROUTE for Legal Documents */}
+          <Route
+            path="/legal-documents"
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <LegalDocumentsPage />
+              </BlockedRoute>
+            }
+          />
+          <Route
+            path="/legal-documents/:documentId"
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <LegalDocumentDetailPage />
               </BlockedRoute>
             }
           />

@@ -143,7 +143,41 @@ export const formatSlotDateTimeFromTimestamp = (slotDateTime) => {
   }
 };
 
-// Format slot date time in UTC+0
+/**
+ * Format slot date only from timestamp (showing only date)
+ * @param {string|Date} slotDateTime - Full timestamp of the slot (UTC+0 from backend)
+ * @returns {string} Formatted date only (e.g., "16/08/2025")
+ */
+export const formatSlotDateFromTimestamp = (slotDateTime) => {
+  if (!slotDateTime) {
+    return "Ngày không hợp lệ";
+  }
+  
+  try {
+    // Convert UTC+0 to UTC+7 for display
+    const utc7Date = convertUTC0ToUTC7(slotDateTime);
+    if (!utc7Date) {
+      return "Ngày không hợp lệ";
+    }
+    
+    // Format as DD/MM/YYYY
+    const day = utc7Date.getDate().toString().padStart(2, '0');
+    const month = (utc7Date.getMonth() + 1).toString().padStart(2, '0');
+    const year = utc7Date.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error("Lỗi định dạng ngày slot:", error);
+    return "Ngày không hợp lệ";
+  }
+};
+
+/**
+ * Format slot date time in UTC+0
+ * @param {number} slotIndex - Slot index from 0 to 47
+ * @param {string|Date} bookedDate - The date of the booking (UTC+0 from backend)
+ * @returns {string} Formatted date and time in UTC+0 (e.g., "16/08/2025 14:00 - 14:30")
+ */
 export function formatSlotDateTimeUTC0(slotIndex, bookedDate) {
   if (slotIndex === undefined || !bookedDate) {
     return 'N/A';
@@ -238,5 +272,219 @@ export const sortSlotsByChronologicalOrder = (slots) => {
   } catch (error) {
     console.error("Lỗi sắp xếp slots theo thứ tự thời gian:", error);
     return slots;
+  }
+};
+
+/**
+ * Format slot time range from timestamp without UTC conversion (assuming timestamp is already in correct timezone)
+ * @param {string|Date} slotDateTime - Full timestamp of the slot (already in correct timezone)
+ * @param {number} durationMinutes - Duration of the slot in minutes (default: 30)
+ * @returns {string} Formatted time range (e.g., "14:00 - 14:30")
+ */
+export const formatSlotTimeRangeFromTimestampDirect = (slotDateTime, durationMinutes = 30) => {
+  if (!slotDateTime) {
+    return "Thời gian không hợp lệ";
+  }
+  
+  try {
+    const date = new Date(slotDateTime);
+    if (isNaN(date)) {
+      return "Thời gian không hợp lệ";
+    }
+    
+    // Calculate end time
+    const endDate = new Date(date.getTime() + (durationMinutes * 60 * 1000));
+    
+    // Format start time
+    const startHours = date.getHours().toString().padStart(2, '0');
+    const startMinutes = date.getMinutes().toString().padStart(2, '0');
+    
+    // Format end time
+    const endHours = endDate.getHours().toString().padStart(2, '0');
+    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    
+    return `${startHours}:${startMinutes} - ${endHours}:${endMinutes}`;
+  } catch (error) {
+    console.error("Lỗi định dạng thời gian slot:", error);
+    return "Thời gian không hợp lệ";
+  }
+};
+
+/**
+ * Format slot date only from timestamp without UTC conversion (showing only date)
+ * @param {string|Date} slotDateTime - Full timestamp of the slot (already in correct timezone)
+ * @returns {string} Formatted date only (e.g., "16/08/2025")
+ */
+export const formatSlotDateFromTimestampDirect = (slotDateTime) => {
+  if (!slotDateTime) {
+    return "Ngày không hợp lệ";
+  }
+  
+  try {
+    const date = new Date(slotDateTime);
+    if (isNaN(date)) {
+      return "Ngày không hợp lệ";
+    }
+    
+    // Format as DD/MM/YYYY
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error("Lỗi định dạng ngày slot:", error);
+    return "Ngày không hợp lệ";
+  }
+};
+
+/**
+ * Format slot date time from timestamp without UTC conversion (for offers)
+ * @param {string|Date} slotDateTime - Full timestamp of the slot (already in correct timezone)
+ * @returns {string} Formatted date and time (e.g., "16/08/2025 14:00")
+ */
+export const formatSlotDateTimeFromTimestampDirect = (slotDateTime) => {
+  if (!slotDateTime) {
+    return "Thời gian không hợp lệ";
+  }
+  
+  try {
+    const date = new Date(slotDateTime);
+    if (isNaN(date)) {
+      return "Thời gian không hợp lệ";
+    }
+    
+    // Format as DD/MM/YYYY HH:mm
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch (error) {
+    console.error("Lỗi định dạng thời gian slot:", error);
+    return "Thời gian không hợp lệ";
+  }
+};
+
+/**
+ * Format slot date and time range from timestamp (showing date, start and end time)
+ * @param {string|Date} slotDateTime - Full timestamp of the slot (UTC+0 from backend)
+ * @param {number} durationMinutes - Duration of the slot in minutes (default: 30)
+ * @returns {string} Formatted date and time range (e.g., "16/08/2025 14:00 - 14:30")
+ */
+export const formatSlotDateTimeRangeFromTimestamp = (slotDateTime, durationMinutes = 30) => {
+  if (!slotDateTime) {
+    return "Thời gian không hợp lệ";
+  }
+  
+  try {
+    // Convert UTC+0 to UTC+7 for display
+    const utc7Date = convertUTC0ToUTC7(slotDateTime);
+    if (!utc7Date) {
+      return "Thời gian không hợp lệ";
+    }
+    
+    // Format date
+    const day = utc7Date.getDate().toString().padStart(2, '0');
+    const month = (utc7Date.getMonth() + 1).toString().padStart(2, '0');
+    const year = utc7Date.getFullYear();
+    
+    // Calculate end time
+    const endDate = new Date(utc7Date.getTime() + (durationMinutes * 60 * 1000));
+    
+    // Format start time
+    const startHours = utc7Date.getHours().toString().padStart(2, '0');
+    const startMinutes = utc7Date.getMinutes().toString().padStart(2, '0');
+    
+    // Format end time
+    const endHours = endDate.getHours().toString().padStart(2, '0');
+    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${startHours}:${startMinutes} - ${endHours}:${endMinutes}`;
+  } catch (error) {
+    console.error("Lỗi định dạng thời gian slot:", error);
+    return "Thời gian không hợp lệ";
+  }
+};
+
+/**
+ * Calculate slot index from timestamp without UTC conversion (assuming timestamp is already in correct timezone)
+ * @param {string|Date} slotDateTime - Full timestamp of the slot (already in correct timezone)
+ * @returns {number} Slot index (0-47)
+ */
+export const calculateSlotIndexFromTimestampDirect = (slotDateTime) => {
+  if (!slotDateTime) {
+    return null;
+  }
+  
+  try {
+    const date = new Date(slotDateTime);
+    if (isNaN(date)) {
+      return null;
+    }
+    
+    // Calculate slot index based on hours and minutes
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    // Each slot is 30 minutes, so slot index = (hours * 2) + (minutes >= 30 ? 1 : 0)
+    const slotIndex = (hours * 2) + (minutes >= 30 ? 1 : 0);
+    
+    return slotIndex;
+  } catch (error) {
+    console.error("Lỗi tính toán slot index từ timestamp:", error);
+    return null;
+  }
+};
+
+/**
+ * Format slot time range based on slot index without UTC conversion
+ * @param {number} slotIndex - Slot index (0-47)
+ * @returns {string} Formatted time range (e.g., "14:00 - 14:30")
+ */
+export const formatSlotTimeRangeFromSlotIndex = (slotIndex) => {
+  if (slotIndex === undefined || slotIndex === null || slotIndex < 0 || slotIndex > 47) {
+    return "Thời gian không hợp lệ";
+  }
+  
+  const hour = Math.floor(slotIndex / 2);
+  const minute = slotIndex % 2 === 0 ? "00" : "30";
+  const nextHour = slotIndex % 2 === 0 ? hour : hour + 1;
+  const nextMinute = slotIndex % 2 === 0 ? "30" : "00";
+  
+  return `${hour.toString().padStart(2, "0")}:${minute} - ${nextHour.toString().padStart(2, "0")}:${nextMinute}`;
+};
+
+/**
+ * Format slot date and time range based on slot index and date without UTC conversion
+ * @param {number} slotIndex - Slot index (0-47)
+ * @param {string|Date} date - The date
+ * @returns {string} Formatted date and time range (e.g., "16/08/2025 14:00 - 14:30")
+ */
+export const formatSlotDateTimeRangeFromSlotIndex = (slotIndex, date) => {
+  if (slotIndex === undefined || slotIndex === null || slotIndex < 0 || slotIndex > 47 || !date) {
+    return "Thời gian không hợp lệ";
+  }
+  
+  try {
+    const dateObj = new Date(date);
+    if (isNaN(dateObj)) {
+      return "Thời gian không hợp lệ";
+    }
+    
+    // Format date as DD/MM/YYYY
+    const day = dateObj.getDate().toString().padStart(2, '0');
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const year = dateObj.getFullYear();
+    
+    // Format time range
+    const timeRange = formatSlotTimeRangeFromSlotIndex(slotIndex);
+    
+    return `${day}/${month}/${year} ${timeRange}`;
+  } catch (error) {
+    console.error("Lỗi định dạng thời gian slot:", error);
+    return "Thời gian không hợp lệ";
   }
 };

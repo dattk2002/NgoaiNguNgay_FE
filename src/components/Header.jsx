@@ -792,6 +792,13 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
               >
                 Giá cả
               </Link>
+
+              <Link
+                to="/legal-documents"
+                className="text-gray-700 hover:text-black text-sm sm:text-base"
+              >
+                Chính sách pháp lý
+              </Link>
             </div>
           </div>
 
@@ -1480,6 +1487,13 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                   onClick={toggleMenu}
                 >
                   Giá cả
+                </Link>
+                <Link
+                  to="/legal-documents"
+                  className="text-gray-700 hover:text-black text-sm py-2"
+                  onClick={toggleMenu}
+                >
+                  Chính sách pháp lý
                 </Link>
               </div>
             </motion.div>

@@ -104,6 +104,7 @@ const TutorWeeklyPatternDetailModal = ({
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   
   // Add lesson details state
   const [lessonDetails, setLessonDetails] = useState(null);
@@ -367,11 +368,16 @@ const TutorWeeklyPatternDetailModal = ({
   const now = new Date();
   const expectedStartDateToday = now.toISOString();
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (selectedSlots.length === 0) {
       return;
     }
     
+    // Open confirmation dialog instead of submitting directly
+    setConfirmSubmitOpen(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
@@ -437,6 +443,7 @@ const TutorWeeklyPatternDetailModal = ({
 
       setSubmitSuccess(true);
       setSelectedSlots([]);
+      setConfirmSubmitOpen(false);
       
       // Clear saved slots after successful submission
       if (currentUser?.id) {
@@ -1191,6 +1198,54 @@ const TutorWeeklyPatternDetailModal = ({
           Gửi yêu cầu thành công!
         </Alert>
       </Snackbar>
+
+      {/* Confirm Submit Dialog */}
+      <Dialog open={confirmSubmitOpen} onClose={() => setConfirmSubmitOpen(false)}>
+        <DialogTitle>Xác nhận đặt lịch</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn đặt lịch này không?
+          </Typography>
+          {lessonDetails && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
+                Thông tin đặt lịch:
+              </Typography>
+              <Typography variant="body2">
+                • Bài học: {lessonDetails.name}
+              </Typography>
+              <Typography variant="body2">
+                • Gia sư: {tutorName || 'N/A'}
+              </Typography>
+              <Typography variant="body2">
+                • Giá mỗi slot: {formatPriceWithCommas(lessonDetails.price)} VNĐ
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                • Tổng giá: {formatPriceWithCommas(lessonDetails.price * selectedSlots.length)} VNĐ
+              </Typography>
+              <Typography variant="body2">
+                • Số slots: {selectedSlots.length}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmSubmitOpen(false)} disabled={submitting}>
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleConfirmSubmit} 
+            variant="contained"
+            disabled={submitting}
+            sx={{ 
+              bgcolor: "#10b981", 
+              "&:hover": { bgcolor: "#059669" }
+            }}
+          >
+            {submitting ? "Đang đặt lịch..." : "Đặt lịch"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
