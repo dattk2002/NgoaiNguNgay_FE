@@ -11,6 +11,7 @@ import { formatTutorDate } from '../../utils/formatTutorDate';
 import { formatSlotDateTimeFromTimestampDirect, formatSlotTimeRangeFromSlotIndex, formatSlotDateFromTimestampDirect } from '../../utils/formatSlotTime';
 import OfferDetailModal from './OfferDetailModal';
 import OfferUpdateModal from './OfferUpdateModal';
+import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 
 
 const OfferManagement = () => {
@@ -23,6 +24,7 @@ const OfferManagement = () => {
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [offerToUpdate, setOfferToUpdate] = useState(null);
+  const [expandedOffers, setExpandedOffers] = useState(new Set());
 
 
   useEffect(() => {
@@ -70,6 +72,18 @@ const OfferManagement = () => {
   const handleUpdateOffer = (offer) => {
     setOfferToUpdate(offer);
     setShowUpdateModal(true);
+  };
+
+  const toggleOfferExpansion = (offerId) => {
+    setExpandedOffers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(offerId)) {
+        newSet.delete(offerId);
+      } else {
+        newSet.add(offerId);
+      }
+      return newSet;
+    });
   };
 
 
@@ -270,9 +284,23 @@ const OfferManagement = () => {
 
               <div className="mt-4">
                 <h4 className="font-medium text-gray-900 mb-2">Thời gian đề xuất</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {offer.offeredSlots && offer.offeredSlots.map((slot, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded-md">
+                <motion.div 
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"
+                  layout
+                >
+                  {offer.offeredSlots && offer.offeredSlots.slice(0, expandedOffers.has(offer.id) ? offer.offeredSlots.length : 3).map((slot, index) => (
+                    <motion.div 
+                      key={`${offer.id}-${slot.slotDateTime}-${slot.slotIndex}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ 
+                        duration: 0.3, 
+                        delay: index * 0.05,
+                        ease: "easeOut"
+                      }}
+                      className="bg-gray-50 p-3 rounded-md"
+                    >
                       <p className="text-sm font-medium text-black">
                         {formatSlotDateFromTimestampDirect(slot.slotDateTime)}
                       </p>
@@ -282,9 +310,41 @@ const OfferManagement = () => {
                       <p className="text-xs text-gray-500">
                         Slot {slot.slotIndex}
                       </p>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
+                {offer.offeredSlots && offer.offeredSlots.length > 3 && (
+                  <motion.div 
+                    className="mt-3 flex justify-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <NoFocusOutLineButton
+                      onClick={() => toggleOfferExpansion(offer.id)}
+                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                    >
+                      <span>
+                        {expandedOffers.has(offer.id) ? 'Thu gọn' : `Xem thêm ${offer.offeredSlots.length - 3} slot khác`}
+                      </span>
+                      <motion.svg
+                        animate={{ rotate: expandedOffers.has(offer.id) ? 180 : 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </motion.svg>
+                    </NoFocusOutLineButton>
+                  </motion.div>
+                )}
               </div>
 
                               <div className="mt-4 pt-4 border-t border-gray-200">
