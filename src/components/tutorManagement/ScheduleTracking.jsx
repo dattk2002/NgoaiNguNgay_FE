@@ -713,22 +713,22 @@ const ScheduleTracking = () => {
                                     <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
                                       {index + 1}
                                     </div>
-                                    <div>
-                                      <p className="font-medium text-gray-900">
+                                                                      <div>
+                                    <p className="font-medium text-gray-900">
+                                      {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
+                                    </p>
+                                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                                      <span className="flex items-center gap-1">
+                                        <FaCalendarAlt className="w-3 h-3" />
                                         Slot {calculateUTC7SlotIndex(slot.slotIndex - 1, slot.bookedDate)}
-                                      </p>
-                                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                                        <span className="flex items-center gap-1">
-                                          <FaCalendarAlt className="w-3 h-3" />
-                                          {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
+                                      </span>
+                                      {slot.slotNote && (
+                                        <span className="text-xs text-gray-500">
+                                          Ghi chú: {slot.slotNote}
                                         </span>
-                                        {slot.slotNote && (
-                                          <span className="text-xs text-gray-500">
-                                            Ghi chú: {slot.slotNote}
-                                          </span>
-                                        )}
-                                      </div>
+                                      )}
                                     </div>
+                                  </div>
                                   </div>
                                   <div className="flex items-center gap-3">
                                     <div className="text-right">

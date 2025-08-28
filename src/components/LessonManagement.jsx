@@ -831,10 +831,10 @@ const LessonManagement = () => {
                                         <div className="flex items-center justify-between">
                                           <div>
                                             <span className="font-medium text-lg" style={{ color: '#666666' }}>
-                                              Slot {slot.slotIndex}
+                                              {formatSlotDateTimeUTC0(slot.slotIndex, slot.bookedDate)}
                                             </span>
                                             <div className="text-xs text-gray-500 mt-1">
-                                              Ngày học: {formatSlotDateTimeUTC0(slot.slotIndex, slot.bookedDate)}
+                                              Slot {slot.slotIndex}
                                             </div>
                                             {slot.slotNote && (
                                               <div className="text-xs text-gray-600 mt-1">

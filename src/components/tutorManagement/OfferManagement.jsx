@@ -8,8 +8,9 @@ import {
 } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatTutorDate } from '../../utils/formatTutorDate';
-import { formatSlotDateTimeFromTimestamp, calculateUTC7SlotIndex } from '../../utils/formatSlotTime';
+import { formatSlotDateTimeFromTimestampDirect, formatSlotTimeRangeFromSlotIndex, formatSlotDateFromTimestampDirect } from '../../utils/formatSlotTime';
 import OfferDetailModal from './OfferDetailModal';
+import OfferUpdateModal from './OfferUpdateModal';
 
 
 const OfferManagement = () => {
@@ -20,6 +21,8 @@ const OfferManagement = () => {
   const [offerToDelete, setOfferToDelete] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [offerToUpdate, setOfferToUpdate] = useState(null);
 
 
   useEffect(() => {
@@ -32,17 +35,7 @@ const OfferManagement = () => {
       const response = await getAllTutorBookingOffer();
       if (response && response.data) {
         setOffers(response.data);
-        // Hiển thị toast thông báo thành công nếu có dữ liệu
-        if (response.data.length > 0) {
-          toast.success(`Đã tải ${response.data.length} yêu cầu thành công!`, {
-            position: "top-right",
-            autoClose: 2000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          });
-        }
+        // Bỏ toast thông báo thành công khi tải danh sách
       } else {
         setOffers([]);
       }
@@ -72,6 +65,11 @@ const OfferManagement = () => {
   const handleViewDetail = (offer) => {
     setSelectedOffer(offer);
     setShowDetailModal(true);
+  };
+
+  const handleUpdateOffer = (offer) => {
+    setOfferToUpdate(offer);
+    setShowUpdateModal(true);
   };
 
 
@@ -181,7 +179,7 @@ const OfferManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Quản lý yêu cầu</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Quản lý đề xuất đến học viên</h2>
         <div className="flex items-center space-x-4">
           <div className="text-sm text-gray-600">
             {offers.length} yêu cầu đến học viên
@@ -237,6 +235,14 @@ const OfferManagement = () => {
                    >
                      Chi tiết
                    </button>
+                   {!offer.isExpired && (
+                     <button
+                       onClick={() => handleUpdateOffer(offer)}
+                       className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                     >
+                       Cập nhật
+                     </button>
+                   )}
                    <button
                      onClick={() => handleDeleteOffer(offer)}
                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
@@ -268,10 +274,13 @@ const OfferManagement = () => {
                   {offer.offeredSlots && offer.offeredSlots.map((slot, index) => (
                     <div key={index} className="bg-gray-50 p-3 rounded-md">
                       <p className="text-sm font-medium text-black">
-                        Slot {slot.slotIndex}
+                        {formatSlotDateFromTimestampDirect(slot.slotDateTime)}
                       </p>
                       <p className="text-xs text-gray-600">
-                        {formatSlotDateTimeFromTimestamp(slot.slotDateTime)}
+                        {formatSlotTimeRangeFromSlotIndex(slot.slotIndex)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Slot {slot.slotIndex}
                       </p>
                     </div>
                   ))}
@@ -322,6 +331,22 @@ const OfferManagement = () => {
           onClose={() => {
             setShowDetailModal(false);
             setSelectedOffer(null);
+          }}
+        />
+      )}
+
+      {/* Update Modal */}
+      {showUpdateModal && offerToUpdate && (
+        <OfferUpdateModal
+          offer={offerToUpdate}
+          open={showUpdateModal}
+          onClose={() => {
+            setShowUpdateModal(false);
+            setOfferToUpdate(null);
+          }}
+          onUpdateSuccess={() => {
+            // Refresh the offers list after successful update
+            fetchOffers();
           }}
         />
       )}

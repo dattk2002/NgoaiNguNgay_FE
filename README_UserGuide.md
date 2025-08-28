@@ -152,7 +152,7 @@
 - **Hoàn thành buổi học**: Xác nhận đã dạy xong
 - **Xử lý khiếu nại**: Phản hồi khiếu nại từ học viên
 
-### 💼 Quản lý yêu cầu
+### 💼 Quản lý đề xuất đến học viên
 - **Xem yêu cầu mới**: Từ học viên muốn học
 - **Tạo đề xuất**: Chọn thời gian và khóa học
 - **Theo dõi phản hồi**: Học viên chấp nhận hay từ chối
