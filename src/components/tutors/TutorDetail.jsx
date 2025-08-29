@@ -850,19 +850,19 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                         <h3 className="text-gray-800 font-semibold mb-4">
                           Video giới thiệu
                         </h3>
-                                                 {(teacher.introductionVideoUrl || teacher.videoUrl) ? (
-                           <div className="max-w-2xl">
-                             <VideoPlayer 
-                               videoUrl={teacher.introductionVideoUrl || teacher.videoUrl}
-                               width="100%"
-                               height="400"
-                               title={`Video giới thiệu của ${teacher.name}`}
-                             />
-                             <p className="text-gray-600 text-sm mt-3">
-                               Video này đã được phê duyệt bởi đội ngũ NgoaiNguNgay
-                             </p>
-                           </div>
-                         ) : (
+                        {(teacher.introductionVideoUrl || teacher.videoUrl) ? (
+                          <div className="max-w-2xl">
+                            <VideoPlayer 
+                              videoUrl={teacher.introductionVideoUrl || teacher.videoUrl}
+                              width="100%"
+                              height="400"
+                              title={`Video giới thiệu của ${teacher.name}`}
+                            />
+                            <p className="text-gray-600 text-sm mt-3">
+                              Video này đã được phê duyệt và đang hoạt động
+                            </p>
+                          </div>
+                        ) : (
                           <div className="text-center py-8">
                             <div className="mx-auto h-16 w-16 text-gray-400 mb-4">
                               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -4385,6 +4385,47 @@ export async function getTutorIntroductionVideo(page = 1, size = 10) {
 }
 
 /**
+ * Update tutor introduction video status (tutor can only update to Active or Inactive)
+ * @param {Object} updateData - { id: string, status: number } - status: 1=Active, 3=Inactive
+ * @returns {Promise<Object>} API response
+ */
+export async function updateTutorIntroductionVideoStatus(updateData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!updateData.id || !updateData.id.trim()) {
+      throw new Error("Video ID is required");
+    }
+    if (updateData.status === undefined || updateData.status === null) {
+      throw new Error("Status is required");
+    }
+    // Tutor can only update to Active (1) or Inactive (3)
+    if (![1, 3].includes(updateData.status)) {
+      throw new Error("Tutor can only update status to Active (1) or Inactive (3)");
+    }
+
+    console.log("🔍 Updating tutor introduction video status with data:", updateData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/tutorintroductionvideo/status", "PUT", updateData, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video status updated successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for video status update.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to update tutor introduction video status:", error.message);
+    throw error;
+  }
+}
+
+/**
  * Delete tutor introduction video
  * @param {string} videoId - The ID of the video to delete
  * @returns {Promise<Object>} API response
@@ -4420,13 +4461,13 @@ export async function deleteTutorIntroductionVideo(videoId) {
 // ==================== STAFF VIDEO MANAGEMENT API FUNCTIONS ====================
 
 /**
- * Get pending tutor introduction videos for staff review
+ * Get tutor introduction videos for staff review
  * @param {number} page - Page number (default: 1)
  * @param {number} size - Number of items per page (default: 20)
- * @param {number} status - Status filter: 0=pending, 1=approved, 2=rejected (optional)
- * @returns {Promise<Object>} API response with pending video data
+ * @param {number|null} status - Status filter: 0=Pending, 1=Active, 2=Rejected, 3=Inactive, null=All (optional)
+ * @returns {Promise<Object>} API response with video data
  */
-export async function getPendingTutorIntroductionVideos(page = 1, size = 20, status = 0) {
+export async function getPendingTutorIntroductionVideos(page = 1, size = 20, status = null) {
   try {
     const token = getAccessToken();
     if (!token) {
@@ -4438,9 +4479,10 @@ export async function getPendingTutorIntroductionVideos(page = 1, size = 20, sta
       size: size.toString()
     });
 
-    // Add status parameter if provided (0=pending, 1=approved, 2=rejected)
-    if (status !== undefined && status !== null) {
-      params.append('status', status.toString());
+    // Add status parameter (0=Pending, 1=Active, 2=Rejected, 3=Inactive, null=All)
+    // Always send status parameter to ensure consistent behavior
+    if (status !== undefined) {
+      params.append('status', status === null ? 'all' : status.toString());
     }
 
     const url = `/api/tutorintroductionvideo?${params.toString()}`;
@@ -4462,8 +4504,8 @@ export async function getPendingTutorIntroductionVideos(page = 1, size = 20, sta
 }
 
 /**
- * Review tutor introduction video (approve/reject)
- * @param {Object} reviewData - { id: string, status: number } - status: 0=pending, 1=approve, 2=reject
+ * Review tutor introduction video (staff can set to Active, Inactive, or Rejected)
+ * @param {Object} reviewData - { id: string, status: number } - status: 1=Active, 2=Rejected, 3=Inactive
  * @returns {Promise<Object>} API response
  */
 export async function reviewTutorIntroductionVideo(reviewData) {
@@ -4480,8 +4522,9 @@ export async function reviewTutorIntroductionVideo(reviewData) {
     if (reviewData.status === undefined || reviewData.status === null) {
       throw new Error("Status is required");
     }
-    if (![0, 1, 2].includes(reviewData.status)) {
-      throw new Error("Status must be 0 (pending), 1 (approve), or 2 (reject)");
+    // Staff can set to Active (1), Rejected (2), or Inactive (3)
+    if (![1, 2, 3].includes(reviewData.status)) {
+      throw new Error("Staff can only set status to Active (1), Rejected (2), or Inactive (3)");
     }
 
     console.log("🔍 Reviewing tutor introduction video with data:", reviewData);
@@ -4797,6 +4840,47 @@ export async function getLegalDocumentByCategory(category, page = 1, size = 10) 
     }
   } catch (error) {
     console.error("❌ Failed to fetch legal documents by category:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Set tutor introduction video active/inactive using the new PATCH endpoint
+ * @param {Object} videoData - { id: string, status: number } - status: 1=Active, 3=Inactive
+ * @returns {Promise<Object>} API response
+ */
+export async function setTutorIntroductionVideoActive(videoData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!videoData.id || !videoData.id.trim()) {
+      throw new Error("Video ID is required");
+    }
+    if (videoData.status === undefined || videoData.status === null) {
+      throw new Error("Status is required");
+    }
+    // Tutor can only set to Active (1) or Inactive (3)
+    if (![1, 3].includes(videoData.status)) {
+      throw new Error("Tutor can only set status to Active (1) or Inactive (3)");
+    }
+
+    console.log("🔍 Setting tutor introduction video active/inactive with data:", videoData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/tutorintroductionvideo/set-active", "PATCH", videoData, token);
+
+    if (response) {
+      console.log("✅ Tutor introduction video active/inactive set successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for video active/inactive setting.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to set tutor introduction video active/inactive:", error.message);
     throw error;
   }
 }
