@@ -42,6 +42,7 @@ import {
   Autocomplete,
   Switch,
   FormControlLabel,
+  CircularProgress,
 } from "@mui/material";
 import {
   FiPlusCircle,
@@ -86,6 +87,8 @@ import {
   uploadTutorIntroductionVideo,
   getTutorIntroductionVideo,
   deleteTutorIntroductionVideo,
+  updateTutorIntroductionVideoStatus,
+  setTutorIntroductionVideoActive,
 } from "../../components/api/auth";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import ConfirmDialog from "../modals/ConfirmDialog";
@@ -3026,6 +3029,7 @@ const TutorProfile = ({
   const [videoFormErrors, setVideoFormErrors] = useState({});
   const [videoToDelete, setVideoToDelete] = useState(null);
   const [deleteVideoModalOpen, setDeleteVideoModalOpen] = useState(false);
+  const [updatingVideoStatus, setUpdatingVideoStatus] = useState(null);
 
   // Add function to fetch booking configuration
   const fetchBookingConfiguration = async () => {
@@ -3139,6 +3143,42 @@ const TutorProfile = ({
     } finally {
       setDeleteVideoModalOpen(false);
       setVideoToDelete(null);
+    }
+  };
+
+  // Function to update video status (tutor can only set to Active or Inactive)
+  const handleUpdateVideoStatus = async (videoId, newStatus) => {
+    try {
+      setUpdatingVideoStatus(videoId);
+      
+      const statusText = newStatus === 1 ? 'kích hoạt' : 'vô hiệu hóa';
+      
+      // Use the new PATCH endpoint for setting active/inactive
+      await setTutorIntroductionVideoActive({ id: videoId, status: newStatus });
+      
+      toast.success(`Video đã được ${statusText} thành công!`);
+      fetchIntroductionVideos(); // Refresh the list
+    } catch (error) {
+      console.error("Failed to update video status:", error);
+      toast.error(`Cập nhật trạng thái video thất bại: ${error.message}`);
+    } finally {
+      setUpdatingVideoStatus(null);
+    }
+  };
+
+  // Get status label for video
+  const getVideoStatusLabel = (status) => {
+    switch (status) {
+      case 0:
+        return { text: 'Đang chờ duyệt', color: 'warning' };
+      case 1:
+        return { text: 'Đang hoạt động', color: 'success' };
+      case 2:
+        return { text: 'Đã từ chối', color: 'error' };
+      case 3:
+        return { text: 'Không hoạt động', color: 'default' };
+      default:
+        return { text: 'Không xác định', color: 'default' };
     }
   };
 
@@ -5203,6 +5243,7 @@ const TutorProfile = ({
                               <TableHead>
                                 <TableRow sx={{ backgroundColor: "#f8fafc" }}>
                                   <TableCell sx={{ fontWeight: 600 }}>URL Video</TableCell>
+                                  <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
                                   <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
                                   <TableCell sx={{ fontWeight: 600 }}>Hành động</TableCell>
                                 </TableRow>
@@ -5210,7 +5251,7 @@ const TutorProfile = ({
                               <TableBody>
                                 {introductionVideos.length === 0 ? (
                                   <TableRow>
-                                    <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
+                                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                                       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", color: "#64748b" }}>
                                         <Box sx={{ width: "64px", height: "64px", mb: 2, opacity: 0.5 }}>
                                           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -5256,26 +5297,94 @@ const TutorProfile = ({
                                         </Box>
                                       </TableCell>
                                       <TableCell>
+                                        <Chip
+                                          label={getVideoStatusLabel(video.status).text}
+                                          color={getVideoStatusLabel(video.status).color}
+                                          size="small"
+                                          sx={{ fontWeight: 500 }}
+                                        />
+                                      </TableCell>
+                                      <TableCell>
                                         <Typography variant="body2" color="textSecondary">
                                           {new Date(video.createdAt || video.createdTime || Date.now()).toLocaleDateString("vi-VN")}
                                         </Typography>
                                       </TableCell>
                                       <TableCell>
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => handleDeleteVideo(video)}
-                                          sx={{
-                                            color: "#ef4444",
-                                            "&:hover": {
-                                              backgroundColor: "rgba(239, 68, 68, 0.1)",
-                                            },
-                                          }}
-                                          title="Xóa video"
-                                        >
-                                          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
-                                        </IconButton>
+                                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                                          {/* Status update buttons - only show for Active/Inactive videos (already reviewed by staff) */}
+                                          {(video.status === 1 || video.status === 3) && (
+                                            <>
+                                              {video.status === 3 && (
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => handleUpdateVideoStatus(video.id, 1)}
+                                                  disabled={updatingVideoStatus === video.id}
+                                                  sx={{
+                                                    color: "#059669",
+                                                    "&:hover": {
+                                                      backgroundColor: "rgba(5, 150, 105, 0.1)",
+                                                    },
+                                                  }}
+                                                  title="Kích hoạt video (đã được staff duyệt)"
+                                                >
+                                                  {updatingVideoStatus === video.id ? (
+                                                    <CircularProgress size={16} />
+                                                  ) : (
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                  )}
+                                                </IconButton>
+                                              )}
+                                              {video.status === 1 && (
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => handleUpdateVideoStatus(video.id, 3)}
+                                                  disabled={updatingVideoStatus === video.id}
+                                                  sx={{
+                                                    color: "#6b7280",
+                                                    "&:hover": {
+                                                      backgroundColor: "rgba(107, 114, 128, 0.1)",
+                                                    },
+                                                  }}
+                                                  title="Vô hiệu hóa video (đã được staff duyệt)"
+                                                >
+                                                  {updatingVideoStatus === video.id ? (
+                                                    <CircularProgress size={16} />
+                                                  ) : (
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                  )}
+                                                </IconButton>
+                                              )}
+                                            </>
+                                          )}
+                                          {/* Delete button - only show for Inactive or Rejected videos */}
+                                          {(video.status === 3 || video.status === 2) && (
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => handleDeleteVideo(video)}
+                                              sx={{
+                                                color: "#ef4444",
+                                                "&:hover": {
+                                                  backgroundColor: "rgba(239, 68, 68, 0.1)",
+                                                },
+                                              }}
+                                              title="Xóa video"
+                                            >
+                                              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                              </svg>
+                                            </IconButton>
+                                          )}
+                                          {/* Show message for Pending videos */}
+                                          {video.status === 0 && (
+                                            <Typography variant="caption" color="textSecondary" sx={{ fontStyle: "italic" }}>
+                                              Đang chờ staff duyệt - Không thể thao tác
+                                            </Typography>
+                                          )}
+                                        </Box>
                                       </TableCell>
                                     </TableRow>
                                   ))
@@ -5292,6 +5401,9 @@ const TutorProfile = ({
                             </Typography>
                             <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
                               Video được sắp xếp theo thứ tự thời gian tạo (mới nhất trước)
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
+                              <strong>Lưu ý:</strong> Bạn chỉ có thể kích hoạt/vô hiệu hóa video đã được staff duyệt (trạng thái "Đang hoạt động" hoặc "Không hoạt động"). Video đang chờ duyệt hoặc đã từ chối không thể thao tác.
                             </Typography>
                           </Box>
                         )}

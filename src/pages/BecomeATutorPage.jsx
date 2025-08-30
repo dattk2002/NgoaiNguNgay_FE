@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { getAccessToken } from "../components/api/auth";
+import { getAccessToken, editUserProfile } from "../components/api/auth";
 import { formatLanguageCode } from '../utils/formatLanguageCode';
 
 const BecomeATutorPage = ({
@@ -46,6 +46,16 @@ const BecomeATutorPage = ({
         // Certificates
         certificates: []
     });
+
+    // State for profile editing
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [profileEditData, setProfileEditData] = useState({
+        fullName: "",
+        dateOfBirth: "",
+        gender: 1,
+        timezone: "UTC+7"
+    });
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
     const proficiencyLevels = [
         { value: 1, label: "Người mới bắt đầu (A1)" },
@@ -257,6 +267,79 @@ const BecomeATutorPage = ({
         }
     };
 
+    // Function to update profile information
+    const updateProfile = async () => {
+        setIsUpdatingProfile(true);
+        try {
+            const token = getAccessToken();
+            if (!token) {
+                toast.error("Bạn phải đăng nhập để cập nhật thông tin.");
+                onRequireLogin();
+                return;
+            }
+
+            // Validate required fields
+            if (!profileEditData.fullName || profileEditData.fullName.trim() === "") {
+                toast.error("Họ và tên đầy đủ là bắt buộc");
+                return;
+            }
+            if (!profileEditData.dateOfBirth) {
+                toast.error("Ngày sinh là bắt buộc");
+                return;
+            }
+
+            // Call API to update profile using the existing function
+            const updateData = {
+                fullName: profileEditData.fullName.trim(),
+                dateOfBirth: new Date(profileEditData.dateOfBirth).toISOString(),
+                gender: parseInt(profileEditData.gender),
+                timezone: profileEditData.timezone
+            };
+
+            await editUserProfile(token, updateData);
+            
+            // Fetch updated profile data to ensure consistency
+            await fetchProfileData();
+            
+            setIsEditingProfile(false);
+            toast.success("Cập nhật thông tin thành công!");
+            
+        } catch (error) {
+            console.error("Error updating profile:", error);
+            toast.error(error.message || "Cập nhật thông tin thất bại. Vui lòng thử lại.");
+        } finally {
+            setIsUpdatingProfile(false);
+        }
+    };
+
+    const handleProfileEditChange = (e) => {
+        const { name, value } = e.target;
+        setProfileEditData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const startEditingProfile = () => {
+        setProfileEditData({
+            fullName: formData.fullName,
+            dateOfBirth: formData.dateOfBirth,
+            gender: formData.gender,
+            timezone: formData.timezone
+        });
+        setIsEditingProfile(true);
+    };
+
+    const cancelEditingProfile = () => {
+        setIsEditingProfile(false);
+        setProfileEditData({
+            fullName: "",
+            dateOfBirth: "",
+            gender: 1,
+            timezone: "UTC+7"
+        });
+    };
+
     const handleLanguageChange = (index, field, value) => {
         const updatedLanguages = [...formData.languages];
         updatedLanguages[index] = {
@@ -403,6 +486,12 @@ const BecomeATutorPage = ({
     const validateCurrentStep = () => {
         switch (activeStep) {
             case 1: // Basic Information
+                // Check if user is currently editing profile
+                if (isEditingProfile) {
+                    toast.error("Vui lòng hoàn thành việc cập nhật thông tin trước khi tiếp tục");
+                    return false;
+                }
+                
                 // Validate required profile information
                 if (!formData.fullName || formData.fullName.trim() === "") {
                     toast.error("Vui lòng cập nhật họ và tên đầy đủ trong hồ sơ cá nhân");
@@ -776,7 +865,7 @@ const BecomeATutorPage = ({
                         <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Thông tin cơ bản</h2>
 
                         {/* Warning message for incomplete profile */}
-                        {(!formData.fullName || !formData.dateOfBirth || formData.gender === undefined || formData.gender === null || !formData.timezone) && (
+                        {(!formData.fullName || !formData.dateOfBirth || formData.gender === undefined || formData.gender === null || !formData.timezone) && !isEditingProfile && (
                             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
                                 <div className="flex">
                                     <div className="flex-shrink-0">
@@ -794,6 +883,7 @@ const BecomeATutorPage = ({
                         )}
 
                         <div className="space-y-5">
+                            {/* Profile Photo Section */}
                             <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Ảnh hồ sơ
@@ -820,60 +910,182 @@ const BecomeATutorPage = ({
                                 </p>
                             </div>
 
-                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Họ và tên đầy đủ
-                                </label>
-                                <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
-                                    {formData.fullName || "Chưa có thông tin"}
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Thông tin này được lấy từ hồ sơ của bạn và không thể chỉnh sửa
-                                </p>
+                            {/* Edit Profile Button */}
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={startEditingProfile}
+                                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                                >
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    Chỉnh sửa thông tin
+                                </button>
                             </div>
 
-                            <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Ngày sinh
-                                </label>
-                                <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
-                                    {formData.dateOfBirth ?
-                                        new Date(formData.dateOfBirth).toLocaleDateString('vi-VN') :
-                                        "Chưa có thông tin"
-                                    }
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Thông tin này được lấy từ hồ sơ của bạn và không thể chỉnh sửa
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Giới tính
-                                    </label>
-                                    <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
-                                        {formData.gender === 0 ? "Khác" :
-                                            formData.gender === 1 ? "Nam" :
-                                                formData.gender === 2 ? "Nữ" : "Chưa có thông tin"}
+                            {/* Profile Information - Read Only Display */}
+                            {!isEditingProfile && (
+                                <>
+                                    <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Họ và tên đầy đủ
+                                        </label>
+                                        <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                                            {formData.fullName || "Chưa có thông tin"}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Thông tin này được lấy từ hồ sơ của bạn
+                                        </p>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Thông tin này được lấy từ hồ sơ của bạn
-                                    </p>
-                                </div>
 
-                                <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Múi giờ
-                                    </label>
-                                    <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
-                                        {timezones.find(tz => tz.value === formData.timezone)?.label || formData.timezone || "Chưa có thông tin"}
+                                    <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Ngày sinh
+                                        </label>
+                                        <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                                            {formData.dateOfBirth ?
+                                                new Date(formData.dateOfBirth).toLocaleDateString('vi-VN') :
+                                                "Chưa có thông tin"
+                                            }
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Thông tin này được lấy từ hồ sơ của bạn
+                                        </p>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Thông tin này được lấy từ hồ sơ của bạn và không thể chỉnh sửa
-                                    </p>
-                                </div>
-                            </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Giới tính
+                                            </label>
+                                            <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                                                {formData.gender === 0 ? "Khác" :
+                                                    formData.gender === 1 ? "Nam" :
+                                                        formData.gender === 2 ? "Nữ" : "Chưa có thông tin"}
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Thông tin này được lấy từ hồ sơ của bạn
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Múi giờ
+                                            </label>
+                                            <div className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                                                {timezones.find(tz => tz.value === formData.timezone)?.label || formData.timezone || "Chưa có thông tin"}
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Thông tin này được lấy từ hồ sơ của bạn
+                                            </p>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Profile Information - Edit Mode */}
+                            {isEditingProfile && (
+                                <>
+                                    <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Họ và tên đầy đủ <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="fullName"
+                                            value={profileEditData.fullName}
+                                            onChange={handleProfileEditChange}
+                                            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                            placeholder="Nhập họ và tên đầy đủ"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Ngày sinh <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="date"
+                                            name="dateOfBirth"
+                                            value={profileEditData.dateOfBirth}
+                                            onChange={handleProfileEditChange}
+                                            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Giới tính <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="gender"
+                                                value={profileEditData.gender}
+                                                onChange={handleProfileEditChange}
+                                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                                required
+                                                style={formSelectStyle}
+                                            >
+                                                <option value={0}>Khác</option>
+                                                <option value={1}>Nam</option>
+                                                <option value={2}>Nữ</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Múi giờ <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="timezone"
+                                                value={profileEditData.timezone}
+                                                onChange={handleProfileEditChange}
+                                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                                                required
+                                                style={formSelectStyle}
+                                            >
+                                                {timezones.map((tz) => (
+                                                    <option key={tz.value} value={tz.value} className="py-2 text-black">
+                                                        {tz.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Edit Action Buttons */}
+                                    <div className="flex justify-end space-x-3">
+                                        <button
+                                            type="button"
+                                            onClick={cancelEditingProfile}
+                                            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                                        >
+                                            Hủy
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={updateProfile}
+                                            disabled={isUpdatingProfile}
+                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                        >
+                                            {isUpdatingProfile ? (
+                                                <>
+                                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Đang cập nhật...
+                                                </>
+                                            ) : (
+                                                'Cập nhật'
+                                            )}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 );
@@ -1402,7 +1614,7 @@ const BecomeATutorPage = ({
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Toast container */}
                 <ToastContainer
-                    position="top-center"
+                    position="top-right"
                     autoClose={3000}
                     hideProgressBar={false}
                     newestOnTop
@@ -1448,7 +1660,8 @@ const BecomeATutorPage = ({
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#333333] hover:bg-[#000000] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#333333] transition-colors ${!activeStep > 1 ? 'ml-auto' : ''}`}
+                                        disabled={isEditingProfile}
+                                        className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#333333] hover:bg-[#000000] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#333333] transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${!activeStep > 1 ? 'ml-auto' : ''}`}
                                     >
                                         Tiếp theo
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 -mr-1" viewBox="0 0 20 20" fill="currentColor">
