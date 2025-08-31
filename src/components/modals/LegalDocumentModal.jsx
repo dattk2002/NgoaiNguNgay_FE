@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { getLegalDocumentByCategory } from '../api/auth';
+import { getLegalDocumentByCategory, getLegalDocumentVersionById } from '../api/auth';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
+import '../admin/LegalDocumentManagement.css';
 
 const LegalDocumentModal = ({ isOpen, onClose, category }) => {
   const [document, setDocument] = useState(null);
+  const [selectedVersion, setSelectedVersion] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [versionLoading, setVersionLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && category) {
       fetchLegalDocument();
+    } else if (!isOpen) {
+      // Reset state when modal closes
+      setDocument(null);
+      setSelectedVersion(null);
+      setLoading(false);
+      setVersionLoading(false);
     }
   }, [isOpen, category]);
 
@@ -20,27 +29,47 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
       const documents = await getLegalDocumentByCategory(category, 1, 1);
       if (documents && documents.length > 0) {
         setDocument(documents[0]);
+        // Auto-select the first version if available
+        if (documents[0].versions && documents[0].versions.length > 0) {
+          await fetchVersionContent(documents[0].versions[0].id);
+        }
       } else {
         setDocument(null);
+        setSelectedVersion(null);
       }
     } catch (error) {
       console.error('Failed to fetch legal document:', error);
       toast.error('Không thể tải tài liệu pháp lý');
       setDocument(null);
+      setSelectedVersion(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchVersionContent = async (versionId) => {
+    try {
+      setVersionLoading(true);
+      const versionData = await getLegalDocumentVersionById(versionId);
+      setSelectedVersion(versionData);
+    } catch (error) {
+      console.error('Failed to fetch version content:', error);
+      toast.error('Không thể tải nội dung phiên bản');
+      setSelectedVersion(null);
+    } finally {
+      setVersionLoading(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const day = date.getDate();
+    const month = date.toLocaleDateString('vi-VN', { month: 'long' });
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${hours}:${minutes} ${day} ${month}, ${year}`;
   };
 
   const modalVariants = {
@@ -103,30 +132,6 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
 
             {loading ? (
               <div className="space-y-6">
-                {/* Document Header Skeleton */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="h-6 bg-gray-200 rounded mb-2 animate-pulse"></div>
-                  <div className="flex items-center gap-4">
-                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
-                  </div>
-                </div>
-
-                {/* Document Content Skeleton */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="h-5 bg-gray-200 rounded mb-3 w-40 animate-pulse"></div>
-                  <div className="bg-white p-4 rounded border">
-                    <div className="space-y-3">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
-                      <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse"></div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                      <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Document Versions Skeleton */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="h-5 bg-gray-200 rounded mb-3 w-48 animate-pulse"></div>
@@ -154,9 +159,71 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
                     </div>
                   </div>
                 </div>
+
+                {/* Document Header Skeleton */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="h-6 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="flex items-center gap-4">
+                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Document Content Skeleton */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="h-5 bg-gray-200 rounded mb-3 w-40 animate-pulse"></div>
+                  <div className="bg-white p-4 rounded border">
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : document ? (
               <div className="space-y-6">
+                {/* Document Versions */}
+                {document.versions && document.versions.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="text-md font-semibold text-black mb-3">Phiên bản tài liệu</h4>
+                    <div className="space-y-3">
+                      {document.versions.map((version) => (
+                        <div 
+                          key={version.id} 
+                          className={`bg-white p-3 rounded border cursor-pointer transition-colors ${
+                            selectedVersion?.id === version.id 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => fetchVersionContent(version.id)}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-black">Phiên bản {version.version}</span>
+                            <span className="text-sm text-gray-600">
+                              {formatDate(version.createdTime)}
+                            </span>
+                          </div>
+                          {selectedVersion?.id === version.id && (
+                            <div className="text-xs text-blue-600 font-medium">
+                              Đang xem
+                            </div>
+                          )}
+                          {selectedVersion?.id === version.id && selectedVersion.content && selectedVersion.content !== 'HIDDEN' && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {selectedVersion.content.replace(/<[^>]*>/g, '').substring(0, 100) + 
+                               (selectedVersion.content.replace(/<[^>]*>/g, '').length > 100 ? '...' : '')}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Document Header */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold text-black mb-2">
@@ -169,39 +236,53 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
                       <span>Cập nhật: {formatDate(document.lastUpdatedTime)}</span>
                     )}
                   </div>
+                  {selectedVersion && (
+                    <div className="mt-2 text-sm text-blue-600 font-medium">
+                      Đang xem: Phiên bản {selectedVersion.version} 
+                      {selectedVersion.lastUpdatedTime && (
+                        <span className="text-gray-500 ml-2">
+                          (Cập nhật: {formatDate(selectedVersion.lastUpdatedTime)})
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Document Content */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h4 className="text-md font-semibold text-black mb-3">Nội dung tài liệu</h4>
-                  <div className="bg-white p-4 rounded border">
-                    <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                      {document.description || 'Không có nội dung chi tiết'}
-                    </div>
+                  <div className="bg-white p-4 rounded border min-h-[200px]">
+                    {versionLoading ? (
+                      <div className="space-y-3">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                      </div>
+                    ) : selectedVersion ? (
+                      <div className="text-gray-800 leading-relaxed">
+                        {selectedVersion.content === 'HIDDEN' 
+                          ? 'Nội dung này không được hiển thị công khai'
+                          : selectedVersion.content ? (
+                            <div 
+                              dangerouslySetInnerHTML={{ __html: selectedVersion.content }}
+                              className="prose prose-sm max-w-none"
+                              style={{ 
+                                fontFamily: 'inherit',
+                                fontSize: 'inherit',
+                                lineHeight: 'inherit'
+                              }}
+                            />
+                          ) : 'Không có nội dung chi tiết'
+                        }
+                      </div>
+                    ) : (
+                      <div className="text-gray-500 italic">
+                        Vui lòng chọn một phiên bản để xem nội dung
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* Document Versions */}
-                {document.versions && document.versions.length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="text-md font-semibold text-black mb-3">Phiên bản tài liệu</h4>
-                    <div className="space-y-3">
-                      {document.versions.map((version) => (
-                        <div key={version.id} className="bg-white p-3 rounded border">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-black">Phiên bản {version.version}</span>
-                            <span className="text-sm text-gray-600">
-                              {formatDate(version.createdTime)}
-                            </span>
-                          </div>
-                          <div className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">
-                            {version.content || 'Không có nội dung'}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="text-center py-12">

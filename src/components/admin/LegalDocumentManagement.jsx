@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import { Editor } from '@tinymce/tinymce-react';
+import { useTinyMCE } from '../../contexts/TinyMCEContext';
 import { 
   fetchLegalDocuments, 
   createLegalDocument, 
@@ -14,6 +16,7 @@ import {
   fetchLegalDocumentVersionById
 } from '../api/auth';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
+import './LegalDocumentManagement.css';
 
 // Spinner Icon - matching LoginModal
 const SpinnerIcon = () => (
@@ -39,6 +42,7 @@ const SpinnerIcon = () => (
 );
 
 const LegalDocumentManagement = () => {
+    const tinymceConfig = useTinyMCE();
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -439,7 +443,9 @@ const LegalDocumentManagement = () => {
             currentFieldErrors.version = "Phiên bản không được để trống";
             formIsValid = false;
         }
-        if (!newVersion.content.trim()) {
+        // Remove HTML tags for validation
+        const contentWithoutHtml = newVersion.content.replace(/<[^>]*>/g, '').trim();
+        if (!contentWithoutHtml) {
             currentFieldErrors.content = "Nội dung không được để trống";
             formIsValid = false;
         }
@@ -557,7 +563,9 @@ const LegalDocumentManagement = () => {
             currentFieldErrors.version = "Phiên bản không được để trống";
             formIsValid = false;
         }
-        if (!editVersion.content.trim()) {
+        // Remove HTML tags for validation
+        const contentWithoutHtml = editVersion.content.replace(/<[^>]*>/g, '').trim();
+        if (!contentWithoutHtml) {
             currentFieldErrors.content = "Nội dung không được để trống";
             formIsValid = false;
         }
@@ -1105,7 +1113,7 @@ const LegalDocumentManagement = () => {
                         onClick={() => setShowEditModal(false)}
                     >
                         <motion.div
-                            className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-md mx-auto relative overflow-y-auto max-h-[95vh]"
+                            className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-5xl relative overflow-y-auto max-h-[100vh]"
                             variants={modalVariants}
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                             onClick={(e) => e.stopPropagation()}
@@ -1463,7 +1471,14 @@ const LegalDocumentManagement = () => {
                                                                 </div>
                                                                 <div className="text-sm text-gray-600">
                                                                     <div className="truncate">
-                                                                        {version.content ? truncateText(version.content, 150) : 'Không có nội dung'}
+                                                                        <div 
+                                                                            dangerouslySetInnerHTML={{ 
+                                                                                __html: version.content ? 
+                                                                                    version.content.replace(/<[^>]*>/g, '').substring(0, 150) + 
+                                                                                    (version.content.replace(/<[^>]*>/g, '').length > 150 ? '...' : '') 
+                                                                                    : 'Không có nội dung'
+                                                                            }}
+                                                                        />
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
@@ -1640,7 +1655,14 @@ const LegalDocumentManagement = () => {
                                                                     </td>
                                                                     <td className="px-6 py-4">
                                                                         <div className="text-sm text-gray-900 max-w-xs">
-                                                                            {truncateText(version.content, 60)}
+                                                                            <div 
+                                                                                dangerouslySetInnerHTML={{ 
+                                                                                    __html: version.content ? 
+                                                                                        version.content.replace(/<[^>]*>/g, '').substring(0, 60) + 
+                                                                                        (version.content.replace(/<[^>]*>/g, '').length > 60 ? '...' : '') 
+                                                                                        : 'Không có nội dung'
+                                                                                }}
+                                                                            />
                                                                         </div>
                                                                     </td>
                                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -1796,15 +1818,24 @@ const LegalDocumentManagement = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Nội dung <span className="text-red-500">*</span>
                                         </label>
-                                        <textarea
-                                            value={newVersion.content}
-                                            onChange={(e) => setNewVersion({...newVersion, content: e.target.value})}
-                                            rows={6}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-black ${
-                                                versionFieldErrors.content ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                            placeholder="Nhập nội dung phiên bản..."
-                                        />
+                                        <div className={`${versionFieldErrors.content ? 'error' : ''}`}>
+                                            <Editor
+                                                apiKey={tinymceConfig.apiKey}
+                                                value={newVersion.content}
+                                                onEditorChange={(content) => setNewVersion({...newVersion, content})}
+                                                init={{
+                                                    height: tinymceConfig.height,
+                                                    menubar: tinymceConfig.menubar,
+                                                    plugins: tinymceConfig.plugins,
+                                                    toolbar: tinymceConfig.toolbar,
+                                                    content_style: tinymceConfig.content_style,
+                                                    placeholder: tinymceConfig.placeholder,
+                                                    branding: tinymceConfig.branding,
+                                                    elementpath: tinymceConfig.elementpath,
+                                                    resize: tinymceConfig.resize
+                                                }}
+                                            />
+                                        </div>
                                         {versionFieldErrors.content && (
                                             <p className="mt-1 text-sm text-red-600">{versionFieldErrors.content}</p>
                                         )}
@@ -1929,15 +1960,24 @@ const LegalDocumentManagement = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Nội dung <span className="text-red-500">*</span>
                                         </label>
-                                        <textarea
-                                            value={editVersion.content}
-                                            onChange={(e) => setEditVersion({...editVersion, content: e.target.value})}
-                                            rows={6}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-black ${
-                                                versionFieldErrors.content ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                            placeholder="Nhập nội dung phiên bản..."
-                                        />
+                                        <div className={`${versionFieldErrors.content ? 'error' : ''}`}>
+                                            <Editor
+                                                apiKey={tinymceConfig.apiKey}
+                                                value={editVersion.content}
+                                                onEditorChange={(content) => setEditVersion({...editVersion, content})}
+                                                init={{
+                                                    height: tinymceConfig.height,
+                                                    menubar: tinymceConfig.menubar,
+                                                    plugins: tinymceConfig.plugins,
+                                                    toolbar: tinymceConfig.toolbar,
+                                                    content_style: tinymceConfig.content_style,
+                                                    placeholder: tinymceConfig.placeholder,
+                                                    branding: tinymceConfig.branding,
+                                                    elementpath: tinymceConfig.elementpath,
+                                                    resize: tinymceConfig.resize
+                                                }}
+                                            />
+                                        </div>
                                         {versionFieldErrors.content && (
                                             <p className="mt-1 text-sm text-red-600">{versionFieldErrors.content}</p>
                                         )}
@@ -2112,8 +2152,11 @@ const LegalDocumentManagement = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 Nội dung
                                             </label>
-                                            <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md min-h-[200px] whitespace-pre-wrap">
-                                                {versionDetail.content}
+                                            <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md min-h-[200px] border">
+                                                <div 
+                                                    dangerouslySetInnerHTML={{ __html: versionDetail.content || 'Không có nội dung' }}
+                                                    className="prose prose-sm max-w-none"
+                                                />
                                             </div>
                                         </div>
 
