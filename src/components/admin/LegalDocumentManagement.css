@@ -1,0 +1,196 @@
+/* TinyMCE Editor Styling */
+.tox-tinymce {
+    border: none !important;
+    border-radius: 0.375rem !important;
+}
+
+.tox .tox-toolbar {
+    background-color: #f9fafb !important;
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.tox .tox-toolbar__group {
+    padding: 0 4px !important;
+}
+
+.tox .tox-tbtn {
+    border-radius: 0.25rem !important;
+}
+
+.tox .tox-tbtn:hover {
+    background-color: #e5e7eb !important;
+}
+
+.tox .tox-edit-area {
+    border: none !important;
+}
+
+.tox .tox-edit-area__iframe {
+    background-color: white !important;
+}
+
+/* Error state styling */
+.tox-tinymce.error {
+    border: 1px solid #ef4444 !important;
+}
+
+/* Focus state styling */
+.tox-tinymce:focus-within {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: 2px !important;
+}
+
+/* Content area styling */
+.tox .tox-edit-area__iframe {
+    font-family: 'Helvetica', 'Arial', sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+}
+
+/* Toolbar button styling */
+.tox .tox-tbtn--enabled {
+    background-color: #3b82f6 !important;
+    color: white !important;
+}
+
+.tox .tox-tbtn--enabled:hover {
+    background-color: #2563eb !important;
+}
+
+/* Status bar styling */
+.tox .tox-statusbar {
+    background-color: #f9fafb !important;
+    border-top: 1px solid #e5e7eb !important;
+    color: #6b7280 !important;
+}
+
+/* Placeholder styling */
+.tox .tox-edit-area__iframe[data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+    font-style: italic;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    pointer-events: none;
+}
+
+/* HTML Content Display Styling */
+.prose {
+    color: #374151;
+    line-height: 1.6;
+}
+
+.prose h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #111827;
+}
+
+.prose h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #111827;
+}
+
+.prose h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: #111827;
+}
+
+.prose p {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.prose strong {
+    font-weight: 600;
+    color: #111827;
+}
+
+.prose em {
+    font-style: italic;
+}
+
+.prose ul {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.prose ol {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.prose li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.prose blockquote {
+    border-left: 4px solid #e5e7eb;
+    padding-left: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+    font-style: italic;
+    color: #6b7280;
+}
+
+.prose code {
+    background-color: #f3f4f6;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-family: 'Courier New', monospace;
+}
+
+.prose pre {
+    background-color: #f3f4f6;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.prose pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+.prose a {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.prose a:hover {
+    color: #2563eb;
+}
+
+.prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.prose th,
+.prose td {
+    border: 1px solid #e5e7eb;
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.prose th {
+    background-color: #f9fafb;
+    font-weight: 600;
+}

@@ -788,7 +788,7 @@ const BookingRequests = () => {
                           </svg>
                           Tổng quan booking
                         </h4>
-                        <StatusTag status={bookingDetail.status} />
+                        {/* Removed StatusTag to eliminate "Không xác định" button */}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-white rounded-lg p-4 border border-gray-100">
@@ -815,7 +815,7 @@ const BookingRequests = () => {
                             </div>
                             <div>
                               <p className="text-sm text-gray-500 font-medium">Tổng giá</p>
-                              <p className="text-lg font-bold text-gray-900">{bookingDetail.totalPrice || 0} VND</p>
+                              <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(bookingDetail.totalPrice || 0)} VND</p>
                             </div>
                           </div>
                         </div>
@@ -943,7 +943,7 @@ const BookingRequests = () => {
                             </div>
                             <div className="space-y-2">
                               <p className="text-sm text-gray-500 font-medium">Giá mỗi slot</p>
-                              <p className="text-lg font-bold text-green-600">{bookingDetail.lessonSnapshot.price || 0} {bookingDetail.lessonSnapshot.currency || 'VND'}</p>
+                              <p className="text-lg font-bold text-green-600">{formatPriceWithCommas(bookingDetail.lessonSnapshot.price || 0)} {bookingDetail.lessonSnapshot.currency || 'VND'}</p>
                             </div>
                             <div className="space-y-2">
                               <p className="text-sm text-gray-500 font-medium">Thời lượng</p>
@@ -1141,20 +1141,14 @@ const StatusTag = ({ status }) => {
           )
         };
       default:
-        return {
-          text: "Không xác định",
-          className: "bg-gray-50 text-gray-700 border border-gray-200",
-          icon: (
-            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-          )
-        };
+        return null; // Return null for unknown status
     }
   };
 
   const statusInfo = getStatusInfo(status);
   
+  if (!statusInfo) return null; // Return null if status is not recognized
+
   return (
     <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${statusInfo.className} shadow-sm`}>
       {statusInfo.icon}

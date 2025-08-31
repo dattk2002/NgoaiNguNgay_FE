@@ -5760,7 +5760,7 @@ const TutorProfile = ({
                 setLessonLoading(false);
               }
             }}
-            disabled={lessonLoading || Object.keys(lessonFormErrors).length > 0}
+            disabled={lessonLoading}
             sx={{ 
               backgroundColor: '#3b82f6',
               '&:hover': { backgroundColor: '#2563eb' },

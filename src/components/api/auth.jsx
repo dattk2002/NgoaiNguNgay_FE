@@ -4845,6 +4845,40 @@ export async function getLegalDocumentByCategory(category, page = 1, size = 10) 
 }
 
 /**
+ * Get legal document version by ID
+ * @param {string} versionId - The ID of the version to fetch
+ * @returns {Promise<Object>} API response with version data including content
+ */
+export async function getLegalDocumentVersionById(versionId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!versionId || !versionId.trim()) {
+      throw new Error("Version ID is required");
+    }
+
+    console.log("🔍 Fetching legal document version with ID:", versionId);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi(`/api/legaldocument/version/${versionId}`, "GET", null, token);
+
+    if (response && response.data) {
+      console.log("✅ Legal document version fetched successfully:", response.data);
+      return response.data;
+    } else {
+      console.error("Invalid API response format for getLegalDocumentVersionById:", response);
+      throw new Error("API response did not contain expected version data.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch legal document version:", error.message);
+    throw error;
+  }
+}
+
+/**
  * Set tutor introduction video active/inactive using the new PATCH endpoint
  * @param {Object} videoData - { id: string, status: number } - status: 1=Active, 3=Inactive
  * @returns {Promise<Object>} API response
