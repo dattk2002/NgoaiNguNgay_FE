@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import './utils/notFocusOutline.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// Import TinyMCE context
+import { TinyMCEProvider } from './contexts/TinyMCEContext';
 import {
   BrowserRouter as Router,
   Routes,
@@ -1098,12 +1101,14 @@ function AppWithNotifications() {
   );
 }
 
-// Main App component wrapped with NotificationProvider
+// Main App component wrapped with NotificationProvider and TinyMCEProvider
 function App() {
   return (
-    <NotificationProvider>
-      <AppWithNotifications />
-    </NotificationProvider>
+    <TinyMCEProvider>
+      <NotificationProvider>
+        <AppWithNotifications />
+      </NotificationProvider>
+    </TinyMCEProvider>
   );
 }
 
