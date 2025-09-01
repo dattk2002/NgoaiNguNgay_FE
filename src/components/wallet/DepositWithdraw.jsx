@@ -353,8 +353,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                   <h4 className="font-medium text-blue-800 mb-2">Phương thức thanh toán</h4>
                   <div className="text-blue-700 text-sm space-y-1">
                     <p>• PayOS - Cổng thanh toán an toàn</p>
-                    <p>• Hỗ trợ QR Code, thẻ ATM, Internet Banking</p>
-                    <p>• Giao dịch được mã hóa và bảo mật cao</p>
+                    <p>• Hỗ trợ QR Code</p>
                   </div>
                 </div>
               </div>
