@@ -780,18 +780,12 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
               </Link>
 
               <Link
-                to="/how-it-works"
+                to="/my-bookings"
                 className="text-gray-700 hover:text-black text-sm sm:text-base"
               >
-                Cách hoạt động
+                Booking của tôi
               </Link>
 
-              <Link
-                to="/pricing"
-                className="text-gray-700 hover:text-black text-sm sm:text-base"
-              >
-                Giá cả
-              </Link>
 
               <Link
                 to="/legal-documents"
@@ -1335,21 +1329,12 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                           Ví điện tử
                         </Link>
                         <Link
-                          to="/messages"
+                          to="/message/:id"
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
                           onClick={() => setIsDropdownOpen(false)}
                         >
-                          Tin nhắn & Buổi học
+                          Tin nhắn
                         </Link>
-                        {isTutor(user) && (
-                          <Link
-                            to="/create-ad"
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium"
-                            onClick={() => setIsDropdownOpen(false)}
-                          >
-                            Tạo quảng cáo
-                          </Link>
-                        )}
                         <div className="border-t border-gray-100 my-1"></div>
                         <Link
                           to={user && user.id ? `/user/${user.id}` : "/"}

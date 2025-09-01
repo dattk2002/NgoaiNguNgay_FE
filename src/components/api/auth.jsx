@@ -3745,10 +3745,6 @@ import { convertBookingOfferResponseToUTC7 } from '../../utils/formatCentralTime
  */
 export async function fetchLegalDocuments(params = {}) {
   try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
 
     // Build query parameters
     const queryParams = new URLSearchParams();
@@ -3766,7 +3762,7 @@ export async function fetchLegalDocuments(params = {}) {
     console.log("🔍 Calling legal documents API:", url);
     console.log("🔍 Parameters:", params);
     
-    const response = await callApi(url, "GET", null, token);
+    const response = await callApi(url, "GET", null);
 
     if (response) {
       console.log("✅ Legal documents fetched successfully:", response);
@@ -4777,15 +4773,11 @@ export async function tutorCancelBookingByBookingId(bookingId, reason) {
  */
 export async function getAllLegalDocumentCategories() {
   try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
 
     console.log("🔍 Fetching all legal document categories");
     console.log("🔍 Using token:", token ? "Present" : "Not found");
     
-    const response = await callApi("/api/legaldocument/all-categories", "GET", null, token);
+    const response = await callApi("/api/legaldocument/all-categories", "GET", null);
 
     if (response && response.data) {
       console.log("✅ Legal document categories fetched successfully:", response.data);
@@ -4809,10 +4801,6 @@ export async function getAllLegalDocumentCategories() {
  */
 export async function getLegalDocumentByCategory(category, page = 1, size = 10) {
   try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
 
     if (!category || !category.trim()) {
       throw new Error("Category is required");
@@ -4829,7 +4817,7 @@ export async function getLegalDocumentByCategory(category, page = 1, size = 10) 
     console.log("🔍 Calling legal documents by category API:", url);
     console.log("🔍 Parameters:", { category, page, size });
     
-    const response = await callApi(url, "GET", null, token);
+    const response = await callApi(url, "GET", null);
 
     if (response && response.data) {
       console.log("✅ Legal documents by category fetched successfully:", response.data);
@@ -4851,19 +4839,14 @@ export async function getLegalDocumentByCategory(category, page = 1, size = 10) 
  */
 export async function getLegalDocumentVersionById(versionId) {
   try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
 
     if (!versionId || !versionId.trim()) {
       throw new Error("Version ID is required");
     }
 
     console.log("🔍 Fetching legal document version with ID:", versionId);
-    console.log("🔍 Using token:", token ? "Present" : "Not found");
     
-    const response = await callApi(`/api/legaldocument/version/${versionId}`, "GET", null, token);
+    const response = await callApi(`/api/legaldocument/version/${versionId}`, "GET", null);
 
     if (response && response.data) {
       console.log("✅ Legal document version fetched successfully:", response.data);
@@ -4918,3 +4901,198 @@ export async function setTutorIntroductionVideoActive(videoData) {
     throw error;
   }
 }
+
+/**
+ * Toggle user active status by admin
+ * @param {string} userId - The ID of the user to toggle status
+ * @param {boolean} isActive - The new active status
+ * @returns {Promise<Object>} API response
+ */
+export async function adminToggleUserStatus(userId, isActive) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
+    if (typeof isActive !== 'boolean') {
+      throw new Error("isActive must be a boolean value");
+    }
+
+    const requestBody = {
+      userId: userId,
+      isActive: isActive
+    };
+
+    console.log("🔍 Toggling user status with data:", requestBody);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/admin/toggle-user-status", "PUT", requestBody, token);
+
+    if (response) {
+      console.log("✅ User status toggled successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for user status toggle.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to toggle user status:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create admin account (Manager or Staff)
+ * @param {Object} accountData - { fullName, citizenId, accountType, phoneNumber }
+ * @returns {Promise<Object>} API response with created account data
+ */
+export async function adminCreateAccount(accountData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!accountData.fullName || !accountData.fullName.trim()) {
+      throw new Error("Full name is required");
+    }
+    if (!accountData.citizenId || !accountData.citizenId.trim()) {
+      throw new Error("Citizen ID is required");
+    }
+    if (!accountData.accountType || ![1, 2].includes(accountData.accountType)) {
+      throw new Error("Account type must be 1 (Manager) or 2 (Staff)");
+    }
+    if (!accountData.phoneNumber || !accountData.phoneNumber.trim()) {
+      throw new Error("Phone number is required");
+    }
+
+    // Validate field formats
+    if (accountData.fullName.length < 5 || accountData.fullName.length > 20) {
+      throw new Error("Full name must be between 5 and 20 characters");
+    }
+    if (accountData.citizenId.length < 9 || accountData.citizenId.length > 12) {
+      throw new Error("Citizen ID must be between 9 and 12 digits");
+    }
+    if (!/^\d{9,12}$/.test(accountData.citizenId)) {
+      throw new Error("Citizen ID must contain only digits");
+    }
+    if (!/^0\d{9}$/.test(accountData.phoneNumber)) {
+      throw new Error("Phone number must start with 0 and have exactly 10 digits");
+    }
+
+    console.log("🔍 Creating admin account with data:", accountData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/admin/create-account", "POST", accountData, token);
+
+    if (response) {
+      console.log("✅ Admin account created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for account creation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to create admin account:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch managers with filtering and pagination
+ * @param {Object} params - Query parameters { Name, IsActive, PageIndex, PageSize }
+ * @returns {Promise<Object>} API response with managers data
+ */
+export async function adminFetchManagers(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add optional filter parameters
+    if (params.Name) {
+      queryParams.append('Name', params.Name);
+    }
+    
+    if (params.IsActive !== undefined && params.IsActive !== null) {
+      queryParams.append('IsActive', params.IsActive.toString());
+    }
+    
+    // Add pagination parameters with defaults
+    queryParams.append('PageIndex', (params.PageIndex || 0).toString());
+    queryParams.append('PageSize', (params.PageSize || 10).toString());
+
+    const url = `/api/admin/managers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log("🔍 Calling admin fetch managers API:", url);
+    console.log("🔍 Parameters:", params);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Admin managers fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for admin managers.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch admin managers:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch staffs with filtering and pagination
+ * @param {Object} params - Query parameters { Name, IsActive, PageIndex, PageSize }
+ * @returns {Promise<Object>} API response with staffs data
+ */
+export async function adminFetchStaffs(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add optional filter parameters
+    if (params.Name) {
+      queryParams.append('Name', params.Name);
+    }
+    
+    if (params.IsActive !== undefined && params.IsActive !== null) {
+      queryParams.append('IsActive', params.IsActive.toString());
+    }
+    
+    // Add pagination parameters with defaults
+    queryParams.append('PageIndex', (params.PageIndex || 0).toString());
+    queryParams.append('PageSize', (params.PageSize || 10).toString());
+
+    const url = `/api/admin/staffs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log("🔍 Calling admin fetch staffs API:", url);
+    console.log("🔍 Parameters:", params);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Admin staffs fetched successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for admin staffs.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch admin staffs:", error.message);
+    throw error;
+  }
+}
+
+
+
