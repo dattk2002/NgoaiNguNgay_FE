@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createDepositRequest, fetchBankAccounts as apiFetchBankAccounts, createWithdrawalRequest, fetchSystemFeeByCode } from '../api/auth';
 import { toast } from 'react-toastify';
+import formatPriceInputWithCommas from "../../utils/formatPriceInputWithCommas";
 
 const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   const [activeTab, setActiveTab] = useState('deposit');
@@ -29,7 +30,8 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   };
 
   const handleAmountChange = (value) => {
-    setAmount(value.toString());
+    const formatted = formatPriceInputWithCommas(value.toString());
+    setAmount(formatted);
   };
 
   // Calculate withdrawal fee and net amount
@@ -108,12 +110,12 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   }, [activeTab]);
 
   const handleDeposit = async () => {
-    if (!amount || parseInt(amount) <= 0) {
+    if (!amount || parseInt(amount.replace(/,/g, '')) <= 0) {
       toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
-    if (parseInt(amount) < 10000) {
+    if (parseInt(amount.replace(/,/g, '')) < 10000) {
       toast.error('Số tiền nạp tối thiểu là 10,000 VND');
       return;
     }
@@ -121,7 +123,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
     setLoading(true);
     
     try {
-      const response = await createDepositRequest(parseInt(amount));
+      const response = await createDepositRequest(parseInt(amount.replace(/,/g, '')));
       
       if (response && response.payment && response.payment.orderUrl) {
         // Lưu thông tin để tracking
@@ -142,19 +144,19 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
   };
 
   const handleWithdraw = async () => {
-    if (!amount || parseInt(amount) <= 0) {
+    if (!amount || parseInt(amount.replace(/,/g, '')) <= 0) {
       toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
-    if (parseInt(amount) < 50000) {
+    if (parseInt(amount.replace(/,/g, '')) < 50000) {
       toast.error('Số tiền rút tối thiểu là 50,000 VND');
       return;
     }
 
     // Calculate withdrawal details including fee
-    const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount));
-    const totalDeduction = parseInt(amount) + withdrawalDetails.feeAmount;
+    const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount.replace(/,/g, '')));
+    const totalDeduction = parseInt(amount.replace(/,/g, '')) + withdrawalDetails.feeAmount;
 
     if (totalDeduction > currentBalance) {
       toast.error(`Số dư không đủ để thực hiện giao dịch. Cần ${formatCurrency(totalDeduction)} (bao gồm phí ${withdrawalDetails.feeDisplay})`);
@@ -171,7 +173,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
     try {
       const withdrawalData = {
         bankAccountId: selectedBankAccountId,
-        grossAmount: parseInt(amount)
+        grossAmount: parseInt(amount.replace(/,/g, ''))
       };
 
       const response = await createWithdrawalRequest(withdrawalData);
@@ -252,10 +254,10 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
               <div className="text-xl font-semibold">
                 {amount ? (
                   activeTab === 'deposit' 
-                    ? formatCurrency(currentBalance + parseInt(amount))
+                    ? formatCurrency(currentBalance + parseInt(amount.replace(/,/g, '')))
                     : (() => {
-                        const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount));
-                        return formatCurrency(Math.max(0, currentBalance - parseInt(amount)));
+                        const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount.replace(/,/g, '')));
+                        return formatCurrency(Math.max(0, currentBalance - parseInt(amount.replace(/,/g, ''))));
                       })()
                 ) : formatCurrency(currentBalance)}
               </div>
@@ -268,18 +270,18 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
                   <div className="opacity-75 mb-1">💰 Số tiền rút</div>
-                  <div className="font-semibold">{formatCurrency(parseInt(amount))}</div>
+                  <div className="font-semibold">{formatCurrency(parseInt(amount.replace(/,/g, '')))}</div>
                 </div>
                 <div>
                   <div className="opacity-75 mb-1">💸 Phí rút tiền</div>
                   <div className="font-semibold text-yellow-300">
-                    {loadingWithdrawalFee ? 'Đang tải...' : calculateWithdrawalDetails(parseInt(amount)).feeDisplay}
+                    {loadingWithdrawalFee ? 'Đang tải...' : calculateWithdrawalDetails(parseInt(amount.replace(/,/g, ''))).feeDisplay}
                   </div>
                 </div>
                 <div>
                   <div className="opacity-75 mb-1">💳 Số tiền thực nhận</div>
                   <div className="font-semibold text-green-300">
-                    {loadingWithdrawalFee ? 'Đang tải...' : formatCurrency(calculateWithdrawalDetails(parseInt(amount)).netAmount)}
+                    {loadingWithdrawalFee ? 'Đang tải...' : formatCurrency(calculateWithdrawalDetails(parseInt(amount.replace(/,/g, ''))).netAmount)}
                   </div>
                 </div>
               </div>
@@ -301,9 +303,12 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                 {quickAmounts.map((quickAmount) => (
                   <button
                     key={quickAmount}
-                    onClick={() => handleAmountChange(quickAmount)}
+                    onClick={() => {
+                      const formatted = formatPriceInputWithCommas(quickAmount.toString());
+                      setAmount(formatted);
+                    }}
                     className={`p-4 rounded-xl border-2 font-medium transition-all duration-200 hover:shadow-sm outline-none ${
-                      amount == quickAmount
+                      amount == formatPriceInputWithCommas(quickAmount.toString())
                         ? 'bg-gray-600 text-white border-gray-600'
                         : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                     }`}
@@ -319,16 +324,22 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                   Hoặc nhập số tiền khác
                 </label>
                 <input
-                  type="number"
+                  type="text" // Changed from number to text
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    // Remove non-digit characters
+                    let cleaned = value.replace(/[^0-9]/g, '');
+                    // Format
+                    const formatted = formatPriceInputWithCommas(cleaned);
+                    setAmount(formatted);
+                  }}
                   placeholder="Nhập số tiền (tối thiểu 10,000 VND)"
-                  min="10000"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 text-lg transition-all outline-none"
                 />
                 {amount && (
                   <p className="mt-2 text-sm text-gray-600">
-                    Số tiền nạp: <span className="font-medium text-gray-800">{formatCurrency(parseInt(amount) || 0)}</span>
+                    Số tiền nạp: <span className="font-medium text-gray-800">{formatCurrency(parseInt(amount.replace(/,/g, '')) || 0)}</span>
                   </p>
                 )}
               </div>
@@ -342,8 +353,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                   <h4 className="font-medium text-blue-800 mb-2">Phương thức thanh toán</h4>
                   <div className="text-blue-700 text-sm space-y-1">
                     <p>• PayOS - Cổng thanh toán an toàn</p>
-                    <p>• Hỗ trợ QR Code, thẻ ATM, Internet Banking</p>
-                    <p>• Giao dịch được mã hóa và bảo mật cao</p>
+                    <p>• Hỗ trợ QR Code</p>
                   </div>
                 </div>
               </div>
@@ -352,9 +362,9 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
             {/* Submit Button */}
             <button
               onClick={handleDeposit}
-              disabled={!amount || parseInt(amount) < 10000 || loading}
+              disabled={!amount || parseInt(amount.replace(/,/g, '')) < 10000 || loading}
               className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-200 outline-none ${
-                !amount || parseInt(amount) < 10000 || loading
+                !amount || parseInt(amount.replace(/,/g, '')) < 10000 || loading
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-gray-600 text-white hover:bg-gray-700 hover:shadow-lg'
               }`}
@@ -413,12 +423,15 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                 {withdrawAmounts.map((quickAmount) => (
                   <button
                     key={quickAmount}
-                    onClick={() => handleAmountChange(quickAmount)}
+                    onClick={() => {
+                      const formatted = formatPriceInputWithCommas(quickAmount.toString());
+                      setAmount(formatted);
+                    }}
                     disabled={quickAmount > currentBalance}
                     className={`p-4 rounded-xl border-2 font-medium transition-all duration-200 hover:shadow-sm outline-none ${
                       quickAmount > currentBalance
                         ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                        : amount == quickAmount
+                        : amount == formatPriceInputWithCommas(quickAmount.toString())
                         ? 'bg-red-600 text-white border-red-600'
                         : 'bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50'
                     }`}
@@ -434,30 +447,36 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                   Hoặc nhập số tiền khác
                 </label>
                 <input
-                  type="number"
+                  type="text" // Changed from number to text
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    // Remove non-digit characters
+                    let cleaned = value.replace(/[^0-9]/g, '');
+                    // Format
+                    const formatted = formatPriceInputWithCommas(cleaned);
+                    setAmount(formatted);
+                  }}
                   placeholder="Nhập số tiền (tối thiểu 50,000 VND)"
-                  min="50000"
                   max={currentBalance}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-800 text-lg transition-all outline-none"
                 />
                 {amount && (
                   <div className="mt-2 space-y-1">
                     <p className="text-sm text-gray-600">
-                      Số tiền rút: <span className="font-medium text-red-600">{formatCurrency(parseInt(amount) || 0)}</span>
+                      Số tiền rút: <span className="font-medium text-red-600">{formatCurrency(parseInt(amount.replace(/,/g, '')) || 0)}</span>
                     </p>
                     {withdrawalFee && (
                       <p className="text-sm text-gray-600">
                         Phí rút tiền: <span className="font-medium text-yellow-600">
-                          {loadingWithdrawalFee ? 'Đang tải...' : calculateWithdrawalDetails(parseInt(amount)).feeDisplay}
+                          {loadingWithdrawalFee ? 'Đang tải...' : calculateWithdrawalDetails(parseInt(amount.replace(/,/g, ''))).feeDisplay}
                         </span>
                       </p>
                     )}
                     {withdrawalFee && (
                       <p className="text-sm text-gray-600">
                         Số tiền thực nhận: <span className="font-medium text-green-600">
-                          {loadingWithdrawalFee ? 'Đang tải...' : formatCurrency(calculateWithdrawalDetails(parseInt(amount)).netAmount)}
+                          {loadingWithdrawalFee ? 'Đang tải...' : formatCurrency(calculateWithdrawalDetails(parseInt(amount.replace(/,/g, ''))).netAmount)}
                         </span>
                       </p>
                     )}
@@ -552,31 +571,31 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
             <button
               onClick={handleWithdraw}
               disabled={(() => {
-                const basicValidation = !amount || parseInt(amount) < 50000 || !selectedBankAccountId || loading || bankAccounts.length === 0;
+                const basicValidation = !amount || parseInt(amount.replace(/,/g, '')) < 50000 || !selectedBankAccountId || loading || bankAccounts.length === 0;
                 if (basicValidation) return true;
                 
                 // Check if total amount (including fee) exceeds balance
                 if (withdrawalFee && amount) {
-                  const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount));
-                  const totalDeduction = parseInt(amount) + withdrawalDetails.feeAmount;
+                  const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount.replace(/,/g, '')));
+                  const totalDeduction = parseInt(amount.replace(/,/g, '')) + withdrawalDetails.feeAmount;
                   return totalDeduction > currentBalance;
                 }
                 
-                return parseInt(amount) > currentBalance;
+                return parseInt(amount.replace(/,/g, '')) > currentBalance;
               })()}
               className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-200 outline-none ${
                 (() => {
-                  const basicValidation = !amount || parseInt(amount) < 50000 || !selectedBankAccountId || loading || bankAccounts.length === 0;
+                  const basicValidation = !amount || parseInt(amount.replace(/,/g, '')) < 50000 || !selectedBankAccountId || loading || bankAccounts.length === 0;
                   if (basicValidation) return 'bg-gray-300 text-gray-500 cursor-not-allowed';
                   
                   // Check if total amount (including fee) exceeds balance
                   if (withdrawalFee && amount) {
-                    const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount));
-                    const totalDeduction = parseInt(amount) + withdrawalDetails.feeAmount;
+                    const withdrawalDetails = calculateWithdrawalDetails(parseInt(amount.replace(/,/g, '')));
+                    const totalDeduction = parseInt(amount.replace(/,/g, '')) + withdrawalDetails.feeAmount;
                     return totalDeduction > currentBalance ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg';
                   }
                   
-                  return parseInt(amount) > currentBalance ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg';
+                  return parseInt(amount.replace(/,/g, '')) > currentBalance ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg';
                 })()
               }`}
             >
