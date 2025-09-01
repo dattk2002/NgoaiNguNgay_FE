@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating, fetchLearnerDisputes, learnerCancelBookingByBookingId, fetchBookingDetailbyBookingId } from "./api/auth";
+import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating, fetchLearnerDisputes, learnerCancelBookingByBookingId, fetchBookingDetailbyBookingId, viewRescheduleRequests, viewRescheduleRequestDetailByRequestId, learnerAcceptRescheduleRequest, learnerRejectRescheduleRequest } from "./api/auth";
 import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from "../utils/formatCentralTimestamp";
 import { calculateUTC7SlotIndex } from "../utils/formatSlotTime";
 import { formatSlotDateTime, sortSlotsByProximityToCurrentDate } from "../utils/formatSlotTime";
 import { Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, TextField, Typography } from "@mui/material";
 import CreateDisputeModal from "./modals/CreateDisputeModal";
+
 import { formatSlotDateTimeUTC0 } from "../utils/formatSlotTime";
 
 const LessonManagement = () => {
@@ -43,6 +44,16 @@ const LessonManagement = () => {
   const [disputes, setDisputes] = useState([]);
   const [disputesLoading, setDisputesLoading] = useState(false);
 
+  // Reschedule requests data
+  const [rescheduleRequests, setRescheduleRequests] = useState([]);
+  const [rescheduleRequestsLoading, setRescheduleRequestsLoading] = useState(false);
+  
+  // Reschedule request details - store details for each request
+  const [rescheduleRequestDetails, setRescheduleRequestDetails] = useState(new Map());
+  const [loadingRescheduleDetails, setLoadingRescheduleDetails] = useState(new Set());
+
+
+
   // Cancel booking states
   const [cancelBookingModalOpen, setCancelBookingModalOpen] = useState(false);
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
@@ -69,6 +80,27 @@ const LessonManagement = () => {
     );
     console.log("🔍 Group has dispute:", hasGroupDispute);
     return hasGroupDispute;
+  };
+
+  // Helper function to check if a booking has a reschedule request
+  const hasBookingRescheduleRequest = (bookingId, bookedSlots = []) => {
+    console.log("🔍 Checking reschedule request for bookingId:", bookingId);
+    console.log("🔍 Current reschedule requests:", rescheduleRequests);
+    console.log("🔍 Booked slots:", bookedSlots);
+    
+    // Check if any reschedule request matches this booking ID
+    const hasReschedule = rescheduleRequests.some(request => 
+      request.bookedSlotId === bookingId || 
+      request.bookingId === bookingId ||
+      // Also check if any slot in this booking has a reschedule request
+      bookedSlots.some(slot => 
+        request.bookedSlotId === slot.id || 
+        request.slotId === slot.id
+      )
+    );
+    
+    console.log("🔍 Has reschedule request:", hasReschedule);
+    return hasReschedule;
   };
 
   // Fetch disputes
@@ -98,7 +130,105 @@ const LessonManagement = () => {
     }
   };
 
+  // Fetch reschedule requests
+  const fetchRescheduleRequests = async () => {
+    setRescheduleRequestsLoading(true);
+    try {
+      console.log("🔍 Fetching reschedule requests...");
+      const response = await viewRescheduleRequests({ pageIndex: 0, pageSize: 100 }); // Get all reschedule requests
+      console.log("🔍 Reschedule requests response:", response);
+      if (response && response.data && Array.isArray(response.data.items)) {
+        console.log("🔍 Setting reschedule requests:", response.data.items);
+        setRescheduleRequests(response.data.items);
+      } else {
+        console.log("🔍 No reschedule requests data, setting empty array");
+        setRescheduleRequests([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reschedule requests:", error);
+      setRescheduleRequests([]);
+    } finally {
+      setRescheduleRequestsLoading(false);
+    }
+  };
 
+  // Fetch reschedule request details for a specific request
+  const fetchRescheduleRequestDetails = async (requestId) => {
+    if (rescheduleRequestDetails.has(requestId)) {
+      return; // Already loaded
+    }
+
+    setLoadingRescheduleDetails(prev => new Set(prev).add(requestId));
+    try {
+      console.log("🔍 Fetching reschedule request details for requestId:", requestId);
+      const response = await viewRescheduleRequestDetailByRequestId(requestId);
+      console.log("🔍 Reschedule request details response:", response);
+      
+      if (response && response.data) {
+        setRescheduleRequestDetails(prev => new Map(prev).set(requestId, response.data));
+      }
+    } catch (error) {
+      console.error("Failed to fetch reschedule request details:", error);
+      toast.error("Không thể tải chi tiết yêu cầu thay đổi lịch");
+    } finally {
+      setLoadingRescheduleDetails(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
+    }
+  };
+
+
+
+  // Handle accept reschedule request
+  const handleAcceptRescheduleRequest = async (requestId) => {
+    try {
+      await learnerAcceptRescheduleRequest(requestId);
+      
+      // Refresh data
+      await fetchLessons();
+      await fetchRescheduleRequests();
+      
+      // Show success message
+      toast.success("Đã chấp nhận thay đổi lịch thành công!");
+    } catch (error) {
+      console.error("Failed to accept reschedule request:", error);
+      toast.error("Không thể chấp nhận thay đổi lịch. Vui lòng thử lại!");
+    }
+  };
+
+  // Handle reject reschedule request
+  const handleRejectRescheduleRequest = async (requestId) => {
+    try {
+      await learnerRejectRescheduleRequest(requestId);
+      
+      // Refresh data
+      await fetchLessons();
+      await fetchRescheduleRequests();
+      
+      // Show success message
+      toast.success("Đã từ chối thay đổi lịch thành công!");
+    } catch (error) {
+      console.error("Failed to reject reschedule request:", error);
+      toast.error("Không thể từ chối thay đổi lịch. Vui lòng thử lại!");
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 0:
+        return "Đã xác nhận";
+      case 1:
+        return "Đã yêu cầu khiếu nại";
+      case 2:
+        return "Đang tranh chấp";
+      case 3:
+        return "Đã hủy";
+      default:
+        return "Không xác định";
+    }
+  };
 
   // Handle cancel booking
   const handleCancelBooking = (booking) => {
@@ -230,7 +360,19 @@ const LessonManagement = () => {
   useEffect(() => {
     fetchLessons();
     fetchDisputes(); // Call fetchDisputes here
+    fetchRescheduleRequests(); // Call fetchRescheduleRequests here
   }, [currentPage]);
+
+  // Fetch reschedule request details when reschedule requests change
+  useEffect(() => {
+    if (rescheduleRequests.length > 0) {
+      rescheduleRequests.forEach(request => {
+        if (!rescheduleRequestDetails.has(request.id)) {
+          fetchRescheduleRequestDetails(request.id);
+        }
+      });
+    }
+  }, [rescheduleRequests, rescheduleRequestDetails]);
 
   const fetchLessons = async () => {
     setLoading(true);
@@ -371,7 +513,7 @@ const LessonManagement = () => {
     // Based on backend SlotStatus enum:
     // Pending = 0, AwaitingPayout = 1, Completed = 2, Cancelled = 3, CancelledDisputed = 4
     const statusMap = {
-      0: { label: "Đang chờ", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+      0: { label: "Chờ phản hồi", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
       1: { label: "Hoàn thành, nếu có vấn đề báo cáo trong 24h", class: "bg-blue-50 text-blue-700 border border-blue-200" },
       2: { label: "Hoàn thành", class: "bg-green-50 text-green-700 border border-green-200" },
       3: { label: "Đã hủy", class: "bg-red-50 text-red-700 border border-red-200" },
@@ -649,8 +791,17 @@ const LessonManagement = () => {
       ) : (
         <>
           <div className="space-y-4">
-            {lessons.map((booking) => (
-              <div key={booking.id} className="border border-gray-200 rounded-lg overflow-hidden">
+            {lessons.map((booking) => {
+              const hasReschedule = hasBookingRescheduleRequest(booking.id, booking.bookedSlots || []);
+              return (
+                <div 
+                  key={booking.id} 
+                  className={`border rounded-lg overflow-hidden ${
+                    hasReschedule 
+                      ? 'border-red-500 bg-red-50' 
+                      : 'border-gray-200'
+                  }`}
+                >
                 {/* Booking Header */}
                 <div className="p-4 hover:bg-gray-50 transition-colors duration-150">
                   <div className="flex items-center justify-between">
@@ -674,6 +825,15 @@ const LessonManagement = () => {
                             {booking.lessonName || booking.lessonSnapshot?.name || 'Chưa có tên khóa học'}
                           </h3>
                           {getBookingStatusBadge(booking.status || 0)}
+                          {/* Reschedule Request Badge */}
+                          {hasReschedule && (
+                            <div className="px-2 py-1 text-xs font-medium bg-red-500 text-white rounded-full flex items-center space-x-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                              </svg>
+                              <span>Đề xuất thay đổi lịch</span>
+                            </div>
+                          )}
                         </div>
                         <p className="text-sm text-gray-600 mt-1">
                           Gia sư: <span className="font-medium">{booking.tutorName}</span>
@@ -729,8 +889,10 @@ const LessonManagement = () => {
                             </svg>
                             <span>Đã đánh giá</span>
                           </div>
-                        )}
-                        
+                                              )}
+                      
+
+                      
                                                  {/* Cancel booking button */}
                          <button
                            onClick={() => handleCancelBooking(booking)}
@@ -777,17 +939,149 @@ const LessonManagement = () => {
                       <h4 className="text-sm font-medium mb-3" style={{ color: '#666666' }}>
                         Chi tiết slot học ({booking.slotCount || booking.bookedSlots?.length || 0} slot)
                       </h4>
+                      
+                      {/* Reschedule Requests Section */}
+                      {(() => {
+                        const bookingRescheduleRequests = rescheduleRequests.filter(request => 
+                          request.bookingId === booking.id || 
+                          request.bookedSlotId === booking.id ||
+                          (booking.bookedSlots && booking.bookedSlots.some(slot => 
+                            request.bookedSlotId === slot.id
+                          ))
+                        );
+
+                        if (bookingRescheduleRequests.length > 0) {
+                          return (
+                            <div className="mb-4">
+                              <h5 className="text-sm font-medium mb-2 text-red-600">
+                                📅 Lịch thay đổi ({bookingRescheduleRequests.length})
+                              </h5>
+                              <div className="space-y-2">
+                                {bookingRescheduleRequests.map((request, index) => {
+                                  // Helper function to format slot time from slotIndex
+                                  const formatSlotTimeFromIndex = (slotIndex) => {
+                                    const hour = Math.floor(slotIndex / 2);
+                                    const minute = slotIndex % 2 === 0 ? 0 : 30;
+                                    const nextHour = slotIndex % 2 === 0 ? hour : hour + 1;
+                                    const nextMinute = slotIndex % 2 === 0 ? 30 : 0;
+                                    
+                                    const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                                    const endTime = `${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`;
+                                    
+                                    return `${startTime} - ${endTime}`;
+                                  };
+
+                                  // Helper function to format date from slotDateTime
+                                  const formatDateFromSlotDateTime = (slotDateTime) => {
+                                    const date = new Date(slotDateTime);
+                                    const day = date.getDate().toString().padStart(2, '0');
+                                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                                    const year = date.getFullYear();
+                                    return `${day}/${month}/${year}`;
+                                  };
+                                  
+                                  return (
+                                    <div key={request.id} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 flex-1">
+                                          {/* Sequential Number */}
+                                          <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                                            {index + 1}
+                                          </div>
+                                          
+                                          <div className="flex-1">
+                                            <div className="flex items-center justify-between">
+                                              <div>
+                                                {/* Offered Slot Time (if available) */}
+                                                {request.offeredSlots && request.offeredSlots.length > 0 ? (
+                                                  <div>
+                                                    <span className="font-medium text-lg" style={{ color: '#666666' }}>
+                                                      {formatDateFromSlotDateTime(request.offeredSlots[0].slotDateTime)} {formatSlotTimeFromIndex(request.offeredSlots[0].slotIndex)}
+                                                    </span>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                      Slot {request.offeredSlots[0].slotIndex}
+                                                    </div>
+                                                  </div>
+                                                ) : (
+                                                  <span className="font-medium text-lg" style={{ color: '#666666' }}>
+                                                    Đang tải thông tin...
+                                                  </span>
+                                                )}
+                                                {request.reason && (
+                                                  <div className="text-xs text-gray-600 mt-1">
+                                                    Lý do: {request.reason}
+                                                  </div>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                {/* Reschedule Tag */}
+                                                <div className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-md flex items-center gap-1 border border-red-300">
+                                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 0 11-18 0 9 9 0 0118 0z" />
+                                                  </svg>
+                                                  Được yêu cầu thay đổi lịch
+                                                </div>
+                                                
+                                                {/* Status Badge */}
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                  request.status === 0 ? 'bg-yellow-100 text-yellow-800' :
+                                                  request.status === 1 ? 'bg-green-100 text-green-800' :
+                                                  request.status === 2 ? 'bg-red-100 text-red-800' :
+                                                  'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                  {request.status === 0 ? 'Chờ phản hồi' :
+                                                   request.status === 1 ? 'Đã chấp nhận' :
+                                                   request.status === 2 ? 'Đã từ chối' :
+                                                   request.status === 3 ? 'Đã hết hạn' :
+                                                   request.status === 4 ? 'Đã hủy' :
+                                                   'Không xác định'}
+                                                </span>
+                                                
+                                                {/* Action Buttons */}
+                                                {request.status === 0 && (
+                                                  <div className="flex items-center gap-2">
+                                                    <button
+                                                      onClick={() => handleAcceptRescheduleRequest(request.id)}
+                                                      className="px-3 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200"
+                                                    >
+                                                      Chấp nhận
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleRejectRescheduleRequest(request.id)}
+                                                      className="px-3 py-1 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200"
+                                                    >
+                                                      Từ chối
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                      
                       <div className="space-y-2">
                         {(() => {
                           // Sort all slots by proximity to current date
                           const sortedSlots = sortSlotsByProximityToCurrentDate(booking.bookedSlots || []);
                           
-                                                      return sortedSlots.map((slot, globalIndex) => {
-                              // Calculate sequential number based on sorted order
-                              const sequentialNumber = globalIndex + 1;
-                              
-                              return (
-                                <div key={`${booking.id}-${slot.id}`} className="bg-white p-3 rounded-lg border border-gray-200">
+                          return sortedSlots.map((slot, globalIndex) => {
+                            // Calculate sequential number based on sorted order
+                            const sequentialNumber = globalIndex + 1;
+                            
+
+                            
+                            return (
+                              <div key={`${booking.id}-${slot.id}`} className="bg-white p-3 rounded-lg border border-gray-200">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3 flex-1">
                                       {/* Sequential Number */}
@@ -855,7 +1149,8 @@ const LessonManagement = () => {
                   </div>
                 )}
               </div>
-            ))}
+            );
+          })}
           </div>
 
           {/* Pagination */}
@@ -1485,6 +1780,8 @@ const LessonManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+
 
       {/* ToastContainer for notifications */}
       <ToastContainer 

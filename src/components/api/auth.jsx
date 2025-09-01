@@ -5096,3 +5096,238 @@ export async function adminFetchStaffs(params = {}) {
 
 
 
+
+
+// ==================== RESCHEDULE REQUESTS API FUNCTIONS ====================
+
+/**
+ * View reschedule requests with pagination and status filtering
+ * @param {Object} params - Query parameters { pageIndex, pageSize, status }
+ * @returns {Promise<Object>} API response with reschedule requests data and metadata
+ */
+export async function viewRescheduleRequests(params = {}) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add pagination parameters with defaults
+    queryParams.append('pageIndex', (params.pageIndex || 0).toString());
+    queryParams.append('pageSize', (params.pageSize || 10).toString());
+    
+    // Add optional status filter parameter
+    if (params.status !== undefined && params.status !== null) {
+      queryParams.append('status', params.status.toString());
+    }
+
+    const url = `/api/reschedule-requests${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log("🔍 Calling reschedule requests API:", url);
+    console.log("🔍 Parameters:", params);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Reschedule requests fetched successfully:", response);
+      return response; // Return the entire response object with data and metadata
+    } else {
+      throw new Error("Invalid response format for reschedule requests.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch reschedule requests:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Create a new reschedule request
+ * @param {Object} requestData - { bookedSlotId: string, reason: string, newSlotDateTime: string, newSlotIndex: number }
+ * @returns {Promise<Object>} API response
+ */
+export async function createRescheduleRequests(requestData) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    // Validate required fields
+    if (!requestData.bookedSlotId || !requestData.bookedSlotId.trim()) {
+      throw new Error("Booked slot ID is required");
+    }
+    if (!requestData.reason || !requestData.reason.trim()) {
+      throw new Error("Reason is required");
+    }
+    if (!requestData.newSlotDateTime || !requestData.newSlotDateTime.trim()) {
+      throw new Error("New slot date time is required");
+    }
+    if (requestData.newSlotIndex === undefined || requestData.newSlotIndex === null) {
+      throw new Error("New slot index is required");
+    }
+
+    // Validate newSlotIndex is a non-negative number
+    if (typeof requestData.newSlotIndex !== 'number' || requestData.newSlotIndex < 0) {
+      throw new Error("New slot index must be a non-negative number");
+    }
+
+    // Validate newSlotDateTime is a valid ISO date string
+    const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
+    if (!dateRegex.test(requestData.newSlotDateTime)) {
+      throw new Error("New slot date time must be a valid ISO date string (e.g., 2025-08-31T15:03:09.555Z)");
+    }
+
+    console.log("🔍 Creating reschedule request with data:", requestData);
+    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    
+    const response = await callApi("/api/reschedule-requests", "POST", requestData, token);
+
+    if (response) {
+      console.log("✅ Reschedule request created successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for reschedule request creation.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to create reschedule request:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * View reschedule request detail by request ID
+ * @param {string} requestId - The ID of the reschedule request to fetch
+ * @returns {Promise<Object>} API response with reschedule request detail data and metadata
+ */
+export async function viewRescheduleRequestDetailByRequestId(requestId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!requestId || !requestId.trim()) {
+      throw new Error("Request ID is required");
+    }
+
+    const url = `/api/reschedule-requests/${requestId}`;
+    console.log("🔍 Calling reschedule request detail API:", url);
+    console.log("🔍 Request ID:", requestId);
+    
+    const response = await callApi(url, "GET", null, token);
+
+    if (response) {
+      console.log("✅ Reschedule request detail fetched successfully:", response);
+      return response; // Return the entire response object with data and metadata
+    } else {
+      throw new Error("Invalid response format for reschedule request detail.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch reschedule request detail:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Delete reschedule request by request ID
+ * @param {string} requestId - The ID of the reschedule request to delete
+ * @returns {Promise<Object>} API response
+ */
+export async function deleteRescheduleRequestDetailByRequestId(requestId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!requestId || !requestId.trim()) {
+      throw new Error("Request ID is required");
+    }
+
+    const url = `/api/reschedule-requests/${requestId}`;
+    console.log("🔍 Calling delete reschedule request API:", url);
+    console.log("🔍 Request ID:", requestId);
+    
+    const response = await callApi(url, "DELETE", null, token);
+
+    if (response) {
+      console.log("✅ Reschedule request deleted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for reschedule request deletion.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to delete reschedule request:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Learner accept reschedule request by request ID
+ * @param {string} requestId - The ID of the reschedule request to accept
+ * @returns {Promise<Object>} API response
+ */
+export async function learnerAcceptRescheduleRequest(requestId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!requestId || !requestId.trim()) {
+      throw new Error("Request ID is required");
+    }
+
+    const url = `/api/reschedule-requests/${requestId}/accept`;
+    console.log("🔍 Calling accept reschedule request API:", url);
+    console.log("🔍 Request ID:", requestId);
+    
+    const response = await callApi(url, "POST", null, token);
+
+    if (response) {
+      console.log("✅ Reschedule request accepted successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for reschedule request acceptance.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to accept reschedule request:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Learner reject reschedule request by request ID
+ * @param {string} requestId - The ID of the reschedule request to reject
+ * @returns {Promise<Object>} API response
+ */
+export async function learnerRejectRescheduleRequest(requestId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    if (!requestId || !requestId.trim()) {
+      throw new Error("Request ID is required");
+    }
+
+    const url = `/api/reschedule-requests/${requestId}/reject`;
+    console.log("🔍 Calling reject reschedule request API:", url);
+    console.log("🔍 Request ID:", requestId);
+    
+    const response = await callApi(url, "POST", null, token);
+
+    if (response) {
+      console.log("✅ Reschedule request rejected successfully:", response);
+      return response;
+    } else {
+      throw new Error("Invalid response format for reschedule request rejection.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to reject reschedule request:", error.message);
+    throw error;
+  }
+}

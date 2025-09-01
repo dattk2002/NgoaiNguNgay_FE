@@ -28,7 +28,6 @@ import {
   Card,
   CardContent,
   Divider,
-
   Alert,
   Rating,
   Accordion,
@@ -120,7 +119,7 @@ const globalStyles = (
         boxShadow: "none !important",
       },
       // Smooth scrolling
-      "html": {
+      html: {
         scrollBehavior: "smooth",
       },
     }}
@@ -565,12 +564,12 @@ function getSlotDateTime(weekStart, dayInWeek, slotIndex) {
   const dayOffset = dayInWeek === 1 ? 6 : dayInWeek - 2;
 
   slotDate.setDate(slotDate.getDate() + dayOffset);
-  
+
   // Calculate hours and minutes from slotIndex (0-47 for 48 slots per day)
   const hour = Math.floor(slotIndex / 2);
   const minute = slotIndex % 2 === 0 ? 0 : 30;
   slotDate.setHours(hour, minute, 0, 0);
-  
+
   return slotDate;
 }
 
@@ -604,8 +603,10 @@ const validateTargetAudience = (targetAudience) => {
 
 const validatePrerequisites = (prerequisites) => {
   if (!prerequisites) return "Yêu cầu trước không được để trống";
-  if (prerequisites.length < 10) return "Yêu cầu trước phải có ít nhất 10 ký tự";
-  if (prerequisites.length > 300) return "Yêu cầu trước không được quá 300 ký tự";
+  if (prerequisites.length < 10)
+    return "Yêu cầu trước phải có ít nhất 10 ký tự";
+  if (prerequisites.length > 300)
+    return "Yêu cầu trước không được quá 300 ký tự";
   return "";
 };
 
@@ -617,7 +618,8 @@ const validateLanguageCode = (languageCode) => {
 const validatePrice = (price) => {
   if (!price) return "Vui lòng nhập giá tiền";
   const numericPrice = Number(price.toString().replace(/,/g, ""));
-  if (isNaN(numericPrice) || numericPrice <= 0) return "Giá tiền phải là số dương";
+  if (isNaN(numericPrice) || numericPrice <= 0)
+    return "Giá tiền phải là số dương";
   return "";
 };
 
@@ -633,7 +635,7 @@ const validateLessonForm = (form) => {
   errors.price = validatePrice(form.price);
 
   // Remove empty error messages
-  Object.keys(errors).forEach(key => {
+  Object.keys(errors).forEach((key) => {
     if (!errors[key]) delete errors[key];
   });
 
@@ -990,11 +992,14 @@ const TutorProfile = ({
   const [editingPattern, setEditingPattern] = useState(null);
   const [editPatternSlots, setEditPatternSlots] = useState({});
   const [editPatternLoading, setEditPatternLoading] = useState(false);
-  const [editPatternWeekStart, setEditPatternWeekStart] = useState(getWeekRange().monday);
+  const [editPatternWeekStart, setEditPatternWeekStart] = useState(
+    getWeekRange().monday
+  );
 
   // Add after line 970 (after editPatternWeekStart state)
   const [editPatternBlockedSlots, setEditPatternBlockedSlots] = useState([]);
-  const [editPatternBlockedSlotsLoading, setEditPatternBlockedSlotsLoading] = useState(false);
+  const [editPatternBlockedSlotsLoading, setEditPatternBlockedSlotsLoading] =
+    useState(false);
 
   const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
   const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // API: 2=Mon, ..., 7=Sat, 1=Sun
@@ -1112,7 +1117,9 @@ const TutorProfile = ({
   const [selectedPatternDetail, setSelectedPatternDetail] = useState(null);
   const [patternDetailLoading, setPatternDetailLoading] = useState(false);
   const [patternDetailError, setPatternDetailError] = useState(null);
-  const [patternDetailWeekStart, setPatternDetailWeekStart] = useState(new Date());
+  const [patternDetailWeekStart, setPatternDetailWeekStart] = useState(
+    new Date()
+  );
 
   const handlePrevWeek = () => {
     setCurrentWeekStart((prev) => {
@@ -1564,10 +1571,10 @@ const TutorProfile = ({
           slot.dayInWeek,
           slot.slotIndex
         );
-        
+
         // Convert UTC+7 to UTC+0 for backend
         const utc0DateTime = convertUTC7ToUTC0(slotDateTime);
-        
+
         console.log("Generated slot:", {
           slotDateTime,
           utc0DateTime,
@@ -2064,12 +2071,10 @@ const TutorProfile = ({
     return patternsForWeek.some((pattern) => {
       if (!pattern.detail || !pattern.detail.slots) return false;
 
-      return pattern.detail.slots.some(
-        (slot) => {
-          // Use slotIndex directly since API returns 30-minute slot indices
-          return slot.dayInWeek === dayInWeek && slot.slotIndex === slotIndex;
-        }
-      );
+      return pattern.detail.slots.some((slot) => {
+        // Use slotIndex directly since API returns 30-minute slot indices
+        return slot.dayInWeek === dayInWeek && slot.slotIndex === slotIndex;
+      });
     });
   };
 
@@ -2083,12 +2088,10 @@ const TutorProfile = ({
     const activePatterns = patternsForWeek.filter((pattern) => {
       if (!pattern.detail || !pattern.detail.slots) return false;
 
-      return pattern.detail.slots.some(
-        (slot) => {
-          // Use slotIndex directly since API returns 30-minute slot indices
-          return slot.dayInWeek === dayInWeek && slot.slotIndex === slotIndex;
-        }
-      );
+      return pattern.detail.slots.some((slot) => {
+        // Use slotIndex directly since API returns 30-minute slot indices
+        return slot.dayInWeek === dayInWeek && slot.slotIndex === slotIndex;
+      });
     });
 
     return activePatterns;
@@ -2099,8 +2102,6 @@ const TutorProfile = ({
     return getWeekDates(currentWeekStart);
   };
 
-
-
   // Calendar input for appliedFrom
   const [calendarInputDialogOpen, setCalendarInputDialogOpen] = useState(false);
   const [selectedAppliedFromDate, setSelectedAppliedFromDate] = useState(""); // YYYY-MM-DD
@@ -2110,7 +2111,7 @@ const TutorProfile = ({
       toast.error("Vui lòng chọn ngày bắt đầu áp dụng");
       return;
     }
-    
+
     const picked = new Date(selectedAppliedFromDate);
     if (picked.getDay() !== 1) {
       toast.error("Ngày bắt đầu áp dụng phải là Thứ Hai");
@@ -2133,15 +2134,17 @@ const TutorProfile = ({
     setSelectedPatternDetail(null);
 
     try {
-      const patternDetail = await fetchTutorWeeklyPatternDetailByPatternId(pattern.id);
-      
+      const patternDetail = await fetchTutorWeeklyPatternDetailByPatternId(
+        pattern.id
+      );
+
       // The API function already returns response.data, so we don't need to access .data again
       if (patternDetail) {
         setSelectedPatternDetail({
           ...pattern,
-          detail: patternDetail // patternDetail is already the data object
+          detail: patternDetail, // patternDetail is already the data object
         });
-        
+
         // Set the week start to the pattern's appliedFrom date
         const appliedFromDate = new Date(pattern.appliedFrom);
         const weekStart = getWeekRange(appliedFromDate).monday;
@@ -2164,7 +2167,7 @@ const TutorProfile = ({
     setPatternDetailError(null);
     setPatternDetailWeekStart(new Date());
   };
-  
+
   // Add navigation functions for pattern detail dialog
   const handlePatternDetailPrevWeek = () => {
     setPatternDetailWeekStart((prev) => {
@@ -2176,7 +2179,7 @@ const TutorProfile = ({
       if (selectedPatternDetail && selectedPatternDetail.appliedFrom) {
         const patternStartDate = new Date(selectedPatternDetail.appliedFrom);
         patternStartDate.setHours(0, 0, 0, 0);
-        
+
         if (newDate < patternStartDate) {
           return prev; // Don't allow going before pattern start date
         }
@@ -2191,50 +2194,50 @@ const TutorProfile = ({
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() + 7);
       newDate.setHours(0, 0, 0, 0);
-      
+
       // Check if we're trying to go after the pattern's end date
       if (selectedPatternDetail && selectedPatternDetail.endDate) {
         const patternEndDate = new Date(selectedPatternDetail.endDate);
         patternEndDate.setHours(23, 59, 59, 999);
-        
+
         if (newDate > patternEndDate) {
           return prev; // Don't allow going after pattern end date
         }
       }
-      
+
       return newDate;
     });
   };
-  
+
   // Add helper functions for pattern detail navigation
   const canNavigatePatternDetailToPast = () => {
     if (!selectedPatternDetail) return false;
-    
+
     // Kiểm tra xem có thể navigate về trước không (không vượt quá ngày bắt đầu)
     if (selectedPatternDetail.appliedFrom) {
       const patternStartDate = new Date(selectedPatternDetail.appliedFrom);
       patternStartDate.setHours(0, 0, 0, 0);
       return patternDetailWeekStart > patternStartDate;
     }
-    
+
     return false;
   };
-  
+
   const canNavigatePatternDetailToFuture = () => {
     if (!selectedPatternDetail) return false;
-    
+
     // Kiểm tra xem có thể navigate về sau không (không vượt quá ngày kết thúc)
     if (selectedPatternDetail.endDate) {
       const patternEndDate = new Date(selectedPatternDetail.endDate);
       patternEndDate.setHours(23, 59, 59, 999);
-      
+
       const nextWeekStart = new Date(patternDetailWeekStart);
       nextWeekStart.setDate(nextWeekStart.getDate() + 7);
       nextWeekStart.setHours(0, 0, 0, 0);
-      
+
       return nextWeekStart <= patternEndDate;
     }
-    
+
     // Nếu không có endDate, luôn cho phép navigate về tương lai
     return true;
   };
@@ -2247,23 +2250,23 @@ const TutorProfile = ({
 
     const pattern = selectedPatternDetail;
     const slots = pattern.detail.slots || [];
-    
+
     // Create slot map for easy lookup
     const slotMap = {};
-    slots.forEach(slot => {
+    slots.forEach((slot) => {
       if (!slotMap[slot.dayInWeek]) slotMap[slot.dayInWeek] = new Set();
       slotMap[slot.dayInWeek].add(slot.slotIndex);
     });
 
     // Get week dates for display - using the current patternDetailWeekStart
     const weekDates = getWeekDates(patternDetailWeekStart);
-    
+
     // Day order for the calendar (Monday = 2, Tuesday = 3, ..., Sunday = 1)
     const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // 2=Monday, 3=Tuesday, ..., 1=Sunday
-    
+
     // Vietnamese day labels in the correct order (T2, T3, T4, T5, T6, T7, CN)
     const vietnameseDayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-    
+
     // Map the weekDates to the correct Vietnamese labels and order
     const processedWeekDates = dayInWeekOrder.map((dayInWeek, index) => {
       // Find the corresponding weekDate based on dayInWeek
@@ -2273,16 +2276,17 @@ const TutorProfile = ({
       // ...
       // dayInWeek 1 (Sunday) should map to the 6th element (SUN) in weekDates
       let weekDateIndex;
-      if (dayInWeek === 1) { // Sunday
+      if (dayInWeek === 1) {
+        // Sunday
         weekDateIndex = 6; // SUN
       } else {
         weekDateIndex = dayInWeek - 2; // Monday=0, Tuesday=1, etc.
       }
-      
+
       return {
         dayLabel: vietnameseDayLabels[index],
         dateLabel: weekDates[weekDateIndex]?.date || "",
-        dayInWeek: dayInWeek
+        dayInWeek: dayInWeek,
       };
     });
 
@@ -2297,10 +2301,12 @@ const TutorProfile = ({
         {/* Pattern Information */}
         <Box sx={{ mb: 3, p: 2, backgroundColor: "#f8fafc", borderRadius: 1 }}>
           <Typography variant="body2" sx={{ mb: 1 }}>
-            <strong>Ngày bắt đầu áp dụng:</strong> {formatDate(pattern.appliedFrom)}
+            <strong>Ngày bắt đầu áp dụng:</strong>{" "}
+            {formatDate(pattern.appliedFrom)}
           </Typography>
           <Typography variant="body2" sx={{ mb: 1 }}>
-            <strong>Ngày kết thúc:</strong> {pattern.endDate ? formatDate(pattern.endDate) : "Không có"}
+            <strong>Ngày kết thúc:</strong>{" "}
+            {pattern.endDate ? formatDate(pattern.endDate) : "Không có"}
           </Typography>
           <Typography variant="body2">
             <strong>Trạng thái:</strong>{" "}
@@ -2382,9 +2388,7 @@ const TutorProfile = ({
                     zIndex: 1,
                   }}
                 >
-                  <Box sx={{ fontSize: "0.75rem" }}>
-                    {d.dayLabel}
-                  </Box>
+                  <Box sx={{ fontSize: "0.75rem" }}>{d.dayLabel}</Box>
                   <Box
                     sx={{
                       fontSize: "0.625rem",
@@ -2401,10 +2405,8 @@ const TutorProfile = ({
               {Array.from({ length: 48 }).map((_, slotIdx) => {
                 const hour = Math.floor(slotIdx / 2);
                 const minute = slotIdx % 2 === 0 ? "00" : "30";
-                const nextHour =
-                  slotIdx % 2 === 0 ? hour : hour + 1;
-                const nextMinute =
-                  slotIdx % 2 === 0 ? "30" : "00";
+                const nextHour = slotIdx % 2 === 0 ? hour : hour + 1;
+                const nextMinute = slotIdx % 2 === 0 ? "30" : "00";
                 const timeLabel = `${hour
                   .toString()
                   .padStart(2, "0")}:${minute} - ${nextHour
@@ -2439,14 +2441,16 @@ const TutorProfile = ({
                       return (
                         <Tooltip
                           key={dayIdx}
-                          title={isActive ? "Có sẵn trong lịch trình này" : "Không có sẵn"}
+                          title={
+                            isActive
+                              ? "Có sẵn trong lịch trình này"
+                              : "Không có sẵn"
+                          }
                           arrow
                         >
                           <Box
                             sx={{
-                              backgroundColor: isActive
-                                ? "#98D45F"
-                                : "#f1f5f9",
+                              backgroundColor: isActive ? "#98D45F" : "#f1f5f9",
                               border: "1px solid #e2e8f0",
                               minHeight: 32,
                               cursor: "default",
@@ -2538,8 +2542,7 @@ const TutorProfile = ({
               {formatDateRange(
                 new Date(currentWeekStart),
                 new Date(
-                  new Date(currentWeekStart).getTime() +
-                    6 * 24 * 60 * 60 * 1000
+                  new Date(currentWeekStart).getTime() + 6 * 24 * 60 * 60 * 1000
                 )
               )}{" "}
               • Cập nhật lần cuối:{" "}
@@ -2547,8 +2550,7 @@ const TutorProfile = ({
                 ? new Date(
                     allPatternDetails.sort(
                       (a, b) =>
-                        new Date(b.appliedFrom) -
-                        new Date(a.appliedFrom)
+                        new Date(b.appliedFrom) - new Date(a.appliedFrom)
                     )[0].appliedFrom
                   ).toLocaleDateString("vi-VN")
                 : "Không xác định"}
@@ -2568,71 +2570,76 @@ const TutorProfile = ({
           <Skeleton variant="text" width="60%" height={24} sx={{ mb: 1 }} />
           <Skeleton variant="text" width="50%" height={24} sx={{ mb: 1 }} />
           <Skeleton variant="text" width="40%" height={24} />
-                    </Box>
+        </Box>
 
         {/* Calendar Grid Skeleton */}
-                        <Box
-                          sx={{
-                            backgroundColor: "#ffffff",
-                            borderRadius: "12px",
-                            border: "1px solid #e2e8f0",
-                            overflow: "hidden",
-                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
-                            width: "100%",
-                            maxWidth: "100%",
-                            boxSizing: "border-box",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              overflowX: "auto",
-                              border: "1px solid #e2e8f0",
-                              borderRadius: "8px",
+        <Box
+          sx={{
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            border: "1px solid #e2e8f0",
+            overflow: "hidden",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+            width: "100%",
+            maxWidth: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <Box
+            sx={{
+              overflowX: "auto",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
               maxHeight: "600px",
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                display: "grid",
+            }}
+          >
+            <Box
+              sx={{
+                display: "grid",
                 gridTemplateColumns: "140px repeat(7, 1fr)",
-                                minWidth: "600px",
-                              }}
-                            >
+                minWidth: "600px",
+              }}
+            >
               {/* Header row skeleton */}
-                              <Box
-                                sx={{
+              <Box
+                sx={{
                   p: 1.5,
-                                  backgroundColor: "#f8fafc",
-                                  borderBottom: "1px solid #e2e8f0",
-                                  borderRight: "1px solid #e2e8f0",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  position: "sticky",
-                                  top: 0,
-                                  zIndex: 1,
-                                }}
-                              >
+                  backgroundColor: "#f8fafc",
+                  borderBottom: "1px solid #e2e8f0",
+                  borderRight: "1px solid #e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 1,
+                }}
+              >
                 <Skeleton variant="text" width="60%" height={20} />
-                              </Box>
+              </Box>
               {Array.from({ length: 7 }).map((_, i) => (
-                                <Box
-                                  key={i}
-                                  sx={{
-                                    p: 1.5,
-                                    backgroundColor: "#f8fafc",
-                                    borderBottom: "1px solid #e2e8f0",
+                <Box
+                  key={i}
+                  sx={{
+                    p: 1.5,
+                    backgroundColor: "#f8fafc",
+                    borderBottom: "1px solid #e2e8f0",
                     borderRight: i === 6 ? "none" : "1px solid #e2e8f0",
-                                    textAlign: "center",
-                                    position: "sticky",
-                                    top: 0,
-                                    zIndex: 1,
-                                  }}
-                                >
-                  <Skeleton variant="text" width="40%" height={16} sx={{ mb: 0.5 }} />
+                    textAlign: "center",
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 1,
+                  }}
+                >
+                  <Skeleton
+                    variant="text"
+                    width="40%"
+                    height={16}
+                    sx={{ mb: 0.5 }}
+                  />
                   <Skeleton variant="text" width="60%" height={12} />
-                                </Box>
-                              ))}
+                </Box>
+              ))}
 
               {/* Time slots skeleton */}
               {Array.from({ length: 48 }).map((_, slotIdx) => (
@@ -2658,19 +2665,20 @@ const TutorProfile = ({
                       key={dayIdx}
                       sx={{
                         borderBottom: "1px solid #e2e8f0",
-                        borderRight: dayIdx === 6 ? "none" : "1px solid #e2e8f0",
+                        borderRight:
+                          dayIdx === 6 ? "none" : "1px solid #e2e8f0",
                         minHeight: 32,
                         backgroundColor: "#f8fafc",
                       }}
                     >
-                      <Skeleton 
-                        variant="rectangular" 
-                        width="100%" 
-                        height="100%" 
-                        sx={{ 
+                      <Skeleton
+                        variant="rectangular"
+                        width="100%"
+                        height="100%"
+                        sx={{
                           backgroundColor: "#e2e8f0",
-                          borderRadius: 0
-                        }} 
+                          borderRadius: 0,
+                        }}
                       />
                     </Box>
                   ))}
@@ -2718,27 +2726,34 @@ const TutorProfile = ({
     setEditPatternLoading(true);
     setEditPatternBlockedSlotsLoading(true);
     setEditPatternDialogOpen(true);
-    
+
     try {
       // Fetch pattern detail to get current slots
-      const patternDetail = await fetchTutorWeeklyPatternDetailByPatternId(pattern.id);
-      
+      const patternDetail = await fetchTutorWeeklyPatternDetailByPatternId(
+        pattern.id
+      );
+
       // Fetch blocked slots in parallel
-      const blockedSlotsResponse = await fetchWeeklyPatternBlockedSlotsByPatternId(pattern.id);
-      
+      const blockedSlotsResponse =
+        await fetchWeeklyPatternBlockedSlotsByPatternId(pattern.id);
+
       // Convert slots to the format needed for editing
       const slotMap = {};
-      if (patternDetail && patternDetail.slots && Array.isArray(patternDetail.slots)) {
-        patternDetail.slots.forEach(slot => {
+      if (
+        patternDetail &&
+        patternDetail.slots &&
+        Array.isArray(patternDetail.slots)
+      ) {
+        patternDetail.slots.forEach((slot) => {
           if (!slotMap[slot.dayInWeek]) {
             slotMap[slot.dayInWeek] = new Set();
           }
           slotMap[slot.dayInWeek].add(slot.slotIndex);
         });
       }
-      
+
       setEditPatternSlots(slotMap);
-      
+
       // Set blocked slots - fix the data structure
       console.log("🔍 Blocked slots response:", blockedSlotsResponse);
       if (blockedSlotsResponse && blockedSlotsResponse.data) {
@@ -2749,12 +2764,11 @@ const TutorProfile = ({
         console.log("❌ No blocked slots data");
         setEditPatternBlockedSlots([]);
       }
-      
+
       // Set the week start to the pattern's appliedFrom date
       const appliedFromDate = new Date(pattern.appliedFrom);
       const weekStart = getWeekRange(appliedFromDate).monday;
       setEditPatternWeekStart(weekStart);
-      
     } catch (error) {
       console.error("Failed to fetch pattern detail for editing:", error);
       toast.error("Không thể tải chi tiết lịch trình để chỉnh sửa");
@@ -2797,7 +2811,7 @@ const TutorProfile = ({
       if (editingPattern && editingPattern.appliedFrom) {
         const patternStartDate = new Date(editingPattern.appliedFrom);
         patternStartDate.setHours(0, 0, 0, 0);
-        
+
         if (newDate < patternStartDate) {
           return prev; // Don't allow going before pattern start date
         }
@@ -2812,62 +2826,62 @@ const TutorProfile = ({
       const newDate = new Date(prev);
       newDate.setDate(newDate.getDate() + 7);
       newDate.setHours(0, 0, 0, 0);
-      
+
       // Check if we're trying to go after the pattern's end date
       if (editingPattern && editingPattern.endDate) {
         const patternEndDate = new Date(editingPattern.endDate);
         patternEndDate.setHours(23, 59, 59, 999);
-        
+
         if (newDate > patternEndDate) {
           return prev; // Don't allow going after pattern end date
         }
       }
-      
+
       return newDate;
     });
   };
 
   const canNavigatePattern = () => {
     if (!editingPattern) return false;
-    
+
     // Luôn cho phép navigate trong phạm vi của pattern
     return true;
   };
-  
+
   // Thêm hàm helper để kiểm tra có thể navigate về quá khứ hay không
   const canNavigateToPast = () => {
     if (!editingPattern) return false;
-    
+
     // Kiểm tra xem có thể navigate về trước không (không vượt quá ngày bắt đầu)
     if (editingPattern.appliedFrom) {
       const patternStartDate = new Date(editingPattern.appliedFrom);
       patternStartDate.setHours(0, 0, 0, 0);
       return editPatternWeekStart > patternStartDate;
     }
-    
+
     return false;
   };
-  
+
   // Thêm hàm helper để kiểm tra có thể navigate về tương lai hay không
   const canNavigateToFuture = () => {
     if (!editingPattern) return false;
-    
+
     // Kiểm tra xem có thể navigate về sau không (không vượt quá ngày kết thúc)
     if (editingPattern.endDate) {
       const patternEndDate = new Date(editingPattern.endDate);
       patternEndDate.setHours(23, 59, 59, 999);
-      
+
       const nextWeekStart = new Date(editPatternWeekStart);
       nextWeekStart.setDate(nextWeekStart.getDate() + 7);
       nextWeekStart.setHours(0, 0, 0, 0);
-      
+
       return nextWeekStart <= patternEndDate;
     }
-    
+
     // Nếu không có endDate, luôn cho phép navigate về tương lai
     return true;
   };
-  
+
   // Add function to get selected slots count for edit dialog
   const getEditSelectedSlotsCount = () => {
     let count = 0;
@@ -2930,7 +2944,9 @@ const TutorProfile = ({
 
       // Ensure we have at least one slot selected
       if (slots.length === 0) {
-        toast.error("Vui lòng chọn ít nhất một khung giờ trước khi cập nhật lịch trình");
+        toast.error(
+          "Vui lòng chọn ít nhất một khung giờ trước khi cập nhật lịch trình"
+        );
         setEditPatternLoading(false);
         return;
       }
@@ -2944,7 +2960,8 @@ const TutorProfile = ({
 
       // Refresh blocked slots after update
       try {
-        const blockedSlotsResponse = await fetchWeeklyPatternBlockedSlotsByPatternId(editingPattern.id);
+        const blockedSlotsResponse =
+          await fetchWeeklyPatternBlockedSlotsByPatternId(editingPattern.id);
         if (blockedSlotsResponse && blockedSlotsResponse.data) {
           setEditPatternBlockedSlots(blockedSlotsResponse.data || []);
         } else {
@@ -2960,7 +2977,9 @@ const TutorProfile = ({
       setEditPatternSlots({});
 
       // Refresh weekly patterns list
-      const updatedPatternsList = await fetchTutorListWeeklyPatternsByTutorId(id);
+      const updatedPatternsList = await fetchTutorListWeeklyPatternsByTutorId(
+        id
+      );
       setWeeklyPatternsList(updatedPatternsList || []);
     } catch (error) {
       console.error("Failed to update weekly pattern:", error);
@@ -2981,12 +3000,12 @@ const TutorProfile = ({
 
     try {
       await deleteTutorWeeklyPattern(patternToDelete.id);
-      
+
       // Remove from local state
       setWeeklyPatternsList((prev) =>
         prev.filter((pattern) => pattern.id !== patternToDelete.id)
       );
-      
+
       toast.success("Xóa lịch trình thành công!");
     } catch (error) {
       console.error("Failed to delete pattern:", error);
@@ -2997,25 +3016,25 @@ const TutorProfile = ({
     }
   };
 
-
-
   // Add after the handleEditPattern function (around line 2640)
   const isSlotBlocked = (dayInWeek, slotIndex) => {
-    const isBlocked = editPatternBlockedSlots.some(blockedSlot => 
-      blockedSlot.dayInWeek === dayInWeek && blockedSlot.slotIndex === slotIndex
+    const isBlocked = editPatternBlockedSlots.some(
+      (blockedSlot) =>
+        blockedSlot.dayInWeek === dayInWeek &&
+        blockedSlot.slotIndex === slotIndex
     );
-    
+
     if (isBlocked) {
       console.log(`🚫 Slot blocked: Day ${dayInWeek}, Slot ${slotIndex}`);
     }
-    
+
     return isBlocked;
   };
 
   // Add new state variables for booking configuration
   const [bookingConfig, setBookingConfig] = useState({
     allowInstantBooking: true,
-    maxInstantBookingSlots: 3
+    maxInstantBookingSlots: 3,
   });
   const [bookingConfigLoading, setBookingConfigLoading] = useState(false);
   const [bookingConfigError, setBookingConfigError] = useState(null);
@@ -3104,7 +3123,10 @@ const TutorProfile = ({
       const errors = {};
       if (!videoForm.url.trim()) {
         errors.url = "URL video là bắt buộc";
-      } else if (!videoForm.url.startsWith("http://") && !videoForm.url.startsWith("https://")) {
+      } else if (
+        !videoForm.url.startsWith("http://") &&
+        !videoForm.url.startsWith("https://")
+      ) {
         errors.url = "URL phải bắt đầu với http:// hoặc https://";
       }
 
@@ -3150,12 +3172,12 @@ const TutorProfile = ({
   const handleUpdateVideoStatus = async (videoId, newStatus) => {
     try {
       setUpdatingVideoStatus(videoId);
-      
-      const statusText = newStatus === 1 ? 'kích hoạt' : 'vô hiệu hóa';
-      
+
+      const statusText = newStatus === 1 ? "kích hoạt" : "vô hiệu hóa";
+
       // Use the new PATCH endpoint for setting active/inactive
       await setTutorIntroductionVideoActive({ id: videoId, status: newStatus });
-      
+
       toast.success(`Video đã được ${statusText} thành công!`);
       fetchIntroductionVideos(); // Refresh the list
     } catch (error) {
@@ -3170,15 +3192,15 @@ const TutorProfile = ({
   const getVideoStatusLabel = (status) => {
     switch (status) {
       case 0:
-        return { text: 'Đang chờ duyệt', color: 'warning' };
+        return { text: "Đang chờ duyệt", color: "warning" };
       case 1:
-        return { text: 'Đang hoạt động', color: 'success' };
+        return { text: "Đang hoạt động", color: "success" };
       case 2:
-        return { text: 'Đã từ chối', color: 'error' };
+        return { text: "Đã từ chối", color: "error" };
       case 3:
-        return { text: 'Không hoạt động', color: 'default' };
+        return { text: "Không hoạt động", color: "default" };
       default:
-        return { text: 'Không xác định', color: 'default' };
+        return { text: "Không xác định", color: "default" };
     }
   };
 
@@ -3235,21 +3257,21 @@ const TutorProfile = ({
       {globalStyles}
       <Container
         maxWidth="lg"
-                    sx={{
+        sx={{
           py: 6,
           backgroundColor: "#f8fafc",
           minHeight: "100vh",
-                      width: "100%",
-                      maxWidth: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
-                  >
+          width: "100%",
+          maxWidth: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <Grid
           container
           spacing={4}
-                      sx={{
-                        width: "100%",
+          sx={{
+            width: "100%",
             flex: "1 1 auto",
             margin: 0,
           }}
@@ -3262,27 +3284,27 @@ const TutorProfile = ({
             sx={{ display: "flex", flexDirection: "column", width: "100%" }}
           >
             <StyledPaper
-                          sx={{
+              sx={{
                 textAlign: "center",
                 position: "relative",
                 p: 4,
-                            width: "100%",
-                          }}
-                        >
-                          <Box
-                            sx={{
+                width: "100%",
+              }}
+            >
+              <Box
+                sx={{
                   position: "relative",
                   pb: 2,
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
                 }}
               >
-                              <Box
-                                sx={{
+                <Box
+                  sx={{
                     width: "100%",
-                            display: "flex",
-                            justifyContent: "center",
+                    display: "flex",
+                    justifyContent: "center",
                   }}
                 >
                   {tutorData.profileImageUrl ? (
@@ -3296,37 +3318,37 @@ const TutorProfile = ({
                         ? tutorData.fullName.charAt(0).toUpperCase()
                         : "N"}
                     </LargeAvatar>
-                      )}
-                    </Box>
+                  )}
+                </Box>
 
-                              <Typography
+                <Typography
                   variant="h4"
-                                sx={{
+                  sx={{
                     mt: 2,
-                                  fontWeight: 700,
-                                  color: "#1e293b",
+                    fontWeight: 700,
+                    color: "#1e293b",
                     width: "100%",
                     textAlign: "center",
-                                }}
-                              >
+                  }}
+                >
                   {tutorData.fullName}
-                              </Typography>
+                </Typography>
 
                 {tutorData.nickName &&
                   tutorData.fullName !== tutorData.nickName && (
-                              <Typography
-                                variant="body1"
-                                sx={{
+                    <Typography
+                      variant="body1"
+                      sx={{
                         mt: 1,
-                                  color: "#64748b",
+                        color: "#64748b",
                         width: "100%",
-                              textAlign: "center",
+                        textAlign: "center",
                       }}
                     >
                       ({tutorData.nickName})
-                            </Typography>
-                        )}
-                      </Box>
+                    </Typography>
+                  )}
+              </Box>
             </StyledPaper>
           </Grid>
 
@@ -3335,21 +3357,21 @@ const TutorProfile = ({
             item
             xs={12}
             md={8}
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                        minWidth: 0,
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
               width: "100%",
-                      }}
-                    >
+            }}
+          >
             <StyledPaper
-                        sx={{
+              sx={{
                 p: 0,
                 minHeight: "700px",
-                      width: "100%",
-                      maxWidth: "100%",
-                      overflow: "hidden",
-                      display: "flex",
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
+                display: "flex",
                 flexDirection: "column",
               }}
             >
@@ -3766,8 +3788,6 @@ const TutorProfile = ({
                                         dayInWeek,
                                         slotIdx
                                       );
-                                      
-
 
                                       return (
                                         <Tooltip
@@ -4349,76 +4369,147 @@ const TutorProfile = ({
                           boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
                         }}
                       >
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            fontWeight: 600, 
-                            color: "#1e293b", 
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 600,
+                            color: "#1e293b",
                             mb: 2,
                             display: "flex",
                             alignItems: "center",
-                            gap: 1
+                            gap: 1,
                           }}
                         >
-                          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <svg
+                            width="20"
+                            height="20"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
                           </svg>
                           Cấu hình đặt lịch
                         </Typography>
-                        
+
                         {bookingConfigError && (
-                          <Alert severity="error" sx={{ mb: 2, fontSize: "0.875rem" }}>
+                          <Alert
+                            severity="error"
+                            sx={{ mb: 2, fontSize: "0.875rem" }}
+                          >
                             {bookingConfigError}
                           </Alert>
                         )}
-                        
+
                         <Grid container spacing={3}>
                           {/* Allow Instant Booking Switch */}
                           <Grid item xs={12} md={6}>
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                p: 2,
+                                backgroundColor: "#f8fafc",
+                                borderRadius: 2,
+                              }}
+                            >
                               <Box>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                                <Typography
+                                  variant="subtitle1"
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: "#1e293b",
+                                    mb: 0.5,
+                                  }}
+                                >
                                   Cho phép đặt lịch tức thì
                                 </Typography>
-                                <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem" }}>
-                                  Học viên có thể đặt lịch ngay lập tức mà không cần chờ xác nhận
+                                <Typography
+                                  variant="body2"
+                                  color="textSecondary"
+                                  sx={{ fontSize: "0.875rem" }}
+                                >
+                                  Học viên có thể đặt lịch ngay lập tức mà không
+                                  cần chờ xác nhận
                                 </Typography>
                               </Box>
                               <Switch
                                 checked={bookingConfig.allowInstantBooking}
-                                onChange={(e) => handleBookingConfigChange("allowInstantBooking", e.target.checked)}
+                                onChange={(e) =>
+                                  handleBookingConfigChange(
+                                    "allowInstantBooking",
+                                    e.target.checked
+                                  )
+                                }
                                 sx={{
-                                  '& .MuiSwitch-switchBase.Mui-checked': {
-                                    color: '#3b82f6',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                  "& .MuiSwitch-switchBase.Mui-checked": {
+                                    color: "#3b82f6",
+                                    "&:hover": {
+                                      backgroundColor:
+                                        "rgba(59, 130, 246, 0.08)",
                                     },
                                   },
-                                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                    backgroundColor: '#3b82f6',
-                                  },
+                                  "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                                    {
+                                      backgroundColor: "#3b82f6",
+                                    },
                                 }}
                               />
                             </Box>
                           </Grid>
-                          
+
                           {/* Max Instant Booking Slots Input */}
                           <Grid item xs={12} md={6}>
-                            <Box sx={{ p: 2, backgroundColor: "#f8fafc", borderRadius: 2, height: "100%" }}>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1e293b", mb: 1 }}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                backgroundColor: "#f8fafc",
+                                borderRadius: 2,
+                                height: "100%",
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle1"
+                                sx={{
+                                  fontWeight: 600,
+                                  color: "#1e293b",
+                                  mb: 1,
+                                }}
+                              >
                                 Số lượng slot tối đa
                               </Typography>
-                              <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem", mb: 2 }}>
-                                Giới hạn số lượng slot có thể đặt tức thì mỗi ngày
+                              <Typography
+                                variant="body2"
+                                color="textSecondary"
+                                sx={{ fontSize: "0.875rem", mb: 2 }}
+                              >
+                                Giới hạn số lượng slot có thể đặt tức thì mỗi
+                                ngày
                               </Typography>
                               <TextField
                                 label="Số slot tối đa"
                                 type="number"
-                                value={bookingConfig.maxInstantBookingSlots || ""}
+                                value={
+                                  bookingConfig.maxInstantBookingSlots || ""
+                                }
                                 onChange={(e) => {
                                   const value = parseInt(e.target.value) || 0;
-                                  handleBookingConfigChange("maxInstantBookingSlots", Math.max(0, value));
+                                  handleBookingConfigChange(
+                                    "maxInstantBookingSlots",
+                                    Math.max(0, value)
+                                  );
                                 }}
                                 size="small"
                                 fullWidth
@@ -4426,28 +4517,34 @@ const TutorProfile = ({
                                 inputProps={{
                                   min: 0,
                                   step: 1,
-                                  style: { fontSize: "0.875rem" }
+                                  style: { fontSize: "0.875rem" },
                                 }}
                                 sx={{
                                   "& .MuiInputLabel-root": {
                                     fontSize: "0.875rem",
-                                    color: "#374151"
+                                    color: "#374151",
                                   },
                                   "& .MuiOutlinedInput-root": {
                                     fontSize: "0.875rem",
-                                    backgroundColor: "#ffffff"
+                                    backgroundColor: "#ffffff",
                                   },
                                   "& .MuiOutlinedInput-root.Mui-disabled": {
-                                    backgroundColor: "#f1f5f9"
-                                  }
+                                    backgroundColor: "#f1f5f9",
+                                  },
                                 }}
                               />
                             </Box>
                           </Grid>
                         </Grid>
-                        
+
                         {/* Update Button */}
-                        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 3,
+                          }}
+                        >
                           <Button
                             variant="contained"
                             onClick={handleUpdateBookingConfig}
@@ -4468,12 +4565,26 @@ const TutorProfile = ({
                               "&:disabled": {
                                 backgroundColor: "#9ca3af",
                                 boxShadow: "none",
-                              }
+                              },
                             }}
                           >
                             {bookingConfigLoading ? (
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <Box sx={{ width: 16, height: 16, backgroundColor: "currentColor", borderRadius: "50%", opacity: 0.7 }} />
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    width: 16,
+                                    height: 16,
+                                    backgroundColor: "currentColor",
+                                    borderRadius: "50%",
+                                    opacity: 0.7,
+                                  }}
+                                />
                                 Đang cập nhật...
                               </Box>
                             ) : (
@@ -4525,7 +4636,9 @@ const TutorProfile = ({
                           boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
                         }}
                       >
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                        >
                           <Box
                             sx={{
                               width: "40px",
@@ -4537,15 +4650,37 @@ const TutorProfile = ({
                               justifyContent: "center",
                             }}
                           >
-                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            <svg
+                              width="20"
+                              height="20"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                              />
                             </svg>
                           </Box>
                           <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 600,
+                                color: "#1e293b",
+                                mb: 0.5,
+                              }}
+                            >
                               Quản lý bài học
                             </Typography>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem" }}>
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.875rem" }}
+                            >
                               Tạo và quản lý các bài học của bạn
                             </Typography>
                           </Box>
@@ -4605,17 +4740,52 @@ const TutorProfile = ({
                       </Box>
 
                       {/* Lessons Table */}
-                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)" }}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          backgroundColor: "#fff",
+                          borderRadius: "12px",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                        }}
+                      >
                         {lessonsLoading ? (
                           <Box sx={{ p: 3 }}>
                             {Array.from({ length: 3 }).map((_, index) => (
-                              <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: "8px" }}>
-                                <Skeleton variant="circular" width={40} height={40} />
+                              <Box
+                                key={index}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 2,
+                                  mb: 2,
+                                  p: 2,
+                                  backgroundColor: "#f8fafc",
+                                  borderRadius: "8px",
+                                }}
+                              >
+                                <Skeleton
+                                  variant="circular"
+                                  width={40}
+                                  height={40}
+                                />
                                 <Box sx={{ flex: 1 }}>
-                                  <Skeleton variant="text" width="60%" height={20} />
-                                  <Skeleton variant="text" width="40%" height={16} />
+                                  <Skeleton
+                                    variant="text"
+                                    width="60%"
+                                    height={20}
+                                  />
+                                  <Skeleton
+                                    variant="text"
+                                    width="40%"
+                                    height={16}
+                                  />
                                 </Box>
-                                <Skeleton variant="rectangular" width={80} height={32} />
+                                <Skeleton
+                                  variant="rectangular"
+                                  width={80}
+                                  height={32}
+                                />
                               </Box>
                             ))}
                           </Box>
@@ -4657,11 +4827,18 @@ const TutorProfile = ({
                                 />
                               </svg>
                             </Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 600, mb: 1 }}
+                            >
                               Chưa có bài học nào
                             </Typography>
-                            <Typography variant="body2" sx={{ textAlign: "center", maxWidth: "300px" }}>
-                              Hãy tạo bài học đầu tiên của bạn để bắt đầu giảng dạy
+                            <Typography
+                              variant="body2"
+                              sx={{ textAlign: "center", maxWidth: "300px" }}
+                            >
+                              Hãy tạo bài học đầu tiên của bạn để bắt đầu giảng
+                              dạy
                             </Typography>
                           </Box>
                         ) : (
@@ -4687,7 +4864,14 @@ const TutorProfile = ({
                                   },
                                 }}
                               >
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 3, flex: 1 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    flex: 1,
+                                  }}
+                                >
                                   <Box
                                     sx={{
                                       width: "48px",
@@ -4705,12 +4889,28 @@ const TutorProfile = ({
                                     {lesson.name.charAt(0).toUpperCase()}
                                   </Box>
                                   <Box sx={{ flex: 1 }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                                    <Typography
+                                      variant="h6"
+                                      sx={{
+                                        fontWeight: 600,
+                                        color: "#1e293b",
+                                        mb: 0.5,
+                                      }}
+                                    >
                                       {lesson.name}
                                     </Typography>
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 2,
+                                        mb: 1,
+                                      }}
+                                    >
                                       <Chip
-                                        label={getLanguageName(lesson.languageCode)}
+                                        label={getLanguageName(
+                                          lesson.languageCode
+                                        )}
                                         size="small"
                                         sx={{
                                           backgroundColor: "#e0f2fe",
@@ -4727,7 +4927,8 @@ const TutorProfile = ({
                                           fontSize: "0.875rem",
                                         }}
                                       >
-                                        {formatPriceWithCommas(lesson.price)} VND
+                                        {formatPriceWithCommas(lesson.price)}{" "}
+                                        VND
                                       </Typography>
                                     </Box>
                                     <Typography
@@ -4757,10 +4958,14 @@ const TutorProfile = ({
                                         name: lesson.name || "",
                                         description: lesson.description || "",
                                         note: lesson.note || "",
-                                        targetAudience: lesson.targetAudience || "",
-                                        prerequisites: lesson.prerequisites || "",
+                                        targetAudience:
+                                          lesson.targetAudience || "",
+                                        prerequisites:
+                                          lesson.prerequisites || "",
                                         languageCode: lesson.languageCode || "",
-                                        price: formatPriceInputWithCommas(lesson.price?.toString() || "0"),
+                                        price: formatPriceInputWithCommas(
+                                          lesson.price?.toString() || "0"
+                                        ),
                                         currency: lesson.currency || "",
                                       });
                                       setShowValidation(false);
@@ -4780,8 +4985,19 @@ const TutorProfile = ({
                                       },
                                     }}
                                     startIcon={
-                                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      <svg
+                                        width="14"
+                                        height="14"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                        />
                                       </svg>
                                     }
                                   >
@@ -4789,7 +5005,9 @@ const TutorProfile = ({
                                   </Button>
                                   <Button
                                     size="small"
-                                    onClick={() => handleDeleteLesson(lesson.id)}
+                                    onClick={() =>
+                                      handleDeleteLesson(lesson.id)
+                                    }
                                     sx={{
                                       color: "#ef4444",
                                       backgroundColor: "#fef2f2",
@@ -4804,8 +5022,19 @@ const TutorProfile = ({
                                       },
                                     }}
                                     startIcon={
-                                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      <svg
+                                        width="14"
+                                        height="14"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                        />
                                       </svg>
                                     }
                                   >
@@ -4818,12 +5047,30 @@ const TutorProfile = ({
                         )}
 
                         {lessons.length > 0 && (
-                          <Box sx={{ mt: 3, p: 3, backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
-                              <strong>Tổng cộng:</strong> {lessons.length} bài học
+                          <Box
+                            sx={{
+                              mt: 3,
+                              p: 3,
+                              backgroundColor: "#f8fafc",
+                              borderRadius: "8px",
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                            >
+                              <strong>Tổng cộng:</strong> {lessons.length} bài
+                              học
                             </Typography>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
-                              Các bài học được sắp xếp theo thứ tự tạo (mới nhất trước)
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.75rem", mt: 0.5 }}
+                            >
+                              Các bài học được sắp xếp theo thứ tự tạo (mới nhất
+                              trước)
                             </Typography>
                           </Box>
                         )}
@@ -4871,7 +5118,9 @@ const TutorProfile = ({
                           boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
                         }}
                       >
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                        >
                           <Box
                             sx={{
                               width: "40px",
@@ -4883,15 +5132,37 @@ const TutorProfile = ({
                               justifyContent: "center",
                             }}
                           >
-                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg
+                              width="20"
+                              height="20"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
                             </svg>
                           </Box>
                           <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 600,
+                                color: "#1e293b",
+                                mb: 0.5,
+                              }}
+                            >
                               Quản lý lịch trình tuần
                             </Typography>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem" }}>
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.875rem" }}
+                            >
                               Tạo và quản lý lịch trình giảng dạy hàng tuần
                             </Typography>
                           </Box>
@@ -4903,9 +5174,27 @@ const TutorProfile = ({
                             setCalendarInputDialogOpen(true);
                           }}
                           startIcon={
-                            <Box sx={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            <Box
+                              sx={{
+                                width: "20px",
+                                height: "20px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <svg
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                />
                               </svg>
                             </Box>
                           }
@@ -4926,22 +5215,59 @@ const TutorProfile = ({
                       </Box>
 
                       {/* Weekly Patterns Table */}
-                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)" }}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          backgroundColor: "#fff",
+                          borderRadius: "12px",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                        }}
+                      >
                         {weeklyPatternsListLoading ? (
                           <Box sx={{ p: 3 }}>
                             {Array.from({ length: 3 }).map((_, index) => (
-                              <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: "8px" }}>
-                                <Skeleton variant="circular" width={40} height={40} />
+                              <Box
+                                key={index}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 2,
+                                  mb: 2,
+                                  p: 2,
+                                  backgroundColor: "#f8fafc",
+                                  borderRadius: "8px",
+                                }}
+                              >
+                                <Skeleton
+                                  variant="circular"
+                                  width={40}
+                                  height={40}
+                                />
                                 <Box sx={{ flex: 1 }}>
-                                  <Skeleton variant="text" width="60%" height={20} />
-                                  <Skeleton variant="text" width="40%" height={16} />
+                                  <Skeleton
+                                    variant="text"
+                                    width="60%"
+                                    height={20}
+                                  />
+                                  <Skeleton
+                                    variant="text"
+                                    width="40%"
+                                    height={16}
+                                  />
                                 </Box>
-                                <Skeleton variant="rectangular" width={80} height={32} />
+                                <Skeleton
+                                  variant="rectangular"
+                                  width={80}
+                                  height={32}
+                                />
                               </Box>
                             ))}
                           </Box>
                         ) : weeklyPatternsListError ? (
-                          <Alert severity="error" sx={{ mb: 2 }}>{weeklyPatternsListError}</Alert>
+                          <Alert severity="error" sx={{ mb: 2 }}>
+                            {weeklyPatternsListError}
+                          </Alert>
                         ) : weeklyPatternsList.length === 0 ? (
                           <Box
                             sx={{
@@ -4972,14 +5298,26 @@ const TutorProfile = ({
                                 xmlns="http://www.w3.org/2000/svg"
                                 style={{ width: "40px", height: "40px" }}
                               >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="1.5"
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
                               </svg>
                             </Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 600, mb: 1 }}
+                            >
                               Chưa có lịch trình nào
                             </Typography>
-                            <Typography variant="body2" sx={{ textAlign: "center", maxWidth: "300px" }}>
-                              Tạo lịch trình đầu tiên của bạn để bắt đầu lên lịch giảng dạy
+                            <Typography
+                              variant="body2"
+                              sx={{ textAlign: "center", maxWidth: "300px" }}
+                            >
+                              Tạo lịch trình đầu tiên của bạn để bắt đầu lên
+                              lịch giảng dạy
                             </Typography>
                           </Box>
                         ) : (
@@ -5007,7 +5345,14 @@ const TutorProfile = ({
                                 }}
                                 onClick={() => handlePatternRowClick(pattern)}
                               >
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 3, flex: 1 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    flex: 1,
+                                  }}
+                                >
                                   <Box
                                     sx={{
                                       width: "48px",
@@ -5025,15 +5370,54 @@ const TutorProfile = ({
                                     {index + 1}
                                   </Box>
                                   <Box sx={{ flex: 1 }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#1e293b", mb: 0.5 }}>
+                                    <Typography
+                                      variant="h6"
+                                      sx={{
+                                        fontWeight: 600,
+                                        color: "#1e293b",
+                                        mb: 0.5,
+                                      }}
+                                    >
                                       Lịch trình #{index + 1}
                                     </Typography>
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
-                                      <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
-                                        <strong>Từ:</strong> {formatDate(pattern.appliedFrom)}
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 2,
+                                        mb: 1,
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        sx={{
+                                          color: "#64748b",
+                                          fontSize: "0.875rem",
+                                        }}
+                                      >
+                                        <strong>Từ:</strong>{" "}
+                                        {formatDate(pattern.appliedFrom)}
                                       </Typography>
-                                      <Typography variant="body2" sx={{ color: "#64748b", fontSize: "0.875rem" }}>
-                                        <strong>Đến:</strong> {pattern.endDate ? formatDate(pattern.endDate) : <span style={{ color: "#ef4444", fontStyle: "italic" }}>Không có</span>}
+                                      <Typography
+                                        variant="body2"
+                                        sx={{
+                                          color: "#64748b",
+                                          fontSize: "0.875rem",
+                                        }}
+                                      >
+                                        <strong>Đến:</strong>{" "}
+                                        {pattern.endDate ? (
+                                          formatDate(pattern.endDate)
+                                        ) : (
+                                          <span
+                                            style={{
+                                              color: "#ef4444",
+                                              fontStyle: "italic",
+                                            }}
+                                          >
+                                            Không có
+                                          </span>
+                                        )}
                                       </Typography>
                                     </Box>
                                     <Chip
@@ -5043,10 +5427,20 @@ const TutorProfile = ({
                                       sx={{
                                         fontWeight: 600,
                                         fontSize: "0.75rem",
-                                        backgroundColor: getStatusColor(pattern) === "success" ? "#dcfce7" : 
-                                                       getStatusColor(pattern) === "warning" ? "#fef3c7" : "#fee2e2",
-                                        color: getStatusColor(pattern) === "success" ? "#166534" : 
-                                              getStatusColor(pattern) === "warning" ? "#92400e" : "#991b1b",
+                                        backgroundColor:
+                                          getStatusColor(pattern) === "success"
+                                            ? "#dcfce7"
+                                            : getStatusColor(pattern) ===
+                                              "warning"
+                                            ? "#fef3c7"
+                                            : "#fee2e2",
+                                        color:
+                                          getStatusColor(pattern) === "success"
+                                            ? "#166534"
+                                            : getStatusColor(pattern) ===
+                                              "warning"
+                                            ? "#92400e"
+                                            : "#991b1b",
                                       }}
                                     />
                                   </Box>
@@ -5062,17 +5456,25 @@ const TutorProfile = ({
                                       }
                                     }}
                                     sx={{
-                                      color: pattern.endDate ? "#e65100" : "#9e9e9e",
-                                      backgroundColor: pattern.endDate ? "#fff3e0" : "#f5f5f5",
+                                      color: pattern.endDate
+                                        ? "#e65100"
+                                        : "#9e9e9e",
+                                      backgroundColor: pattern.endDate
+                                        ? "#fff3e0"
+                                        : "#f5f5f5",
                                       textTransform: "none",
                                       fontWeight: 600,
                                       fontSize: "0.75rem",
                                       px: 2,
                                       py: 1,
                                       borderRadius: "8px",
-                                      cursor: pattern.endDate ? "pointer" : "not-allowed",
+                                      cursor: pattern.endDate
+                                        ? "pointer"
+                                        : "not-allowed",
                                       "&:hover": {
-                                        backgroundColor: pattern.endDate ? "#ffe0b2" : "#f5f5f5",
+                                        backgroundColor: pattern.endDate
+                                          ? "#ffe0b2"
+                                          : "#f5f5f5",
                                       },
                                       "&:disabled": {
                                         color: "#9e9e9e",
@@ -5081,11 +5483,26 @@ const TutorProfile = ({
                                       },
                                     }}
                                     startIcon={
-                                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      <svg
+                                        width="14"
+                                        height="14"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                        />
                                       </svg>
                                     }
-                                    title={!pattern.endDate ? "Không thể sửa lịch trình không có ngày kết thúc" : "Sửa lịch trình"}
+                                    title={
+                                      !pattern.endDate
+                                        ? "Không thể sửa lịch trình không có ngày kết thúc"
+                                        : "Sửa lịch trình"
+                                    }
                                   >
                                     Sửa
                                   </Button>
@@ -5109,8 +5526,19 @@ const TutorProfile = ({
                                       },
                                     }}
                                     startIcon={
-                                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      <svg
+                                        width="14"
+                                        height="14"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                        />
                                       </svg>
                                     }
                                   >
@@ -5123,12 +5551,30 @@ const TutorProfile = ({
                         )}
 
                         {weeklyPatternsList.length > 0 && (
-                          <Box sx={{ mt: 3, p: 3, backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
-                              <strong>Tổng cộng:</strong> {weeklyPatternsList.length} lịch trình tuần
+                          <Box
+                            sx={{
+                              mt: 3,
+                              p: 3,
+                              backgroundColor: "#f8fafc",
+                              borderRadius: "8px",
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+                            >
+                              <strong>Tổng cộng:</strong>{" "}
+                              {weeklyPatternsList.length} lịch trình tuần
                             </Typography>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
-                              Lịch trình được sắp xếp theo thứ tự thời gian áp dụng (mới nhất trước)
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.75rem", mt: 0.5 }}
+                            >
+                              Lịch trình được sắp xếp theo thứ tự thời gian áp
+                              dụng (mới nhất trước)
                             </Typography>
                           </Box>
                         )}
@@ -5170,19 +5616,43 @@ const TutorProfile = ({
                           mb: 3,
                         }}
                       >
-                        <SectionTitle variant="h6">Video giới thiệu</SectionTitle>
+                        <SectionTitle variant="h6">
+                          Video giới thiệu
+                        </SectionTitle>
                       </Box>
 
                       {/* Upload Form */}
-                      <Box sx={{ p: 3, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0", mb: 3 }}>
-                        <Typography variant="h6" sx={{ mb: 2, color: "#1e293b" }}>
+                      <Box
+                        sx={{
+                          p: 3,
+                          backgroundColor: "#fff",
+                          borderRadius: 2,
+                          border: "1px solid #e2e8f0",
+                          mb: 3,
+                        }}
+                      >
+                        <Typography
+                          variant="h6"
+                          sx={{ mb: 2, color: "#1e293b" }}
+                        >
                           Tải lên video giới thiệu
                         </Typography>
-                        <Typography variant="body2" sx={{ mb: 3, color: "#64748b" }}>
-                          Chia sẻ video giới thiệu từ YouTube hoặc các nền tảng video khác để học viên có thể hiểu rõ hơn về phương pháp giảng dạy của bạn.
+                        <Typography
+                          variant="body2"
+                          sx={{ mb: 3, color: "#64748b" }}
+                        >
+                          Chia sẻ video giới thiệu từ YouTube hoặc các nền tảng
+                          video khác để học viên có thể hiểu rõ hơn về phương
+                          pháp giảng dạy của bạn.
                         </Typography>
-                        
-                        <Box sx={{ display: "flex", gap: 2, alignItems: "flex-end" }}>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 2,
+                            alignItems: "flex-end",
+                          }}
+                        >
                           <TextField
                             label="URL Video"
                             placeholder="https://www.youtube.com/watch?v=..."
@@ -5191,7 +5661,10 @@ const TutorProfile = ({
                             onChange={(e) => {
                               setVideoForm({ url: e.target.value });
                               if (videoFormErrors.url) {
-                                setVideoFormErrors({ ...videoFormErrors, url: "" });
+                                setVideoFormErrors({
+                                  ...videoFormErrors,
+                                  url: "",
+                                });
                               }
                             }}
                             error={!!videoFormErrors.url}
@@ -5203,11 +5676,37 @@ const TutorProfile = ({
                             disabled={videoUploading || !videoForm.url.trim()}
                             startIcon={
                               videoUploading ? (
-                                <Box sx={{ width: 16, height: 16, backgroundColor: "currentColor", borderRadius: "50%", opacity: 0.7 }} />
+                                <Box
+                                  sx={{
+                                    width: 16,
+                                    height: 16,
+                                    backgroundColor: "currentColor",
+                                    borderRadius: "50%",
+                                    opacity: 0.7,
+                                  }}
+                                />
                               ) : (
-                                <Box sx={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center"}}>
-                                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                <Box
+                                  sx={{
+                                    width: "20px",
+                                    height: "20px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <svg
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                    />
                                   </svg>
                                 </Box>
                               )
@@ -5219,47 +5718,145 @@ const TutorProfile = ({
                       </Box>
 
                       {/* Videos List */}
-                      <Box sx={{ p: 2, backgroundColor: "#fff", borderRadius: 2, border: "1px solid #e2e8f0" }}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          backgroundColor: "#fff",
+                          borderRadius: 2,
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
                         {videoLoading ? (
                           <Box sx={{ p: 2 }}>
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 2,
+                              }}
+                            >
                               {[1, 2, 3].map((index) => (
-                                <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 2, p: 2, border: "1px solid #e2e8f0", borderRadius: 1 }}>
-                                  <Box sx={{ width: 20, height: 20, backgroundColor: "#e2e8f0", borderRadius: "50%" }} />
+                                <Box
+                                  key={index}
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 2,
+                                    p: 2,
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: 1,
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 20,
+                                      height: 20,
+                                      backgroundColor: "#e2e8f0",
+                                      borderRadius: "50%",
+                                    }}
+                                  />
                                   <Box sx={{ flex: 1 }}>
-                                    <Box sx={{ width: "60%", height: 16, backgroundColor: "#e2e8f0", borderRadius: 1, mb: 1 }} />
-                                    <Box sx={{ width: "30%", height: 12, backgroundColor: "#e2e8f0", borderRadius: 1 }} />
+                                    <Box
+                                      sx={{
+                                        width: "60%",
+                                        height: 16,
+                                        backgroundColor: "#e2e8f0",
+                                        borderRadius: 1,
+                                        mb: 1,
+                                      }}
+                                    />
+                                    <Box
+                                      sx={{
+                                        width: "30%",
+                                        height: 12,
+                                        backgroundColor: "#e2e8f0",
+                                        borderRadius: 1,
+                                      }}
+                                    />
                                   </Box>
-                                  <Box sx={{ width: 24, height: 24, backgroundColor: "#e2e8f0", borderRadius: 1 }} />
+                                  <Box
+                                    sx={{
+                                      width: 24,
+                                      height: 24,
+                                      backgroundColor: "#e2e8f0",
+                                      borderRadius: 1,
+                                    }}
+                                  />
                                 </Box>
                               ))}
                             </Box>
                           </Box>
                         ) : videoError ? (
-                          <Alert severity="error" sx={{ mb: 2 }}>{videoError}</Alert>
+                          <Alert severity="error" sx={{ mb: 2 }}>
+                            {videoError}
+                          </Alert>
                         ) : (
                           <TableContainer component={Paper}>
                             <Table>
                               <TableHead>
                                 <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-                                  <TableCell sx={{ fontWeight: 600 }}>URL Video</TableCell>
-                                  <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-                                  <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
-                                  <TableCell sx={{ fontWeight: 600 }}>Hành động</TableCell>
+                                  <TableCell sx={{ fontWeight: 600 }}>
+                                    URL Video
+                                  </TableCell>
+                                  <TableCell sx={{ fontWeight: 600 }}>
+                                    Trạng thái
+                                  </TableCell>
+                                  <TableCell sx={{ fontWeight: 600 }}>
+                                    Ngày tạo
+                                  </TableCell>
+                                  <TableCell sx={{ fontWeight: 600 }}>
+                                    Hành động
+                                  </TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
                                 {introductionVideos.length === 0 ? (
                                   <TableRow>
-                                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
-                                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", color: "#64748b" }}>
-                                        <Box sx={{ width: "64px", height: "64px", mb: 2, opacity: 0.5 }}>
-                                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    <TableCell
+                                      colSpan={4}
+                                      align="center"
+                                      sx={{ py: 4 }}
+                                    >
+                                      <Box
+                                        sx={{
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          alignItems: "center",
+                                          color: "#64748b",
+                                        }}
+                                      >
+                                        <Box
+                                          sx={{
+                                            width: "64px",
+                                            height: "64px",
+                                            mb: 2,
+                                            opacity: 0.5,
+                                          }}
+                                        >
+                                          <svg
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth="1.5"
+                                              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                            />
                                           </svg>
                                         </Box>
-                                        <Typography variant="body1" sx={{ fontWeight: 500 }}>Chưa có video nào</Typography>
-                                        <Typography variant="body2">Tải lên video giới thiệu đầu tiên của bạn</Typography>
+                                        <Typography
+                                          variant="body1"
+                                          sx={{ fontWeight: 500 }}
+                                        >
+                                          Chưa có video nào
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          Tải lên video giới thiệu đầu tiên của
+                                          bạn
+                                        </Typography>
                                       </Box>
                                     </TableCell>
                                   </TableRow>
@@ -5272,14 +5869,31 @@ const TutorProfile = ({
                                         "&:hover": {
                                           backgroundColor: "#f8fafc",
                                         },
-                                        transition: "background-color 0.2s ease",
+                                        transition:
+                                          "background-color 0.2s ease",
                                       }}
                                     >
                                       <TableCell>
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                          <Box sx={{ width: "20px", height: "20px", color: "#ef4444" }}>
-                                            <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 1,
+                                          }}
+                                        >
+                                          <Box
+                                            sx={{
+                                              width: "20px",
+                                              height: "20px",
+                                              color: "#ef4444",
+                                            }}
+                                          >
+                                            <svg
+                                              fill="currentColor"
+                                              viewBox="0 0 24 24"
+                                              xmlns="http://www.w3.org/2000/svg"
+                                            >
+                                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                                             </svg>
                                           </Box>
                                           <Typography
@@ -5290,7 +5904,9 @@ const TutorProfile = ({
                                               cursor: "pointer",
                                               wordBreak: "break-all",
                                             }}
-                                            onClick={() => window.open(video.url, "_blank")}
+                                            onClick={() =>
+                                              window.open(video.url, "_blank")
+                                            }
                                           >
                                             {video.url}
                                           </Typography>
@@ -5298,40 +5914,83 @@ const TutorProfile = ({
                                       </TableCell>
                                       <TableCell>
                                         <Chip
-                                          label={getVideoStatusLabel(video.status).text}
-                                          color={getVideoStatusLabel(video.status).color}
+                                          label={
+                                            getVideoStatusLabel(video.status)
+                                              .text
+                                          }
+                                          color={
+                                            getVideoStatusLabel(video.status)
+                                              .color
+                                          }
                                           size="small"
                                           sx={{ fontWeight: 500 }}
                                         />
                                       </TableCell>
                                       <TableCell>
-                                        <Typography variant="body2" color="textSecondary">
-                                          {new Date(video.createdAt || video.createdTime || Date.now()).toLocaleDateString("vi-VN")}
+                                        <Typography
+                                          variant="body2"
+                                          color="textSecondary"
+                                        >
+                                          {new Date(
+                                            video.createdAt ||
+                                              video.createdTime ||
+                                              Date.now()
+                                          ).toLocaleDateString("vi-VN")}
                                         </Typography>
                                       </TableCell>
                                       <TableCell>
-                                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            gap: 1,
+                                            alignItems: "center",
+                                          }}
+                                        >
                                           {/* Status update buttons - only show for Active/Inactive videos (already reviewed by staff) */}
-                                          {(video.status === 1 || video.status === 3) && (
+                                          {(video.status === 1 ||
+                                            video.status === 3) && (
                                             <>
                                               {video.status === 3 && (
                                                 <IconButton
                                                   size="small"
-                                                  onClick={() => handleUpdateVideoStatus(video.id, 1)}
-                                                  disabled={updatingVideoStatus === video.id}
+                                                  onClick={() =>
+                                                    handleUpdateVideoStatus(
+                                                      video.id,
+                                                      1
+                                                    )
+                                                  }
+                                                  disabled={
+                                                    updatingVideoStatus ===
+                                                    video.id
+                                                  }
                                                   sx={{
                                                     color: "#059669",
                                                     "&:hover": {
-                                                      backgroundColor: "rgba(5, 150, 105, 0.1)",
+                                                      backgroundColor:
+                                                        "rgba(5, 150, 105, 0.1)",
                                                     },
                                                   }}
                                                   title="Kích hoạt video (đã được staff duyệt)"
                                                 >
-                                                  {updatingVideoStatus === video.id ? (
-                                                    <CircularProgress size={16} />
+                                                  {updatingVideoStatus ===
+                                                  video.id ? (
+                                                    <CircularProgress
+                                                      size={16}
+                                                    />
                                                   ) : (
-                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    <svg
+                                                      width="16"
+                                                      height="16"
+                                                      fill="none"
+                                                      stroke="currentColor"
+                                                      viewBox="0 0 24 24"
+                                                    >
+                                                      <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M5 13l4 4L19 7"
+                                                      />
                                                     </svg>
                                                   )}
                                                 </IconButton>
@@ -5339,21 +5998,44 @@ const TutorProfile = ({
                                               {video.status === 1 && (
                                                 <IconButton
                                                   size="small"
-                                                  onClick={() => handleUpdateVideoStatus(video.id, 3)}
-                                                  disabled={updatingVideoStatus === video.id}
+                                                  onClick={() =>
+                                                    handleUpdateVideoStatus(
+                                                      video.id,
+                                                      3
+                                                    )
+                                                  }
+                                                  disabled={
+                                                    updatingVideoStatus ===
+                                                    video.id
+                                                  }
                                                   sx={{
                                                     color: "#6b7280",
                                                     "&:hover": {
-                                                      backgroundColor: "rgba(107, 114, 128, 0.1)",
+                                                      backgroundColor:
+                                                        "rgba(107, 114, 128, 0.1)",
                                                     },
                                                   }}
                                                   title="Vô hiệu hóa video (đã được staff duyệt)"
                                                 >
-                                                  {updatingVideoStatus === video.id ? (
-                                                    <CircularProgress size={16} />
+                                                  {updatingVideoStatus ===
+                                                  video.id ? (
+                                                    <CircularProgress
+                                                      size={16}
+                                                    />
                                                   ) : (
-                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    <svg
+                                                      width="16"
+                                                      height="16"
+                                                      fill="none"
+                                                      stroke="currentColor"
+                                                      viewBox="0 0 24 24"
+                                                    >
+                                                      <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                      />
                                                     </svg>
                                                   )}
                                                 </IconButton>
@@ -5361,27 +6043,47 @@ const TutorProfile = ({
                                             </>
                                           )}
                                           {/* Delete button - only show for Inactive or Rejected videos */}
-                                          {(video.status === 3 || video.status === 2) && (
+                                          {(video.status === 3 ||
+                                            video.status === 2) && (
                                             <IconButton
                                               size="small"
-                                              onClick={() => handleDeleteVideo(video)}
+                                              onClick={() =>
+                                                handleDeleteVideo(video)
+                                              }
                                               sx={{
                                                 color: "#ef4444",
                                                 "&:hover": {
-                                                  backgroundColor: "rgba(239, 68, 68, 0.1)",
+                                                  backgroundColor:
+                                                    "rgba(239, 68, 68, 0.1)",
                                                 },
                                               }}
                                               title="Xóa video"
                                             >
-                                              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                              <svg
+                                                width="16"
+                                                height="16"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                />
                                               </svg>
                                             </IconButton>
                                           )}
                                           {/* Show message for Pending videos */}
                                           {video.status === 0 && (
-                                            <Typography variant="caption" color="textSecondary" sx={{ fontStyle: "italic" }}>
-                                              Đang chờ staff duyệt - Không thể thao tác
+                                            <Typography
+                                              variant="caption"
+                                              color="textSecondary"
+                                              sx={{ fontStyle: "italic" }}
+                                            >
+                                              Đang chờ staff duyệt - Không thể
+                                              thao tác
                                             </Typography>
                                           )}
                                         </Box>
@@ -5395,15 +6097,40 @@ const TutorProfile = ({
                         )}
 
                         {introductionVideos.length > 0 && (
-                          <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1 }}>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.875rem" }}>
-                              <strong>Tổng cộng:</strong> {introductionVideos.length} video giới thiệu
+                          <Box
+                            sx={{
+                              mt: 2,
+                              p: 2,
+                              backgroundColor: "#f8fafc",
+                              borderRadius: 1,
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.875rem" }}
+                            >
+                              <strong>Tổng cộng:</strong>{" "}
+                              {introductionVideos.length} video giới thiệu
                             </Typography>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
-                              Video được sắp xếp theo thứ tự thời gian tạo (mới nhất trước)
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.75rem", mt: 0.5 }}
+                            >
+                              Video được sắp xếp theo thứ tự thời gian tạo (mới
+                              nhất trước)
                             </Typography>
-                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem", mt: 0.5 }}>
-                              <strong>Lưu ý:</strong> Bạn chỉ có thể kích hoạt/vô hiệu hóa video đã được staff duyệt (trạng thái "Đang hoạt động" hoặc "Không hoạt động"). Video đang chờ duyệt hoặc đã từ chối không thể thao tác.
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              sx={{ fontSize: "0.75rem", mt: 0.5 }}
+                            >
+                              <strong>Lưu ý:</strong> Bạn chỉ có thể kích
+                              hoạt/vô hiệu hóa video đã được staff duyệt (trạng
+                              thái "Đang hoạt động" hoặc "Không hoạt động").
+                              Video đang chờ duyệt hoặc đã từ chối không thể
+                              thao tác.
                             </Typography>
                           </Box>
                         )}
@@ -5435,27 +6162,35 @@ const TutorProfile = ({
           });
         }}
         maxWidth="md"
-            fullWidth
+        fullWidth
         PaperProps={{
           sx: {
             borderRadius: 2,
-            maxHeight: '90vh',
-            overflow: 'hidden'
-          }
+            maxHeight: "90vh",
+            overflow: "hidden",
+          },
         }}
       >
-        <DialogTitle sx={{ 
-          borderBottom: '1px solid #e5e7eb', 
-          pb: 2,
-          backgroundColor: '#f9fafb'
-        }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#374151' }}>
+        <DialogTitle
+          sx={{
+            borderBottom: "1px solid #e5e7eb",
+            pb: 2,
+            backgroundColor: "#f9fafb",
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 600, color: "#374151" }}>
             {editLesson ? "Sửa bài học" : "Tạo bài học"}
           </Typography>
         </DialogTitle>
-        
-        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
-          <div style={{ maxHeight: 'calc(90vh - 140px)', overflowY: 'auto', padding: '24px' }}>
+
+        <DialogContent sx={{ p: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              maxHeight: "calc(90vh - 140px)",
+              overflowY: "auto",
+              padding: "24px",
+            }}
+          >
             <div className="space-y-6">
               {/* Tên bài học */}
               <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
@@ -5464,15 +6199,17 @@ const TutorProfile = ({
                 </label>
                 <input
                   type="text"
-            value={lessonForm.name}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setLessonForm({ ...lessonForm, name: newValue });
-              const error = validateName(newValue);
-              setLessonFormErrors({ ...lessonFormErrors, name: error });
-            }}
+                  value={lessonForm.name}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setLessonForm({ ...lessonForm, name: newValue });
+                    const error = validateName(newValue);
+                    setLessonFormErrors({ ...lessonFormErrors, name: error });
+                  }}
                   className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${
-                    lessonFormErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                    lessonFormErrors.name
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
                   }`}
                   placeholder="Nhập tên bài học (5-100 ký tự)"
                 />
@@ -5480,7 +6217,11 @@ const TutorProfile = ({
                   <p className="text-xs text-gray-500">
                     Tối thiểu 5 ký tự, tối đa 100 ký tự
                   </p>
-                  <p className={`text-xs ${lessonFormErrors.name ? 'text-red-500' : 'text-gray-500'}`}>
+                  <p
+                    className={`text-xs ${
+                      lessonFormErrors.name ? "text-red-500" : "text-gray-500"
+                    }`}
+                  >
                     {lessonForm.name.length}/100 ký tự
                   </p>
                 </div>
@@ -5497,15 +6238,20 @@ const TutorProfile = ({
                   Mô tả <span className="text-red-500">*</span>
                 </label>
                 <textarea
-            value={lessonForm.description}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setLessonForm({ ...lessonForm, description: newValue });
-              const error = validateDescription(newValue);
-              setLessonFormErrors({ ...lessonFormErrors, description: error });
-            }}
+                  value={lessonForm.description}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setLessonForm({ ...lessonForm, description: newValue });
+                    const error = validateDescription(newValue);
+                    setLessonFormErrors({
+                      ...lessonFormErrors,
+                      description: error,
+                    });
+                  }}
                   className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black resize-none ${
-                    lessonFormErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                    lessonFormErrors.description
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
                   }`}
                   rows="3"
                   placeholder="Cung cấp mô tả chi tiết về bài học (10-1000 ký tự)"
@@ -5514,7 +6260,13 @@ const TutorProfile = ({
                   <p className="text-xs text-gray-500">
                     Tối thiểu 10 ký tự, tối đa 1000 ký tự
                   </p>
-                  <p className={`text-xs ${lessonFormErrors.description ? 'text-red-500' : 'text-gray-500'}`}>
+                  <p
+                    className={`text-xs ${
+                      lessonFormErrors.description
+                        ? "text-red-500"
+                        : "text-gray-500"
+                    }`}
+                  >
                     {lessonForm.description.length}/1000 ký tự
                   </p>
                 </div>
@@ -5531,15 +6283,17 @@ const TutorProfile = ({
                   Ghi chú
                 </label>
                 <textarea
-            value={lessonForm.note}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setLessonForm({ ...lessonForm, note: newValue });
-              const error = validateNote(newValue);
-              setLessonFormErrors({ ...lessonFormErrors, note: error });
-            }}
+                  value={lessonForm.note}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setLessonForm({ ...lessonForm, note: newValue });
+                    const error = validateNote(newValue);
+                    setLessonFormErrors({ ...lessonFormErrors, note: error });
+                  }}
                   className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black resize-none ${
-                    lessonFormErrors.note ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                    lessonFormErrors.note
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
                   }`}
                   rows="2"
                   placeholder="Thêm ghi chú bổ sung (tùy chọn, 10-1000 ký tự)"
@@ -5548,7 +6302,11 @@ const TutorProfile = ({
                   <p className="text-xs text-gray-500">
                     Tối thiểu 10 ký tự, tối đa 1000 ký tự (tùy chọn)
                   </p>
-                  <p className={`text-xs ${lessonFormErrors.note ? 'text-red-500' : 'text-gray-500'}`}>
+                  <p
+                    className={`text-xs ${
+                      lessonFormErrors.note ? "text-red-500" : "text-gray-500"
+                    }`}
+                  >
                     {lessonForm.note.length}/1000 ký tự
                   </p>
                 </div>
@@ -5566,15 +6324,20 @@ const TutorProfile = ({
                 </label>
                 <input
                   type="text"
-            value={lessonForm.targetAudience}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setLessonForm({ ...lessonForm, targetAudience: newValue });
-              const error = validateTargetAudience(newValue);
-              setLessonFormErrors({ ...lessonFormErrors, targetAudience: error });
-            }}
+                  value={lessonForm.targetAudience}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setLessonForm({ ...lessonForm, targetAudience: newValue });
+                    const error = validateTargetAudience(newValue);
+                    setLessonFormErrors({
+                      ...lessonFormErrors,
+                      targetAudience: error,
+                    });
+                  }}
                   className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${
-                    lessonFormErrors.targetAudience ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                    lessonFormErrors.targetAudience
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
                   }`}
                   placeholder="Mô tả đối tượng học viên phù hợp (1-200 ký tự)"
                 />
@@ -5582,7 +6345,13 @@ const TutorProfile = ({
                   <p className="text-xs text-gray-500">
                     Tối thiểu 1 ký tự, tối đa 200 ký tự
                   </p>
-                  <p className={`text-xs ${lessonFormErrors.targetAudience ? 'text-red-500' : 'text-gray-500'}`}>
+                  <p
+                    className={`text-xs ${
+                      lessonFormErrors.targetAudience
+                        ? "text-red-500"
+                        : "text-gray-500"
+                    }`}
+                  >
                     {lessonForm.targetAudience.length}/200 ký tự
                   </p>
                 </div>
@@ -5599,15 +6368,20 @@ const TutorProfile = ({
                   Yêu cầu trước <span className="text-red-500">*</span>
                 </label>
                 <textarea
-            value={lessonForm.prerequisites}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setLessonForm({ ...lessonForm, prerequisites: newValue });
-              const error = validatePrerequisites(newValue);
-              setLessonFormErrors({ ...lessonFormErrors, prerequisites: error });
-            }}
+                  value={lessonForm.prerequisites}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setLessonForm({ ...lessonForm, prerequisites: newValue });
+                    const error = validatePrerequisites(newValue);
+                    setLessonFormErrors({
+                      ...lessonFormErrors,
+                      prerequisites: error,
+                    });
+                  }}
                   className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black resize-none ${
-                    lessonFormErrors.prerequisites ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                    lessonFormErrors.prerequisites
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
                   }`}
                   rows="2"
                   placeholder="Mô tả kiến thức cần có trước khi học (10-300 ký tự)"
@@ -5616,7 +6390,13 @@ const TutorProfile = ({
                   <p className="text-xs text-gray-500">
                     Tối thiểu 10 ký tự, tối đa 300 ký tự
                   </p>
-                  <p className={`text-xs ${lessonFormErrors.prerequisites ? 'text-red-500' : 'text-gray-500'}`}>
+                  <p
+                    className={`text-xs ${
+                      lessonFormErrors.prerequisites
+                        ? "text-red-500"
+                        : "text-gray-500"
+                    }`}
+                  >
                     {lessonForm.prerequisites.length}/300 ký tự
                   </p>
                 </div>
@@ -5633,34 +6413,39 @@ const TutorProfile = ({
                   Ngôn ngữ <span className="text-red-500">*</span>
                 </label>
                 <select
-              value={lessonForm.languageCode}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                setLessonForm({ ...lessonForm, languageCode: newValue });
-                const error = validateLanguageCode(newValue);
-                setLessonFormErrors({ ...lessonFormErrors, languageCode: error });
-              }}
+                  value={lessonForm.languageCode}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setLessonForm({ ...lessonForm, languageCode: newValue });
+                    const error = validateLanguageCode(newValue);
+                    setLessonFormErrors({
+                      ...lessonFormErrors,
+                      languageCode: error,
+                    });
+                  }}
                   className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black appearance-none ${
-                    lessonFormErrors.languageCode ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                    lessonFormErrors.languageCode
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
                   }`}
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                    backgroundPosition: 'right 0.5rem center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '1.5em 1.5em',
-                    paddingRight: '2.5rem'
+                    backgroundPosition: "right 0.5rem center",
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: "1.5em 1.5em",
+                    paddingRight: "2.5rem",
                   }}
                 >
                   <option value="">Chọn ngôn ngữ</option>
-              {languageList.map((lang) => (
+                  {languageList.map((lang) => (
                     <option key={lang.code} value={lang.code}>
-                  {lang.name}
+                      {lang.name}
                     </option>
-              ))}
+                  ))}
                 </select>
-            {lessonFormErrors.languageCode && (
+                {lessonFormErrors.languageCode && (
                   <p className="text-xs text-red-500 mt-1">
-                {lessonFormErrors.languageCode}
+                    {lessonFormErrors.languageCode}
                   </p>
                 )}
               </div>
@@ -5671,16 +6456,20 @@ const TutorProfile = ({
                   Giá <span className="text-red-500">*</span>
                 </label>
                 <input
-            type="text"
-            value={lessonForm.price}
-            onChange={(e) => {
-              const formatted = formatPriceInputWithCommas(e.target.value);
-              setLessonForm({ ...lessonForm, price: formatted });
-              const error = validatePrice(formatted);
-              setLessonFormErrors({ ...lessonFormErrors, price: error });
-            }}
+                  type="text"
+                  value={lessonForm.price}
+                  onChange={(e) => {
+                    const formatted = formatPriceInputWithCommas(
+                      e.target.value
+                    );
+                    setLessonForm({ ...lessonForm, price: formatted });
+                    const error = validatePrice(formatted);
+                    setLessonFormErrors({ ...lessonFormErrors, price: error });
+                  }}
                   className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white text-black ${
-                    lessonFormErrors.price ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                    lessonFormErrors.price
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
                   }`}
                   placeholder="Nhập giá tiền (VND)"
                 />
@@ -5699,22 +6488,24 @@ const TutorProfile = ({
           </div>
         </DialogContent>
 
-        <DialogActions sx={{ 
-          borderTop: '1px solid #e5e7eb', 
-          pt: 2, 
-          px: 3, 
-          pb: 3,
-          backgroundColor: '#f9fafb'
-        }}>
+        <DialogActions
+          sx={{
+            borderTop: "1px solid #e5e7eb",
+            pt: 2,
+            px: 3,
+            pb: 3,
+            backgroundColor: "#f9fafb",
+          }}
+        >
           <Button
             onClick={() => {
               setLessonDialogOpen(false);
               setLessonFormErrors({});
               setEditLesson(null);
             }}
-            sx={{ 
-              color: '#3b82f6',
-              '&:hover': { backgroundColor: '#eff6ff' }
+            sx={{
+              color: "#3b82f6",
+              "&:hover": { backgroundColor: "#eff6ff" },
             }}
           >
             HỦY
@@ -5761,13 +6552,17 @@ const TutorProfile = ({
               }
             }}
             disabled={lessonLoading}
-            sx={{ 
-              backgroundColor: '#3b82f6',
-              '&:hover': { backgroundColor: '#2563eb' },
-              '&:disabled': { backgroundColor: '#9ca3af' }
+            sx={{
+              backgroundColor: "#3b82f6",
+              "&:hover": { backgroundColor: "#2563eb" },
+              "&:disabled": { backgroundColor: "#9ca3af" },
             }}
           >
-            {lessonLoading ? "Đang xử lý..." : (editLesson ? "Lưu bài học" : "Tạo bài học")}
+            {lessonLoading
+              ? "Đang xử lý..."
+              : editLesson
+              ? "Lưu bài học"
+              : "Tạo bài học"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -5842,13 +6637,19 @@ const TutorProfile = ({
                   borderRadius: 1,
                 }}
               >
-                <Typography variant="body2" color="primary" sx={{ fontWeight: "bold" }}>
+                <Typography
+                  variant="body2"
+                  color="primary"
+                  sx={{ fontWeight: "bold" }}
+                >
                   Ngày bắt đầu áp dụng:
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: "bold" }}>
                   {/* Convert UTC+7 to UTC+0 for display */}
                   {(() => {
-                    const utc0Date = convertUTC7ToUTC0(editingPattern.appliedFrom);
+                    const utc0Date = convertUTC7ToUTC0(
+                      editingPattern.appliedFrom
+                    );
                     if (utc0Date) {
                       return utc0Date.toLocaleDateString("vi-VN", {
                         year: "numeric",
@@ -5874,7 +6675,7 @@ const TutorProfile = ({
                 "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
                 "&.Mui-disabled": {
                   color: "rgba(0, 0, 0, 0.26)",
-                }
+                },
               }}
             >
               <FiChevronLeft />
@@ -5895,7 +6696,7 @@ const TutorProfile = ({
                 "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
                 "&.Mui-disabled": {
                   color: "rgba(0, 0, 0, 0.26)",
-                }
+                },
               }}
             >
               <FiChevronRight />
@@ -5905,19 +6706,56 @@ const TutorProfile = ({
         <DialogContent>
           {editPatternLoading ? (
             <Box sx={{ p: 2 }}>
-              <Box sx={{ display: "grid", gridTemplateColumns: "140px repeat(7, 1fr)", minWidth: "900px", gap: 1 }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "140px repeat(7, 1fr)",
+                  minWidth: "900px",
+                  gap: 1,
+                }}
+              >
                 {/* Header skeleton */}
-                <Box sx={{ p: 1.5, backgroundColor: "#e2e8f0", borderRadius: 1, height: 40 }} />
+                <Box
+                  sx={{
+                    p: 1.5,
+                    backgroundColor: "#e2e8f0",
+                    borderRadius: 1,
+                    height: 40,
+                  }}
+                />
                 {[1, 2, 3, 4, 5, 6, 7].map((index) => (
-                  <Box key={index} sx={{ p: 1.5, backgroundColor: "#e2e8f0", borderRadius: 1, height: 40 }} />
+                  <Box
+                    key={index}
+                    sx={{
+                      p: 1.5,
+                      backgroundColor: "#e2e8f0",
+                      borderRadius: 1,
+                      height: 40,
+                    }}
+                  />
                 ))}
-                
+
                 {/* Time slots skeleton */}
                 {Array.from({ length: 48 }).map((_, slotIdx) => (
                   <React.Fragment key={slotIdx}>
-                    <Box sx={{ p: 1, backgroundColor: "#e2e8f0", borderRadius: 1, height: 32 }} />
+                    <Box
+                      sx={{
+                        p: 1,
+                        backgroundColor: "#e2e8f0",
+                        borderRadius: 1,
+                        height: 32,
+                      }}
+                    />
                     {[1, 2, 3, 4, 5, 6, 7].map((dayIdx) => (
-                      <Box key={dayIdx} sx={{ p: 1, backgroundColor: "#e2e8f0", borderRadius: 1, height: 32 }} />
+                      <Box
+                        key={dayIdx}
+                        sx={{
+                          p: 1,
+                          backgroundColor: "#e2e8f0",
+                          borderRadius: 1,
+                          height: 32,
+                        }}
+                      />
                     ))}
                   </React.Fragment>
                 ))}
@@ -5985,13 +6823,16 @@ const TutorProfile = ({
 
                           // Check if this slot is in the past
                           const isPastSlot = isSlotInPast(
-                                editPatternWeekStart,
+                            editPatternWeekStart,
                             dayInWeek,
                             slotIdx
                           );
 
                           // Check if this slot is blocked
-                          const isBlockedSlot = isSlotBlocked(dayInWeek, slotIdx);
+                          const isBlockedSlot = isSlotBlocked(
+                            dayInWeek,
+                            slotIdx
+                          );
 
                           let bgColor = "#f1f5f9"; // Default background
                           let textColor = "inherit";
@@ -6036,7 +6877,7 @@ const TutorProfile = ({
                             textColor = "#6b7280";
                             cursor = "not-allowed";
                             opacity = 0.8;
-                            
+
                             // Add parallel slash pattern for blocked slots
                             overlayPattern = {
                               position: "relative",
@@ -6080,11 +6921,12 @@ const TutorProfile = ({
                                 cursor: cursor,
                                 opacity: opacity,
                                 transition: "background 0.2s",
-                                "&:hover": (isPastSlot || isBlockedSlot)
-                                  ? {}
-                                  : {
-                                      filter: "brightness(0.9)",
-                                    },
+                                "&:hover":
+                                  isPastSlot || isBlockedSlot
+                                    ? {}
+                                    : {
+                                        filter: "brightness(0.9)",
+                                      },
                                 ...overlayPattern,
                               }}
                               onClick={() => {
@@ -6100,15 +6942,30 @@ const TutorProfile = ({
                     );
                   })}
                 </Box>
-                
+
                 {/* Add blocked slots info after the calendar */}
                 {editPatternBlockedSlots.length > 0 && (
-                  <Box sx={{ mt: 2, p: 2, backgroundColor: "#fef3c7", borderRadius: 1, border: "1px solid #f59e0b" }}>
-                    <Typography variant="body2" sx={{ fontWeight: "medium", color: "#92400e", mb: 1 }}>
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      backgroundColor: "#fef3c7",
+                      borderRadius: 1,
+                      border: "1px solid #f59e0b",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: "medium", color: "#92400e", mb: 1 }}
+                    >
                       ⚠️ Khung giờ không thể chỉnh sửa
                     </Typography>
-                    <Typography variant="body2" sx={{ color: "#92400e", fontSize: "0.875rem" }}>
-                      Các khung giờ có gạch chéo màu xám đã được đặt lịch hoặc tạm giữ và không thể chỉnh sửa.
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#92400e", fontSize: "0.875rem" }}
+                    >
+                      Các khung giờ có gạch chéo màu xám đã được đặt lịch hoặc
+                      tạm giữ và không thể chỉnh sửa.
                     </Typography>
                   </Box>
                 )}
@@ -6293,7 +7150,7 @@ const TutorProfile = ({
                                 }}
                               >
                                 Xóa tất cả
-          </Button>
+                              </Button>
                             </motion.div>
                           </Box>
                         </motion.div>
@@ -6407,7 +7264,9 @@ const TutorProfile = ({
         title="Xác nhận xóa lịch trình"
         description={
           patternToDelete
-            ? `Bạn có chắc chắn muốn xóa lịch trình bắt đầu từ ngày ${formatDate(patternToDelete.appliedFrom)} không? Hành động này không thể hoàn tác.`
+            ? `Bạn có chắc chắn muốn xóa lịch trình bắt đầu từ ngày ${formatDate(
+                patternToDelete.appliedFrom
+              )} không? Hành động này không thể hoàn tác.`
             : "Bạn có chắc chắn muốn xóa lịch trình này không? Hành động này không thể hoàn tác."
         }
         confirmText="Xóa"
@@ -7617,9 +8476,9 @@ const TutorProfile = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCalendarInputDialogOpen(false)}>Hủy</Button>
-          <Button 
-            variant="contained" 
-            onClick={handleCalendarInputConfirm} 
+          <Button
+            variant="contained"
+            onClick={handleCalendarInputConfirm}
             disabled={!selectedAppliedFromDate}
           >
             Xác nhận
@@ -7642,12 +8501,25 @@ const TutorProfile = ({
         }}
       >
         <DialogTitle sx={{ pb: 1, borderBottom: "1px solid #e2e8f0" }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1e293b" }}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold", color: "#1e293b" }}
+              >
                 Chi tiết lịch trình tuần
               </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                sx={{ mt: 0.5 }}
+              >
                 Xem chi tiết các khung giờ có sẵn trong lịch trình này
               </Typography>
             </Box>
@@ -7660,7 +8532,7 @@ const TutorProfile = ({
                   "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
                   "&.Mui-disabled": {
                     color: "rgba(0, 0, 0, 0.26)",
-                  }
+                  },
                 }}
               >
                 <FiChevronLeft />
@@ -7681,18 +8553,18 @@ const TutorProfile = ({
                   "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.04)" },
                   "&.Mui-disabled": {
                     color: "rgba(0, 0, 0, 0.26)",
-                  }
+                  },
                 }}
               >
                 <FiChevronRight />
               </IconButton>
               <IconButton
                 onClick={handleClosePatternDetailDialog}
-                sx={{ 
+                sx={{
                   color: "#64748b",
                   "&:hover": {
                     backgroundColor: "#f1f5f9",
-                  }
+                  },
                 }}
               >
                 <FiX />
@@ -7700,7 +8572,7 @@ const TutorProfile = ({
             </Box>
           </Box>
         </DialogTitle>
-        
+
         <DialogContent sx={{ pt: 2, pb: 0 }}>
           {patternDetailLoading ? (
             <PatternDetailCalendarSkeleton />
@@ -7712,17 +8584,17 @@ const TutorProfile = ({
             renderPatternDetailCalendar()
           )}
         </DialogContent>
-        
+
         <DialogActions sx={{ p: 2, pt: 1, borderTop: "1px solid #e2e8f0" }}>
           <Button
             onClick={handleClosePatternDetailDialog}
             variant="outlined"
-            sx={{ 
+            sx={{
               borderRadius: 2,
               textTransform: "none",
               fontWeight: 500,
               px: 3,
-              mr: 1
+              mr: 1,
             }}
           >
             HỦY
@@ -7730,15 +8602,15 @@ const TutorProfile = ({
           <Button
             onClick={handleClosePatternDetailDialog}
             variant="contained"
-            sx={{ 
+            sx={{
               borderRadius: 2,
               textTransform: "none",
               fontWeight: 500,
               px: 3,
               backgroundColor: "#3b82f6",
               "&:hover": {
-                backgroundColor: "#2563eb"
-              }
+                backgroundColor: "#2563eb",
+              },
             }}
           >
             ĐÓNG
