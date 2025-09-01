@@ -805,6 +805,8 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
     }
   };
 
+  // Sử dụng chung hàm getStatusText và getStatusColor cho cả application và lịch sử
+
   const getStatusColor = (status) => {
     switch (status) {
       case 0: return "#6b7280"; // gray - chưa nộp
@@ -1603,9 +1605,21 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                             <ListItemText
                               primary={
                                 <Box component="div" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }} component="div">
-                                    {getStatusText(revision.status)}
-                                  </Typography>
+                                  <Box component="div" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                    <Box
+                                      component="div"
+                                      sx={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: "50%",
+                                        backgroundColor: getStatusColor(revision.status),
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                                                         <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }} component="div">
+                                       {getStatusText(revision.status)}
+                                     </Typography>
+                                  </Box>
                                   <Typography variant="caption" color="textSecondary" component="div">
                                     {new Date(revision.createdTime).toLocaleDateString('vi-VN')}
                                   </Typography>
@@ -1613,9 +1627,19 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                               }
                               secondary={
                                 <Box component="div" sx={{ mt: 1 }}>
-                                  <Typography variant="body2" color="textSecondary" component="div">
-                                    {revision.revisionNotes}
-                                  </Typography>
+                                  {revision.revisionNotes ? (
+                                    <Typography variant="body2" color="textSecondary" component="div">
+                                      {revision.revisionNotes}
+                                    </Typography>
+                                  ) : (
+                                                                         <Typography variant="body2" color="textSecondary" component="div" sx={{ fontStyle: 'italic' }}>
+                                       {revision.status === 0 ? "Chưa đủ tài liệu" : 
+                                        revision.status === 1 ? "Đủ tài liệu" :
+                                        revision.status === 2 ? "Yêu cầu bổ sung thông tin từ staff" : 
+                                        revision.status === 4 ? "Đơn đăng ký đã được phê duyệt" :
+                                        "Không có ghi chú"}
+                                     </Typography>
+                                  )}
                                 </Box>
                               }
                             />

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { getLegalDocumentByCategory, getLegalDocumentVersionById } from '../api/auth';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
-import '../admin/LegalDocumentManagement.css';
+import '../manager/LegalDocumentManagement.css';
 
 const LegalDocumentModal = ({ isOpen, onClose, category }) => {
   const [document, setDocument] = useState(null);

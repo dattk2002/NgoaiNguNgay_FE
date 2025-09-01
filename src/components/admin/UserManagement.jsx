@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { adminManageUsers, adminDeleteUsers } from '../api/auth';
+import { adminManageUsers, adminToggleUserStatus } from '../api/auth';
+import ConfirmDialog from '../modals/ConfirmDialog';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const UserManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -7,23 +10,36 @@ const UserManagement = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [processingUser, setProcessingUser] = useState(null); // Track which user is being processed
+    const [processingUser, setProcessingUser] = useState(null); // Track which user is being processed for status toggle
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [userToToggle, setUserToToggle] = useState(null);
+    const [pageLoading, setPageLoading] = useState(false); // Track pagination loading separately
     const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 0,
         totalItems: 0,
         pageSize: 10
     });
+    const [activeUsersCount, setActiveUsersCount] = useState(0);
+    const [inactiveUsersCount, setInactiveUsersCount] = useState(0);
     const [filters, setFilters] = useState({
         Name: '',
         IsActive: null,
         Role: ''
     });
+    const [statsLoading, setStatsLoading] = useState(false);
 
     // Fetch users data
     const fetchUsers = async (pageIndex = 0) => {
         try {
-            setLoading(true);
+            console.log('🔍 fetchUsers called with:', { pageIndex, userFilter });
+            
+            // Use pageLoading for pagination, loading for initial load
+            if (pageIndex === 0) {
+                setLoading(true);
+            } else {
+                setPageLoading(true);
+            }
             setError(null);
             
             const params = {
@@ -46,63 +62,237 @@ const UserManagement = () => {
             
             if (response && response.data) {
                 setUsers(response.data.items || []);
-                setPagination({
-                    currentPage: response.data.currentPageNumber || 1,
+                
+                // Update pagination with response data, but preserve currentPage if it's a manual page change
+                setPagination(prev => ({
+                    currentPage: response.data.currentPageNumber || prev.currentPage || 1,
                     totalPages: response.data.totalPages || 0,
                     totalItems: response.data.totalItems || 0,
-                    pageSize: response.data.pageSize || 10
-                });
+                    pageSize: response.data.pageSize || prev.pageSize || 10
+                }));
+
+                // Calculate and update active/inactive users count
+                if (response.data.items && response.data.items.length > 0) {
+                    // Always calculate from the current page data for display
+                    const activeCount = response.data.items.filter(user => user.isActive).length;
+                    const inactiveCount = response.data.items.filter(user => !user.isActive).length;
+                    
+                    // Update counts based on current filter
+                    if (userFilter === 'active') {
+                        setActiveUsersCount(response.data.totalItems || 0);
+                        setInactiveUsersCount(0);
+                    } else if (userFilter === 'disabled') {
+                        setActiveUsersCount(0);
+                        setInactiveUsersCount(response.data.totalItems || 0);
+                    } else {
+                        // If no filter, we need to get the total counts from all users
+                        // Call fetchAllUsersForCounts to get accurate counts
+                        fetchAllUsersForCounts();
+                    }
+                }
             }
         } catch (err) {
             console.error('Failed to fetch users:', err);
             setError(err.message);
         } finally {
             setLoading(false);
+            setPageLoading(false);
+        }
+    };
+
+    // Function to fetch all users for accurate counting
+    const fetchAllUsersForCounts = async () => {
+        try {
+            console.log('🔍 fetchAllUsersForCounts called');
+            setError(null);
+            
+            const params = {
+                PageIndex: 0,
+                PageSize: 10000, // Fetch a very large number to get all users
+                ...filters
+            };
+
+            // Add search term to Name filter if provided
+            if (searchTerm) {
+                params.Name = searchTerm;
+            }
+
+            // Add active filter if not "all"
+            if (userFilter !== 'all') {
+                params.IsActive = userFilter === 'active';
+            }
+
+            const response = await adminManageUsers(params);
+            
+            if (response && response.data) {
+                const allUsers = response.data.items || [];
+                const totalActive = allUsers.filter(user => user.isActive).length;
+                const totalInactive = allUsers.filter(user => !user.isActive).length;
+                
+                console.log('🔍 fetchAllUsersForCounts - Total users:', allUsers.length);
+                console.log('🔍 fetchAllUsersForCounts - Active count:', totalActive);
+                console.log('🔍 fetchAllUsersForCounts - Inactive count:', totalInactive);
+                
+                setActiveUsersCount(totalActive);
+                setInactiveUsersCount(totalInactive);
+            }
+        } catch (err) {
+            console.error('Failed to fetch all users for counts:', err);
+            setError(err.message);
+        }
+    };
+
+    // Function to fetch users for display only (without updating counts)
+    const fetchUsersForDisplay = async (pageIndex = 0) => {
+        try {
+            setPageLoading(true);
+            setError(null);
+            
+            const params = {
+                PageIndex: pageIndex,
+                PageSize: pagination.pageSize,
+                ...filters
+            };
+
+            // Add search term to Name filter if provided
+            if (searchTerm) {
+                params.Name = searchTerm;
+            }
+
+            // Add active filter if not "all"
+            if (userFilter !== 'all') {
+                params.IsActive = userFilter === 'active';
+            }
+
+            const response = await adminManageUsers(params);
+            
+            if (response && response.data) {
+                setUsers(response.data.items || []);
+                
+                // Update pagination with response data, but preserve currentPage if it's a manual page change
+                setPagination(prev => ({
+                    currentPage: response.data.currentPageNumber || prev.currentPage || 1,
+                    totalPages: response.data.totalPages || 0,
+                    totalItems: response.data.totalItems || 0,
+                    pageSize: response.data.pageSize || prev.pageSize || 10
+                }));
+
+                // DON'T update counts here - keep the manually updated counts
+            }
+        } catch (err) {
+            console.error('Failed to fetch users for display:', err);
+            setError(err.message);
+        } finally {
+            setPageLoading(false);
         }
     };
 
     // Initial data fetch
     useEffect(() => {
-        fetchUsers();
+        // First fetch all users to get accurate counts
+        fetchAllUsersForCounts(); // Fetch all for initial counts
+        // Then fetch the first page for display
+        fetchUsers(0); // Fetch for display
     }, []);
+
+    // Count users from fetched data
+    const getTotalUsersCount = () => {
+        return pagination.totalItems;
+    };
+
+    const getActiveUsersCount = () => {
+        // Return the tracked active users count
+        return activeUsersCount;
+    };
+
+    const getInactiveUsersCount = () => {
+        // Return the tracked inactive users count
+        return inactiveUsersCount;
+    };
 
     // Handle search and filter changes
     const handleSearchAndFilter = () => {
-        fetchUsers(0); // Reset to first page when searching/filtering
+        // Reset to first page when searching/filtering
+        // This should update counts since it's a new search/filter
+        fetchUsers(0);
+        // Also fetch all users to get accurate counts for the new filter
+        fetchAllUsersForCounts();
     };
 
     // Handle pagination
     const handlePageChange = (newPage) => {
+        // Update current page first
+        setPagination(prev => ({
+            ...prev,
+            currentPage: newPage
+        }));
+        
         const pageIndex = newPage - 1; // Convert to 0-based index
-        fetchUsers(pageIndex);
+        // Use fetchUsersForDisplay to avoid overwriting counts
+        fetchUsersForDisplay(pageIndex);
     };
 
-    const handleDisableUser = async (userId) => {
-        try {
-            setProcessingUser(userId);
-            
-            // Show confirmation dialog
-            const isConfirmed = window.confirm(
-                'Bạn có chắc chắn muốn vô hiệu hóa người dùng này không? Hành động này có thể không thể hoàn tác.'
-            );
-            
-            if (!isConfirmed) {
-                return;
-            }
+    const handleToggleUserStatus = (userId, currentStatus) => {
+        const newStatus = !currentStatus;
+        const actionText = newStatus ? 'kích hoạt' : 'vô hiệu hóa';
+        
+        setUserToToggle({
+            id: userId,
+            currentStatus: currentStatus,
+            newStatus: newStatus,
+            actionText: actionText
+        });
+        setConfirmModalOpen(true);
+    };
 
-            await adminDeleteUsers(userId);
+    const confirmToggleUserStatus = async () => {
+        if (!userToToggle) return;
+        
+        try {
+            setProcessingUser(userToToggle.id);
+            setConfirmModalOpen(false);
             
-            // Refresh the user list to reflect the changes
-            await fetchUsers(pagination.currentPage - 1);
+            await adminToggleUserStatus(userToToggle.id, userToToggle.newStatus);
             
-            // Show success message
-            alert('Người dùng đã được vô hiệu hóa thành công!');
+            // Update counts immediately based on the action
+            if (userToToggle.newStatus) {
+                // User was activated
+                setActiveUsersCount(prev => prev + 1);
+                setInactiveUsersCount(prev => Math.max(0, prev - 1));
+            } else {
+                // User was deactivated
+                setActiveUsersCount(prev => Math.max(0, prev - 1));
+                setInactiveUsersCount(prev => prev + 1);
+            }
+            
+            // Refresh the user list to reflect the changes, keep current page
+            // But don't update the counts again to avoid overwriting our manual updates
+            await fetchUsersForDisplay(pagination.currentPage - 1);
+            
+            // Show success toast
+            toast.success(`Người dùng đã được ${userToToggle.actionText} thành công!`, {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
             
         } catch (err) {
-            console.error('Failed to disable user:', err);
-            alert(`Lỗi khi vô hiệu hóa người dùng: ${err.message}`);
+            console.error('Failed to toggle user status:', err.message);
+            // Show error toast
+            toast.error(`Lỗi khi ${userToToggle.actionText} người dùng: ${err.message}`, {
+                position: "top-right",
+                autoClose: 4000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
         } finally {
             setProcessingUser(null);
+            setUserToToggle(null);
         }
     };
 
@@ -259,14 +449,14 @@ const UserManagement = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{pagination.totalItems}</div>
+                        <div className="text-2xl font-bold text-blue-600">{getTotalUsersCount()}</div>
                         <div className="text-sm text-gray-600">Tổng người dùng</div>
                     </div>
                 </div>
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="text-center">
                         <div className="text-2xl font-bold text-green-600">
-                            {users.filter(user => user.isActive).length}
+                            {getActiveUsersCount()}
                         </div>
                         <div className="text-sm text-gray-600">Đang hoạt động</div>
                     </div>
@@ -274,7 +464,7 @@ const UserManagement = () => {
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="text-center">
                         <div className="text-2xl font-bold text-red-600">
-                            {users.filter(user => !user.isActive).length}
+                            {getInactiveUsersCount()}
                         </div>
                         <div className="text-sm text-gray-600">Bị vô hiệu hóa</div>
                     </div>
@@ -285,7 +475,7 @@ const UserManagement = () => {
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200">
                     <h3 className="text-lg font-medium text-gray-900">
-                        Danh sách người dùng ({pagination.totalItems})
+                        Danh sách người dùng ({getTotalUsersCount()})
                     </h3>
                 </div>
                 <div className="overflow-x-auto">
@@ -361,7 +551,7 @@ const UserManagement = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <button
-                                            onClick={() => handleDisableUser(user.id)}
+                                            onClick={() => handleToggleUserStatus(user.id, user.isActive)}
                                             disabled={processingUser === user.id}
                                             className={`text-sm font-medium mr-4 ${
                                                 user.isActive
@@ -398,26 +588,60 @@ const UserManagement = () => {
                             <div className="flex items-center space-x-2">
                                 <button
                                     onClick={() => handlePageChange(pagination.currentPage - 1)}
-                                    disabled={pagination.currentPage <= 1}
-                                    className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                    disabled={pagination.currentPage <= 1 || pageLoading}
+                                    className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-black"
                                 >
-                                    Trước
+                                    {pageLoading ? 'Đang tải...' : 'Trước'}
                                 </button>
                                 <span className="px-3 py-1 text-sm text-gray-700">
                                     Trang {pagination.currentPage} / {pagination.totalPages}
+                                    {pageLoading && <span className="ml-2 text-blue-600">Đang tải...</span>}
                                 </span>
                                 <button
                                     onClick={() => handlePageChange(pagination.currentPage + 1)}
-                                    disabled={pagination.currentPage >= pagination.totalPages}
-                                    className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                    disabled={pagination.currentPage >= pagination.totalPages || pageLoading}
+                                    className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-black"
                                 >
-                                    Sau
+                                    {pageLoading ? 'Đang tải...' : 'Sau'}
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* Confirm Modal */}
+            <ConfirmDialog
+                open={confirmModalOpen}
+                onClose={() => {
+                    setConfirmModalOpen(false);
+                    setUserToToggle(null);
+                }}
+                onConfirm={confirmToggleUserStatus}
+                title="Xác nhận thay đổi trạng thái"
+                description={
+                    userToToggle
+                        ? `Bạn có chắc chắn muốn ${userToToggle.actionText} người dùng này không?`
+                        : "Bạn có chắc chắn muốn thay đổi trạng thái người dùng này không?"
+                }
+                confirmText="Xác nhận"
+                cancelText="Hủy"
+                confirmColor="primary"
+            />
+
+            {/* Toast Container */}
+            <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+            />
         </div>
     );
 };
