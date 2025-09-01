@@ -122,7 +122,7 @@ const getBookingStatusFromAPI = (status) => {
 const getSlotStatusInfo = (status) => {
   switch (status) {
     case 0: // Pending
-      return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
+      return { text: 'Đang diễn ra', color: 'bg-yellow-100 text-yellow-700' };
     case 1: // AwaitingConfirmation  
       return { text: 'Hoàn thành, đợi 24h', color: 'bg-blue-100 text-blue-700' };
     case 2: // Completed
@@ -131,6 +131,24 @@ const getSlotStatusInfo = (status) => {
       return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
     case 4: // CancelledDisputed
       return { text: 'Đang bị báo cáo', color: 'bg-orange-100 text-orange-700' };
+    default:
+      return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
+  }
+};
+
+// Helper function to get held fund status text and color
+const getHeldFundStatusInfo = (status) => {
+  switch (status) {
+    case 0: // Tiền đang được giữ
+      return { text: 'Tiền đang được giữ', color: 'bg-blue-100 text-blue-700' };
+    case 1: // Tiền đã được chuyển cho gia sư
+      return { text: 'Tiền đã được chuyển cho gia sư', color: 'bg-green-100 text-green-700' };
+    case 2: // Tiền đã được hoàn trả cho học viên
+      return { text: 'Tiền đã được hoàn trả cho học viên', color: 'bg-orange-100 text-orange-700' };
+    case 3: // Tiền đang trong trạng thái tranh chấp
+      return { text: 'Tiền đang trong trạng thái tranh chấp', color: 'bg-red-100 text-red-700' };
+    case 4: // Tiền đã được chuyển về tài khoản của gia sư
+      return { text: 'Tiền đã được chuyển về tài khoản của gia sư', color: 'bg-purple-100 text-purple-700' };
     default:
       return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
   }
@@ -722,9 +740,16 @@ const ScheduleTracking = () => {
                                       {index + 1}
                                     </div>
                                                                       <div>
-                                    <p className="font-medium text-gray-900">
-                                      {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
-                                    </p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="font-medium text-gray-900">
+                                        {formatSlotDateTime(slot.slotIndex - 1, slot.bookedDate)}
+                                      </p>
+                                      {slot.heldFund && (
+                                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getHeldFundStatusInfo(slot.heldFund.status).color}`}>
+                                          {getHeldFundStatusInfo(slot.heldFund.status).text}
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="flex items-center gap-4 text-sm text-gray-600">
                                       <span className="flex items-center gap-1">
                                         <FaCalendarAlt className="w-3 h-3" />
@@ -743,11 +768,6 @@ const ScheduleTracking = () => {
                                       <span className={`px-3 py-1 text-xs rounded-full font-medium ${statusInfo.color}`}>
                                         {statusInfo.text}
                                       </span>
-                                      {slot.heldFundId && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          Fund ID: {slot.heldFundId}
-                                        </div>
-                                      )}
                                     </div>
                                     {slot.status === 0 && ( // Show complete button only for "Đang chờ" status
                                       <button

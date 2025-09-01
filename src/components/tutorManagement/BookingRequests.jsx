@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { tutorBookingList, tutorCancelBookingByBookingId, fetchBookingDetailbyBookingId } from '../api/auth';
+import { tutorBookingList, tutorCancelBookingByBookingId, fetchBookingDetailbyBookingId, viewRescheduleRequests } from '../api/auth';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,6 +7,8 @@ import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatSlotTime } from '../../utils/formatSlotTime';
 import { formatTutorDate } from '../../utils/formatTutorDate';
+import RescheduleUpdateModal from './RescheduleUpdateModal';
+import { FaEye, FaClock, FaInfoCircle, FaCalendarAlt } from 'react-icons/fa';
 
 const BookingRequests = () => {
   const [bookings, setBookings] = useState([]);
@@ -28,12 +30,17 @@ const BookingRequests = () => {
   const [bookingDetail, setBookingDetail] = useState(null);
   const [loadingBookingDetail, setLoadingBookingDetail] = useState(false);
 
+  // States for reschedule modal
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [selectedBookingForReschedule, setSelectedBookingForReschedule] = useState(null);
+
   // Booking status mapping
   const bookingStatusMap = {
-    0: "Đã xác nhận",
-    1: "Đã yêu cầu khiếu nại", 
-    2: "Đang tranh chấp",
-    3: "Đã hủy"
+    0: "Đang diễn ra",
+    1: "Hoàn thành, đợi 24h", 
+    2: "Đã hoàn thành",
+    3: "Đã hủy",
+    4: "Đang bị báo cáo"
   };
 
   // Held fund status mapping (assuming similar structure)
@@ -43,6 +50,21 @@ const BookingRequests = () => {
     2: "Đang tranh chấp",
     3: "Đã hủy"
   };
+
+  // States for reschedule requests
+  const [rescheduleRequests, setRescheduleRequests] = useState([]);
+  const [loadingRescheduleRequests, setLoadingRescheduleRequests] = useState(false);
+
+  // Thêm state để quản lý modal hiển thị danh sách slot đã book
+  const [showBookedSlotsModal, setShowBookedSlotsModal] = useState(false);
+  const [selectedBookingForSlotList, setSelectedBookingForSlotList] = useState(null);
+
+  // Thêm state để lưu trữ booked slots cho modal
+  const [bookedSlotsForModal, setBookedSlotsForModal] = useState([]);
+  const [loadingBookedSlots, setLoadingBookedSlots] = useState(false);
+
+  // Thêm state để lưu trữ slot gốc được chọn để thay đổi
+  const [selectedOriginalSlot, setSelectedOriginalSlot] = useState(null);
 
   // Function to sort booked slots by time (slotIndex)
   const sortBookedSlotsByTime = (slots) => {
@@ -61,6 +83,38 @@ const BookingRequests = () => {
   // Function to get held fund status text
   const getHeldFundStatusText = (status) => {
     return heldFundStatusMap[status] || "Không xác định";
+  };
+
+  // Function to get reschedule request status text
+  const getRescheduleRequestStatusText = (status) => {
+    switch (status) {
+      case 0:
+        return "Chờ phản hồi";
+      case 1:
+        return "Đã chấp nhận";
+      case 2:
+        return "Đã từ chối";
+      case 3:
+        return "Đã hủy";
+      default:
+        return "Không xác định";
+    }
+  };
+
+  // Function to get reschedule request status color
+  const getRescheduleRequestStatusColor = (status) => {
+    switch (status) {
+      case 0:
+        return "bg-yellow-100 text-yellow-800 border border-yellow-200";
+      case 1:
+        return "bg-green-100 text-green-800 border border-green-200";
+      case 2:
+        return "bg-red-100 text-red-800 border border-red-200";
+      case 3:
+        return "bg-gray-100 text-gray-800 border border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-800 border border-gray-200";
+    }
   };
 
   // Load bookings
@@ -119,17 +173,83 @@ const BookingRequests = () => {
     setBookingDetailModalOpen(true);
     setLoadingBookingDetail(true);
     setBookingDetail(null);
+    setRescheduleRequests([]);
 
     try {
       const response = await fetchBookingDetailbyBookingId(booking.id);
       console.log('✅ Booking detail response:', response);
       setBookingDetail(response.data);
+      
+      // Fetch reschedule requests for this booking
+      await fetchRescheduleRequestsForBooking(booking.id);
     } catch (error) {
       console.error('Error fetching booking detail:', error);
       toast.error("Không thể tải thông tin chi tiết booking. Vui lòng thử lại!");
     } finally {
       setLoadingBookingDetail(false);
     }
+  };
+
+  // Fetch reschedule requests for a specific booking
+  const fetchRescheduleRequestsForBooking = async (bookingId) => {
+    try {
+      setLoadingRescheduleRequests(true);
+      const response = await viewRescheduleRequests({ pageIndex: 0, pageSize: 100 });
+      
+      if (response && response.data && response.data.items) {
+        // Filter reschedule requests for this specific booking
+        const bookingRescheduleRequests = response.data.items.filter(request => {
+          // Check if request belongs to this booking
+          return request.bookingId === bookingId || 
+                 (bookingDetail && bookingDetail.bookedSlots && 
+                  bookingDetail.bookedSlots.some(slot => request.bookedSlotId === slot.id));
+        });
+        
+        setRescheduleRequests(bookingRescheduleRequests);
+        console.log('✅ Reschedule requests for booking:', bookingRescheduleRequests);
+      }
+    } catch (error) {
+      console.error('Error fetching reschedule requests:', error);
+      setRescheduleRequests([]);
+    } finally {
+      setLoadingRescheduleRequests(false);
+    }
+  };
+
+  // Handle open reschedule modal
+  const handleOpenRescheduleModal = async (booking) => {
+    setSelectedBookingForSlotList(booking);
+    setLoadingBookedSlots(true);
+    setBookedSlotsForModal([]);
+    setShowBookedSlotsModal(true);
+
+    try {
+      // Fetch booking detail để lấy booked slots
+      const response = await fetchBookingDetailbyBookingId(booking.id);
+      console.log('✅ Booking detail for modal:', response);
+      
+      if (response && response.data && response.data.bookedSlots) {
+        setBookedSlotsForModal(response.data.bookedSlots);
+      } else {
+        setBookedSlotsForModal([]);
+      }
+    } catch (error) {
+      console.error('Error fetching booking detail for modal:', error);
+      toast.error("Không thể tải thông tin chi tiết booking. Vui lòng thử lại!");
+      setBookedSlotsForModal([]);
+    } finally {
+      setLoadingBookedSlots(false);
+    }
+  };
+
+  // Thêm hàm để mở RescheduleUpdateModal cho slot cụ thể
+  const handleOpenRescheduleForSlot = (booking, slot) => {
+    console.log(" Opening reschedule modal for slot:", slot);
+    setSelectedBookingForReschedule(booking);
+    setSelectedOriginalSlot(slot); // Lưu slot gốc được chọn
+    setSelectedBookingForSlotList(null);
+    setShowBookedSlotsModal(false);
+    setRescheduleModalOpen(true);
   };
 
   // Handle confirm cancel booking
@@ -380,6 +500,21 @@ const BookingRequests = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                           Chi tiết
+                        </NoFocusOutLineButton>
+                        <NoFocusOutLineButton
+                          onClick={() => handleOpenRescheduleModal(booking)}
+                          disabled={booking.status !== 0}
+                          className={`inline-flex items-center px-4 py-2 border rounded-lg text-sm font-medium transition-all duration-200 shadow-sm ${
+                            booking.status !== 0
+                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                              : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'
+                          }`}
+                          title={booking.status !== 0 ? "Chỉ có thể thay đổi lịch khi booking đang diễn ra" : "Thay đổi lịch booking"}
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                          </svg>
+                          Đề xuất thay đổi
                         </NoFocusOutLineButton>
                         <NoFocusOutLineButton
                           onClick={() => handleCancelBooking(booking)}
@@ -664,9 +799,7 @@ const BookingRequests = () => {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
+                      <FaEye className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="text-2xl font-bold">Chi tiết booking</h3>
@@ -1028,8 +1161,136 @@ const BookingRequests = () => {
                       </div>
                     )}
 
-                    {/* Additional Information */}
-                    {bookingDetail.note && (
+                    {/* Reschedule Requests Section */}
+                    {rescheduleRequests.length > 0 && (
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-4">
+                          <h4 className="text-lg font-bold text-white flex items-center">
+                            <FaClock className="w-5 h-5 mr-2" />
+                            Các slot đề xuất thay đổi ({rescheduleRequests.length})
+                          </h4>
+                        </div>
+                        <div className="p-6">
+                          <div className="space-y-4">
+                            {rescheduleRequests.map((request, index) => {
+                              // Helper function to format slot time from slotIndex
+                              const formatSlotTimeFromIndex = (slotIndex) => {
+                                if (slotIndex === undefined || slotIndex === null) return 'N/A';
+                                const hour = Math.floor(slotIndex / 2);
+                                const minute = slotIndex % 2 === 0 ? 0 : 30;
+                                const nextHour = slotIndex % 2 === 0 ? hour : hour + 1;
+                                const nextMinute = slotIndex % 2 === 0 ? 30 : 0;
+                                
+                                const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                                const endTime = `${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`;
+                                
+                                return `${startTime} - ${endTime}`;
+                              };
+
+                              // Helper function to format date from slotDateTime
+                              const formatDateFromSlotDateTime = (slotDateTime) => {
+                                if (!slotDateTime) return 'N/A';
+                                try {
+                                  const date = new Date(slotDateTime);
+                                  return formatTutorDate(date);
+                                } catch (error) {
+                                  return 'N/A';
+                                }
+                              };
+                              
+                              // Get slot information from offeredSlots
+                              const offeredSlot = request.offeredSlots && request.offeredSlots.length > 0 ? request.offeredSlots[0] : null;
+                              
+                              return (
+                                <div key={request.id} className="bg-orange-50 rounded-xl p-6 border border-orange-200">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                        <span className="text-orange-600 font-bold">{index + 1}</span>
+                                      </div>
+                                      <div>
+                                        <h5 className="text-lg font-bold text-gray-900">
+                                          {offeredSlot ? formatDateFromSlotDateTime(offeredSlot.slotDateTime) : 'N/A'} {offeredSlot ? formatSlotTimeFromIndex(offeredSlot.slotIndex) : 'N/A'}
+                                        </h5>
+                                        <p className="text-gray-600">
+                                          Slot {offeredSlot ? offeredSlot.slotIndex : 'N/A'} • Đề xuất thay đổi
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      {/* Status Badge */}
+                                      <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getRescheduleRequestStatusColor(request.status)}`}>
+                                        {getRescheduleRequestStatusText(request.status)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Request Details */}
+                                  <div className="bg-white rounded-lg p-4 border border-orange-200">
+                                    <h6 className="text-sm font-bold text-gray-700 mb-3 flex items-center">
+                                      <FaInfoCircle className="w-4 h-4 mr-2 text-orange-500" />
+                                      Thông tin yêu cầu thay đổi
+                                    </h6>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-gray-500 font-medium">Lý do thay đổi</p>
+                                        <p className="text-sm font-semibold text-gray-900">{request.reason || 'Không có lý do'}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-gray-500 font-medium">Ngày tạo yêu cầu</p>
+                                        <p className="text-sm text-gray-900">
+                                          {request.createdAt ? formatTutorDate(request.createdAt) : 'N/A'}
+                                        </p>
+                                      </div>
+                                      {request.updatedTime && (
+                                        <div className="space-y-1">
+                                          <p className="text-xs text-gray-500 font-medium">Ngày cập nhật</p>
+                                          <p className="text-sm text-gray-900">
+                                            {formatTutorDate(request.updatedTime)}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {request.learnerResponse && (
+                                        <div className="space-y-1">
+                                          <p className="text-xs text-gray-500 font-medium">Phản hồi học viên</p>
+                                          <p className="text-sm text-gray-900">{request.learnerResponse}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Original Slot Information - Show slot details instead of just ID */}
+                                  {request.bookedSlotId && (
+                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-sm text-blue-800">
+                                            <span className="font-medium">Slot gốc:</span> 
+                                            {(() => {
+                                              // Try to find the original slot from bookingDetail
+                                              if (bookingDetail && bookingDetail.bookedSlots) {
+                                                const originalSlot = bookingDetail.bookedSlots.find(slot => slot.id === request.bookedSlotId);
+                                                if (originalSlot) {
+                                                  return ` Slot ${originalSlot.slotIndex !== undefined ? originalSlot.slotIndex : 'N/A'} • ${originalSlot.bookedDate ? formatTutorDate(originalSlot.bookedDate) : 'N/A'} • ${originalSlot.slotIndex !== undefined ? formatSlotTime(originalSlot.slotIndex) : 'N/A'}`;
+                                                }
+                                              }
+                                              return ` ID: ${request.bookedSlotId}`;
+                                            })()}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Information - Only show if there's a note and no reschedule requests */}
+                    {bookingDetail.note && rescheduleRequests.length === 0 && (
                       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                         <div className="bg-gradient-to-r from-gray-500 to-gray-600 p-4">
                           <h4 className="text-lg font-bold text-white flex items-center">
@@ -1077,6 +1338,215 @@ const BookingRequests = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Reschedule Detail Modal */}
+      <AnimatePresence>
+        {rescheduleModalOpen && selectedBookingForReschedule && selectedOriginalSlot && (
+          <RescheduleUpdateModal
+            booking={selectedBookingForReschedule}
+            selectedOriginalSlot={selectedOriginalSlot} // Truyền slot gốc được chọn
+            onClose={() => {
+              setRescheduleModalOpen(false);
+              setSelectedBookingForReschedule(null);
+              setSelectedOriginalSlot(null); // Reset slot gốc
+            }}
+            onSuccess={() => {
+              // Reload bookings after successful reschedule
+              loadBookings();
+              setSelectedOriginalSlot(null); // Reset slot gốc
+            }}
+          />
+        )}
+      </AnimatePresence>
+       
+      {/* Booked Slots List Modal */}
+      <AnimatePresence>
+        {showBookedSlotsModal && selectedBookingForSlotList && (
+          <motion.div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[1000] p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowBookedSlotsModal(false)}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden relative"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white p-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                      <FaClock className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold">Các slot đã book ({bookedSlotsForModal.length})</h3>
+                      <p className="text-blue-100 text-sm">Chọn slot để thay đổi lịch</p>
+                    </div>
+                  </div>
+                  <NoFocusOutLineButton
+                    className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10"
+                    onClick={() => setShowBookedSlotsModal(false)}
+                    aria-label="Close modal"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </NoFocusOutLineButton>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
+                {loadingBookedSlots ? (
+                  // Loading state
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }, (_, index) => (
+                      <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                            <div className="flex-1">
+                              <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" style={{ width: '150px' }}></div>
+                              <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '200px' }}></div>
+                            </div>
+                          </div>
+                          <div className="h-6 bg-gray-200 rounded-full animate-pulse" style={{ width: '100px' }}></div>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
+                          <div className="h-4 bg-gray-200 rounded animate-pulse mb-3" style={{ width: '140px' }}></div>
+                          <div className="grid grid-cols-3 gap-4">
+                            {[1, 2, 3].map((subIndex) => (
+                              <div key={subIndex} className="space-y-1">
+                                <div className="h-2 bg-gray-200 rounded animate-pulse" style={{ width: '50px' }}></div>
+                                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '70px' }}></div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <div className="h-9 bg-gray-200 rounded-lg animate-pulse" style={{ width: '120px' }}></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : bookedSlotsForModal.length > 0 ? (
+                  <div className="space-y-4">
+                    {sortBookedSlotsByTime(bookedSlotsForModal).map((slot, index) => (
+                      <div key={slot.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                              <span className="text-teal-600 font-bold">{index + 1}</span>
+                            </div>
+                            <div>
+                              <h5 className="text-lg font-bold text-gray-900">
+                                {slot.slotIndex !== undefined ? formatSlotTime(slot.slotIndex) : 'N/A'}
+                              </h5>
+                              <p className="text-gray-600">
+                                Slot {slot.slotIndex !== undefined ? slot.slotIndex : 'N/A'} • {slot.bookedDate ? formatTutorDate(slot.bookedDate) : 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <StatusTag status={slot.status} />
+                            {/* Hiển thị trạng thái có thể thay đổi lịch hay không */}
+                            {slot.status === 0 ? (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                                Có thể thay đổi
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                                Không thể thay đổi
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Held Fund Information */}
+                        {slot.heldFund && (
+                          <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
+                            <h6 className="text-sm font-bold text-gray-700 mb-3 flex items-center">
+                              <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                              </svg>
+                              Thông tin quỹ giữ
+                            </h6>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              <div className="space-y-1">
+                                <p className="text-xs text-gray-500 font-medium">Số tiền</p>
+                                <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)} VND</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xs text-gray-500 font-medium">Trạng thái</p>
+                                <p className="text-sm font-semibold text-gray-900">{getHeldFundStatusText(slot.heldFund.status)}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xs text-gray-500 font-medium">Ngày trả tiền</p>
+                                <p className="text-sm text-gray-900">
+                                  {slot.heldFund.releaseAt ? formatTutorDate(slot.heldFund.releaseAt) : 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Action Button - Chỉ hiển thị nút cho slot có thể thay đổi */}
+                        <div className="flex justify-end">
+                          {slot.status === 0 ? (
+                            <NoFocusOutLineButton
+                              onClick={() => handleOpenRescheduleForSlot(selectedBookingForSlotList, slot)}
+                              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-200 shadow-sm"
+                            >
+                              <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                              </svg>
+                              Thay đổi lịch
+                            </NoFocusOutLineButton>
+                          ) : (
+                            <div className="px-4 py-2 bg-gray-100 text-gray-400 border border-gray-200 rounded-lg text-sm font-medium cursor-not-allowed">
+                              Không thể thay đổi
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Không có slot nào</h3>
+                    <p className="text-gray-500">
+                      Booking này không có slot nào để thay đổi.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div className="flex justify-end">
+                  <NoFocusOutLineButton
+                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                    onClick={() => setShowBookedSlotsModal(false)}
+                  >
+                    Đóng
+                  </NoFocusOutLineButton>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
        
        {/* Toast Container for this component */}
        <ToastContainer
@@ -1102,8 +1572,8 @@ const StatusTag = ({ status }) => {
     switch (status) {
       case 0:
         return {
-          text: "Đã xác nhận",
-          className: "bg-green-50 text-green-700 border border-green-200",
+          text: "Đang diễn ra",
+          className: "bg-yellow-50 text-yellow-700 border border-yellow-200",
           icon: (
             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -1112,8 +1582,8 @@ const StatusTag = ({ status }) => {
         };
       case 1:
         return {
-          text: "Đã yêu cầu khiếu nại",
-          className: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+          text: "Hoàn thành, đợi 24h",
+          className: "bg-blue-50 text-blue-700 border border-blue-200",
           icon: (
             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -1122,8 +1592,8 @@ const StatusTag = ({ status }) => {
         };
       case 2:
         return {
-          text: "Đang tranh chấp",
-          className: "bg-orange-50 text-orange-700 border border-orange-200",
+          text: "Đã hoàn thành",
+          className: "bg-green-50 text-green-700 border border-green-200",
           icon: (
             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clipRule="evenodd" />
@@ -1140,6 +1610,17 @@ const StatusTag = ({ status }) => {
             </svg>
           )
         };
+        case 4:
+        return {
+          text: "Đang bị báo cáo",
+          className: "bg-orange-50 text-orange-700 border border-orange-200",
+          icon: (
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          )
+        };
+
       default:
         return null; // Return null for unknown status
     }
