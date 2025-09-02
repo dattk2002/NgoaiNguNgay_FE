@@ -1,24 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getLegalDocumentById } from '../components/api/auth';
-import {
-  Container,
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  Button,
-  Chip,
-  Skeleton,
-  Divider,
-  Paper,
-  IconButton,
-  Tooltip,
-  Breadcrumbs,
-  Link as MuiLink,
-  Stack
-} from '@mui/material';
+import { getLegalDocumentById, fetchLegalDocumentVersionById } from '../components/api/auth';
 import {
   FaArrowLeft,
   FaFileAlt,
@@ -33,7 +16,8 @@ import {
   FaBalanceScale,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaArchive
+  FaArchive,
+  FaSpinner
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
@@ -44,6 +28,8 @@ const LegalDocumentDetailPage = () => {
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedVersion, setSelectedVersion] = useState(null);
+  const [versionDetails, setVersionDetails] = useState({});
+  const [loadingVersion, setLoadingVersion] = useState(false);
 
   // Get document from location state if available (from navigation)
   const documentFromState = location.state?.document;
@@ -51,7 +37,10 @@ const LegalDocumentDetailPage = () => {
   useEffect(() => {
     if (documentFromState) {
       setDocument(documentFromState);
-      setSelectedVersion(documentFromState.versions?.[0] || null);
+      if (documentFromState.versions && documentFromState.versions.length > 0) {
+        setSelectedVersion(documentFromState.versions[0]);
+        fetchVersionDetails(documentFromState.versions[0].id);
+      }
       setLoading(false);
     } else if (documentId) {
       fetchDocument();
@@ -63,7 +52,10 @@ const LegalDocumentDetailPage = () => {
       setLoading(true);
       const documentData = await getLegalDocumentById(documentId);
       setDocument(documentData);
-      setSelectedVersion(documentData.versions?.[0] || null);
+      if (documentData.versions && documentData.versions.length > 0) {
+        setSelectedVersion(documentData.versions[0]);
+        fetchVersionDetails(documentData.versions[0].id);
+      }
     } catch (error) {
       console.error('Failed to fetch document:', error);
       toast.error('Không thể tải tài liệu pháp lý');
@@ -73,12 +65,36 @@ const LegalDocumentDetailPage = () => {
     }
   };
 
+  const fetchVersionDetails = async (versionId) => {
+    if (!versionId) return;
+    
+    try {
+      setLoadingVersion(true);
+      const versionData = await fetchLegalDocumentVersionById(versionId);
+      if (versionData && versionData.data) {
+        setVersionDetails(prev => ({
+          ...prev,
+          [versionId]: versionData.data
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch version details:', error);
+      toast.error('Không thể tải chi tiết phiên bản');
+    } finally {
+      setLoadingVersion(false);
+    }
+  };
+
   const handleBack = () => {
     navigate('/legal-documents');
   };
 
   const handleVersionSelect = (version) => {
     setSelectedVersion(version);
+    // Fetch version details if not already loaded
+    if (!versionDetails[version.id]) {
+      fetchVersionDetails(version.id);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -94,10 +110,10 @@ const LegalDocumentDetailPage = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 0: return 'default'; // Draft
-      case 1: return 'success'; // Active
-      case 2: return 'warning'; // Archived
-      default: return 'default';
+      case 0: return 'bg-yellow-100 text-yellow-800 border-yellow-200'; // Draft
+      case 1: return 'bg-green-100 text-green-800 border-green-200'; // Active
+      case 2: return 'bg-gray-100 text-gray-800 border-gray-200'; // Archived
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -128,420 +144,317 @@ const LegalDocumentDetailPage = () => {
     return <FaFileAlt />;
   };
 
+  const getContentTypeIcon = (contentType) => {
+    switch (contentType?.toUpperCase()) {
+      case 'PDF': return <FaFileAlt className="text-blue-600" />;
+      case 'DOC': return <FaFileAlt className="text-blue-700" />;
+      case 'DOCX': return <FaFileAlt className="text-blue-700" />;
+      case 'TXT': return <FaFileAlt className="text-gray-600" />;
+      case 'HTML': return <FaFileAlt className="text-orange-600" />;
+      default: return <FaFileAlt className="text-gray-500" />;
+    }
+  };
+
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'white' }}>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Box sx={{ mb: 4 }}>
-            <Skeleton variant="text" width="40%" height={32} sx={{ mb: 2 }} />
-            <Skeleton variant="text" width="60%" height={24} />
-          </Box>
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Breadcrumbs Skeleton */}
+          <div className="mb-6">
+            <div className="h-6 bg-gray-200 rounded-lg w-1/3 animate-pulse"></div>
+          </div>
           
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Skeleton variant="text" width="80%" height={48} sx={{ mb: 2 }} />
-              <Skeleton variant="text" width="60%" height={28} sx={{ mb: 1 }} />
-              <Skeleton variant="text" width="100%" height={120} sx={{ mb: 2 }} />
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Skeleton variant="rectangular" width={120} height={40} />
-                <Skeleton variant="rectangular" width={140} height={40} />
-              </Box>
-            </CardContent>
-          </Card>
+          {/* Back Button Skeleton */}
+          <div className="mb-8">
+            <div className="h-10 bg-gray-200 rounded-lg w-32 animate-pulse"></div>
+          </div>
           
-          <Paper sx={{ p: 4 }}>
-            <Skeleton variant="text" width="30%" height={36} sx={{ mb: 3 }} />
-            <Skeleton variant="text" width="100%" height={300} />
-          </Paper>
-        </Container>
-      </Box>
+          {/* Document Header Skeleton */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+            <div className="flex items-start gap-6 mb-6">
+              <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
+              <div className="flex-1">
+                <div className="h-8 bg-gray-200 rounded-lg w-3/4 mb-4"></div>
+                <div className="h-6 bg-gray-200 rounded-lg w-1/2 mb-4"></div>
+                <div className="h-20 bg-gray-200 rounded-lg mb-4"></div>
+                <div className="flex gap-3">
+                  <div className="h-8 bg-gray-200 rounded-lg w-24"></div>
+                  <div className="h-8 bg-gray-200 rounded-lg w-32"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Content Skeleton */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="h-8 bg-gray-200 rounded-lg w-1/3 mb-6"></div>
+            <div className="h-80 bg-gray-200 rounded-lg"></div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (!document) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'white' }}>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              textAlign: 'center', 
-              py: 8,
-              bgcolor: 'white',
-              borderRadius: 1,
-              border: '1px solid #e0e0e0'
-            }}
-          >
-            <Typography variant="h5" color="#333333" gutterBottom fontWeight="bold">
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Không tìm thấy tài liệu
-            </Typography>
-            <Button 
-              variant="outlined" 
+            </h2>
+            <button 
               onClick={handleBack} 
-              sx={{ 
-                mt: 3,
-                px: 4,
-                py: 1.5,
-                fontSize: '1rem',
-                fontWeight: 600,
-                color: '#333333',
-                borderColor: '#333333',
-                borderRadius: 1,
-                '&:hover': {
-                  borderColor: '#333333',
-                  bgcolor: '#f5f5f5'
-                }
-              }}
+              className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
             >
+              <FaArrowLeft />
               Quay lại danh sách
-            </Button>
-          </Paper>
-        </Container>
-      </Box>
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'white' }}>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumbs */}
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <MuiLink
-            component={Link}
+        <nav className="mb-6">
+          <ol className="flex items-center space-x-2 text-sm">
+            <li>
+              <Link 
             to="/legal-documents"
-            color="#333333"
-            sx={{ 
-              textDecoration: 'none', 
-              '&:hover': { textDecoration: 'underline' }
-            }}
+                className="text-blue-600 hover:text-blue-800 hover:underline"
           >
             Chính sách pháp lý
-          </MuiLink>
-          <Typography color="#333333">
+              </Link>
+            </li>
+            <li className="text-gray-500">/</li>
+            <li className="text-gray-900 font-medium truncate max-w-xs">
             {document.name}
-          </Typography>
-        </Breadcrumbs>
+            </li>
+          </ol>
+        </nav>
 
         {/* Back Button */}
-        <Box sx={{ mb: 4 }}>
-          <Button
-            startIcon={<FaArrowLeft />}
+        <div className="mb-8">
+          <button
             onClick={handleBack}
-            variant="outlined"
-            sx={{ 
-              mb: 3,
-              color: '#333333',
-              borderColor: '#333333',
-              borderRadius: 1,
-              '&:hover': {
-                borderColor: '#333333',
-                bgcolor: '#f5f5f5'
-              }
-            }}
+            className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
+            <FaArrowLeft />
             Quay lại danh sách
-          </Button>
-        </Box>
+          </button>
+        </div>
 
         {/* Document Header */}
-        <Card sx={{ mb: 4, borderRadius: 1, border: '1px solid #e0e0e0', bgcolor: 'white' }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3, mb: 3 }}>
-              <Box 
-                sx={{ 
-                  p: 2, 
-                  borderRadius: 1, 
-                  bgcolor: '#f5f5f5',
-                  color: '#333333',
-                  fontSize: '1.5rem'
-                }}
-              >
+        <div className="bg-white rounded-xl border border-gray-200 p-8 mb-8 shadow-sm">
+          <div className="flex items-start gap-6 mb-6">
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-2xl">
                 {getCategoryIcon(document.category)}
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h4" component="h1" gutterBottom fontWeight="bold" sx={{ color: '#333333' }}>
+            </div>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
                   {document.name}
-                </Typography>
-                
-                <Stack direction="row" gap={1.5} flexWrap="wrap" sx={{ mb: 2 }}>
-                  <Chip 
-                    label={document.category} 
-                    variant="outlined"
-                    icon={getCategoryIcon(document.category)}
-                    sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#333333', borderColor: '#333333' }}
-                  />
+              </h1>
+              
+              <div className="flex gap-3 flex-wrap mb-4">
+                <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm font-medium">
+                  {getCategoryIcon(document.category)}
+                  {document.category}
+                </span>
                   {document.versions && document.versions.length > 0 && (
-                    <Chip 
-                      label={`${document.versions.length} phiên bản`} 
-                      variant="outlined"
-                      sx={{ fontWeight: 600, color: '#333333', borderColor: '#333333' }}
-                    />
-                  )}
-                </Stack>
-                
-                <Typography variant="body1" color="#333333" sx={{ mb: 3, lineHeight: 1.6, opacity: 0.8 }}>
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium">
+                    {document.versions.length} phiên bản
+                  </span>
+                )}
+              </div>
+              
+              <p className="text-gray-600 text-lg leading-relaxed mb-6">
                   {document.description || 'Không có mô tả'}
-                </Typography>
-                
-                <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FaCalendarAlt style={{ fontSize: 14, color: '#333333' }} />
-                    <Typography variant="body2" color="#333333" fontWeight={500} sx={{ opacity: 0.7 }}>
-                      Tạo: {formatDate(document.createdTime)}
-                    </Typography>
-                  </Box>
+              </p>
+              
+              <div className="flex gap-6 flex-wrap text-sm text-gray-500 mb-6">
+                <div className="flex items-center gap-2">
+                  <FaCalendarAlt />
+                  <span>Tạo: {formatDate(document.createdTime)}</span>
+                </div>
                   
                   {document.lastUpdatedTime && document.lastUpdatedTime !== document.createdTime && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <FaClock style={{ fontSize: 14, color: '#333333' }} />
-                      <Typography variant="body2" color="#333333" fontWeight={500} sx={{ opacity: 0.7 }}>
-                        Cập nhật: {formatDate(document.lastUpdatedTime)}
-                      </Typography>
-                    </Box>
-                  )}
-                </Stack>
-              </Box>
-            </Box>
+                  <div className="flex items-center gap-2">
+                    <FaClock />
+                    <span>Cập nhật: {formatDate(document.lastUpdatedTime)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
             
             {/* Action Buttons */}
-            <Stack direction="row" gap={1.5} flexWrap="wrap">
-              <Button
-                variant="contained"
-                size="medium"
-                startIcon={<FaEye />}
-                onClick={() => {
-                  toast.info('Tính năng xem tài liệu đang được phát triển');
-                }}
-                sx={{
-                  px: 3,
-                  py: 1,
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  bgcolor: '#333333',
-                  borderRadius: 1,
-                  '&:hover': {
-                    bgcolor: '#000000'
-                  }
-                }}
-              >
+          <div className="flex gap-3 flex-wrap">
+            <button className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+              <FaEye />
                 Xem tài liệu
-              </Button>
-              
-              <Button
-                variant="outlined"
-                size="medium"
-                startIcon={<FaDownload />}
-                onClick={() => {
-                  toast.info('Tính năng tải xuống đang được phát triển');
-                }}
-                sx={{
-                  px: 3,
-                  py: 1,
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: '#333333',
-                  borderColor: '#333333',
-                  borderRadius: 1,
-                  '&:hover': {
-                    borderColor: '#333333',
-                    bgcolor: '#f5f5f5'
-                  }
-                }}
-              >
+            </button>
+            
+            <button className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+              <FaDownload />
                 Tải xuống
-              </Button>
+            </button>
               
-              <Button
-                variant="outlined"
-                size="medium"
-                startIcon={<FaShare />}
+            <button 
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.href);
                   toast.success('Đã sao chép link vào clipboard');
                 }}
-                sx={{
-                  px: 3,
-                  py: 1,
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: '#333333',
-                  borderColor: '#333333',
-                  borderRadius: 1,
-                  '&:hover': {
-                    borderColor: '#333333',
-                    bgcolor: '#f5f5f5'
-                  }
-                }}
-              >
+              className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <FaShare />
                 Chia sẻ
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
+            </button>
+          </div>
+        </div>
 
         {/* Document Content */}
-        <Paper elevation={0} sx={{ p: 3, mb: 4, borderRadius: 1, border: '1px solid #e0e0e0', bgcolor: 'white' }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: '#333333', mb: 3 }}>
+        <div className="bg-white rounded-xl border border-gray-200 p-8 mb-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
             Nội dung tài liệu
-          </Typography>
+          </h2>
           
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 3, 
-              bgcolor: '#f9f9f9',
-              border: '1px solid #e0e0e0',
-              borderRadius: 1
-            }}
-          >
-            <Typography 
-              variant="body1" 
-              component="div"
-              sx={{ 
-                whiteSpace: 'pre-wrap',
-                lineHeight: 1.7,
-                fontSize: '1rem',
-                color: '#333333'
-              }}
-            >
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div className="prose prose-lg max-w-none">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
               {document.description || 'Không có nội dung chi tiết'}
-            </Typography>
-          </Paper>
-        </Paper>
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Document Versions */}
         {document.versions && document.versions.length > 0 && (
-          <Paper elevation={0} sx={{ p: 3, mb: 4, borderRadius: 1, border: '1px solid #e0e0e0', bgcolor: 'white' }}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: '#333333', mb: 3 }}>
+          <div className="bg-white rounded-xl border border-gray-200 p-8 mb-8 shadow-sm">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Phiên bản tài liệu
-            </Typography>
+            </h2>
             
-            <Stack gap={3}>
+            <div className="space-y-6">
               {/* Version Selector */}
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <div className="flex gap-3 flex-wrap">
                 {document.versions.map((version) => (
-                  <Chip
+                  <button
                     key={version.id}
-                    label={`Phiên bản ${version.version}`}
                     onClick={() => handleVersionSelect(version)}
-                    variant={selectedVersion?.id === version.id ? "filled" : "outlined"}
-                    icon={getStatusIcon(version.status)}
-                    sx={{ 
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      px: 2,
-                      py: 1,
-                      color: selectedVersion?.id === version.id ? 'white' : '#333333',
-                      bgcolor: selectedVersion?.id === version.id ? '#333333' : 'transparent',
-                      borderColor: '#333333',
-                      borderRadius: 1,
-                      '&:hover': {
-                        bgcolor: selectedVersion?.id === version.id ? '#333333' : '#f5f5f5'
-                      }
-                    }}
-                  />
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 ${
+                      selectedVersion?.id === version.id
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                    }`}
+                  >
+                    {getStatusIcon(version.status)}
+                    Phiên bản {version.version}
+                  </button>
                 ))}
-              </Box>
+              </div>
               
               {/* Selected Version Content */}
               {selectedVersion && (
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 3, 
-                    bgcolor: '#f9f9f9',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: 1
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <Typography variant="h6" fontWeight="bold" sx={{ color: '#333333' }}>
+                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">
                       Phiên bản {selectedVersion.version}
-                    </Typography>
-                    <Chip 
-                      label={getStatusText(selectedVersion.status)} 
-                      color={getStatusColor(selectedVersion.status)}
-                      icon={getStatusIcon(selectedVersion.status)}
-                      size="small"
-                      sx={{ fontWeight: 600 }}
-                    />
-                  </Box>
+                    </h3>
+                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedVersion.status)}`}>
+                      {getStatusIcon(selectedVersion.status)}
+                      {getStatusText(selectedVersion.status)}
+                    </span>
+                  </div>
                   
-                  <Typography variant="body2" color="#333333" sx={{ mb: 3, opacity: 0.7 }}>
-                    Ngày tạo: {formatDate(selectedVersion.createdTime)}
-                  </Typography>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <FaCalendarAlt />
+                      <span>Ngày tạo: {formatDate(selectedVersion.createdTime)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-2">
+                        Loại tài liệu: 
+                        {getContentTypeIcon(versionDetails[selectedVersion.id]?.contentType || selectedVersion.contentType)}
+                        {versionDetails[selectedVersion.id]?.contentType || selectedVersion.contentType}
+                      </span>
+                    </div>
+                    {selectedVersion.lastUpdatedTime && (
+                      <div className="flex items-center gap-2">
+                        <FaClock />
+                        <span>Cập nhật: {formatDate(selectedVersion.lastUpdatedTime)}</span>
+                      </div>
+                    )}
+                  </div>
                   
-                  <Box sx={{ 
-                    bgcolor: 'white', 
-                    p: 3, 
-                    border: '1px solid #e0e0e0',
-                    borderRadius: 1
-                  }}>
-                    <Typography 
-                      variant="body1" 
-                      component="div"
-                      sx={{ 
-                        whiteSpace: 'pre-wrap',
-                        lineHeight: 1.7,
-                        fontSize: '1rem',
-                        color: '#333333'
-                      }}
-                    >
-                      {selectedVersion.content || 'Không có nội dung'}
-                    </Typography>
-                  </Box>
-                </Paper>
+                  {/* Version Content */}
+                  <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-gray-900">Nội dung phiên bản</h4>
+                      {loadingVersion && (
+                        <div className="flex items-center gap-2 text-blue-600">
+                          <FaSpinner className="animate-spin" />
+                          <span className="text-sm">Đang tải...</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {loadingVersion ? (
+                      <div className="space-y-3">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                      </div>
+                    ) : versionDetails[selectedVersion.id] ? (
+                      <div className="prose prose-lg max-w-none">
+                        <div 
+                          className="text-gray-700 leading-relaxed"
+                          dangerouslySetInnerHTML={{ 
+                            __html: versionDetails[selectedVersion.id].content || 'Không có nội dung' 
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <FaFileAlt className="text-4xl mx-auto mb-3 text-gray-300" />
+                        <p>Không thể tải nội dung phiên bản</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
-            </Stack>
-          </Paper>
+            </div>
+          </div>
         )}
 
         {/* Additional Information */}
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid #e0e0e0', bgcolor: 'white' }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: '#333333', mb: 3 }}>
+        <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
             Thông tin bổ sung
-          </Typography>
+          </h2>
           
-          <Stack gap={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 3, 
-                bgcolor: '#f9f9f9',
-                border: '1px solid #e0e0e0',
-                borderRadius: 1
-              }}
-            >
-              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: '#333333' }}>
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
                 Thông tin kỹ thuật
-              </Typography>
-              <Stack gap={1}>
-                <Typography variant="body2" sx={{ color: '#333333' }}>
-                  <strong>ID:</strong> {document.id}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#333333' }}>
-                  <strong>Danh mục:</strong> {document.category}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#333333' }}>
-                  <strong>Ngày tạo:</strong> {formatDate(document.createdTime)}
-                </Typography>
+            </h3>
+            <div className="space-y-2 text-sm text-gray-700">
+              <p><strong>ID:</strong> {document.id}</p>
+              <p><strong>Danh mục:</strong> {document.category}</p>
+              <p><strong>Ngày tạo:</strong> {formatDate(document.createdTime)}</p>
                 {document.lastUpdatedTime && (
-                  <Typography variant="body2" sx={{ color: '#333333' }}>
-                    <strong>Cập nhật lần cuối:</strong> {formatDate(document.lastUpdatedTime)}
-                  </Typography>
+                <p><strong>Cập nhật lần cuối:</strong> {formatDate(document.lastUpdatedTime)}</p>
                 )}
                 {document.versions && (
-                  <Typography variant="body2" sx={{ color: '#333333' }}>
-                    <strong>Số phiên bản:</strong> {document.versions.length}
-                  </Typography>
-                )}
-              </Stack>
-            </Paper>
-          </Stack>
-        </Paper>
-      </Container>
-    </Box>
+                <p><strong>Số phiên bản:</strong> {document.versions.length}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

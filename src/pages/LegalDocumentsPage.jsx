@@ -1,31 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { 
-  getAllLegalDocumentCategories, 
-  getLegalDocumentByCategory 
-} from '../components/api/auth';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
-  Container,
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  Button,
-  Chip,
-  Skeleton,
-  Grid,
-  Divider,
-  Paper,
-  IconButton,
-  Tooltip,
-  Stack,
-  TextField,
-  InputAdornment,
-  Fade,
-  Zoom,
-  Grow
-} from '@mui/material';
+  getAllLegalDocumentCategories,
+  getLegalDocumentByCategory,
+} from "../components/api/auth";
 import {
   FaFileAlt,
   FaCalendarAlt,
@@ -39,18 +18,19 @@ import {
   FaSearch,
   FaArrowRight,
   FaEye,
-  FaDownload
-} from 'react-icons/fa';
+  FaDownload,
+} from "react-icons/fa";
+import NoFocusOutlineButton from "../utils/noFocusOutlineButton";
 
 const LegalDocumentsPage = () => {
   const [categories, setCategories] = useState([]);
   const [documents, setDocuments] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
   // Fetch categories on component mount
@@ -74,14 +54,14 @@ const LegalDocumentsPage = () => {
       setLoading(true);
       const categoriesData = await getAllLegalDocumentCategories();
       setCategories(categoriesData);
-      
+
       // Auto-select first category if available
       if (categoriesData && categoriesData.length > 0) {
         setSelectedCategory(categoriesData[0]);
       }
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
-      toast.error('Không thể tải danh mục tài liệu pháp lý');
+      console.error("Failed to fetch categories:", error);
+      toast.error("Không thể tải danh mục tài liệu pháp lý");
     } finally {
       setLoading(false);
     }
@@ -90,19 +70,23 @@ const LegalDocumentsPage = () => {
   const fetchDocuments = async (category, page = 1, append = false) => {
     try {
       setLoadingDocuments(true);
-      const documentsData = await getLegalDocumentByCategory(category, page, 10);
-      
+      const documentsData = await getLegalDocumentByCategory(
+        category,
+        page,
+        10
+      );
+
       if (append) {
-        setDocuments(prev => [...prev, ...documentsData]);
+        setDocuments((prev) => [...prev, ...documentsData]);
       } else {
         setDocuments(documentsData);
       }
-      
+
       setCurrentPage(page);
       setHasMore(documentsData.length === 10);
     } catch (error) {
-      console.error('Failed to fetch documents:', error);
-      toast.error('Không thể tải tài liệu pháp lý');
+      console.error("Failed to fetch documents:", error);
+      toast.error("Không thể tải tài liệu pháp lý");
     } finally {
       setLoadingDocuments(false);
     }
@@ -119,24 +103,24 @@ const LegalDocumentsPage = () => {
   };
 
   const handleDocumentClick = (document) => {
-    navigate(`/legal-documents/${document.id}`, { 
-      state: { document } 
+    navigate(`/legal-documents/${document.id}`, {
+      state: { document },
     });
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const clearFilter = () => {
-    setSelectedCategory('');
+    setSelectedCategory("");
     setDocuments([]);
     setCurrentPage(1);
     setHasMore(true);
@@ -144,536 +128,283 @@ const LegalDocumentsPage = () => {
 
   const getCategoryIcon = (category) => {
     const categoryLower = category.toLowerCase();
-    if (categoryLower.includes('book') || categoryLower.includes('thẳng')) return <FaBookOpen />;
-    if (categoryLower.includes('chính sách') || categoryLower.includes('policy')) return <FaShieldAlt />;
-    if (categoryLower.includes('luật') || categoryLower.includes('law')) return <FaGavel />;
-    if (categoryLower.includes('quy định') || categoryLower.includes('regulation')) return <FaBalanceScale />;
+    if (categoryLower.includes("book") || categoryLower.includes("thẳng"))
+      return <FaBookOpen />;
+    if (
+      categoryLower.includes("chính sách") ||
+      categoryLower.includes("policy")
+    )
+      return <FaShieldAlt />;
+    if (categoryLower.includes("luật") || categoryLower.includes("law"))
+      return <FaGavel />;
+    if (
+      categoryLower.includes("quy định") ||
+      categoryLower.includes("regulation")
+    )
+      return <FaBalanceScale />;
     return <FaFileAlt />;
   };
 
-  const filteredDocuments = documents.filter(doc =>
-    doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDocuments = documents.filter(
+    (doc) =>
+      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
     return (
-      <Box sx={{ 
-        minHeight: '100vh', 
-        bgcolor: 'white',
-        pt: 4
-      }}>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Box sx={{ mb: 6, textAlign: 'center' }}>
-            <Skeleton variant="text" width="60%" height={48} sx={{ mb: 2 }} />
-            <Skeleton variant="text" width="40%" height={28} />
-          </Box>
-          
-          <Paper elevation={0} sx={{ p: 3, mb: 4, bgcolor: 'white', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-            <Skeleton variant="text" width="30%" height={36} sx={{ mb: 3 }} />
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header Skeleton */}
+          <div className="text-center mb-12">
+            <div className="h-12 bg-gray-200 rounded-lg w-3/5 mx-auto mb-4 animate-pulse"></div>
+            <div className="h-7 bg-gray-200 rounded-lg w-2/5 mx-auto animate-pulse"></div>
+          </div>
+
+          {/* Search Skeleton */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-8">
+            <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+
+          {/* Categories Skeleton */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <div className="h-9 bg-gray-200 rounded-lg w-1/3 mb-6 animate-pulse"></div>
+            <div className="flex gap-3 flex-wrap">
               {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} variant="rectangular" width={140} height={40} />
+                <div
+                  key={i}
+                  className="h-10 bg-gray-200 rounded-lg w-36 animate-pulse"
+                ></div>
               ))}
-            </Box>
-          </Paper>
-          
-          <Grid container spacing={3}>
+            </div>
+          </div>
+
+          {/* Documents Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Grid item xs={12} md={6} key={i}>
-                <Skeleton variant="rectangular" height={280} sx={{ borderRadius: 1 }} />
-              </Grid>
+              <div
+                key={i}
+                className="bg-white rounded-lg border border-gray-200 p-6 h-72 animate-pulse"
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                  <div className="flex-1">
+                    <div className="h-6 bg-gray-200 rounded-lg w-3/4 mb-2"></div>
+                    <div className="h-5 bg-gray-200 rounded-lg w-1/3"></div>
+                  </div>
+                </div>
+                <div className="h-20 bg-gray-200 rounded-lg mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded-lg w-1/2"></div>
+              </div>
             ))}
-          </Grid>
-        </Container>
-      </Box>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      bgcolor: 'white',
-      pt: 4
-    }}>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <Box sx={{ mb: 6, textAlign: 'center' }}>
-          <Typography 
-            variant="h3" 
-            component="h1" 
-            gutterBottom 
-            fontWeight="bold"
-            sx={{ 
-              color: '#333333', 
-              mb: 2,
-              fontSize: { xs: '2rem', md: '2.5rem' }
-            }}
-          >
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Chính sách pháp lý
-          </Typography>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: '#333333', 
-              maxWidth: 600, 
-              mx: 'auto',
-              fontWeight: 400,
-              opacity: 0.6
-            }}
-          >
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Tìm hiểu về các chính sách và quy định pháp lý của chúng tôi
-          </Typography>
-        </Box>
-
-        {/* Search Bar */}
-        <Paper elevation={0} sx={{ 
-          p: 2, 
-          mb: 4, 
-          bgcolor: 'white',
-          borderRadius: 1,
-          border: '1px solid #e0e0e0'
-        }}>
-          <TextField
-            fullWidth
-            placeholder="Tìm kiếm tài liệu pháp lý..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <FaSearch style={{ color: '#333333', fontSize: 18 }} />
-                </InputAdornment>
-              ),
-              style: { fontSize: '1rem', padding: '8px 12px' }
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 1,
-                '&:hover fieldset': {
-                  borderColor: '#333333',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#333333',
-                },
-              },
-            }}
-          />
-        </Paper>
+          </p>
+        </div>
 
         {/* Category Filters */}
-        <Paper elevation={0} sx={{ 
-          p: 3, 
-          mb: 4, 
-          bgcolor: 'white',
-          borderRadius: 1,
-          border: '1px solid #e0e0e0'
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <Button
-              variant="contained"
-              startIcon={<FaFilter />}
-              sx={{
-                bgcolor: '#333333',
-                color: 'white',
-                borderRadius: 1,
-                px: 3,
-                py: 1,
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                '&:hover': {
-                  bgcolor: '#000000'
-                }
-              }}
-            >
-              Danh mục tài liệu
-            </Button>
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8 shadow-sm">
+          <div className="flex items-center gap-4 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Danh mục tài liệu pháp lý
+            </h3>
             {selectedCategory && (
-              <Tooltip title="Xóa bộ lọc">
-                <IconButton 
-                  size="small" 
-                  onClick={clearFilter}
-                  sx={{ 
-                    color: '#333333',
-                    bgcolor: '#f5f5f5',
-                    '&:hover': {
-                      bgcolor: '#e0e0e0',
-                      color: '#333333'
-                    }
-                  }}
-                >
-                  <FaTimes />
-                </IconButton>
-              </Tooltip>
+              <NoFocusOutlineButton
+                onClick={clearFilter}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Xóa bộ lọc"
+              >
+                <FaTimes />
+              </NoFocusOutlineButton>
             )}
-          </Box>
-          
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-            {categories.map((category, index) => (
-              <Chip
+          </div>
+
+          <div className="flex gap-3 flex-wrap">
+            {categories.map((category) => (
+              <NoFocusOutlineButton
                 key={category}
-                label={category}
                 onClick={() => handleCategorySelect(category)}
-                variant={selectedCategory === category ? "filled" : "outlined"}
-                icon={getCategoryIcon(category)}
-                sx={{
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: selectedCategory === category ? 600 : 500,
-                  px: 2,
-                  py: 1,
-                  height: 'auto',
-                  color: selectedCategory === category ? 'white' : '#333333',
-                  bgcolor: selectedCategory === category ? '#333333' : 'transparent',
-                  borderColor: '#333333',
-                  borderWidth: 1.5,
-                  borderRadius: 1,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: selectedCategory === category ? '#333333' : '#f5f5f5',
-                    transform: 'translateY(-1px)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                  },
-                  '& .MuiChip-icon': {
-                    fontSize: '1rem'
-                  }
-                }}
-              />
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 ${
+                  selectedCategory === category
+                    ? "bg-blue-600 text-white shadow-lg"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                }`}
+                title={`Xem tài liệu trong danh mục: ${category}`}
+              >
+                {getCategoryIcon(category)}
+                {category}
+              </NoFocusOutlineButton>
             ))}
-          </Box>
-        </Paper>
+          </div>
+          
+          {/* Category description */}
+          <p className="text-sm text-gray-500 mt-3">
+            Click vào danh mục để xem tài liệu pháp lý thuộc danh mục đó
+          </p>
+        </div>
 
         {/* Documents Section */}
         {selectedCategory ? (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-              <Button
-                variant="contained"
-                startIcon={getCategoryIcon(selectedCategory)}
-                sx={{
-                  bgcolor: '#333333',
-                  color: 'white',
-                  borderRadius: 1,
-                  px: 3,
-                  py: 1.5,
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  '&:hover': {
-                    bgcolor: '#000000'
-                  }
-                }}
-              >
+          <div>
+            <div className="flex items-center gap-4 mb-8">
+              <NoFocusOutlineButton className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg">
+                {getCategoryIcon(selectedCategory)}
                 {selectedCategory}
-              </Button>
-              <Chip 
-                label={`${filteredDocuments.length} tài liệu`} 
-                size="medium" 
-                variant="outlined"
-                sx={{ 
-                  color: '#333333',
-                  borderColor: '#333333',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  px: 2,
-                  py: 1
-                }}
-              />
-            </Box>
+              </NoFocusOutlineButton>
+              <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full font-medium text-sm">
+                {filteredDocuments.length} tài liệu
+              </span>
+            </div>
 
             {loadingDocuments && documents.length === 0 ? (
-              <Grid container spacing={3}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Grid item xs={12} md={6} key={i}>
-                    <Skeleton variant="rectangular" height={280} sx={{ borderRadius: 1 }} />
-                  </Grid>
+                  <div
+                    key={i}
+                    className="bg-white rounded-xl border border-gray-200 p-6 h-72 animate-pulse"
+                  >
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                      <div className="flex-1">
+                        <div className="h-6 bg-gray-200 rounded-lg w-3/4 mb-2"></div>
+                        <div className="h-5 bg-gray-200 rounded-lg w-1/3"></div>
+                      </div>
+                    </div>
+                    <div className="h-20 bg-gray-200 rounded-lg mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded-lg w-1/2"></div>
+                  </div>
                 ))}
-              </Grid>
+              </div>
             ) : filteredDocuments.length === 0 ? (
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  textAlign: 'center', 
-                  py: 8,
-                  bgcolor: 'white',
-                  borderRadius: 1,
-                  border: '1px solid #e0e0e0'
-                }}
-              >
-                <Box sx={{ 
-                  width: 80, 
-                  height: 80, 
-                  borderRadius: '50%', 
-                  bgcolor: '#f5f5f5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mx: 'auto',
-                  mb: 3
-                }}>
-                  <FaFileAlt style={{ fontSize: 40, color: '#333333' }} />
-                </Box>
-                <Typography variant="h5" color="#333333" gutterBottom fontWeight="bold">
+              <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FaFileAlt className="text-4xl text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
                   Không tìm thấy tài liệu
-                </Typography>
-                <Typography variant="body1" color="#333333" sx={{ maxWidth: 400, mx: 'auto', opacity: 0.6 }}>
-                  {searchTerm 
+                </h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  {searchTerm
                     ? `Không có tài liệu nào phù hợp với từ khóa "${searchTerm}"`
-                    : 'Chưa có tài liệu pháp lý nào trong danh mục này'
-                  }
-                </Typography>
-              </Paper>
+                    : "Chưa có tài liệu pháp lý nào trong danh mục này"}
+                </p>
+              </div>
             ) : (
-              <Grid container spacing={3}>
-                {filteredDocuments.map((document, index) => (
-                  <Grid item xs={12} md={6} key={document.id}>
-                    <Card 
-                      sx={{ 
-                        height: '100%',
-                        cursor: 'pointer',
-                        borderRadius: 1,
-                        overflow: 'hidden',
-                        bgcolor: 'white',
-                        border: '1px solid #e0e0e0',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-                          borderColor: '#333333',
-                          '& .document-actions': {
-                            opacity: 1,
-                            transform: 'translateY(0)'
-                          }
-                        }
-                      }}
-                      onClick={() => handleDocumentClick(document)}
-                    >
-                      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                          <Box 
-                            sx={{ 
-                              p: 2, 
-                              borderRadius: 1, 
-                              bgcolor: '#f5f5f5',
-                              color: '#333333',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minWidth: 50,
-                              height: 50
-                            }}
-                          >
-                            {getCategoryIcon(document.category)}
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ 
-                              lineHeight: 1.3, 
-                              color: '#333333',
-                              mb: 1
-                            }}>
-                              {document.name}
-                            </Typography>
-                            <Chip 
-                              label={document.category} 
-                              size="small" 
-                              variant="outlined"
-                              sx={{ 
-                                fontWeight: 600, 
-                                color: '#333333', 
-                                borderColor: '#333333',
-                                bgcolor: '#f5f5f5',
-                                fontSize: '0.8rem'
-                              }}
-                            />
-                          </Box>
-                        </Box>
-                        
-                        <Typography 
-                          variant="body2" 
-                          color="#333333" 
-                          sx={{ 
-                            mb: 3, 
-                            flex: 1,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.5,
-                            fontSize: '0.9rem',
-                            opacity: 0.7
-                          }}
-                        >
-                          {document.description || 'Không có mô tả'}
-                        </Typography>
-                        
-                        <Divider sx={{ my: 2, borderColor: '#e0e0e0' }} />
-                        
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <FaCalendarAlt style={{ fontSize: 14, color: '#333333', opacity: 0.6 }} />
-                            <Typography variant="caption" color="#333333" fontWeight={500} sx={{ opacity: 0.6 }}>
-                              {formatDate(document.createdTime)}
-                            </Typography>
-                          </Box>
-                          
-                          {document.versions && document.versions.length > 0 && (
-                            <Chip 
-                              label={`${document.versions.length} phiên bản`} 
-                              size="small" 
-                              variant="outlined"
-                              sx={{ 
-                                fontWeight: 600, 
-                                color: '#333333', 
-                                borderColor: '#333333',
-                                bgcolor: '#f5f5f5',
-                                fontSize: '0.7rem'
-                              }}
-                            />
-                          )}
-                        </Stack>
-                        
-                        {document.lastUpdatedTime && document.lastUpdatedTime !== document.createdTime && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                            <FaClock style={{ fontSize: 12, color: '#333333', opacity: 0.4 }} />
-                            <Typography variant="caption" color="#333333" sx={{ opacity: 0.4 }}>
-                              Cập nhật: {formatDate(document.lastUpdatedTime)}
-                            </Typography>
-                          </Box>
-                        )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredDocuments.map((document) => (
+                  <div
+                    key={document.id}
+                    onClick={() => handleDocumentClick(document)}
+                    className="bg-white rounded-xl border border-gray-200 p-6 h-72 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-2 hover:border-blue-300 group"
+                  >
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl">
+                        {getCategoryIcon(document.category)}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                          {document.name}
+                        </h3>
+                        <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                          {document.category}
+                        </span>
+                      </div>
+                    </div>
 
-                        {/* Action Buttons */}
-                        <Box 
-                          className="document-actions"
-                          sx={{ 
-                            opacity: 0,
-                            transform: 'translateY(8px)',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            gap: 1,
-                            mt: 2
-                          }}
-                        >
-                          <Button
-                            size="small"
-                            startIcon={<FaEye />}
-                            sx={{
-                              color: '#333333',
-                              fontSize: '0.8rem',
-                              '&:hover': {
-                                bgcolor: '#f5f5f5'
-                              }
-                            }}
-                          >
-                            Xem
-                          </Button>
-                          <Button
-                            size="small"
-                            startIcon={<FaDownload />}
-                            sx={{
-                              color: '#333333',
-                              fontSize: '0.8rem',
-                              '&:hover': {
-                                bgcolor: '#f5f5f5'
-                              }
-                            }}
-                          >
-                            Tải
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
+                    <p className="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
+                      {document.description || "Không có mô tả"}
+                    </p>
+
+                    <div className="border-t border-gray-100 pt-4">
+                      <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+                        <div className="flex items-center gap-2">
+                          <FaCalendarAlt className="text-gray-400" />
+                          <span>{formatDate(document.createdTime)}</span>
+                        </div>
+
+                        {document.versions && document.versions.length > 0 && (
+                          <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
+                            {document.versions.length} phiên bản
+                          </span>
+                        )}
+                      </div>
+
+                      {document.lastUpdatedTime &&
+                        document.lastUpdatedTime !== document.createdTime && (
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <FaClock />
+                            <span>
+                              Cập nhật: {formatDate(document.lastUpdatedTime)}
+                            </span>
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 mt-4 flex gap-2">
+                      <NoFocusOutlineButton className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <FaEye className="inline mr-1" />
+                        Xem
+                      </NoFocusOutlineButton>
+                      <NoFocusOutlineButton className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                        <FaDownload className="inline mr-1" />
+                        Tải
+                      </NoFocusOutlineButton>
+                    </div>
+                  </div>
                 ))}
-              </Grid>
+              </div>
             )}
-            
+
             {/* Load More Button */}
             {hasMore && (
-              <Box sx={{ textAlign: 'center', mt: 6 }}>
-                <Button
-                  variant="contained"
-                  size="large"
+              <div className="text-center mt-12">
+                <NoFocusOutlineButton
                   onClick={handleLoadMore}
                   disabled={loadingDocuments}
-                  endIcon={<FaArrowRight />}
-                  sx={{
-                    px: 4,
-                    py: 1.5,
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    bgcolor: '#333333',
-                    color: 'white',
-                    borderRadius: 1,
-                    '&:hover': {
-                      bgcolor: '#000000',
-                      transform: 'translateY(-1px)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                    },
-                    '&:disabled': {
-                      bgcolor: '#cccccc',
-                      color: '#999999'
-                    }
-                  }}
+                  className="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 disabled:hover:scale-100"
                 >
-                  {loadingDocuments ? 'Đang tải...' : 'Tải thêm tài liệu'}
-                </Button>
-              </Box>
+                  {loadingDocuments ? "Đang tải..." : "Tải thêm tài liệu"}
+                  <FaArrowRight />
+                </NoFocusOutlineButton>
+              </div>
             )}
-          </Box>
+          </div>
         ) : (
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              textAlign: 'center', 
-              py: 8,
-              bgcolor: 'white',
-              borderRadius: 1,
-              border: '1px solid #e0e0e0'
-            }}
-          >
-            <Box sx={{ 
-              width: 100, 
-              height: 100, 
-              borderRadius: '50%', 
-              bgcolor: '#f5f5f5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mx: 'auto',
-              mb: 4
-            }}>
-              <FaFilter style={{ fontSize: 50, color: '#333333' }} />
-            </Box>
-            <Typography variant="h4" color="#333333" gutterBottom fontWeight="bold">
+          <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-8">
+              <FaFilter className="text-5xl text-gray-400" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Chọn danh mục để xem tài liệu
-            </Typography>
-            <Typography variant="body1" color="#333333" sx={{ maxWidth: 400, mx: 'auto', mb: 4, opacity: 0.6 }}>
+            </h2>
+            <p className="text-gray-600 max-w-md mx-auto mb-8">
               Vui lòng chọn một danh mục từ bên trên để xem các tài liệu pháp lý
-            </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => categories.length > 0 && handleCategorySelect(categories[0])}
-              sx={{
-                px: 4,
-                py: 1.5,
-                fontSize: '1rem',
-                fontWeight: 600,
-                bgcolor: '#333333',
-                color: 'white',
-                borderRadius: 1,
-                '&:hover': {
-                  bgcolor: '#000000',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                }
-              }}
+            </p>
+            <NoFocusOutlineButton
+              onClick={() => navigate('/')}
+              className="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200 hover:scale-105"
             >
-              Xem tài liệu đầu tiên
-            </Button>
-          </Paper>
+              Trở về trang chủ
+            </NoFocusOutlineButton>
+          </div>
         )}
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 };
 

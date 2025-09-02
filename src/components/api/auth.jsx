@@ -3745,7 +3745,6 @@ import { convertBookingOfferResponseToUTC7 } from '../../utils/formatCentralTime
  */
 export async function fetchLegalDocuments(params = {}) {
   try {
-
     // Build query parameters
     const queryParams = new URLSearchParams();
     
@@ -3898,19 +3897,13 @@ export async function deleteLegalDocument(documentId) {
  */
 export async function getLegalDocumentById(documentId) {
   try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
-
     if (!documentId) {
       throw new Error("Document ID is required");
     }
 
     console.log("🔍 Fetching legal document with ID:", documentId);
-    console.log("🔍 Using token:", token ? "Present" : "Not found");
     
-    const response = await callApi(`/api/legaldocument/${documentId}`, "GET", null, token);
+    const response = await callApi(`/api/legaldocument/${documentId}`, "GET", null);
 
     if (response) {
       console.log("✅ Legal document fetched successfully:", response);
@@ -3933,11 +3926,6 @@ export async function getLegalDocumentById(documentId) {
  */
 export async function fetchLegalDocumentVersions(params = {}) {
   try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
-
     // Check for both camelCase and PascalCase versions of the parameter
     const legalDocumentId = params.legalDocumentId || params.LegalDocumentId;
     
@@ -3957,7 +3945,7 @@ export async function fetchLegalDocumentVersions(params = {}) {
     console.log("🔍 Parameters:", params);
     console.log("🔍 Using legalDocumentId:", legalDocumentId);
     
-    const response = await callApi(url, "GET", null, token);
+    const response = await callApi(url, "GET", null);
 
     if (response) {
       console.log("✅ Legal document versions fetched successfully:", response);
@@ -4233,19 +4221,13 @@ export async function updateSystemFee(feeData) {
  */
 export async function fetchLegalDocumentVersionById(versionId) {
   try {
-    const token = getAccessToken();
-    if (!token) {
-      throw new Error("Authentication token is required");
-    }
-
     if (!versionId) {
       throw new Error("Version ID is required");
     }
 
     console.log("🔍 Fetching legal document version with ID:", versionId);
-    console.log("🔍 Using token:", token ? "Present" : "Not found");
     
-    const response = await callApi(`/api/legaldocument/version/${versionId}`, "GET", null, token);
+    const response = await callApi(`/api/legaldocument/version/${versionId}`, "GET", null);
 
     if (response) {
       console.log("✅ Legal document version fetched successfully:", response);
@@ -4773,9 +4755,7 @@ export async function tutorCancelBookingByBookingId(bookingId, reason) {
  */
 export async function getAllLegalDocumentCategories() {
   try {
-
-    console.log("🔍 Fetching all legal document categories");
-    console.log("🔍 Using token:", token ? "Present" : "Not found");
+    console.log("�� Fetching all legal document categories");
     
     const response = await callApi("/api/legaldocument/all-categories", "GET", null);
 
@@ -4801,7 +4781,6 @@ export async function getAllLegalDocumentCategories() {
  */
 export async function getLegalDocumentByCategory(category, page = 1, size = 10) {
   try {
-
     if (!category || !category.trim()) {
       throw new Error("Category is required");
     }
@@ -4839,7 +4818,6 @@ export async function getLegalDocumentByCategory(category, page = 1, size = 10) 
  */
 export async function getLegalDocumentVersionById(versionId) {
   try {
-
     if (!versionId || !versionId.trim()) {
       throw new Error("Version ID is required");
     }

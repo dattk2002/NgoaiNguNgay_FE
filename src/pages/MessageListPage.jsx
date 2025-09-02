@@ -651,9 +651,28 @@ const MessagePage = ({ user }) => {
 
   useEffect(() => {
     if (selectedConversation && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+      // Add a small delay to ensure the DOM is fully rendered
+      setTimeout(() => {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: "smooth", 
+          block: "end" 
+        });
+      }, 50);
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, messages]);
+
+  // Add a new useEffect specifically for when messages change
+  useEffect(() => {
+    if (messages.length > 0 && messagesEndRef.current) {
+      // Auto-scroll to bottom when new messages arrive
+      setTimeout(() => {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: "smooth", 
+          block: "end" 
+        });
+      }, 50);
+    }
+  }, [messages.length]);
 
   // Refetch conversation list periodically to keep it updated
   useEffect(() => {
@@ -735,6 +754,16 @@ const MessagePage = ({ user }) => {
       );
       sessionStorage.setItem("currentTempTutorId", conversation.participantId);
     }
+
+    // Auto-scroll to bottom after a short delay to ensure messages are loaded
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: "smooth", 
+          block: "end" 
+        });
+      }
+    }, 100);
   };
 
   function formatMessageTimestamp(date) {
@@ -1206,32 +1235,7 @@ const MessagePage = ({ user }) => {
                     >
                       <FaUser className="mr-3 text-gray-500" /> Xem hồ sơ gia sư
                     </MenuItem>
-                    <MenuItem
-                      onClick={() => { /* handle block */ handleTutorMenuClose(); }}
-                      sx={{
-                        fontWeight: 500,
-                        fontSize: "1rem",
-                        color: "#444",
-                        py: 1.5,
-                        px: 2.5,
-                        borderRadius: 2,
-                      }}
-                    >
-                      <FaBan className="mr-3 text-gray-500" /> Chặn
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => { /* handle report */ handleTutorMenuClose(); }}
-                      sx={{
-                        fontWeight: 500,
-                        fontSize: "1rem",
-                        color: "#444",
-                        py: 1.5,
-                        px: 2.5,
-                        borderRadius: 2,
-                      }}
-                    >
-                      <FaFlag className="mr-3 text-gray-500" /> Báo cáo
-                    </MenuItem>
+                    
                   </Menu>
                 </>
               ) : (
@@ -1246,12 +1250,13 @@ const MessagePage = ({ user }) => {
               <Tooltip 
                 title="Xem lịch và gửi lời mời đặt lịch"
               >
-                <div
-                  className="text-gray-600 cursor-pointer hover:text-blue-600 transition"
+                <button
+                  className="bg-[#333333] text-white px-4 py-2 rounded-lg hover:bg-[#5d5d5d] transition-colors duration-200 flex items-center gap-2 text-sm font-medium"
                   onClick={handleOpenCalendar}
                 >
-                  <FaCalendarAlt />
-                </div>
+                  <FaCalendarAlt className="text-sm" />
+                  Đề xuất lịch học
+                </button>
               </Tooltip>
             )}
           </div>
