@@ -136,6 +136,13 @@ import { NotificationProvider, useNotification } from "./contexts/NotificationCo
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
 
+// Import optimized functions
+import {
+  getNotificationTitle,
+  getNotificationContent,
+  parseAdditionalData
+} from "./utils/notificationMessages";
+
 // New component to handle scrolling to top on route change
 function ScrollToTop() {
   const { pathname } = useLocation();
