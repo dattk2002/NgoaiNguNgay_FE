@@ -14,9 +14,9 @@ const RevenueAnalysis = () => {
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', {
-            style: 'currency',
-            currency: 'VND'
-        }).format(amount);
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount) + ' VNĐ';
     };
 
     const formatDate = (dateString) => {

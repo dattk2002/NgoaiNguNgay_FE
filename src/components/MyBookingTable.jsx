@@ -16,6 +16,7 @@ import {
   TableBody,
   Paper,
   Tooltip,
+  Portal,
 } from "@mui/material";
 import { LuMessageCircleMore } from "react-icons/lu";
 import { FiTrash2, FiXCircle, FiCheckCircle, FiChevronLeft, FiChevronRight } from "react-icons/fi";
@@ -25,6 +26,7 @@ import {
   acceptLearnerBookingOffer,
   rejectLearnerBookingOffer,
 } from "./api/auth"; // add acceptLearnerBookingOffer
+import LegalDocumentModal from "./modals/LegalDocumentModal";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -228,6 +230,9 @@ export default function MyBookingTable({
   const [errorMessage, setErrorMessage] = React.useState("");
   const [isInsufficientFunds, setIsInsufficientFunds] = React.useState(false);
   const [currentWeekOffset, setCurrentWeekOffset] = React.useState(0); // 0 = current week, -1 = previous week, +1 = next week
+  
+  // Add legal document modal state
+  const [showLegalDocumentModal, setShowLegalDocumentModal] = React.useState(false);
 
   // Handler to open dialog and fetch booking detail
   const handleOpenBookingDetail = async (tutorId, tutorBookingOfferId) => {
@@ -379,6 +384,12 @@ export default function MyBookingTable({
   const handleGoToWallet = () => {
     setErrorDialogOpen(false);
     navigate("/wallet");
+  };
+
+  // Handler to open legal document modal
+  const handleLegalDocumentClick = (e) => {
+    e.preventDefault();
+    setShowLegalDocumentModal(true);
   };
 
   // Week navigation handlers
@@ -1055,6 +1066,31 @@ export default function MyBookingTable({
           <Typography>
             Bạn có chắc chắn muốn chấp nhận đề xuất này không?
           </Typography>
+          
+          {/* Legal terms notice */}
+          <Box sx={{ mt: 2, p: 2, backgroundColor: "#f0f9ff", borderRadius: 1, border: "1px solid #0ea5e9" }}>
+            <Typography variant="body2" sx={{ color: "#0369a1", fontSize: "0.875rem" }}>
+              Bằng cách chấp nhận đề xuất, bạn đồng ý với{" "}
+              <Button
+                onClick={handleLegalDocumentClick}
+                sx={{ 
+                  p: 0, 
+                  minWidth: "auto", 
+                  textTransform: "none", 
+                  textDecoration: "underline",
+                  color: "#0369a1",
+                  "&:hover": { 
+                    backgroundColor: "transparent",
+                    textDecoration: "underline"
+                  }
+                }}
+              >
+                Điều khoản dịch vụ và Chính sách bảo mật
+              </Button>
+              {" "}của chúng tôi.
+            </Typography>
+          </Box>
+          
           {offerDetail && (
             <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
@@ -1176,7 +1212,7 @@ export default function MyBookingTable({
                 Chi tiết giao dịch:
               </Typography>
               <Typography variant="body2" sx={{ color: "#7f1d1d" }}>
-                • Tổng số tiền cần thanh toán: {offerDetail.totalPrice?.toLocaleString()} VND
+                • Tổng số tiền cần thanh toán: {offerDetail.totalPrice?.toLocaleString()} VNĐ
               </Typography>
               <Typography variant="body2" sx={{ color: "#7f1d1d" }}>
                 • Bài học: {offerDetail.lessonName}
@@ -1203,6 +1239,15 @@ export default function MyBookingTable({
           )}
         </DialogActions>
       </Dialog>
+
+      {/* Legal Document Modal */}
+      <Portal container={document.body}>
+        <LegalDocumentModal
+          isOpen={showLegalDocumentModal}
+          onClose={() => setShowLegalDocumentModal(false)}
+          category="offer_booking"
+        />
+      </Portal>
 
       {/* Toast Container */}
       <ToastContainer 

@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { fetchTutorBookings, fetchBookingDetail } from '../api/auth';
+import { fetchTutorBookings, fetchBookingDetail, getBookingRating } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from '../../utils/formatCentralTimestamp';
 import { calculateUTC7SlotIndex } from '../../utils/formatSlotTime';
@@ -193,6 +193,7 @@ const TeachingHistory = () => {
   const [bookingDetail, setBookingDetail] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [bookingRatings, setBookingRatings] = useState(new Map());
 
   useEffect(() => {
     loadHistory();
@@ -219,6 +220,9 @@ const TeachingHistory = () => {
         hasNextPage: response.hasNextPage,
         hasPreviousPage: response.hasPreviousPage
       });
+
+      // Fetch ratings for completed bookings
+      await fetchBookingRatings(filteredBookings);
     } catch (error) {
       console.error("Error loading teaching history:", error);
       toast.error('Không thể tải lịch sử dạy học. Vui lòng thử lại.');
@@ -226,6 +230,58 @@ const TeachingHistory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch ratings for completed bookings
+  const fetchBookingRatings = async (bookings) => {
+    try {
+      const ratingsMap = new Map();
+      
+      // Get unique booking IDs that are completed
+      const bookingIdsToCheck = new Set();
+      bookings.forEach(booking => {
+        if (booking.status === 4) { // Status 4 = Hoàn thành
+          bookingIdsToCheck.add(booking.id);
+        }
+      });
+
+      // Fetch ratings for each booking using the API endpoint
+      await Promise.all(
+        Array.from(bookingIdsToCheck).map(async (bookingId) => {
+          try {
+            const rating = await getBookingRating(bookingId);
+            console.log(`🔍 Fetching rating for booking ${bookingId}:`, rating);
+            
+            // Check if rating exists and has valid data
+            if (rating && rating.id && 
+                (rating.teachingQuality || rating.attitude || rating.commitment)) {
+              ratingsMap.set(bookingId, rating);
+              console.log(`✅ Rating found for booking ${bookingId}:`, rating);
+            } else {
+              console.log(`❌ No valid rating for booking ${bookingId}:`, rating);
+            }
+          } catch (error) {
+            console.error(`❌ Error fetching rating for booking ${bookingId}:`, error);
+            // Don't throw error, just continue
+          }
+        })
+      );
+
+      console.log(`🔍 Final ratings map:`, Array.from(ratingsMap.entries()));
+      setBookingRatings(ratingsMap);
+    } catch (error) {
+      console.error("Error fetching booking ratings:", error);
+    }
+  };
+
+  // Get existing rating for a booking
+  const getBookingRatingData = (bookingId) => {
+    return bookingRatings.get(bookingId);
+  };
+
+  // Check if a booking has been rated
+  const hasBookingRating = (bookingId) => {
+    return bookingRatings.has(bookingId);
   };
 
   const handleViewDetail = async (booking) => {
@@ -277,14 +333,43 @@ const TeachingHistory = () => {
   };
 
   const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, index) => (
-      <FaStar
-        key={index}
-        className={`w-4 h-4 ${
-          index < rating ? 'text-yellow-400' : 'text-gray-300'
-        }`}
-      />
-    ));
+    if (!rating || rating <= 0) return null;
+    
+    return (
+      <div className="flex items-center space-x-2">
+        <div className="flex">
+          {Array.from({ length: 5 }, (_, index) => {
+            const starIndex = index + 1;
+            let starClass = 'text-gray-300'; // Default gray star
+            
+            if (rating >= starIndex) {
+              starClass = 'text-yellow-400'; // Full star
+            } else if (rating >= starIndex - 0.5) {
+              // Partial star - fill half
+              starClass = 'text-yellow-400';
+            } else if (rating > starIndex - 1) {
+              // Partial star - calculate fill percentage
+              const fillPercentage = Math.max(0, rating - (starIndex - 1));
+              if (fillPercentage > 0) {
+                starClass = 'text-yellow-400';
+              }
+            }
+            
+            return (
+              <FaStar
+                key={index}
+                className={`w-4 h-4 ${starClass}`}
+                style={rating > starIndex - 1 && rating < starIndex ? {
+                  background: `linear-gradient(90deg, #fbbf24 ${(rating - (starIndex - 1)) * 100}%, #d1d5db ${(rating - (starIndex - 1)) * 100}%)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                } : {}}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const sortedAndFilteredHistory = history
@@ -319,15 +404,27 @@ const TeachingHistory = () => {
     return status?.text === 'Hoàn thành';
   }).length;
 
-  const averageRating = history
-    .filter(item => {
+  // Calculate average rating only from items that have ratings
+  const averageRating = (() => {
+    const completedBookings = history.filter(item => {
       const status = getBookingStatusFromAPI(item.status);
       return status?.text === 'Hoàn thành';
-    })
-    .reduce((sum, item, _, arr) => {
-      // Mock rating for now since API doesn't provide rating
-      return sum + (4.5 / arr.length);
-    }, 0);
+    });
+    
+    const ratings = completedBookings
+      .map(item => {
+        const rating = getBookingRatingData(item.id);
+        if (rating && rating.teachingQuality && rating.attitude && rating.commitment) {
+          return (rating.teachingQuality + rating.attitude + rating.commitment) / 3;
+        }
+        return null;
+      })
+      .filter(rating => rating !== null);
+    
+    if (ratings.length === 0) return 0;
+    
+    return ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+  })();
 
   if (loading) {
     return <TeachingHistorySkeleton />;
@@ -341,7 +438,7 @@ const TeachingHistory = () => {
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-600">Tổng số buổi dạy</h3>
+            <h3 className="text-sm font-medium text-blue-600">Tổng số khóa học hoàn thành</h3>
             <p className="text-2xl font-bold text-blue-900">{completedLessons}</p>
           </div>
           <div className="bg-green-50 p-4 rounded-lg">
@@ -353,12 +450,18 @@ const TeachingHistory = () => {
           <div className="bg-yellow-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-yellow-600">Đánh giá trung bình</h3>
             <div className="flex items-center">
-              <p className="text-2xl font-bold text-yellow-900 mr-2">
-                {averageRating.toFixed(1)}
-              </p>
-              <div className="flex">
-                {renderStars(Math.round(averageRating))}
-              </div>
+              {averageRating > 0 ? (
+                <>
+                  <p className="text-2xl font-bold text-yellow-900 mr-2">
+                    {averageRating.toFixed(1)}
+                  </p>
+                  <div className="flex">
+                    {renderStars(Math.round(averageRating))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-lg text-gray-500">Chưa có đánh giá</p>
+              )}
             </div>
           </div>
         </div>
@@ -469,13 +572,12 @@ const TeachingHistory = () => {
                       <div className="text-lg font-bold text-green-600">
                         {formatPriceWithCommas(item.totalPrice)} VNĐ
                       </div>
-                      {status?.text === 'Hoàn thành' && (
-                        <div className="flex items-center space-x-2">
-                          <div className="flex">
-                            {renderStars(4.5)}
-                          </div>
-                          <span className="text-sm text-gray-600">(4.5/5)</span>
-                        </div>
+                      {status?.text === 'Hoàn thành' && hasBookingRating(item.id) && (
+                        (() => {
+                          const rating = getBookingRatingData(item.id);
+                          const avgRating = rating ? (rating.teachingQuality + rating.attitude + rating.commitment) / 3 : 0;
+                          return renderStars(avgRating);
+                        })()
                       )}
                     </div>
 
@@ -490,10 +592,81 @@ const TeachingHistory = () => {
                     </div>
                   </div>
 
-                  {status?.text === 'Hoàn thành' && (
+                  {status?.text === 'Hoàn thành' && hasBookingRating(item.id) && (
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 mb-2">Đánh giá từ học viên:</h4>
-                      <p className="text-gray-700 text-sm">Thầy dạy rất tốt, giải thích dễ hiểu. Em đã hiểu được nhiều kiến thức mới.</p>
+                      <div className="space-y-3">
+                        {/* Rating Summary */}
+                                                 <div className="flex items-center space-x-2">
+                           <div className="flex">
+                             {(() => {
+                               const rating = getBookingRatingData(item.id);
+                               const avgRating = rating ? (rating.teachingQuality + rating.attitude + rating.commitment) / 3 : 0;
+                               return Array.from({ length: 5 }, (_, index) => {
+                                 const starIndex = index + 1;
+                                 let starClass = 'text-gray-300'; // Default gray star
+                                 
+                                 if (avgRating >= starIndex) {
+                                   starClass = 'text-yellow-400'; // Full star
+                                 } else if (avgRating >= starIndex - 0.5) {
+                                   // Partial star - fill half
+                                   starClass = 'text-yellow-400';
+                                 } else if (avgRating > starIndex - 1) {
+                                   // Partial star - calculate fill percentage
+                                   const fillPercentage = Math.max(0, avgRating - (starIndex - 1));
+                                   if (fillPercentage > 0) {
+                                     starClass = 'text-yellow-400';
+                                   }
+                                 }
+                                 
+                                 return (
+                                   <FaStar
+                                     key={index}
+                                     className={`w-4 h-4 ${starClass}`}
+                                     style={avgRating > starIndex - 1 && avgRating < starIndex ? {
+                                       background: `linear-gradient(90deg, #fbbf24 ${(avgRating - (starIndex - 1)) * 100}%, #d1d5db ${(avgRating - (starIndex - 1)) * 100}%)`,
+                                       WebkitBackgroundClip: 'text',
+                                       WebkitTextFillColor: 'transparent'
+                                     } : {}}
+                                   />
+                                 );
+                               });
+                             })()}
+                           </div>
+                         </div>
+                        
+                        {/* Detailed Ratings */}
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div className="text-center">
+                            <div className="text-gray-600">Giảng dạy</div>
+                            <div className="font-semibold text-yellow-700">
+                              {getBookingRatingData(item.id)?.teachingQuality || '-'}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-gray-600">Thái độ</div>
+                            <div className="font-semibold text-yellow-700">
+                              {getBookingRatingData(item.id)?.attitude || '-'}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-gray-600">Cam kết</div>
+                            <div className="font-semibold text-yellow-700">
+                              {getBookingRatingData(item.id)?.commitment || '-'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Comment */}
+                        {getBookingRatingData(item.id)?.comment && (
+                          <div className="pt-2 border-t border-gray-200">
+                            <div className="text-xs text-gray-600 mb-1">Nhận xét:</div>
+                            <div className="text-sm text-gray-700 italic">
+                              "{getBookingRatingData(item.id).comment}"
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -515,7 +688,7 @@ const TeachingHistory = () => {
                 type="button"
                 onClick={() => handlePageChange(pagination.pageIndex - 1)}
                 disabled={!pagination.hasPreviousPage}
-                className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-black"
               >
                 Trước
               </button>
@@ -528,7 +701,7 @@ const TeachingHistory = () => {
                 type="button"
                 onClick={() => handlePageChange(pagination.pageIndex + 1)}
                 disabled={!pagination.hasNextPage}
-                className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-black"
               >
                 Sau
               </button>

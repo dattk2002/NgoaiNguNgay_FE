@@ -223,6 +223,7 @@ const ScheduleTracking = () => {
     hasNextPage: false,
     hasPreviousPage: false
   });
+  const [originalTotalItems, setOriginalTotalItems] = useState(0); // Store original total from API
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [bookingDetail, setBookingDetail] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -241,18 +242,26 @@ const ScheduleTracking = () => {
       setLoading(true);
       const response = await fetchTutorBookings(page, 10);
       const bookingsList = response.items || [];
-      setBookings(bookingsList);
+      
+      // Filter out completed and cancelled bookings for "Theo dõi lịch dạy" tab
+      // Only show: Đang diễn ra (0), Đã yêu cầu khiếu nại (1), Đang tranh chấp (2)
+      const activeBookings = bookingsList.filter(booking => 
+        booking.status === 0 || booking.status === 1 || booking.status === 2
+      );
+      
+      setBookings(activeBookings);
+      setOriginalTotalItems(response.totalItems || 0); // Store original total from API
       setPagination({
         pageIndex: response.pageIndex,
         pageSize: response.pageSize,
-        totalItems: response.totalItems,
-        totalPages: response.totalPages,
-        hasNextPage: response.hasNextPage,
-        hasPreviousPage: response.hasPreviousPage
+        totalItems: activeBookings.length, // Use filtered count
+        totalPages: Math.ceil(activeBookings.length / 10),
+        hasNextPage: false, // Since we're filtering, pagination might not work as expected
+        hasPreviousPage: page > 1
       });
 
       // Load status for each booking
-      loadBookingStatuses(bookingsList);
+      loadBookingStatuses(activeBookings);
     } catch (error) {
       console.error("Error loading bookings:", error);
       setBookings([]);
@@ -438,16 +447,20 @@ const ScheduleTracking = () => {
           <h2 className="text-2xl font-bold text-gray-900">Khóa học đã được đặt</h2>
           <p className="text-gray-600 mt-1">Quản lý các khóa học mà học viên đã đặt</p>
         </div>
-        <div className="text-sm text-gray-500">
-          Tổng cộng: {pagination.totalItems} khóa học
-        </div>
       </div>
 
       {bookings.length === 0 ? (
         <div className="text-center py-12">
           <FaGraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có khóa học nào được đặt</h3>
-          <p className="text-gray-500">Các khóa học được học viên đặt sẽ hiển thị tại đây.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {originalTotalItems > 0 ? 'Không có khóa học nào đang diễn ra' : 'Chưa có khóa học nào được đặt'}
+          </h3>
+          <p className="text-gray-500">
+            {originalTotalItems > 0 
+              ? 'Tất cả các khóa học đã hoàn thành hoặc đã hủy. Vui lòng kiểm tra tab "Lịch sử dạy học" để xem các khóa học này.'
+              : 'Các khóa học được học viên đặt sẽ hiển thị tại đây.'
+            }
+          </p>
         </div>
       ) : (
         <>
@@ -580,7 +593,7 @@ const ScheduleTracking = () => {
                 type="button"
                 onClick={() => handlePageChange(pagination.pageIndex - 1)}
                 disabled={!pagination.hasPreviousPage}
-                className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-black"
               >
                 Trước
               </button>
@@ -593,7 +606,7 @@ const ScheduleTracking = () => {
                 type="button"
                 onClick={() => handlePageChange(pagination.pageIndex + 1)}
                 disabled={!pagination.hasNextPage}
-                className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="no-focus-outline px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-black"
               >
                 Sau
               </button>
