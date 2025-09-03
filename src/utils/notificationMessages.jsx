@@ -1,96 +1,57 @@
 /**
- * Notification message mapping utility
- * Maps notification types to their display titles and content
+ * Notification message utility
+ * Since backend now handles message parsing, this file is simplified
  */
 
-const notificationMessages = {
-  // Learner accepts tutor's offer
-  PUSH_ON_LEARNER_ACCEPT_OFFER: {
-    title: "Bạn có 1 chấp nhận đề xuất mới",
-    content: "Học viên đã chấp đề xuất lịch dạy của bạn."
-  },
-  
-  // Tutor receives time slot request from learner
-  PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST: {
-    title: "Bạn có 1 đề xuất mới từ gia sư",
-    content: "1 học viên đã gửi cho bạn một yêu cầu"
-  },
-  
-  // Also support the _BODY suffix versions
-  PUSH_ON_LEARNER_ACCEPT_OFFER_BODY: {
-    title: "Bạn có 1 chấp nhận đề xuất mới",
-    content: "Học viên đã chấp đề xuất lịch dạy của bạn."
-  },
-  
-  PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST_BODY: {
-    title: "Bạn có 1 đề xuất mới từ gia sư",
-    content: "1 học viên đã gửi cho bạn một yêu cầu"
-  }
+/**
+ * Get notification title - now just returns the original title
+ * @param {string} title - The notification title from backend
+ * @returns {string} The original title
+ */
+export const getNotificationTitle = (title) => {
+  return title || 'Thông báo';
 };
 
 /**
- * Get notification title by type
- * @param {string} notificationType - The notification type (e.g., 'PUSH_ON_LEARNER_ACCEPT_OFFER')
- * @returns {string} The display title for the notification type, or the original type if not found
+ * Get notification content - now just returns the original content
+ * @param {string} content - The notification content from backend
+ * @returns {string} The original content
  */
-export const getNotificationTitle = (notificationType) => {
-  if (!notificationType) {
-    return 'Thông báo';
-  }
-  
-  const message = notificationMessages[notificationType];
-  return message ? message.title : notificationType;
+export const getNotificationContent = (content) => {
+  return content || 'Bạn có thông báo mới';
 };
 
 /**
- * Get notification content by type
- * @param {string} notificationType - The notification type (e.g., 'PUSH_ON_LEARNER_ACCEPT_OFFER')
- * @returns {string} The display content for the notification type, or the original type if not found
- */
-export const getNotificationContent = (notificationType) => {
-  if (!notificationType) {
-    return 'Bạn có thông báo mới';
-  }
-  
-  const message = notificationMessages[notificationType];
-  return message ? message.content : notificationType;
-};
-
-/**
- * Get both title and content for a notification type
- * @param {string} notificationType - The notification type
+ * Get both title and content for a notification
+ * @param {string} title - The notification title
+ * @param {string} content - The notification content
  * @returns {Object} Object containing title and content
  */
-export const getNotificationMessage = (notificationType) => {
-  if (!notificationType) {
-    return {
-      title: 'Thông báo',
-      content: 'Bạn có thông báo mới'
-    };
-  }
-  
-  const message = notificationMessages[notificationType];
-  return message || {
-    title: notificationType,
-    content: notificationType
+export const getNotificationMessage = (title, content) => {
+  return {
+    title: title || 'Thông báo',
+    content: content || 'Bạn có thông báo mới'
   };
 };
 
 /**
- * Check if a notification type is supported
+ * Check if a notification type is supported (legacy function, now always returns true)
  * @param {string} notificationType - The notification type to check
- * @returns {boolean} True if the notification type is supported
+ * @returns {boolean} Always returns true since backend handles parsing
  */
 export const isSupportedNotificationType = (notificationType) => {
-  return notificationType && notificationType in notificationMessages;
+  return true;
 };
 
 /**
- * Get all supported notification types
- * @returns {Array} Array of supported notification type strings
+ * Get all supported notification types (legacy function, now returns empty array)
+ * @returns {Array} Empty array since backend handles all types
  */
 export const getSupportedNotificationTypes = () => {
-  return Object.keys(notificationMessages);
+  return [];
 };
+
+// Keep empty object for backward compatibility
+const notificationMessages = {};
 
 export default notificationMessages;
