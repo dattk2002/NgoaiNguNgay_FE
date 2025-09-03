@@ -82,7 +82,7 @@ const LessonSelectionModal = ({ isOpen, onClose, lessons, onLessonSelect, tutorN
                         typeof lesson.price === "string"
                           ? formatPriceWithCommas(lesson.price)
                           : "Không có"}{" "}
-                        VND
+                        VNĐ
                       </span>
                       {lesson.discount && (
                         <span className="text-xs text-green-600 mt-1 font-medium">

@@ -948,7 +948,7 @@ const BookingRequests = () => {
                             </div>
                             <div>
                               <p className="text-sm text-gray-500 font-medium">Tổng giá</p>
-                              <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(bookingDetail.totalPrice || 0)} VND</p>
+                              <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(bookingDetail.totalPrice || 0)} VNĐ</p>
                             </div>
                           </div>
                         </div>
@@ -1076,7 +1076,7 @@ const BookingRequests = () => {
                             </div>
                             <div className="space-y-2">
                               <p className="text-sm text-gray-500 font-medium">Giá mỗi slot</p>
-                              <p className="text-lg font-bold text-green-600">{formatPriceWithCommas(bookingDetail.lessonSnapshot.price || 0)} {bookingDetail.lessonSnapshot.currency || 'VND'}</p>
+                              <p className="text-lg font-bold text-green-600">{formatPriceWithCommas(bookingDetail.lessonSnapshot.price || 0)} {bookingDetail.lessonSnapshot.currency || 'VNĐ'}</p>
                             </div>
                             <div className="space-y-2">
                               <p className="text-sm text-gray-500 font-medium">Thời lượng</p>
@@ -1131,7 +1131,7 @@ const BookingRequests = () => {
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                       <div className="space-y-1">
                                         <p className="text-xs text-gray-500 font-medium">Số tiền</p>
-                                        <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)} VND</p>
+                                        <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)} VNĐ</p>
                                       </div>
                                       <div className="space-y-1">
                                         <p className="text-xs text-gray-500 font-medium">Trạng thái</p>
@@ -1480,7 +1480,7 @@ const BookingRequests = () => {
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                               <div className="space-y-1">
                                 <p className="text-xs text-gray-500 font-medium">Số tiền</p>
-                                <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)} VND</p>
+                                <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)} VNĐ</p>
                               </div>
                               <div className="space-y-1">
                                 <p className="text-xs text-gray-500 font-medium">Trạng thái</p>

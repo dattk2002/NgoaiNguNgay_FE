@@ -105,7 +105,7 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 bg-black/50 flex justify-center items-center z-[1001] p-4"
+          className="fixed inset-0 bg-black/50 flex justify-center items-center z-[9999] p-4"
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -114,6 +114,7 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
         >
           <motion.div
             className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-4xl mx-auto relative overflow-y-auto max-h-[90vh]"
+            style={{ zIndex: 9999 }}
             variants={modalVariants}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
@@ -143,7 +144,12 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
                 Điều khoản dịch vụ và Chính sách bảo mật
               </h2>
               <p className="text-sm text-gray-500 text-center">
-                {category === "Đăng nhập" ? "Điều khoản áp dụng cho việc đăng nhập" : "Điều khoản áp dụng cho việc đăng ký"}
+                {category === "Đăng nhập" ? "Điều khoản áp dụng cho việc đăng nhập" : 
+                 category === "Book thẳng" ? "Điều khoản áp dụng cho việc đặt lịch trực tiếp" :
+                 category === "offer_booking" ? "Điều khoản áp dụng cho việc chấp nhận đề xuất từ gia sư" :
+                 category === "khiếu nại" ? "Điều khoản áp dụng cho việc tạo báo cáo và khiếu nại" :
+                 category === "hủy booking" ? "Điều khoản áp dụng cho việc hủy booking" :
+                 "Điều khoản áp dụng cho việc đăng ký"}
               </p>
             </div>
 

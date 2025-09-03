@@ -166,7 +166,7 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
                 {loadingLessons ? (
                   <span className="text-gray-500">Đang tải...</span>
                 ) : lowestLessonPrice !== null ? (
-                  `${formatPriceWithCommas(lowestLessonPrice)} VND / 30 phút / 1 slot`
+                  `${formatPriceWithCommas(lowestLessonPrice)} VNĐ / 30 phút / 1 slot`
                 ) : (
                   "Không có khóa học"
                 )}

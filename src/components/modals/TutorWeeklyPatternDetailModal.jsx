@@ -11,7 +11,8 @@ import {
   IconButton,
   Card,
   CardContent,
-  Divider
+  Divider,
+  Portal
 } from "@mui/material";
 import { 
   fetchTutorWeeklyPattern, 
@@ -29,6 +30,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 import { toast } from "react-toastify";
+import LegalDocumentModal from "./LegalDocumentModal";
 
 const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const dayInWeekOrder = [2, 3, 4, 5, 6, 7, 1]; // API: 2=Mon, ..., 7=Sat, 1=Sun
@@ -114,8 +116,17 @@ const TutorWeeklyPatternDetailModal = ({
   const [scheduleData, setScheduleData] = useState(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
 
+  // Add legal document modal state
+  const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
+
   // Only allow slot selection for learners and when not in read-only mode
   const learnerPermission = isLearner(currentUser) && !isReadOnly;
+
+  // Handler to open legal document modal
+  const handleLegalDocumentClick = (e) => {
+    e.preventDefault();
+    setShowLegalDocumentModal(true);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -556,24 +567,32 @@ const TutorWeeklyPatternDetailModal = ({
   };
 
   return (
-    <Dialog 
+    <>
+          <Dialog 
       open={open} 
       onClose={onClose} 
       maxWidth={false}
       fullWidth={false}
-      PaperProps={{
-        sx: {
-          width: "100%",
-          height: "90%",
-          maxWidth: "none",
-          maxHeight: "none",
-          top: "5%",
-          left: "0%",
-          right: "0%",
-          margin: "0 auto",
-        },
+      sx={{
+        '& .MuiDialog-paper': {
+          zIndex: 999
+        }
       }}
-    >
+      container={() => document.body}
+      style={{ zIndex: 999 }}
+      PaperProps={{
+          sx: {
+            width: "100%",
+            height: "90%",
+            maxWidth: "none",
+            maxHeight: "none",
+            top: "5%",
+            left: "0%",
+            right: "0%",
+            margin: "0 auto",
+          },
+        }}
+      >
       <DialogTitle
         sx={{
           display: "flex",
@@ -602,7 +621,7 @@ const TutorWeeklyPatternDetailModal = ({
                 📚 {lessonDetails.name}
               </Typography>
               <Typography variant="body2" sx={{ color: '#1976d2', fontSize: '14px' }}>
-                {formatPriceWithCommas(lessonDetails.price)} VND/slot
+                {formatPriceWithCommas(lessonDetails.price)} VNĐ/slot
               </Typography>
             </Box>
           )}
@@ -896,7 +915,7 @@ const TutorWeeklyPatternDetailModal = ({
                               {lessonDetails.category && ` | ${lessonDetails.category}`}
                             </Typography>
                             <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-                              {formatPriceWithCommas(lessonDetails.price)} VND/slot
+                              {formatPriceWithCommas(lessonDetails.price)} VNĐ/slot
                             </Typography>
                           </Box>
                         </motion.div>
@@ -1200,12 +1219,47 @@ const TutorWeeklyPatternDetailModal = ({
       </Snackbar>
 
       {/* Confirm Submit Dialog */}
-      <Dialog open={confirmSubmitOpen} onClose={() => setConfirmSubmitOpen(false)}>
+      <Dialog 
+        open={confirmSubmitOpen} 
+        onClose={() => setConfirmSubmitOpen(false)}
+        sx={{
+          '& .MuiDialog-paper': {
+            zIndex: 1000
+          }
+        }}
+        container={() => document.body}
+        style={{ zIndex: 1000 }}
+      >
         <DialogTitle>Xác nhận đặt lịch</DialogTitle>
         <DialogContent>
           <Typography>
             Bạn có chắc chắn muốn đặt lịch này không?
           </Typography>
+          
+          {/* Legal terms notice */}
+          <Box sx={{ mt: 2, p: 2, backgroundColor: "#f0f9ff", borderRadius: 1, border: "1px solid #0ea5e9" }}>
+            <Typography variant="body2" sx={{ color: "#0369a1", fontSize: "0.875rem" }}>
+              Bằng cách đặt lịch, bạn đồng ý với{" "}
+              <Button
+                onClick={handleLegalDocumentClick}
+                sx={{ 
+                  p: 0, 
+                  minWidth: "auto", 
+                  textTransform: "none", 
+                  textDecoration: "underline",
+                  color: "#0369a1",
+                  "&:hover": { 
+                    backgroundColor: "transparent",
+                    textDecoration: "underline"
+                  }
+                }}
+              >
+                Điều khoản dịch vụ và Chính sách bảo mật
+              </Button>
+              {" "}của chúng tôi.
+            </Typography>
+          </Box>
+          
           {lessonDetails && (
             <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
@@ -1246,7 +1300,17 @@ const TutorWeeklyPatternDetailModal = ({
           </Button>
         </DialogActions>
       </Dialog>
-    </Dialog>
+
+      {/* Legal Document Modal */}
+      <Portal container={document.body}>
+        <LegalDocumentModal
+          isOpen={showLegalDocumentModal}
+          onClose={() => setShowLegalDocumentModal(false)}
+          category="Book thẳng"
+        />
+      </Portal>
+      </Dialog>
+    </>
   );
 };
 

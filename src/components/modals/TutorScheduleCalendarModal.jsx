@@ -758,7 +758,7 @@ const TutorScheduleCalendarModal = ({
                           ? formatPriceWithCommas(lesson.price)
                           : "0"}{" "}
                         <Typography component="span" variant="body2" sx={{ fontWeight: 400, fontSize: "0.8rem" }}>
-                          VND
+                          VNĐ
                         </Typography>
                       </Typography>
                       <Typography variant="body2" color="textSecondary" sx={{ fontSize: "0.75rem" }}>
@@ -887,7 +887,7 @@ const TutorScheduleCalendarModal = ({
                     ? formatPriceWithCommas(selectedLesson.price)
                     : "0"}{" "}
                   <Typography component="span" variant="body2" sx={{ fontWeight: 400, fontSize: "0.8rem" }}>
-                    VND/slot
+                    VNĐ/slot
                   </Typography>
                 </Typography>
                 {selectedLesson.description && (
@@ -1018,7 +1018,7 @@ const TutorScheduleCalendarModal = ({
                     color="primary"
                     sx={{ fontWeight: 500 }}
                   >
-                    Giá: {formatPriceWithCommas(selectedLesson.price)} VND/slot
+                    Giá: {formatPriceWithCommas(selectedLesson.price)} VNĐ/slot
                   </Typography>
                 )}
               </Box>

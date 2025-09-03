@@ -172,7 +172,7 @@ const LessonDetailModal = ({
                       {opt.duration} phút
                     </span>
                     <span className="text-sm text-red-400 font-bold mt-1">
-                      VND{" "}
+                      VNĐ{" "}
                       {opt.price.toLocaleString("en-US", {
                         minimumFractionDigits: 2,
                       })}

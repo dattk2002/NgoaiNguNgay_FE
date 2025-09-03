@@ -22,9 +22,9 @@ const WalletMain = ({ showPaymentReturn = false }) => {
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(amount);
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount) + ' VNĐ';
   };
 
   // Fetch wallet info on component mount

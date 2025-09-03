@@ -623,7 +623,7 @@ const StudentRequests = () => {
                     sx={{ fontWeight: 500 }}
                   >
                     Giá: {formatPriceWithCommas(learnerLessonDetails.price)}{" "}
-                    VND/slot
+                    VNĐ/slot
                   </Typography>
                 )}
               </Box>
@@ -1201,7 +1201,7 @@ const StudentRequests = () => {
                   ? formatPriceWithCommas(selectedLesson.price)
                   : "0"}{" "}
                 <Typography component="span" variant="body2" sx={{ fontWeight: 400 }}>
-                  VND/slot
+                  VNĐ/slot
                 </Typography>
               </Typography>
               {selectedLesson.description && (

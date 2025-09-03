@@ -910,11 +910,11 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                     if (lowestLesson) {
                       // Show the actual lesson price, not 50%
                       const lessonPrice = formatPriceWithCommas(parseFloat(lowestLesson.price));
-                      return `${lessonPrice} VND / 30 phút / 1 slot`;
+                      return `${lessonPrice} VNĐ / 30 phút / 1 slot`;
                     } else {
                       // Fallback to teacher's default price if no lessons available
                       const fallbackPrice = formatPriceWithCommas(parseFloat(teacher.price || 0));
-                      return `${fallbackPrice} VND / 30 phút / 1 slot`;
+                      return `${fallbackPrice} VNĐ / 30 phút / 1 slot`;
                     }
                   })()}
                 </p>
@@ -1069,7 +1069,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                     typeof lesson.price === "string"
                       ? formatPriceWithCommas(lesson.price)
                       : "Không có"}{" "}
-                    VND
+                    VNĐ
                   </span>
                   <span className="text-gray-500 text-sm mt-1">
                     30 phút / 1 slot

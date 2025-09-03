@@ -1605,21 +1605,6 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
                             <ListItemText
                               primary={
                                 <Box component="div" sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <Box component="div" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    <Box
-                                      component="div"
-                                      sx={{
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: "50%",
-                                        backgroundColor: getStatusColor(revision.status),
-                                        flexShrink: 0,
-                                      }}
-                                    />
-                                                                         <Typography variant="body2" sx={{ fontWeight: 600, color: "#374151" }} component="div">
-                                       {getStatusText(revision.status)}
-                                     </Typography>
-                                  </Box>
                                   <Typography variant="caption" color="textSecondary" component="div">
                                     {new Date(revision.createdTime).toLocaleDateString('vi-VN')}
                                   </Typography>
