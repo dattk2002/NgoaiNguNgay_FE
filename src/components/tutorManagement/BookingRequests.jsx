@@ -37,7 +37,7 @@ const BookingRequests = () => {
   // Booking status mapping
   const bookingStatusMap = {
     0: "Đang diễn ra",
-    1: "Hoàn thành, đợi 24h", 
+    1: "Đang chờ hệ thống thanh toán cho gia sư", 
     2: "Đã hoàn thành",
     3: "Đã hủy",
     4: "Đang bị báo cáo"
@@ -45,10 +45,11 @@ const BookingRequests = () => {
 
   // Held fund status mapping (assuming similar structure)
   const heldFundStatusMap = {
-    0: "Đã xác nhận",
-    1: "Đã yêu cầu khiếu nại", 
-    2: "Đang tranh chấp",
-    3: "Đã hủy"
+    0: "Tiền đang được giữ",
+    1: "Tiền đã được chuyển cho gia sư", 
+    2: "Tiền đã được hoàn trả cho học viên",
+    3: "Tiền đang trong trạng thái tranh chấp",
+    4: "Tiền đã được chuyển về tài khoản ngân hàng của gia sư"
   };
 
   // States for reschedule requests

@@ -610,15 +610,43 @@ function AppWithNotifications() {
 
   // Debug: Log connection status with state details
   useEffect(() => {
-    console.log("🔗 Notification Hub Connection Status:", {
-      connected,
-      connectionState,
-      connectionStateName,
-      error,
-      userId: user?.id,
-      userRoles: user?.roles
-    });
-  }, [connected, connectionState, connectionStateName, error, user]);
+    // Log only development
+    if (process.env.NODE_ENV === 'development') {
+      console.log("📨 Notification triggered:", !!notification);
+    }
+    if (notification && user && user.id) {
+      const minimalNotification = {
+        id: notification.id,
+        title: notification.title || "Thông báo mới",
+        content: notification.content || "",
+        priority: notification.notificationPriority || 0,
+        createdAt: notification.createdAt
+      };
+
+      // Set priority based on notificationPriority
+      let priority = "Normal";
+      switch (minimalNotification.priority) {
+        case 1: priority = "Critical"; break;
+        case 2: priority = "Warning"; break;
+        case 3: priority = "Info"; break;
+        default: priority = "Normal";
+      }
+      setSnackbarContent({
+        title: minimalNotification.title,
+        body: minimalNotification.content,
+        priority,
+        id: minimalNotification.id,
+        createdAt: minimalNotification.createdAt
+      });
+      setSnackbarOpen(true);
+    }
+
+    // Cleanup function
+    return () => {
+      // Clear references
+      setSnackbarContent(null);
+    };
+  }, [notification, user]);
 
   // Handle notifications globally with detailed debugging
   useEffect(() => {
@@ -1088,6 +1116,23 @@ function AppWithNotifications() {
 
 // Main App component wrapped with NotificationProvider and TinyMCEProvider
 function App() {
+  useEffect(() => {
+    // Setup cache cleanup interval
+    const cleanupCacheFn = setupCacheCleanup();
+
+    // Setup memory monitoring
+    const cleanupMemoryFn = initMemoryMonitoring();
+
+    // Expose cleanup function globally for emergencies
+    window.cleanupMemory = cleanupMemory;
+
+    // Clear all on unmount
+    return () => {
+      cleanupCacheFn();
+      cleanupMemoryFn();
+      delete window.cleanupMemory;
+    };
+  }, []);
   return (
     <TinyMCEProvider>
       <NotificationProvider>
