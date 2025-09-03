@@ -646,6 +646,10 @@ const LoginModal = ({
         isOpen={showLegalDocumentModal}
         onClose={() => setShowLegalDocumentModal(false)}
         category="Đăng nhập"
+        onAgree={() => {
+          // Khi người dùng đồng ý với điều khoản, có thể thêm logic xử lý ở đây
+          console.log('Người dùng đã đồng ý với điều khoản đăng nhập');
+        }}
       />
     </AnimatePresence>
   );
