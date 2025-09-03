@@ -3,9 +3,9 @@
  * Memory-efficient notification handling with caching and normalization
  */
 
-// Cache for parsed additionalData to avoid repeated JSON.parse
 const additionalDataCache = new Map();
-const CACHE_SIZE_LIMIT = 100; // Limit cache size to prevent memory bloat
+const CACHE_SIZE_LIMIT = 100;
+const CACHE_TTL = 5 * 60 * 1000;
 
 // Normalized notification types for memory efficiency
 const NOTIFICATION_KEYS = {
@@ -109,22 +109,46 @@ export const parseAdditionalData = (jsonString, cacheKey) => {
     return {};
   }
   
+  const now = Date.now();
+  
   // Check cache first
   if (additionalDataCache.has(cacheKey)) {
-    return additionalDataCache.get(cacheKey);
+    const cachedEntry = additionalDataCache.get(cacheKey);
+    // Kiểm tra TTL
+    if (now - cachedEntry.timestamp < CACHE_TTL) {
+      return cachedEntry.data;
+    } else {
+      // Expired, remove from cache
+      additionalDataCache.delete(cacheKey);
+    }
   }
   
   try {
     const parsed = JSON.parse(jsonString);
     
-    // Cache the result (with size limit)
+    // Cache the result with timestamp
     if (additionalDataCache.size >= CACHE_SIZE_LIMIT) {
-      // Remove oldest entries if cache is full
-      const firstKey = additionalDataCache.keys().next().value;
-      additionalDataCache.delete(firstKey);
+      // Find oldest entry to remove
+      let oldestKey = null;
+      let oldestTime = Infinity;
+      
+      for (const [key, entry] of additionalDataCache.entries()) {
+        if (entry.timestamp < oldestTime) {
+          oldestTime = entry.timestamp;
+          oldestKey = key;
+        }
+      }
+      
+      if (oldestKey) {
+        additionalDataCache.delete(oldestKey);
+      }
     }
     
-    additionalDataCache.set(cacheKey, parsed);
+    additionalDataCache.set(cacheKey, {
+      data: parsed,
+      timestamp: now
+    });
+    
     return parsed;
   } catch (error) {
     console.warn('Failed to parse additionalData:', error);
@@ -149,6 +173,29 @@ export const getCacheStats = () => {
     limit: CACHE_SIZE_LIMIT,
     keys: Array.from(additionalDataCache.keys())
   };
+};
+
+/**
+ * @returns {Function} Cleanup function
+ */
+export const setupCacheCleanup = () => {
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    let cleanupCount = 0;
+    
+    for (const [key, entry] of additionalDataCache.entries()) {
+      if (now - entry.timestamp > CACHE_TTL) {
+        additionalDataCache.delete(key);
+        cleanupCount++;
+      }
+    }
+    
+    if (cleanupCount > 0) {
+      console.log(`Cache cleanup: removed ${cleanupCount} expired entries`);
+    }
+  }, 5 * 60 * 1000); // Run every 5 minutes
+  
+  return () => clearInterval(cleanupInterval); // Return cleanup function
 };
 
 export default notificationMessages;

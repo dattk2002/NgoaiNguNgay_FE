@@ -611,73 +611,45 @@ function AppWithNotifications() {
 
   // Handle notifications globally with detailed debugging
   useEffect(() => {
-    console.log("📨 App.jsx - Notification Effect Triggered:", {
-      hasNotification: !!notification,
-      notificationData: notification,
-      hasUser: !!user,
-      userId: user?.id,
-      userRoles: user?.roles
-    });
+    // Log only development
+    if (process.env.NODE_ENV === 'development') {
+      console.log("📨 Notification triggered:", !!notification);
+    }
 
     if (notification && user && user.id) {
-      console.log("✅ App.jsx - Processing Notification:", {
-        notificationId: notification.id,
-        title: notification.title,
-        content: notification.content,
-        priority: notification.notificationPriority,
-        isRead: notification.isRead,
-        createdAt: notification.createdAt,
-        additionalData: notification.additionalData
-      });
-
-      // Backend now handles message parsing, so we can use the original values directly
-      let displayTitle = notification.title || "Thông báo mới";
-      let displayContent = notification.content || "";
+      const minimalNotification = {
+        id: notification.id,
+        title: notification.title || "Thông báo mới",
+        content: notification.content || "",
+        priority: notification.notificationPriority || 0,
+        createdAt: notification.createdAt
+      };
+      
+      // Set priority based on notificationPriority
       let priority = "Normal";
-
-      // Set priority based on notificationPriority if available
-      if (notification.notificationPriority) {
-        switch (notification.notificationPriority) {
-          case 1:
-            priority = "Critical";
-            break;
-          case 2:
-            priority = "Warning";
-            break;
-          case 3:
-            priority = "Info";
-            break;
-          default:
-            priority = "Normal";
-        }
+      switch (minimalNotification.priority) {
+        case 1: priority = "Critical"; break;
+        case 2: priority = "Warning"; break;
+        case 3: priority = "Info"; break;
+        default: priority = "Normal";
       }
 
       setSnackbarContent({
-        title: displayTitle,
-        body: displayContent,
-        priority: priority,
-        id: notification.id,
-        additionalData: notification.additionalData,
-        createdAt: notification.createdAt
+        title: minimalNotification.title,
+        body: minimalNotification.content,
+        priority,
+        id: minimalNotification.id,
+        createdAt: minimalNotification.createdAt
       });
-
-      console.log("🎯 App.jsx - Setting Snackbar Content:", {
-        title: displayTitle,
-        body: displayContent,
-        priority: priority,
-        originalTitle: notification.title,
-        originalContent: notification.content
-      });
-
+      
       setSnackbarOpen(true);
-      console.log(" App.jsx - Snackbar Opened");
-    } else {
-      console.log("❌ App.jsx - Notification Conditions Not Met:", {
-        hasNotification: !!notification,
-        hasUser: !!user,
-        hasUserId: !!(user && user.id)
-      });
     }
+    
+    // Cleanup function
+    return () => {
+      // Clear references
+      setSnackbarContent(null);
+    };
   }, [notification, user]);
 
   // Debug: Log snackbar state changes
@@ -1077,6 +1049,24 @@ function AppWithNotifications() {
 
 // Main App component wrapped with NotificationProvider and TinyMCEProvider
 function App() {
+  useEffect(() => {
+    // Setup cache cleanup interval
+    const cleanupCacheFn = setupCacheCleanup();
+    
+    // Setup memory monitoring
+    const cleanupMemoryFn = initMemoryMonitoring();
+    
+    // Expose cleanup function globally for emergencies
+    window.cleanupMemory = cleanupMemory;
+    
+    // Clear all on unmount
+    return () => {
+      cleanupCacheFn();
+      cleanupMemoryFn();
+      delete window.cleanupMemory;
+    };
+  }, []);
+  
   return (
     <TinyMCEProvider>
       <NotificationProvider>
