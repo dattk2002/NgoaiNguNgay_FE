@@ -2,7 +2,6 @@
  * Memory management utilities to prevent R14 errors
  */
 
-// Track memory usage
 // memoryManager.js - Cải tiến
 import { clearNotificationCache } from './notificationMessages';
 
@@ -33,16 +32,14 @@ export const trackMemoryUsage = (type, size, operation = 'add') => {
   }
 };
 
-// Cleanup function
+// Enhanced cleanup function
 export const cleanupMemory = () => {
   // Clear caches
   if (typeof clearNotificationCache === 'function') {
     clearNotificationCache();
   }
-  
-   // Reset counters with accurate values if possible
-   memoryUsage = { notifications: 0, cache: 0, objects: 0 };
-
+ // Set new interval
+ cleanupInterval = setInterval(cleanupMemory, 5 * 60 * 1000);
    // Try to force garbage collection in Node.js environments
    if (typeof global !== 'undefined' && global.gc) {
      global.gc();
