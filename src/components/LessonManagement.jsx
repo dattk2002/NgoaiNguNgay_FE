@@ -488,11 +488,11 @@ const LessonManagement = () => {
     // Based on backend SlotStatus enum:
     // Pending = 0, AwaitingPayout = 1, Completed = 2, Cancelled = 3, CancelledDisputed = 4
     const statusMap = {
-      0: { label: "Chờ phản hồi", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-      1: { label: "Hoàn thành, nếu có vấn đề báo cáo trong 24h", class: "bg-blue-50 text-blue-700 border border-blue-200" },
+      0: { label: "Đang chờ diễn ra", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+      1: { label: "Đang chờ thanh toán cho gia sư", class: "bg-blue-50 text-blue-700 border border-blue-200" },
       2: { label: "Hoàn thành", class: "bg-green-50 text-green-700 border border-green-200" },
       3: { label: "Đã hủy", class: "bg-red-50 text-red-700 border border-red-200" },
-      4: { label: "Đang báo cáo", class: "bg-orange-50 text-orange-700 border border-orange-200" }
+      4: { label: "Đã hủy do tranh chấp", class: "bg-orange-50 text-orange-700 border border-orange-200" }
     };
     const statusInfo = statusMap[status] || { label: "Không xác định", class: "bg-gray-50 text-gray-700 border border-gray-200" };
     
@@ -663,12 +663,7 @@ const LessonManagement = () => {
     <div className="bg-white p-6 rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold" style={{ color: '#666666' }}>
-          Quản lí slot học ({totalCount} khóa học)
-          {totalCount !== originalTotalCount && (
-            <span className="text-sm font-normal text-gray-500 ml-2">
-              (từ {originalTotalCount} khóa học tổng cộng)
-            </span>
-          )}
+          Theo dõi khóa học
         </h2>
         <button
           onClick={fetchLessons}

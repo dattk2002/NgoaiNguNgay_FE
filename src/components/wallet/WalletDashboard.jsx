@@ -146,76 +146,6 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh, onViewAllTransa
     }
   };
 
-  // Calculate stats from real data
-  const calculateStats = () => {
-    console.log('Debug Stats - Transactions:', transactions);
-    console.log('Debug Stats - Deposit History:', depositHistory);
-    console.log('Debug Stats - Withdrawal History:', withdrawalHistory);
-
-    const totalDeposits = depositHistory
-      .filter(d => {
-        if (typeof d.status === 'number') {
-          return d.status === 1; // 1 = success
-        } else if (typeof d.status === 'string') {
-          const statusLower = d.status.toLowerCase();
-          return statusLower === 'success' || statusLower === 'successful';
-        }
-        return false;
-      })
-      .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
-    
-    // Calculate from both wallet transactions and dedicated withdrawal history
-    const walletWithdrawals = transactions
-      .filter(t => {
-        const description = String(t.description || t.transactionType || t.note || '').toLowerCase();
-        // Skip deposit-like transactions
-        if (description.includes('nạp')) {
-          return false;
-        }
-        
-        const type = String(t.type || t.transactionType || '').toLowerCase();
-        return type.includes('withdraw') || type.includes('withdrawal') || type.includes('rut');
-      })
-      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-
-    const withdrawalHistoryAmount = withdrawalHistory
-      .filter(w => w.status === 2) // Only completed withdrawals
-      .reduce((sum, w) => sum + (parseFloat(w.grossAmount || w.amount) || 0), 0);
-
-    const totalWithdrawals = walletWithdrawals + withdrawalHistoryAmount;
-    
-    // Filter out deposit-like transactions from wallet transactions for counting
-    const filteredTransactions = transactions.filter(t => {
-      const description = String(t.description || t.transactionType || t.note || '').toLowerCase();
-      return !description.includes('nạp');
-    });
-    
-    const allTransactionsCount = filteredTransactions.length + depositHistory.length + withdrawalHistory.length;
-    
-    const thisMonthTransactions = [...filteredTransactions, ...depositHistory, ...withdrawalHistory].filter(t => {
-      const date = t.createdAt || t.date || t.createdTime || t.requestTime;
-      if (!date) return false;
-      const transactionDate = new Date(date);
-      const now = new Date();
-      return transactionDate.getMonth() === now.getMonth() && 
-             transactionDate.getFullYear() === now.getFullYear();
-    }).length;
-
-    console.log('Debug Stats - Total deposits:', totalDeposits);
-    console.log('Debug Stats - Total withdrawals:', totalWithdrawals);
-    console.log('Debug Stats - All transactions count:', allTransactionsCount);
-    console.log('Debug Stats - This month transactions:', thisMonthTransactions);
-
-    return [
-      { label: 'Tổng tiền nạp', value: formatCurrency(totalDeposits), icon: '📈', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
-      { label: 'Tổng tiền rút', value: formatCurrency(totalWithdrawals), icon: '📉', color: 'bg-rose-50 border-rose-200 text-rose-700' },
-      { label: 'Giao dịch tháng này', value: thisMonthTransactions.toString(), icon: '📊', color: 'bg-blue-50 border-blue-200 text-blue-700' },
-      { label: 'Thẻ đã liên kết', value: '0', icon: '💳', color: 'bg-purple-50 border-purple-200 text-purple-700' }
-    ];
-  };
-
-  const stats = calculateStats();
-
   // Get recent transactions (combine wallet transactions and deposits)
   const getRecentTransactions = () => {
     const allTransactions = [
@@ -301,55 +231,18 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh, onViewAllTransa
 
   return (
     <div className="p-8 space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Balance Card */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-8 text-white">
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <h3 className="text-lg font-medium opacity-90 mb-2">💰 Số dư hiện tại</h3>
-              <div className="text-4xl font-bold mb-2">{formatCurrency(availableBalance || balance)}</div>
-              {balance !== availableBalance && (
-                <div className="text-sm opacity-75 mb-2">Tổng số dư: {formatCurrency(balance)}</div>
-              )}
-              <div className="text-sm opacity-75">Cập nhật: {new Date().toLocaleString('vi-VN')}</div>
-            </div>
+      {/* Balance Card */}
+      <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-8 text-white">
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h3 className="text-lg font-medium opacity-90 mb-2">💰 Số dư hiện tại</h3>
+            <div className="text-4xl font-bold mb-2">{formatCurrency(availableBalance || balance)}</div>
+            {balance !== availableBalance && (
+              <div className="text-sm opacity-75 mb-2">Tổng số dư: {formatCurrency(balance)}</div>
+            )}
+            <div className="text-sm opacity-75">Cập nhật: {new Date().toLocaleString('vi-VN')}</div>
           </div>
         </div>
-
-        {/* Quick Stats */}
-        <div className="space-y-4">
-          {stats.slice(0, 2).map((stat, index) => (
-            <div key={index} className={`p-5 rounded-xl border ${stat.color}`}>
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-xl">{stat.icon}</span>
-                <span className="text-sm font-medium">{stat.label}</span>
-              </div>
-              <div className="text-xl font-bold">{stat.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Additional Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.slice(2).map((stat, index) => (
-          <div key={index} className={`p-5 rounded-xl border ${stat.color}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">{stat.icon}</span>
-              <span className="text-xs font-medium">{stat.label}</span>
-            </div>
-            <div className="text-2xl font-bold">{stat.value}</div>
-          </div>
-        ))}
-        {stats.slice(0, 2).map((stat, index) => (
-          <div key={index + 2} className={`p-5 rounded-xl border ${stat.color}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">{stat.icon}</span>
-              <span className="text-xs font-medium">{stat.label}</span>
-            </div>
-            <div className="text-2xl font-bold">{stat.value}</div>
-          </div>
-        ))}
       </div>
 
       {/* Recent Transactions */}

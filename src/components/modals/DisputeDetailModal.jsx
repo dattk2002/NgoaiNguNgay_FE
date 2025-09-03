@@ -819,43 +819,28 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                   <div className="bg-green-50 rounded-lg p-4">
                     <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
                       <FaPaperclip className="w-4 h-4" />
-                      Thông tin hỗ trợ ({displayDispute.evidenceUrls.length} mục)
+                      Thông tin hỗ trợ
                     </h4>
                     <div className="space-y-2">
                       {displayDispute.evidenceUrls.map((item, index) => {
                         // Check if it's a URL
                         const isUrl = item.startsWith('http://') || item.startsWith('https://');
+                        // Only show URL items, skip non-URL items like reasons
+                        if (!isUrl) return null;
+                        
                         return (
                           <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              {isUrl ? (
-                                <FaLink className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                              ) : (
-                                <FaPaperclip className="w-4 h-4 text-green-500 flex-shrink-0" />
-                              )}
-                              {isUrl ? (
-                                <a
-                                  href={item}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate"
-                                >
-                                  {item}
-                                </a>
-                              ) : (
-                                <span className="text-sm font-medium text-gray-900 break-words">
-                                  {item}
-                                </span>
-                              )}
-                            </div>
-                            {isUrl && (
-                              <button
-                                onClick={() => window.open(item, '_blank')}
-                                className="p-1 hover:bg-blue-100 rounded text-blue-600 flex-shrink-0"
+                              <FaLink className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                              <a
+                                href={item}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate"
                               >
-                                <FaDownload className="w-4 h-4" />
-                              </button>
-                            )}
+                                {item}
+                              </a>
+                            </div>
                           </div>
                         );
                       })}
