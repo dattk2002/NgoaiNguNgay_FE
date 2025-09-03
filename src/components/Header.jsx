@@ -305,45 +305,9 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
               }
             }
 
-            // Check if title needs conversion (is a notification key)
-            const titleNeedsConversion =
-              notif.title &&
-              (notif.title.startsWith("PUSH_ON_") ||
-                notif.title.includes("_BODY"));
-
-            // Check if content needs conversion (is a notification key)
-            const contentNeedsConversion =
-              notif.content &&
-              (notif.content.startsWith("PUSH_ON_") ||
-                notif.content.includes("_BODY"));
-
-            // Convert title
-            let convertedTitle;
-            if (titleNeedsConversion) {
-              convertedTitle = getNotificationTitle(notif.title.trim());
-            } else {
-              convertedTitle = notif.title; // Use original if already user-friendly
-            }
-
-            // Convert content and include sender name if available
-            let convertedContent;
-            if (contentNeedsConversion) {
-              convertedContent = getNotificationContent(notif.content.trim());
-
-              // Customize content based on notification type and sender info
-              if (
-                notif.title === "PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST" ||
-                notif.title === "PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST_BODY"
-              ) {
-                if (senderProfile && senderProfile.fullName) {
-                  convertedContent = `${senderProfile.fullName} đã gửi cho bạn một yêu cầu`;
-                } else {
-                  convertedContent = "1 học viên đã gửi cho bạn một yêu cầu";
-                }
-              }
-            } else {
-              convertedContent = notif.content; // Use original if already user-friendly
-            }
+            // Backend now handles message parsing, so we can use the original values directly
+            const convertedTitle = notif.title || 'Thông báo';
+            const convertedContent = notif.content || 'Bạn có thông báo mới';
 
             return {
               id: notif.id,
