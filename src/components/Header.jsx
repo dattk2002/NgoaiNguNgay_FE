@@ -46,6 +46,8 @@ import {
   getNotificationContent,
   getNotificationMessage,
   isSupportedNotificationType,
+  parseAdditionalData,
+  clearNotificationCache
 } from "../utils/notificationMessages";
 import ChangePasswordPage from "../pages/ChangePasswordPage";
 
@@ -276,38 +278,38 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
             let senderProfile = null;
 
             if (notif.additionalData) {
-              try {
-                const additionalData = JSON.parse(notif.additionalData);
-                senderId = additionalData.SenderId;
+              // Use cached parsing to avoid repeated JSON.parse
+              const additionalData = parseAdditionalData(
+                notif.additionalData, 
+                `notif_${notif.id}`
+              );
+              senderId = additionalData.SenderId;
 
-                // Fetch sender profile if we have a senderId and haven't fetched it yet
-                if (senderId && !senderProfiles[senderId]) {
-                  try {
-                    const senderResponse = await getSenderProfile(senderId);
-                    if (senderResponse) {
-                      setSenderProfiles((prev) => ({
-                        ...prev,
-                        [senderId]: senderResponse,
-                      }));
-                      senderProfile = senderResponse;
-                    }
-                  } catch (error) {
-                    console.error(
-                      `Failed to fetch sender profile for ${senderId}:`,
-                      error
-                    );
+              // Fetch sender profile if we have a senderId and haven't fetched it yet
+              if (senderId && !senderProfiles[senderId]) {
+                try {
+                  const senderResponse = await getSenderProfile(senderId);
+                  if (senderResponse) {
+                    setSenderProfiles((prev) => ({
+                      ...prev,
+                      [senderId]: senderResponse,
+                    }));
+                    senderProfile = senderResponse;
                   }
-                } else if (senderId && senderProfiles[senderId]) {
-                  senderProfile = senderProfiles[senderId];
+                } catch (error) {
+                  console.error(
+                    `Failed to fetch sender profile for ${senderId}:`,
+                    error
+                  );
                 }
-              } catch (error) {
-                console.error("Failed to parse additionalData:", error);
+              } else if (senderId && senderProfiles[senderId]) {
+                senderProfile = senderProfiles[senderId];
               }
             }
 
             // Backend now handles message parsing, so we can use the original values directly
-            const convertedTitle = notif.title || 'Thông báo';
-            const convertedContent = notif.content || 'Bạn có thông báo mới';
+            const convertedTitle = getNotificationTitle(notif.title);
+            const convertedContent = getNotificationContent(notif.content);
 
             return {
               id: notif.id,
