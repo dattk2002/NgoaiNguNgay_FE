@@ -252,96 +252,36 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
   }, []);
 
   // Fetch notifications from API
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (page = 1, limit = 10) => {
     if (!user) return;
 
     try {
       setLoadingNotifications(true);
 
-      // Load notifications from local storage first
-      const storageKey = `notifications_${user.id}`;
-      const localNotifications = JSON.parse(
-        localStorage.getItem(storageKey) || "[]"
-      );
-
-      // Fetch from API
-      const response = await getNotification(1, 50, false); // Fetch all notifications
+      // Fetch from API with pagination
+      const response = await getNotification(page, limit, false);
 
       if (response && response.data) {
         const fetchedNotifications = response.data.items || response.data || [];
 
-        // Transform API response to match our notification format
-        const transformedNotifications = await Promise.all(
-          fetchedNotifications.map(async (notif) => {
-            // Extract sender information from additionalData
-            let senderId = null;
-            let senderProfile = null;
+         // Process in batches to avoid blocking UI
+         const processedBatch = await processBatch(fetchedNotifications);
 
-            if (notif.additionalData) {
-              // Use cached parsing to avoid repeated JSON.parse
-              const additionalData = parseAdditionalData(
-                notif.additionalData, 
-                `notif_${notif.id}`
-              );
-              senderId = additionalData.SenderId;
-
-              // Fetch sender profile if we have a senderId and haven't fetched it yet
-              if (senderId && !senderProfiles[senderId]) {
-                try {
-                  const senderResponse = await getSenderProfile(senderId);
-                  if (senderResponse) {
-                    setSenderProfiles((prev) => ({
-                      ...prev,
-                      [senderId]: senderResponse,
-                    }));
-                    senderProfile = senderResponse;
-                  }
-                } catch (error) {
-                  console.error(
-                    `Failed to fetch sender profile for ${senderId}:`,
-                    error
-                  );
-                }
-              } else if (senderId && senderProfiles[senderId]) {
-                senderProfile = senderProfiles[senderId];
-              }
-            }
-
-            // Backend now handles message parsing, so we can use the original values directly
-            const convertedTitle = getNotificationTitle(notif.title);
-            const convertedContent = getNotificationContent(notif.content);
-
-            return {
-              id: notif.id,
-              title: convertedTitle,
-              message: convertedContent,
-              timestamp:
-                notif.createdTime ||
-                notif.createdAt ||
-                new Date().toISOString(),
-              isRead: notif.isRead || false,
-              type: notif.type || "info",
-              senderId: senderId,
-              senderProfile: senderProfile,
-            };
-          })
-        );
-
-        // Merge API notifications with local notifications
-        // Use a Map to avoid duplicates based on ID
-        const notificationMap = new Map();
-
-        // Add API notifications first (they have priority)
-        transformedNotifications.forEach((notif) => {
-          notificationMap.set(notif.id, notif);
-        });
-
-        // Add local notifications (only if not already present)
-        localNotifications.forEach((notif) => {
-          if (!notificationMap.has(notif.id)) {
-            notificationMap.set(notif.id, notif);
-          }
-        });
+         // Update state with new notifications
+         setNotifications(prev => {
+           // Deduplicate by ID
+           const notifMap = new Map();
+ 
+           // Add existing notifications first
+           prev.forEach(n => notifMap.set(n.id, n));
+ 
+           // Add new notifications, overwriting existing ones
+           processedBatch.forEach(n => notifMap.set(n.id, n));
+ 
+           // Convert back to array and sort
+           return Array.from(notifMap.values())
+             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+         });
 
         // Convert back to array and sort by timestamp (newest first)
         const mergedNotifications = Array.from(notificationMap.values()).sort(

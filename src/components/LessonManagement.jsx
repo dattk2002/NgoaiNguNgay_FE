@@ -511,8 +511,14 @@ const LessonManagement = () => {
       // Fetch detailed booking information using fetchBookingDetail
       const response = await fetchBookingDetail(booking.id);
       
-      // Check if response has data and lessonSnapshot
-      if (response && response.data && response.data.lessonSnapshot) {
+      console.log("🔍 API Response in handleViewCourseInfo:", response);
+      console.log("🔍 Response type:", typeof response);
+      console.log("🔍 Response keys:", response ? Object.keys(response) : 'null');
+      console.log("🔍 Response.lessonSnapshot:", response?.lessonSnapshot);
+      
+      // Check if response has lessonSnapshot
+      if (response && response.lessonSnapshot) {
+        console.log("✅ Found lessonSnapshot:", response.lessonSnapshot);
         setSelectedLessonInfo({
           group: { 
             bookings: [booking],
@@ -521,10 +527,11 @@ const LessonManagement = () => {
             lessonName: booking.lessonName,
             tutorName: booking.tutorName
           },
-          lessonData: response.data.lessonSnapshot,
+          lessonData: response.lessonSnapshot,
           error: null
         });
       } else {
+        console.log("❌ No lessonSnapshot found in response:", response);
         setSelectedLessonInfo({
           group: { 
             bookings: [booking],
