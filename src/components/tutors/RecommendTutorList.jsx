@@ -342,7 +342,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
                 justifyContent: 'center', 
                 mt: 8 
               }}>
-                <NoFocusOutLineButton
+                <Button
                   variant="contained"
                   onClick={handleLoadMore}
                   sx={{
@@ -367,7 +367,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
                 >
                   Xem thêm
                   <FaArrowRight style={{ fontSize: '1.2rem' }} />
-                </NoFocusOutLineButton>
+                </Button>
               </Box>
             )}
           </>
