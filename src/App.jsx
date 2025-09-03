@@ -37,6 +37,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ForgotPasswordModal from "./components/modals/ForgotPasswordModal";
 import LegalDocumentsPage from "./pages/LegalDocumentsPage";
 import LegalDocumentDetailPage from "./pages/LegalDocumentDetailPage";
+import AboutUsPage from "./pages/AboutUsPage";
 
 // Import the tutor API functions
 import {
@@ -492,6 +493,16 @@ function AppContent({
             element={
               <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
                 <LegalDocumentsPage />
+              </BlockedRoute>
+            }
+          />
+
+          {/* NEW ROUTE for About Us */}
+          <Route
+            path="/about-us"
+            element={
+              <BlockedRoute user={user} blockedRoles={['admin', 'Admin', 'staff', 'Staff', 'manager', 'Manager']}>
+                <AboutUsPage />
               </BlockedRoute>
             }
           />
