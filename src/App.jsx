@@ -608,56 +608,13 @@ function AppWithNotifications() {
   // Use the notification context at the top level
   const { notification, connected, error, connectionState, connectionStateName } = useNotification();
 
-  // Debug: Log connection status with state details
-  useEffect(() => {
-    // Log only development
-    if (process.env.NODE_ENV === 'development') {
-      console.log("📨 Notification triggered:", !!notification);
-    }
-    if (notification && user && user.id) {
-      const minimalNotification = {
-        id: notification.id,
-        title: notification.title || "Thông báo mới",
-        content: notification.content || "",
-        priority: notification.notificationPriority || 0,
-        createdAt: notification.createdAt
-      };
-
-      // Set priority based on notificationPriority
-      let priority = "Normal";
-      switch (minimalNotification.priority) {
-        case 1: priority = "Critical"; break;
-        case 2: priority = "Warning"; break;
-        case 3: priority = "Info"; break;
-        default: priority = "Normal";
-      }
-      setSnackbarContent({
-        title: minimalNotification.title,
-        body: minimalNotification.content,
-        priority,
-        id: minimalNotification.id,
-        createdAt: minimalNotification.createdAt
-      });
-      setSnackbarOpen(true);
-    }
-
-    // Cleanup function
-    return () => {
-      // Clear references
-      setSnackbarContent(null);
-    };
-  }, [notification, user]);
 
   // Handle notifications globally with detailed debugging
   useEffect(() => {
-    console.log("📨 App.jsx - Notification Effect Triggered:", {
-      hasNotification: !!notification,
-      notificationData: notification,
-      hasUser: !!user,
-      userId: user?.id,
-      userRoles: user?.roles
-    });
-
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log("📨 Notification triggered:", !!notification);
+    }
     if (notification && user && user.id) {
       const minimalNotification = {
         id: notification.id,
