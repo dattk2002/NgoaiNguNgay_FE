@@ -37,8 +37,6 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
   const name = tutor.name || "Unnamed Tutor";
   const isProfessional = tutor.isProfessional;
   const tag = tutor.isProfessional ? "Gia sư uy tín" : "";
-
-  const location = tutor.address ? `${tutor.address}` : "";
   const description = tutor.description || "Empty";
 
   const imageUrl = tutor.imageUrl || "https://picsum.photos/300/200?random=1";
@@ -126,7 +124,6 @@ const RecommendTutorCard = ({ tutor, user, onRequireLogin }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
         <div className="absolute bottom-4 left-4 text-white">
           <h3 className="text-2xl font-bold drop-shadow-md">{name}</h3>
-          <p className="text-sm drop-shadow-md">{location}</p>
         </div>
       </div>
 
