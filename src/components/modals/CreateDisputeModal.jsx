@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaExclamationTriangle, FaPaperclip, FaTimes, FaUpload, FaTrash, FaLink, FaPlus } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { createDispute } from "../api/auth";
+import LegalDocumentModal from "./LegalDocumentModal";
 
 const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,9 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
   const [newUrl, setNewUrl] = useState("");
   const fileInputRef = useRef(null);
   const modalRef = useRef(null);
+  
+  // Add legal document modal state
+  const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
 
   const disputeReasons = [
     { value: "Giáo viên vắng mặt không thông báo trước", label: "Vắng mặt" },
@@ -185,6 +189,12 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
       setNewUrl("");
       onClose();
     }
+  };
+
+  // Handler to open legal document modal
+  const handleLegalDocumentClick = (e) => {
+    e.preventDefault();
+    setShowLegalDocumentModal(true);
   };
 
   const modalVariants = {
@@ -416,6 +426,29 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
                  </div>
                </div>
 
+              {/* Legal terms notice */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <FaLink className="w-3 h-3 text-blue-600" />
+                  </div>
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-1">Điều khoản dịch vụ</p>
+                    <p>
+                      Bằng cách gửi báo cáo, bạn đồng ý với{" "}
+                      <button
+                        type="button"
+                        onClick={handleLegalDocumentClick}
+                        className="text-blue-600 underline hover:text-blue-800 font-medium"
+                      >
+                        Điều khoản dịch vụ và Chính sách bảo mật
+                      </button>
+                      {" "}của chúng tôi.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Submit Button */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <button
@@ -448,6 +481,13 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Legal Document Modal */}
+      <LegalDocumentModal
+        isOpen={showLegalDocumentModal}
+        onClose={() => setShowLegalDocumentModal(false)}
+        category="khiếu nại"
+      />
     </AnimatePresence>
   );
 };

@@ -574,7 +574,7 @@ const TutorLanguageList = () => {
     if (priceRange[0] > 0 || priceRange[1] < 1000000) {
       newActiveFilters.push({
         type: "price",
-        label: `₫ ${priceRange[0].toLocaleString()} - ₫ ${priceRange[1].toLocaleString()}`,
+        label: `${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()} VNĐ`,
         value: priceRange,
       });
     }

@@ -991,7 +991,7 @@ const OfferUpdateModal = ({
                             {lessonDetails.category && ` | ${lessonDetails.category}`}
                           </p>
                           <p className="text-xs font-bold text-blue-600">
-                            {formatPriceWithCommas(lessonDetails.price)} VND/slot
+                            {formatPriceWithCommas(lessonDetails.price)} VNĐ/slot
                           </p>
                         </div>
                       )}
@@ -1121,7 +1121,7 @@ const OfferUpdateModal = ({
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-gray-600">Giá tuần này:</span>
                               <span className="text-sm font-bold text-blue-600">
-                                {formatPriceWithCommas(lessonDetails.price * currentWeekSelectedSlots.length)} VND
+                                {formatPriceWithCommas(lessonDetails.price * currentWeekSelectedSlots.length)} VNĐ
                               </span>
                             </div>
                           )}
@@ -1139,7 +1139,7 @@ const OfferUpdateModal = ({
                                 <div className="flex justify-between items-center">
                                   <span className="text-xs text-gray-500">Tổng giá:</span>
                                   <span className="text-xs font-bold text-green-600">
-                                    {formatPriceWithCommas(lessonDetails.price * Object.values(selectedSlotsByWeek).flat().length)} VND
+                                    {formatPriceWithCommas(lessonDetails.price * Object.values(selectedSlotsByWeek).flat().length)} VNĐ
                                   </span>
                                 </div>
                               )}

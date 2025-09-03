@@ -24,9 +24,9 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(amount);
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount) + ' VNĐ';
   };
 
   const handleAmountChange = (value) => {
@@ -40,12 +40,12 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       return {
         feeAmount: 0,
         netAmount: grossAmount,
-        feeDisplay: '0 VND'
+        feeDisplay: '0 VNĐ'
       };
     }
 
     let feeAmount = 0;
-    let feeDisplay = '0 VND';
+          let feeDisplay = '0 VNĐ';
 
     if (withdrawalFee.type === 1) {
       // Flat fee
@@ -116,7 +116,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
     }
 
     if (parseInt(amount.replace(/,/g, '')) < 10000) {
-      toast.error('Số tiền nạp tối thiểu là 10,000 VND');
+              toast.error('Số tiền nạp tối thiểu là 10,000 VNĐ');
       return;
     }
 
@@ -150,7 +150,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
     }
 
     if (parseInt(amount.replace(/,/g, '')) < 50000) {
-      toast.error('Số tiền rút tối thiểu là 50,000 VND');
+              toast.error('Số tiền rút tối thiểu là 50,000 VNĐ');
       return;
     }
 
@@ -334,7 +334,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                     const formatted = formatPriceInputWithCommas(cleaned);
                     setAmount(formatted);
                   }}
-                  placeholder="Nhập số tiền (tối thiểu 10,000 VND)"
+                  placeholder="Nhập số tiền (tối thiểu 10,000 VNĐ)"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 text-lg transition-all outline-none"
                 />
                 {amount && (
@@ -389,7 +389,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <span>•</span>
-                    <span>Số tiền nạp tối thiểu: 10,000 VND</span>
+                    <span>Số tiền nạp tối thiểu: 10,000 VNĐ</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span>•</span>
@@ -457,7 +457,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                     const formatted = formatPriceInputWithCommas(cleaned);
                     setAmount(formatted);
                   }}
-                  placeholder="Nhập số tiền (tối thiểu 50,000 VND)"
+                  placeholder="Nhập số tiền (tối thiểu 50,000 VNĐ)"
                   max={currentBalance}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-800 text-lg transition-all outline-none"
                 />
@@ -619,7 +619,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <span>•</span>
-                    <span>Số tiền rút tối thiểu: 50,000 VND</span>
+                    <span>Số tiền rút tối thiểu: 50,000 VNĐ</span>
                   </li>
                   {withdrawalFee && (
                     <li className="flex items-start gap-2">

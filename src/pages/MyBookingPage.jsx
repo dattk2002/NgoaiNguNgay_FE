@@ -3,14 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import MyBookingTable from "../components/MyBookingTable";
 import LessonManagement from "../components/LessonManagement";
 import MyDisputes from "../components/MyDisputes";
-import { getAllLearnerBookingOffer, deleteLearnerBookingTimeSlot, fetchLearnerBookings, fetchBookingDetail } from "../components/api/auth";
+import { getAllLearnerBookingOffer, deleteLearnerBookingTimeSlot, fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating } from "../components/api/auth";
 import ConfirmDialog from "../components/modals/ConfirmDialog";
 import CreateDisputeModal from "../components/modals/CreateDisputeModal";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Avatar, Typography, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, TextField } from "@mui/material";
 import { convertBookingDetailToUTC7 } from "../utils/formatCentralTimestamp";
-import { sortSlotsByProximityToCurrentDate } from "../utils/formatSlotTime";
+import { sortSlotsByChronologicalOrder } from "../utils/formatSlotTime";
 import { formatSlotDateTimeUTC0 } from "../utils/formatSlotTime";
 
 // Toast configuration
@@ -31,6 +31,20 @@ const BookingHistory = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(10);
   const [expandedItems, setExpandedItems] = useState(new Set());
+  
+  // Rating modal states
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedBookingForRating, setSelectedBookingForRating] = useState(null);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingData, setRatingData] = useState({
+    teachingQuality: 3.0,
+    attitude: 3.0,
+    commitment: 3.0,
+    comment: ""
+  });
+  
+  // Existing ratings data
+  const [bookingRatings, setBookingRatings] = useState(new Map());
 
   const fetchHistoryBookings = async () => {
     setLoading(true);
@@ -57,9 +71,9 @@ const BookingHistory = () => {
               try {
                 const detail = await fetchBookingDetail(booking.id);
                 const convertedDetail = convertBookingDetailToUTC7(detail);
-                if (convertedDetail.bookedSlots && Array.isArray(convertedDetail.bookedSlots)) {
-                  baseBooking.bookedSlots = sortSlotsByProximityToCurrentDate(convertedDetail.bookedSlots);
-                }
+                        if (convertedDetail.bookedSlots && Array.isArray(convertedDetail.bookedSlots)) {
+          baseBooking.bookedSlots = sortSlotsByChronologicalOrder(convertedDetail.bookedSlots);
+        }
                 baseBooking.status = booking.status;
               } catch (detailError) {
                 console.error(`Failed to fetch detail for booking ${booking.id}:`, detailError);
@@ -76,6 +90,9 @@ const BookingHistory = () => {
         const validBookings = processedBookings.filter(booking => booking !== null);
         setHistoryBookings(validBookings);
         setTotalCount(response.totalCount || validBookings.length);
+        
+        // Fetch ratings for completed bookings
+        await fetchBookingRatings(validBookings);
       } else {
         setHistoryBookings([]);
         setTotalCount(0);
@@ -92,6 +109,149 @@ const BookingHistory = () => {
   useEffect(() => {
     fetchHistoryBookings();
   }, [currentPage]);
+
+  // Fetch ratings for completed bookings
+  const fetchBookingRatings = async (bookings) => {
+    try {
+      const ratingsMap = new Map();
+      
+      // Get unique booking IDs that are completed
+      const bookingIdsToCheck = new Set();
+      bookings.forEach(booking => {
+        if (booking.status === 4) { // Status 4 = Hoàn thành
+          bookingIdsToCheck.add(booking.id);
+        }
+      });
+
+      // Fetch ratings for each booking using the API endpoint
+      await Promise.all(
+        Array.from(bookingIdsToCheck).map(async (bookingId) => {
+          try {
+            // Import the API function directly here to avoid confusion
+            const { getBookingRating: fetchRatingFromAPI } = await import("../components/api/auth");
+            const rating = await fetchRatingFromAPI(bookingId);
+            console.log(`🔍 Fetching rating for booking ${bookingId}:`, rating);
+            
+            // Check if rating exists and has valid data
+            // Based on console log, the API returns rating directly without data wrapper
+            if (rating && rating.id && 
+                (rating.teachingQuality || rating.attitude || rating.commitment)) {
+              ratingsMap.set(bookingId, rating);
+              console.log(`✅ Rating found for booking ${bookingId}:`, rating);
+            } else {
+              console.log(`❌ No valid rating for booking ${bookingId}:`, rating);
+              // Debug: log the structure to understand what we're getting
+              console.log(`🔍 Rating structure:`, {
+                hasRating: !!rating,
+                hasId: !!(rating && rating.id),
+                hasTeachingQuality: !!(rating && rating.teachingQuality),
+                hasAttitude: !!(rating && rating.attitude),
+                hasCommitment: !!(rating && rating.commitment)
+              });
+              
+              // Additional debug: log the actual rating object structure
+              console.log(`🔍 Full rating object:`, rating);
+              if (rating) {
+                console.log(`🔍 Rating.id:`, rating.id);
+                console.log(`🔍 Rating.teachingQuality:`, rating.teachingQuality);
+                console.log(`🔍 Rating.attitude:`, rating.attitude);
+                console.log(`🔍 Rating.commitment:`, rating.commitment);
+              }
+            }
+          } catch (error) {
+            console.error(`❌ Error fetching rating for booking ${bookingId}:`, error);
+            // Don't throw error, just continue
+          }
+        })
+      );
+
+      console.log(`🔍 Final ratings map:`, Array.from(ratingsMap.entries()));
+      setBookingRatings(ratingsMap);
+    } catch (error) {
+      console.error("Error fetching booking ratings:", error);
+    }
+  };
+
+  // Get existing rating for a booking
+  const getBookingRating = (bookingId) => {
+    return bookingRatings.get(bookingId);
+  };
+
+  // Check if a booking has been rated
+  const hasBookingRating = (bookingId) => {
+    return bookingRatings.has(bookingId);
+  };
+
+  // Handle rate booking
+  const handleRateBooking = (booking) => {
+    if (booking.status !== 4) {
+      toast.error("Chỉ có thể đánh giá booking đã hoàn thành!");
+      return;
+    }
+    
+    // Check if booking already has a rating
+    if (hasBookingRating(booking.id)) {
+      toast.error("Booking này đã được đánh giá rồi!");
+      return;
+    }
+    
+    setSelectedBookingForRating({
+      bookingId: booking.id,
+      lessonName: booking.lessonName || booking.lessonSnapshot?.name || 'Khóa học',
+      tutorName: booking.tutorName || 'Gia sư',
+      booking: booking
+    });
+    setRatingData({
+      teachingQuality: 3.0,
+      attitude: 3.0,
+      commitment: 3.0,
+      comment: ""
+    });
+    setShowRatingModal(true);
+  };
+
+  // Handle rating submit
+  const handleRatingSubmit = async () => {
+    if (!selectedBookingForRating) {
+      return;
+    }
+
+    if (!selectedBookingForRating.bookingId) {
+      toast.error("Không có booking ID để đánh giá!");
+      return;
+    }
+
+    try {
+      setSubmittingRating(true);
+      
+      const ratingPayload = {
+        bookingSlotId: selectedBookingForRating.bookingId,
+        teachingQuality: ratingData.teachingQuality,
+        attitude: ratingData.attitude,
+        commitment: ratingData.commitment,
+        comment: ratingData.comment.trim()
+      };
+
+      await submitBookingRating(ratingPayload);
+      
+      // Show success message
+      toast.success("Đánh giá khóa học đã được gửi thành công!");
+      
+      // Close modal after showing toast
+      setShowRatingModal(false);
+      setSelectedBookingForRating(null);
+      
+      // Refresh ratings to show the new rating
+      await fetchBookingRatings(historyBookings);
+    } catch (error) {
+      console.error("Failed to submit rating:", error);
+      toast.error("Không thể gửi đánh giá");
+      setShowRatingModal(false);
+      setSelectedBookingForRating(null);
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
 
   const toggleExpanded = (groupId) => {
     const newExpanded = new Set(expandedItems);
@@ -247,27 +407,55 @@ const BookingHistory = () => {
                             <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                             </svg>
-                            {(booking.totalPrice || 0).toLocaleString('vi-VN')} VND
+                            {(booking.totalPrice || 0).toLocaleString('vi-VN')} VNĐ
                           </span>
                         </div>
                       </div>
                     </div>
                     
-                    {/* Expand Button */}
-                    <button
-                      onClick={() => toggleExpanded(booking.id)}
-                      className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
-                      style={{ color: '#666666' }}
-                    >
-                      <svg 
-                        className={`w-5 h-5 transition-transform duration-200 ${expandedItems.has(booking.id) ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-2">
+                      {/* Rating button - only show for completed bookings */}
+                      {booking.status === 4 && (
+                        hasBookingRating(booking.id) ? (
+                          // Show existing rating badge
+                          <div className="px-3 py-2 text-sm rounded-lg bg-green-100 text-green-700 flex items-center space-x-1">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span>Đã đánh giá</span>
+                          </div>
+                        ) : (
+                          // Show rate button
+                          <button
+                            onClick={() => handleRateBooking(booking)}
+                            className="px-3 py-2 text-sm rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors duration-200 flex items-center space-x-1"
+                            title="Đánh giá khóa học"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span>Đánh giá</span>
+                          </button>
+                        )
+                      )}
+                      
+                      {/* Expand Button */}
+                      <button
+                        onClick={() => toggleExpanded(booking.id)}
+                        className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
+                        style={{ color: '#666666' }}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
+                        <svg 
+                          className={`w-5 h-5 transition-transform duration-200 ${expandedItems.has(booking.id) ? 'rotate-180' : ''}`} 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -280,7 +468,7 @@ const BookingHistory = () => {
                       </h4>
                       <div className="space-y-2">
                         {(() => {
-                          const sortedSlots = sortSlotsByProximityToCurrentDate(booking.bookedSlots || []);
+                          const sortedSlots = sortSlotsByChronologicalOrder(booking.bookedSlots || []);
                           
                           return sortedSlots.map((slot, globalIndex) => {
                             const sequentialNumber = globalIndex + 1;
@@ -321,6 +509,56 @@ const BookingHistory = () => {
                           });
                         })()}
                       </div>
+                      
+                      {/* Display existing rating if available */}
+                      {booking.status === 4 && hasBookingRating(booking.id) && (
+                        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="text-sm font-medium text-yellow-800">Đánh giá đã có</h5>
+                            <div className="flex items-center space-x-1">
+                              {[1, 2, 3, 4, 5].map((star) => {
+                                const rating = getBookingRating(booking.id);
+                                const avgRating = ((rating.teachingQuality + rating.attitude + rating.commitment) / 3);
+                                return (
+                                  <svg
+                                    key={star}
+                                    className={`w-4 h-4 ${star <= avgRating ? 'text-yellow-400' : 'text-gray-300'}`}
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                );
+                              })}
+                              <span className="text-sm text-gray-600 ml-1">
+                                ({((getBookingRating(booking.id).teachingQuality + getBookingRating(booking.id).attitude + getBookingRating(booking.id).commitment) / 3).toFixed(1)})
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-2 text-xs mb-2">
+                            <div className="text-center">
+                              <div className="text-gray-600">Giảng dạy</div>
+                              <div className="font-semibold text-yellow-700">{getBookingRating(booking.id).teachingQuality}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-gray-600">Thái độ</div>
+                              <div className="font-semibold text-yellow-700">{getBookingRating(booking.id).attitude}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-gray-600">Cam kết</div>
+                              <div className="font-semibold text-yellow-700">{getBookingRating(booking.id).commitment}</div>
+                            </div>
+                          </div>
+                          
+                          {getBookingRating(booking.id).comment && (
+                            <div className="mt-2 pt-2 border-t border-yellow-300">
+                              <div className="text-xs text-gray-600 mb-1">Nhận xét:</div>
+                              <div className="text-sm text-gray-700 italic">"{getBookingRating(booking.id).comment}"</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -416,6 +654,152 @@ const BookingHistory = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Rating Modal */}
+      {showRatingModal && selectedBookingForRating && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-semibold" style={{ color: '#666666' }}>
+                ⭐ Đánh giá khóa học
+              </h3>
+              <button
+                onClick={() => setShowRatingModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+                style={{ color: '#666666' }}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              <div className="mb-4">
+                <h4 className="font-medium text-gray-700 mb-2">
+                  {selectedBookingForRating.lessonName}
+                </h4>
+                <p className="text-sm text-gray-600">
+                  Gia sư: <span className="font-medium">{selectedBookingForRating.tutorName}</span>
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Teaching Quality */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chất lượng giảng dạy (1-5)
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="range"
+                      min="1"
+                      max="5"
+                      step="0.5"
+                      value={ratingData.teachingQuality}
+                      onChange={(e) => setRatingData(prev => ({ ...prev, teachingQuality: parseFloat(e.target.value) }))}
+                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      style={{ 
+                        background: `linear-gradient(to right, #666666 0%, #666666 ${(ratingData.teachingQuality-1)*25}%, #e5e7eb ${(ratingData.teachingQuality-1)*25}%, #e5e7eb 100%)`
+                      }}
+                    />
+                    <span className="w-8 text-center font-semibold text-gray-700">{ratingData.teachingQuality}</span>
+                  </div>
+                </div>
+
+                {/* Attitude */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Thái độ (1-5)
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="range"
+                      min="1"
+                      max="5"
+                      step="0.5"
+                      value={ratingData.attitude}
+                      onChange={(e) => setRatingData(prev => ({ ...prev, attitude: parseFloat(e.target.value) }))}
+                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      style={{ 
+                        background: `linear-gradient(to right, #666666 0%, #666666 ${(ratingData.attitude-1)*25}%, #e5e7eb ${(ratingData.attitude-1)*25}%, #e5e7eb 100%)`
+                      }}
+                    />
+                    <span className="w-8 text-center font-semibold text-gray-700">{ratingData.attitude}</span>
+                  </div>
+                </div>
+
+                {/* Commitment */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sự cam kết (1-5)
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="range"
+                      min="1"
+                      max="5"
+                      step="0.5"
+                      value={ratingData.commitment}
+                      onChange={(e) => setRatingData(prev => ({ ...prev, commitment: parseFloat(e.target.value) }))}
+                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      style={{ 
+                        background: `linear-gradient(to right, #666666 0%, #666666 ${(ratingData.commitment-1)*25}%, #e5e7eb ${(ratingData.commitment-1)*25}%, #e5e7eb 100%)`
+                      }}
+                    />
+                    <span className="w-8 text-center font-semibold text-gray-700">{ratingData.commitment}</span>
+                  </div>
+                </div>
+
+                {/* Comment */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nhận xét (tùy chọn)
+                  </label>
+                  <textarea
+                    value={ratingData.comment}
+                    onChange={(e) => setRatingData(prev => ({ ...prev, comment: e.target.value }))}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-black"
+                    placeholder="Chia sẻ trải nghiệm của bạn về khóa học này..."
+                    maxLength={500}
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {ratingData.comment.length}/500 ký tự
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowRatingModal(false)}
+                disabled={submittingRating}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleRatingSubmit}
+                disabled={submittingRating}
+                className="px-6 py-2 text-white rounded-lg hover:opacity-90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                style={{ backgroundColor: '#666666' }}
+              >
+                {submittingRating && (
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                <span>{submittingRating ? 'Đang gửi...' : 'Gửi đánh giá'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -662,8 +1046,6 @@ export default function MyBookingPage({ user }) {
         bookingData={selectedBookingForDispute}
         onSuccess={handleDisputeSuccess}
       />
-
-
 
       {/* Toast Container */}
       <ToastContainer 

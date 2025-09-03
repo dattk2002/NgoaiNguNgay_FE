@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating, fetchLearnerDisputes, learnerCancelBookingByBookingId, fetchBookingDetailbyBookingId, viewRescheduleRequests, viewRescheduleRequestDetailByRequestId, learnerAcceptRescheduleRequest, learnerRejectRescheduleRequest } from "./api/auth";
+import { fetchLearnerBookings, fetchLearnerDisputes, learnerCancelBookingByBookingId, fetchBookingDetail, viewRescheduleRequests, viewRescheduleRequestDetailByRequestId, learnerAcceptRescheduleRequest, learnerRejectRescheduleRequest } from "./api/auth";
 import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from "../utils/formatCentralTimestamp";
 import { calculateUTC7SlotIndex } from "../utils/formatSlotTime";
-import { formatSlotDateTime, sortSlotsByProximityToCurrentDate } from "../utils/formatSlotTime";
+import { formatSlotDateTime, sortSlotsByChronologicalOrder } from "../utils/formatSlotTime";
 import { Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, TextField, Typography } from "@mui/material";
 import CreateDisputeModal from "./modals/CreateDisputeModal";
+import LegalDocumentModal from "./modals/LegalDocumentModal";
 
 import { formatSlotDateTimeUTC0 } from "../utils/formatSlotTime";
 
@@ -16,25 +17,14 @@ const LessonManagement = () => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [originalTotalCount, setOriginalTotalCount] = useState(0); // Store original total count from API
   const [pageSize] = useState(10);
   const [expandedItems, setExpandedItems] = useState(new Set());
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [selectedLessonInfo, setSelectedLessonInfo] = useState(null);
   const [loadingLessonInfo, setLoadingLessonInfo] = useState(false);
   
-  // Rating modal states
-  const [showRatingModal, setShowRatingModal] = useState(false);
-  const [selectedBookingForRating, setSelectedBookingForRating] = useState(null);
-  const [submittingRating, setSubmittingRating] = useState(false);
-  const [ratingData, setRatingData] = useState({
-    teachingQuality: 3.0,
-    attitude: 3.0,
-    commitment: 3.0,
-    comment: ""
-  });
-  
-  // Existing ratings data
-  const [bookingRatings, setBookingRatings] = useState(new Map());
+
   
   // Dispute modal states
   const [showDisputeModal, setShowDisputeModal] = useState(false);
@@ -59,35 +49,28 @@ const LessonManagement = () => {
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingBooking, setCancellingBooking] = useState(false);
+  
+  // Add legal document modal state
+  const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
 
 
 
   // Helper function to check if a slot has a dispute
   const hasSlotDispute = (slotId) => {
-    console.log("🔍 Checking dispute for slotId:", slotId);
-    console.log("🔍 Current disputes:", disputes);
     const hasDispute = disputes.some(dispute => dispute.bookedSlotId === slotId);
-    console.log("🔍 Has dispute:", hasDispute);
     return hasDispute;
   };
 
   // Helper function to check if any booking in a group has a dispute
   const hasGroupDispute = (group) => {
-    console.log("🔍 Checking group dispute for group:", group.id);
-    console.log("🔍 Group bookings:", group.bookings.map(b => ({ id: b.id, name: b.lessonSnapshot?.name })));
     const hasGroupDispute = group.bookings.some(booking => 
       booking.bookedSlots?.some(slot => hasSlotDispute(slot.id))
     );
-    console.log("🔍 Group has dispute:", hasGroupDispute);
     return hasGroupDispute;
   };
 
   // Helper function to check if a booking has a reschedule request
   const hasBookingRescheduleRequest = (bookingId, bookedSlots = []) => {
-    console.log("🔍 Checking reschedule request for bookingId:", bookingId);
-    console.log("🔍 Current reschedule requests:", rescheduleRequests);
-    console.log("🔍 Booked slots:", bookedSlots);
-    
     // Check if any reschedule request matches this booking ID
     const hasReschedule = rescheduleRequests.some(request => 
       request.bookedSlotId === bookingId || 
@@ -99,7 +82,6 @@ const LessonManagement = () => {
       )
     );
     
-    console.log("🔍 Has reschedule request:", hasReschedule);
     return hasReschedule;
   };
 
@@ -107,11 +89,8 @@ const LessonManagement = () => {
   const fetchDisputes = async () => {
     setDisputesLoading(true);
     try {
-      console.log("🔍 Fetching disputes...");
       const response = await fetchLearnerDisputes(false); // Get all disputes, not just active ones
-      console.log("🔍 Disputes response:", response);
       if (response && response.data) {
-        console.log("🔍 Setting disputes:", response.data);
         // Đảm bảo mỗi dispute có bookedSlotId
         const processedDisputes = response.data.map(dispute => ({
           ...dispute,
@@ -119,7 +98,6 @@ const LessonManagement = () => {
         }));
         setDisputes(processedDisputes);
       } else {
-        console.log("🔍 No disputes data, setting empty array");
         setDisputes([]);
       }
     } catch (error) {
@@ -134,14 +112,10 @@ const LessonManagement = () => {
   const fetchRescheduleRequests = async () => {
     setRescheduleRequestsLoading(true);
     try {
-      console.log("🔍 Fetching reschedule requests...");
       const response = await viewRescheduleRequests({ pageIndex: 0, pageSize: 100 }); // Get all reschedule requests
-      console.log("🔍 Reschedule requests response:", response);
       if (response && response.data && Array.isArray(response.data.items)) {
-        console.log("🔍 Setting reschedule requests:", response.data.items);
         setRescheduleRequests(response.data.items);
       } else {
-        console.log("🔍 No reschedule requests data, setting empty array");
         setRescheduleRequests([]);
       }
     } catch (error) {
@@ -160,9 +134,7 @@ const LessonManagement = () => {
 
     setLoadingRescheduleDetails(prev => new Set(prev).add(requestId));
     try {
-      console.log("🔍 Fetching reschedule request details for requestId:", requestId);
       const response = await viewRescheduleRequestDetailByRequestId(requestId);
-      console.log("🔍 Reschedule request details response:", response);
       
       if (response && response.data) {
         setRescheduleRequestDetails(prev => new Map(prev).set(requestId, response.data));
@@ -237,131 +209,56 @@ const LessonManagement = () => {
     setCancelBookingModalOpen(true);
   };
 
-  // Fetch ratings for all bookings
-  const fetchBookingRatings = async (bookings) => {
-    try {
-      console.log("🔍 Fetching ratings for bookings...");
-      const ratingsMap = new Map();
-      
-      // Get unique booking IDs that are completed
-      const bookingIdsToCheck = new Set();
-      bookings.forEach(booking => {
-        if (booking.status === 4) { // Status 4 = Hoàn thành
-          bookingIdsToCheck.add(booking.id);
-        }
-      });
-
-      // Fetch ratings for each booking
-      await Promise.all(
-        Array.from(bookingIdsToCheck).map(async (bookingId) => {
-          try {
-            const rating = await getBookingRating(bookingId);
-            if (rating) {
-              ratingsMap.set(bookingId, rating);
-              console.log(`✅ Found rating for booking ${bookingId}:`, rating);
-            }
-          } catch (error) {
-            console.log(`📝 No rating for booking ${bookingId}`);
-            // Don't throw error, just continue
-          }
-        })
-      );
-
-      setBookingRatings(ratingsMap);
-      console.log("🔍 Total ratings loaded:", ratingsMap.size);
-    } catch (error) {
-      console.error("Error fetching booking ratings:", error);
-      // Don't show error toast for this, it's not critical
-    }
+  // Handler to open legal document modal
+  const handleLegalDocumentClick = (e) => {
+    e.preventDefault();
+    setShowLegalDocumentModal(true);
   };
 
-  // Get existing rating for a group (from any booking in the group that has rating)
-  const getGroupRating = (group) => {
-    for (const booking of group.bookings) {
-      const rating = bookingRatings.get(booking.id);
-      if (rating) {
-        return rating;
-      }
-    }
-    return null;
-  };
 
-  // Render star rating component
-  const StarRating = ({ rating, showValue = true, size = "sm" }) => {
-    const sizeClasses = {
-      sm: "w-4 h-4",
-      md: "w-5 h-5",
-      lg: "w-6 h-6"
-    };
-    
-    const starClass = sizeClasses[size] || sizeClasses.sm;
-    
-    return (
-      <div className="flex items-center space-x-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <svg
-            key={star}
-            className={`${starClass} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-        ))}
-        {showValue && (
-          <span className="text-sm text-gray-600 ml-1">({rating.toFixed(1)})</span>
-        )}
-      </div>
-    );
-  };
 
-  // Render rating display component
-  const RatingDisplay = ({ group }) => {
-    const rating = getGroupRating(group);
-    
-    if (!rating) {
-      return null;
-    }
 
-    const avgRating = ((rating.teachingQuality + rating.attitude + rating.commitment) / 3).toFixed(1);
-    
-    return (
-      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <div className="flex items-center justify-between mb-2">
-          <h5 className="text-sm font-medium text-yellow-800">Đánh giá đã có</h5>
-          <StarRating rating={parseFloat(avgRating)} size="sm" />
-        </div>
-        
-        <div className="grid grid-cols-3 gap-2 text-xs mb-2">
-          <div className="text-center">
-            <div className="text-gray-600">Giảng dạy</div>
-            <div className="font-semibold text-yellow-700">{rating.teachingQuality}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-gray-600">Thái độ</div>
-            <div className="font-semibold text-yellow-700">{rating.attitude}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-gray-600">Cam kết</div>
-            <div className="font-semibold text-yellow-700">{rating.commitment}</div>
-          </div>
-        </div>
-        
-        {rating.comment && (
-          <div className="mt-2 pt-2 border-t border-yellow-300">
-            <div className="text-xs text-gray-600 mb-1">Nhận xét:</div>
-            <div className="text-sm text-gray-700 italic">"{rating.comment}"</div>
-          </div>
-        )}
-      </div>
-    );
-  };
+
+
+
+
 
   useEffect(() => {
+    console.log("🔍 useEffect triggered - currentPage:", currentPage);
     fetchLessons();
     fetchDisputes(); // Call fetchDisputes here
     fetchRescheduleRequests(); // Call fetchRescheduleRequests here
   }, [currentPage]);
+
+  // Calculate totalPages before useEffect to avoid initialization error
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Debug: Log lessons state changes
+  useEffect(() => {
+    console.log("🔍 Lessons state changed:", lessons.length, "bookings");
+    console.log("🔍 Lessons state content:", lessons.map(b => ({ 
+      id: b.id, 
+      status: b.status, 
+      lessonName: b.lessonName 
+    })));
+    
+    // Check if any completed/cancelled bookings are in the state
+    const problematicBookings = lessons.filter(b => {
+      const status = parseInt(b.status);
+      return status === 3 || status === 4;
+    });
+    
+    if (problematicBookings.length > 0) {
+      console.error("🚨 CRITICAL: Found problematic bookings in lessons state:", problematicBookings);
+    }
+  }, [lessons]);
+
+  // Reset current page when total count changes significantly (e.g., after filtering)
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
 
   // Fetch reschedule request details when reschedule requests change
   useEffect(() => {
@@ -377,34 +274,84 @@ const LessonManagement = () => {
   const fetchLessons = async () => {
     setLoading(true);
     try {
-      const response = await fetchLearnerBookings(currentPage, pageSize);
+      // Fetch all bookings by getting a large page size to account for filtering
+      const response = await fetchLearnerBookings(1, 1000); // Fetch a large number to get all bookings
+      
+      console.log("🔍 API Response:", response);
+      
       if (response && Array.isArray(response.items)) {
         const bookingList = response.items;
         
-        // Use booking data directly from fetchLearnerBookings and only fetch additional details if needed
+        console.log("🔍 All bookings from API:", bookingList.map(b => ({ 
+          id: b.id, 
+          status: b.status, 
+          lessonName: b.lessonName,
+          statusType: typeof b.status 
+        })));
+        
+        // Store the original total count before filtering
+        setOriginalTotalCount(response.totalCount || bookingList.length);
+        
+        // Filter out completed and cancelled bookings FIRST, before processing details
+        // Only show: Đang diễn ra (0), Đã yêu cầu khiếu nại (1), Đang tranh chấp (2)
+        const activeBookings = bookingList.filter(booking => {
+          // Ensure status is a number and handle edge cases
+          let status = booking.status;
+          
+          console.log(`🔍 Processing booking ${booking.id}: original status = ${status} (type: ${typeof status})`);
+          
+          // Convert to number if it's a string
+          if (typeof status === 'string') {
+            status = parseInt(status);
+            console.log(`🔍 Converted string status ${booking.status} to number: ${status}`);
+          }
+          
+          // Handle NaN cases
+          if (isNaN(status)) {
+            console.warn(`❌ Invalid status for booking ${booking.id}:`, booking.status);
+            return false; // Exclude bookings with invalid status
+          }
+          
+          // Only include active bookings: status 0, 1, or 2
+          const isActive = status === 0 || status === 1 || status === 2;
+          
+          if (!isActive) {
+            console.log(`🚫 Filtering out booking ${booking.id} with status ${status} (${booking.lessonName})`);
+          } else {
+            console.log(`✅ Keeping booking ${booking.id} with status ${status} (${booking.lessonName})`);
+          }
+          
+          return isActive;
+        });
+        
+        // Log filtering results for debugging
+        console.log(`🔍 Filtering Results: Total=${bookingList.length}, Active=${activeBookings.length}`);
+        console.log("🔍 Active bookings after filtering:", activeBookings.map(b => ({ 
+          id: b.id, 
+          status: b.status, 
+          lessonName: b.lessonName 
+        })));
+        
+        // Process bookings to get additional details including bookedSlots
         const processedBookings = await Promise.all(
-          bookingList.map(async (booking) => {
+          activeBookings.map(async (booking) => {
             try {
-              // Use the booking data from fetchLearnerBookings as base
               const baseBooking = {
                 ...booking,
-                lessonSnapshot: { name: booking.lessonName }, // Create lessonSnapshot from lessonName
-                bookedSlots: [] // Initialize empty slots array
+                lessonSnapshot: { name: booking.lessonName },
+                bookedSlots: []
               };
               
-              // Fetch additional details only for slots information
-              try {
-                const detail = await fetchBookingDetail(booking.id);
-                const convertedDetail = convertBookingDetailToUTC7(detail);
-                if (convertedDetail.bookedSlots && Array.isArray(convertedDetail.bookedSlots)) {
-                  baseBooking.bookedSlots = sortSlotsByProximityToCurrentDate(convertedDetail.bookedSlots);
-                }
-                // Keep the status from the original booking data
-                baseBooking.status = booking.status;
-              } catch (detailError) {
-                console.error(`Failed to fetch detail for booking ${booking.id}:`, detailError);
-                // Keep the booking with basic info even if detail fetch fails
-              }
+                             try {
+                 const detail = await fetchBookingDetail(booking.id);
+                 const convertedDetail = convertBookingDetailToUTC7(detail);
+                                   if (convertedDetail.bookedSlots && Array.isArray(convertedDetail.bookedSlots)) {
+                    baseBooking.bookedSlots = sortSlotsByChronologicalOrder(convertedDetail.bookedSlots);
+                  }
+                 baseBooking.status = booking.status;
+               } catch (detailError) {
+                 console.error(`Failed to fetch detail for booking ${booking.id}:`, detailError);
+               }
               
               return baseBooking;
             } catch (error) {
@@ -414,23 +361,51 @@ const LessonManagement = () => {
           })
         );
         
-        // Filter out failed requests
         const validBookings = processedBookings.filter(booking => booking !== null);
         
-
+        console.log("🔍 Valid bookings:", validBookings.map(b => ({ 
+          id: b.id, 
+          status: b.status, 
+          lessonName: b.lessonName,
+          slotCount: b.bookedSlots?.length || 0
+        })));
         
-        setLessons(validBookings);
-        setTotalCount(response.totalCount || validBookings.length);
+        // Apply pagination to filtered results
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedActiveBookings = validBookings.slice(startIndex, endIndex);
         
-        // Fetch ratings for completed bookings
-        await fetchBookingRatings(validBookings);
+        console.log("🔍 Final paginated bookings to display:", paginatedActiveBookings.map(b => ({ 
+          id: b.id, 
+          status: b.status, 
+          lessonName: b.lessonName,
+          slotCount: b.bookedSlots?.length || 0
+        })));
+        
+        console.log("🔍 Setting lessons state to:", paginatedActiveBookings.length, "bookings");
+        console.log("🔍 Lessons state content:", paginatedActiveBookings.map(b => ({ 
+          id: b.id, 
+          status: b.status, 
+          lessonName: b.lessonName,
+          slotCount: b.bookedSlots?.length || 0
+        })));
+        
+        console.log("🔍 About to set lessons state...");
+        setLessons(paginatedActiveBookings);
+        setTotalCount(validBookings.length); // Use filtered count for pagination
+        
+        console.log("🔍 About to set lessons state...");
       } else {
+        console.log("❌ No valid response or items array");
         setLessons([]);
         setTotalCount(0);
+        setOriginalTotalCount(0);
       }
     } catch (error) {
-      console.error("Lỗi khi tải danh sách buổi học:", error);
+      console.error("❌ Lỗi khi tải danh sách buổi học:", error);
       setLessons([]);
+      setTotalCount(0);
+      setOriginalTotalCount(0);
       toast.error("Không thể tải danh sách buổi học. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
@@ -533,8 +508,8 @@ const LessonManagement = () => {
       setLoadingLessonInfo(true);
       setShowLessonModal(true);
       
-      // Fetch detailed booking information using fetchBookingDetailbyBookingId
-      const response = await fetchBookingDetailbyBookingId(booking.id);
+      // Fetch detailed booking information using fetchBookingDetail
+      const response = await fetchBookingDetail(booking.id);
       
       // Check if response has data and lessonSnapshot
       if (response && response.data && response.data.lessonSnapshot) {
@@ -550,10 +525,6 @@ const LessonManagement = () => {
           error: null
         });
       } else {
-        console.log("🔍 Response structure:", response);
-        console.log("🔍 Response.data:", response?.data);
-        console.log("🔍 Response.data.lessonSnapshot:", response?.data?.lessonSnapshot);
-        
         setSelectedLessonInfo({
           group: { 
             bookings: [booking],
@@ -585,86 +556,9 @@ const LessonManagement = () => {
     }
   };
 
-  const handleRateBooking = (group) => {
-    // Find the first booking that is completed to get bookingId for rating
-    let validBookingId = null;
-    
-    // Look through all bookings in the group to find one with completed status
-    for (const booking of group.bookings) {
-      if (booking.status === 4) { // Status 4 = Hoàn thành
-        validBookingId = booking.id;
-        break;
-      }
-    }
-    
-    console.log("🔍 Debug - Found booking ID with completed status:", validBookingId);
-    
-    if (!validBookingId) {
-      toast.error("Không tìm thấy booking đã hoàn thành để đánh giá!");
-      return;
-    }
-    
-    setSelectedBookingForRating({
-      bookingId: validBookingId,
-      lessonName: group.bookings[0]?.lessonName || group.bookings[0]?.lessonSnapshot?.name || 'Khóa học',
-      tutorName: group.bookings[0]?.tutorName || 'Gia sư',
-      group: group
-    });
-    setRatingData({
-      teachingQuality: 3.0,
-      attitude: 3.0,
-      commitment: 3.0,
-      comment: ""
-    });
-    setShowRatingModal(true);
-  };
 
-  const handleRatingSubmit = async () => {
-    if (!selectedBookingForRating) {
-      return;
-    }
 
-    if (!selectedBookingForRating.bookingId) {
-      toast.error("Không có booking ID để đánh giá!");
-      return;
-    }
 
-    try {
-      setSubmittingRating(true);
-      
-      const ratingPayload = {
-        bookingSlotId: selectedBookingForRating.bookingId,
-        teachingQuality: ratingData.teachingQuality,
-        attitude: ratingData.attitude,
-        commitment: ratingData.commitment,
-        comment: ratingData.comment.trim()
-      };
-
-      console.log("🔍 Debug - Rating payload:", ratingPayload);
-      await submitBookingRating(ratingPayload);
-      
-      // Show success message
-      toast.success("Đánh giá khóa học đã được gửi thành công!");
-      
-      // Close modal after showing toast
-      setShowRatingModal(false);
-      setSelectedBookingForRating(null);
-      
-      // Refresh ratings to show the new rating
-      await fetchBookingRatings(lessons);
-    } catch (error) {
-      console.error("Failed to submit rating:", error);
-      
-      // Show error message
-      toast.error("Không thể gửi đánh giá");
-      
-      // Close modal after showing error toast  
-      setShowRatingModal(false);
-      setSelectedBookingForRating(null);
-    } finally {
-      setSubmittingRating(false);
-    }
-  };
 
       // Handle creating dispute
     const handleCreateDispute = (slot) => {
@@ -703,13 +597,18 @@ const LessonManagement = () => {
     exit: { opacity: 0 },
   };
 
-  const totalPages = Math.ceil(totalCount / pageSize);
-
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
+
+  // Reset current page when total count changes significantly (e.g., after filtering)
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
 
   const renderLessonSkeleton = () => {
     return (
@@ -764,7 +663,12 @@ const LessonManagement = () => {
     <div className="bg-white p-6 rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold" style={{ color: '#666666' }}>
-          Quản lí slot học ({lessons.length} khóa học)
+          Quản lí slot học ({totalCount} khóa học)
+          {totalCount !== originalTotalCount && (
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              (từ {originalTotalCount} khóa học tổng cộng)
+            </span>
+          )}
         </h2>
         <button
           onClick={fetchLessons}
@@ -782,16 +686,33 @@ const LessonManagement = () => {
         <div className="text-center py-16">
           <div className="text-6xl mb-4">📚</div>
           <h3 className="text-lg font-medium mb-2" style={{ color: '#666666' }}>
-            Chưa có khóa học nào
+            {originalTotalCount > 0 ? 'Không có khóa học nào đang diễn ra' : 'Chưa có khóa học nào'}
           </h3>
           <p className="text-gray-500">
-            Các slot học đã đặt sẽ xuất hiện ở đây
+            {originalTotalCount > 0 
+              ? 'Tất cả các khóa học đã hoàn thành hoặc đã hủy. Vui lòng kiểm tra tab "Lịch sử booking" để xem các khóa học này.'
+              : 'Các slot học đã đặt sẽ xuất hiện ở đây'
+            }
           </p>
         </div>
       ) : (
         <>
           <div className="space-y-4">
-            {lessons.map((booking) => {
+                                                       {lessons
+                              .filter(booking => {
+                                // Final safety check: ensure no completed or cancelled bookings are displayed
+                                const status = parseInt(booking.status);
+                                const shouldShow = status === 0 || status === 1 || status === 2;
+                                
+                                console.log(`🔍 Render filter: Booking ${booking.id} (${booking.lessonName}) - Status: ${status} - Should show: ${shouldShow}`);
+                                
+                                if (!shouldShow) {
+                                  console.warn(`🚫 RENDER FILTER: Excluding booking ${booking.id} with status ${status} (${booking.lessonName})`);
+                                }
+                                
+                                return shouldShow;
+                              })
+                              .map((booking) => {
               const hasReschedule = hasBookingRescheduleRequest(booking.id, booking.bookedSlots || []);
               return (
                 <div 
@@ -824,7 +745,12 @@ const LessonManagement = () => {
                           <h3 className="text-lg font-semibold" style={{ color: '#666666' }}>
                             {booking.lessonName || booking.lessonSnapshot?.name || 'Chưa có tên khóa học'}
                           </h3>
-                          {getBookingStatusBadge(booking.status || 0)}
+                                                     {/* Only show status badge for active bookings */}
+                           {(booking.status === 0 || booking.status === 1 || booking.status === 2) && 
+                             getBookingStatusBadge(booking.status || 0)
+                           }
+                           
+                           
                           {/* Reschedule Request Badge */}
                           {hasReschedule && (
                             <div className="px-2 py-1 text-xs font-medium bg-red-500 text-white rounded-full flex items-center space-x-1">
@@ -849,7 +775,7 @@ const LessonManagement = () => {
                             <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                             </svg>
-                            {(booking.totalPrice || 0).toLocaleString('vi-VN')} VND
+                            {(booking.totalPrice || 0).toLocaleString('vi-VN')} VNĐ
                           </span>
                         </div>
                       </div>
@@ -867,52 +793,27 @@ const LessonManagement = () => {
                         </svg>
                         Thông tin khóa học
                       </button>
-                      {/* Rating button - only show when booking is completed and no rating exists */}
-                      {booking.status === 4 && !getGroupRating({ bookings: [booking] }) && (
-                        <button
-                          onClick={() => handleRateBooking({ bookings: [booking] })}
-                          className="px-3 py-2 text-sm rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors duration-200 flex items-center space-x-1"
-                          title="Đánh giá khóa học"
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                          <span>Đánh giá</span>
-                        </button>
-                      )}
-                      
-                                              {/* Show existing rating badge */}
-                        {getGroupRating({ bookings: [booking] }) && (
-                          <div className="px-3 py-2 text-sm rounded-lg bg-green-100 text-green-700 flex items-center space-x-1">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>Đã đánh giá</span>
-                          </div>
-                                              )}
+
+                        
+
                       
 
                       
-                                                 {/* Cancel booking button */}
+                                                                         {/* Cancel booking button - only show for active bookings */}
+                        {(booking.status === 0 || booking.status === 1 || booking.status === 2) && (
                          <button
                            onClick={() => handleCancelBooking(booking)}
-                           disabled={booking.status === 4 || booking.status === 3}
-                           className={`px-3 py-2 text-sm rounded-lg transition-colors duration-200 flex items-center space-x-1 ${
-                             booking.status === 4 || booking.status === 3
-                               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                               : 'bg-red-500 text-white hover:bg-red-600'
-                           }`}
-                           title={(() => {
-                             if (booking.status === 4) return "Booking đã hoàn thành";
-                             if (booking.status === 3) return "Booking đã được hủy";
-                             return "Hủy booking";
-                           })()}
+                            className="px-3 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 flex items-center space-x-1"
+                            title="Hủy booking"
                          >
                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                            </svg>
                            <span>Hủy booking</span>
                          </button>
+                        )}
+                        
+
                         
                         <button
                           onClick={() => toggleExpanded(booking.id)}
@@ -1070,9 +971,9 @@ const LessonManagement = () => {
                       })()}
                       
                       <div className="space-y-2">
-                        {(() => {
-                          // Sort all slots by proximity to current date
-                          const sortedSlots = sortSlotsByProximityToCurrentDate(booking.bookedSlots || []);
+                                                 {(() => {
+                           // Sort all slots by chronological order (earliest first)
+                           const sortedSlots = sortSlotsByChronologicalOrder(booking.bookedSlots || []);
                           
                           return sortedSlots.map((slot, globalIndex) => {
                             // Calculate sequential number based on sorted order
@@ -1143,8 +1044,7 @@ const LessonManagement = () => {
                         })()}
                       </div>
                       
-                      {/* Display existing rating if available */}
-                      <RatingDisplay group={{ bookings: [booking] }} />
+                      
                     </div>
                   </div>
                 )}
@@ -1160,7 +1060,7 @@ const LessonManagement = () => {
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-black"
                   style={{ borderColor: '#666666', color: '#666666' }}
                 >
                   Trước
@@ -1168,7 +1068,7 @@ const LessonManagement = () => {
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-black"
                   style={{ borderColor: '#666666', color: '#666666' }}
                 >
                   Sau
@@ -1179,7 +1079,7 @@ const LessonManagement = () => {
                   <p className="text-sm" style={{ color: '#666666' }}>
                     Hiển thị{" "}
                     <span className="font-medium">
-                      {(currentPage - 1) * pageSize + 1}
+                      {totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0}
                     </span>{" "}
                     đến{" "}
                     <span className="font-medium">
@@ -1187,6 +1087,11 @@ const LessonManagement = () => {
                     </span>{" "}
                     trong số{" "}
                     <span className="font-medium">{totalCount}</span> kết quả
+                    {totalCount !== originalTotalCount && (
+                      <span className="text-xs text-gray-500 ml-2">
+                        (đã lọc bỏ các booking hoàn thành/đã hủy)
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div>
@@ -1375,7 +1280,7 @@ const LessonManagement = () => {
                       </div>
                       <p className="text-lg font-bold text-green-600">
                         {selectedLessonInfo.lessonData.price 
-                          ? `${Number(selectedLessonInfo.lessonData.price).toLocaleString('vi-VN')} VND/slot`
+                          ? `${Number(selectedLessonInfo.lessonData.price).toLocaleString('vi-VN')} VNĐ/slot`
                           : 'Chưa cập nhật giá'
                         }
                       </p>
@@ -1464,7 +1369,7 @@ const LessonManagement = () => {
                       </div>
                       <div>
                         <span className="text-blue-600 font-medium">Tổng tiền:</span>
-                        <span className="ml-2 font-bold" style={{ color: '#666666' }}>{(selectedLessonInfo.group.totalPrice || selectedLessonInfo.group.bookings[0]?.totalPrice || 0).toLocaleString('vi-VN')} VND</span>
+                        <span className="ml-2 font-bold" style={{ color: '#666666' }}>{(selectedLessonInfo.group.totalPrice || selectedLessonInfo.group.bookings[0]?.totalPrice || 0).toLocaleString('vi-VN')} VNĐ</span>
                       </div>
                       <div className="col-span-2">
                         <span className="text-blue-600 font-medium">Trạng thái:</span>
@@ -1499,165 +1404,7 @@ const LessonManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* Rating Modal */}
-      <AnimatePresence>
-        {showRatingModal && selectedBookingForRating && (
-          <motion.div 
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            variants={backdropVariants}
-            onClick={() => setShowRatingModal(false)}
-          >
-            <motion.div 
-              className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
-              variants={modalVariants}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold" style={{ color: '#666666' }}>
-                ⭐ Đánh giá khóa học
-              </h3>
-              <button
-                onClick={() => setShowRatingModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
-                style={{ color: '#666666' }}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
 
-            {/* Modal Content */}
-            <div className="p-6">
-              <div className="mb-4">
-                <h4 className="font-medium text-gray-700 mb-2">
-                  {selectedBookingForRating.lessonName}
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Gia sư: <span className="font-medium">{selectedBookingForRating.tutorName}</span>
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Teaching Quality */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chất lượng giảng dạy (1-5)
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="range"
-                      min="1"
-                      max="5"
-                      step="0.5"
-                      value={ratingData.teachingQuality}
-                      onChange={(e) => setRatingData(prev => ({ ...prev, teachingQuality: parseFloat(e.target.value) }))}
-                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      style={{ 
-                        background: `linear-gradient(to right, #666666 0%, #666666 ${(ratingData.teachingQuality-1)*25}%, #e5e7eb ${(ratingData.teachingQuality-1)*25}%, #e5e7eb 100%)`
-                      }}
-                    />
-                    <span className="w-8 text-center font-semibold text-gray-700">{ratingData.teachingQuality}</span>
-                  </div>
-                </div>
-
-                {/* Attitude */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thái độ (1-5)
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="range"
-                      min="1"
-                      max="5"
-                      step="0.5"
-                      value={ratingData.attitude}
-                      onChange={(e) => setRatingData(prev => ({ ...prev, attitude: parseFloat(e.target.value) }))}
-                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      style={{ 
-                        background: `linear-gradient(to right, #666666 0%, #666666 ${(ratingData.attitude-1)*25}%, #e5e7eb ${(ratingData.attitude-1)*25}%, #e5e7eb 100%)`
-                      }}
-                    />
-                    <span className="w-8 text-center font-semibold text-gray-700">{ratingData.attitude}</span>
-                  </div>
-                </div>
-
-                {/* Commitment */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sự cam kết (1-5)
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="range"
-                      min="1"
-                      max="5"
-                      step="0.5"
-                      value={ratingData.commitment}
-                      onChange={(e) => setRatingData(prev => ({ ...prev, commitment: parseFloat(e.target.value) }))}
-                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      style={{ 
-                        background: `linear-gradient(to right, #666666 0%, #666666 ${(ratingData.commitment-1)*25}%, #e5e7eb ${(ratingData.commitment-1)*25}%, #e5e7eb 100%)`
-                      }}
-                    />
-                    <span className="w-8 text-center font-semibold text-gray-700">{ratingData.commitment}</span>
-                  </div>
-                </div>
-
-                {/* Comment */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nhận xét (tùy chọn)
-                  </label>
-                  <textarea
-                    value={ratingData.comment}
-                    onChange={(e) => setRatingData(prev => ({ ...prev, comment: e.target.value }))}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-black"
-                    placeholder="Chia sẻ trải nghiệm của bạn về slot học này..."
-                    maxLength={500}
-                  />
-                  <div className="text-xs text-gray-500 mt-1">
-                    {ratingData.comment.length}/500 ký tự
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
-              <button
-                onClick={() => setShowRatingModal(false)}
-                disabled={submittingRating}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleRatingSubmit}
-                disabled={submittingRating}
-                className="px-6 py-2 text-white rounded-lg hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                style={{ backgroundColor: '#666666' }}
-              >
-                {submittingRating && (
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                )}
-                <span>{submittingRating ? 'Đang gửi...' : 'Gửi đánh giá'}</span>
-              </button>
-            </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Create Dispute Modal */}
       <CreateDisputeModal
@@ -1713,6 +1460,30 @@ const LessonManagement = () => {
             variant="outlined"
             sx={{ mb: 2 }}
           />
+          
+          {/* Legal terms notice */}
+          <Box sx={{ p: 2, backgroundColor: "#f0f9ff", borderRadius: 1, border: "1px solid #0ea5e9", mb: 2 }}>
+            <Typography variant="body2" sx={{ color: "#0369a1", fontSize: "0.875rem" }}>
+              Bằng cách hủy booking, bạn đồng ý với{" "}
+              <Button
+                onClick={handleLegalDocumentClick}
+                sx={{ 
+                  p: 0, 
+                  minWidth: "auto", 
+                  textTransform: "none", 
+                  textDecoration: "underline",
+                  color: "#0369a1",
+                  "&:hover": { 
+                    backgroundColor: "transparent",
+                    textDecoration: "underline"
+                  }
+                }}
+              >
+                Điều khoản dịch vụ và Chính sách bảo mật
+              </Button>
+              {" "}của chúng tôi.
+            </Typography>
+          </Box>
           
           <Box sx={{ p: 2, backgroundColor: "#fef2f2", borderRadius: 1, border: "1px solid #fecaca" }}>
             <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 500 }}>
@@ -1782,6 +1553,13 @@ const LessonManagement = () => {
       </Dialog>
 
 
+
+      {/* Legal Document Modal */}
+      <LegalDocumentModal
+        isOpen={showLegalDocumentModal}
+        onClose={() => setShowLegalDocumentModal(false)}
+        category="hủy booking"
+      />
 
       {/* ToastContainer for notifications */}
       <ToastContainer 
