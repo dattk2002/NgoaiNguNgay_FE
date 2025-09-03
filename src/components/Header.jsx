@@ -1076,21 +1076,13 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                                 />
                               ) : (
                                 <Avatar
+                                  src="https://scontent.fsgn2-8.fna.fbcdn.net/v/t1.30497-1/453178253_471506465671661_2781666950760530985_n.png?stp=dst-png_s100x100&_nc_cat=1&ccb=1-7&_nc_sid=b224c7&_nc_eui2=AeFOjeA58j84ZXpx9kSFxw8AWt9TLzuBU1Ba31MvO4FTUOLpU1OgNV_uL5D8-VRk1vGM-fdP-Ippuh6iikOnoSqo&_nc_ohc=s2F4UAkOFz4Q7kNvwHnv0Jr&_nc_oc=AdmNDh9_8fiYSCN5Ta-lmJ1sadB47i5ljCmgqMDpWrR_x9obFQMX9l4eHRRkdo09FhzFakXwJvTCwcoNP8yo8kix&_nc_ad=z-m&_nc_cid=0&_nc_zt=24&_nc_ht=scontent.fsgn2-8.fna&oh=00_AfY1vSn_G1YCaDANmFzMOMfU-KPCl3iOA9BRwDB1svlAwA&oe=68DF8F3A"
                                   sx={{
-                                    bgcolor: getNotificationColor(
-                                      notif.type,
-                                      notif.isRead
-                                    ),
                                     width: 40,
                                     height: 40,
                                     opacity: notif.isRead ? 0.6 : 1,
                                   }}
-                                >
-                                  {getNotificationIcon(
-                                    notif.type,
-                                    notif.isRead
-                                  )}
-                                </Avatar>
+                                />
                               )}
                             </ListItemAvatar>
 

@@ -5,11 +5,12 @@ import { getLegalDocumentByCategory, getLegalDocumentVersionById } from '../api/
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 import '../manager/LegalDocumentManagement.css';
 
-const LegalDocumentModal = ({ isOpen, onClose, category }) => {
+const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
   const [document, setDocument] = useState(null);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [versionLoading, setVersionLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     if (isOpen && category) {
@@ -20,6 +21,7 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
       setSelectedVersion(null);
       setLoading(false);
       setVersionLoading(false);
+      setAgreed(false);
     }
   }, [isOpen, category]);
 
@@ -84,6 +86,21 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
     exit: { opacity: 0 },
   };
 
+  const handleAgree = () => {
+    if (agreed && onAgree) {
+      onAgree();
+      onClose();
+    }
+  };
+
+  const handleClose = () => {
+    if (agreed) {
+      onClose();
+    } else {
+      toast.warning('Vui lòng đồng ý với điều khoản dịch vụ trước khi đóng');
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -93,7 +110,7 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
           animate="visible"
           exit="exit"
           variants={backdropVariants}
-          onClick={onClose}
+          onClick={handleClose}
         >
           <motion.div
             className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-4xl mx-auto relative overflow-y-auto max-h-[90vh]"
@@ -102,7 +119,7 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <NoFocusOutLineButton
-              onClick={onClose}
+              onClick={handleClose}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10"
               aria-label="Close modal"
             >
@@ -300,13 +317,43 @@ const LegalDocumentModal = ({ isOpen, onClose, category }) => {
               </div>
             )}
 
-            <div className="mt-8 text-center">
-              <NoFocusOutLineButton
-                onClick={onClose}
-                className="bg-[#333333] text-white px-6 py-2 rounded-lg font-semibold hover:bg-black transition duration-200"
-              >
-                Đóng
-              </NoFocusOutLineButton>
+            <div className="mt-8 space-y-4">
+              {/* Agreement Checkbox */}
+              <div className="flex items-center justify-center">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật
+                  </span>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-center space-x-4">
+                <NoFocusOutLineButton
+                  onClick={handleAgree}
+                  disabled={!agreed}
+                  className={`px-6 py-2 rounded-lg font-semibold transition duration-200 ${
+                    agreed 
+                      ? 'bg-black text-white hover:bg-gray-800' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Tôi đồng ý
+                </NoFocusOutLineButton>
+                
+                <NoFocusOutLineButton
+                  onClick={handleClose}
+                  className="bg-white text-black border border-gray-300 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition duration-200"
+                >
+                  Đóng
+                </NoFocusOutLineButton>
+              </div>
             </div>
           </motion.div>
         </motion.div>
