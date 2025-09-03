@@ -63,12 +63,6 @@ const LessonSelectionModal = ({ isOpen, onClose, lessons, onLessonSelect, tutorN
                           <span className="font-medium">Ngôn ngữ:</span>{" "}
                           {formatLanguageCode(lesson.languageCode)}
                         </p>
-                        {lesson.category && (
-                          <p>
-                            <span className="font-medium">Danh mục:</span>{" "}
-                            {lesson.category}
-                          </p>
-                        )}
                         {lesson.completedCount && (
                           <p>
                             <span className="font-medium">Buổi học:</span>{" "}
