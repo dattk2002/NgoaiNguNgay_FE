@@ -623,46 +623,13 @@ function AppWithNotifications() {
         additionalData: notification.additionalData
       });
 
-      // Parse the notification data based on the API structure
+      // Backend now handles message parsing, so we can use the original values directly
       let displayTitle = notification.title || "Thông báo mới";
       let displayContent = notification.content || "";
       let priority = "Normal";
 
-      // Handle different notification types based on title
-      if (notification.title === "PUSH_ON_LEARNER_ACCEPT_OFFER") {
-        try {
-          const additionalData = notification.additionalData ? JSON.parse(notification.additionalData) : {};
-          displayTitle = "Học viên đã chấp nhận đề nghị";
-          displayContent = `Học viên đã chấp nhận đề nghị cho bài học "${additionalData.LessonName || 'không xác định'}"`;
-          priority = "Success";
-        } catch (error) {
-          console.error("Error parsing PUSH_ON_LEARNER_ACCEPT_OFFER data:", error);
-          displayTitle = "Học viên đã chấp nhận đề nghị";
-          displayContent = "Học viên đã chấp nhận đề nghị của bạn";
-          priority = "Success";
-        }
-      } else if (notification.title === "PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST") {
-        try {
-          const additionalData = notification.additionalData ? JSON.parse(notification.additionalData) : {};
-          displayTitle = "Đề xuất mới từ gia sư";
-          displayContent = `Bạn có đề xuất mới từ gia sư cho bài học. Ngày bắt đầu dự kiến: ${new Date(additionalData.ExpectedStartDate).toLocaleDateString('vi-VN')}`;
-          priority = "Info";
-        } catch (error) {
-          console.error("Error parsing PUSH_ON_TUTOR_RECEIVED_TIME_SLOT_REQUEST data:", error);
-          displayTitle = "Đề xuất mới từ gia sư";
-          displayContent = "Bạn có đề xuất mới từ gia sư";
-          priority = "Info";
-        }
-      } else if (notification.title === "Bạn có 1 đề xuất mới từ gia sưi") {
-        displayTitle = notification.title;
-        displayContent = notification.content;
-        priority = "Warning";
-      } else {
-        // Handle other notification types
-        displayTitle = notification.title;
-        displayContent = notification.content;
-
-        // Set priority based on notificationPriority
+      // Set priority based on notificationPriority if available
+      if (notification.notificationPriority) {
         switch (notification.notificationPriority) {
           case 1:
             priority = "Critical";
