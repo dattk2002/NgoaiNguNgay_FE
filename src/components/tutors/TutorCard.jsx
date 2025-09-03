@@ -215,7 +215,7 @@ const TutorCard = memo(
             <span className="text-xs text-gray-500 pt-5">
               {!teacher.rating
                 ? "Chưa có đánh giá"
-                : `${Number(teacher.rating).toFixed(2)} (${tutorReviews.length} đánh giá)`}
+                : `${Number(teacher.rating).toFixed(1)} (${tutorReviews.length} đánh giá)`}
             </span>
           </div>
           {/* Right Part: Details */}
@@ -228,12 +228,6 @@ const TutorCard = memo(
               >
                 {teacher.name}
               </h2>
-              {teacher.isProfessional === true && (
-                <span className="flex items-center gap-1 text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                  <FaCheckCircle />
-                  {teacher.tag}
-                </span>
-              )}
               {/* Render other badges/tags */}
               {teacher.badges?.map((badge) => (
                 <span

@@ -118,7 +118,9 @@ const getBookingStatusFromAPI = (status) => {
   }
 };
 
-// Helper function to get booking overall status based on slots (kept for backward compatibility)
+// Helper function to get booking overall status based on slots
+// This function is no longer needed since we get status directly from API
+// Keeping for backward compatibility but it's not used in the main logic
 const getBookingOverallStatus = (booking) => {
   // If no booking detail is available, we can't determine the status
   if (!booking.bookedSlots || booking.bookedSlots.length === 0) {
@@ -206,8 +208,9 @@ const TeachingHistory = () => {
       const allBookings = response.items || [];
       
       // Filter bookings to only show completed and cancelled
+      // We use the status directly from API response:
+      // Status 4: Complete - Hoàn thành, Status 3: Cancelled - Đã hủy
       const filteredBookings = allBookings.filter(booking => {
-        // Status 4: Complete - Hoàn thành, Status 3: Cancelled - Đã hủy
         return booking.status === 4 || booking.status === 3;
       });
 
@@ -376,6 +379,7 @@ const TeachingHistory = () => {
     .filter(item => {
       if (filter === 'all') return true;
       
+      // Use status directly from API response, no need to calculate
       const status = getBookingStatusFromAPI(item.status);
       if (filter === 'completed') return status?.text === 'Hoàn thành';
       if (filter === 'cancelled') return status?.text === 'Đã hủy';

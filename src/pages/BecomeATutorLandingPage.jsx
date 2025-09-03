@@ -75,76 +75,53 @@ const BecomeATutorLandingPage = () => {
         }
     ];
 
-    const stats = [
-        { number: "10,000+", label: "Gia sư hoạt động" },
-        { number: "50,000+", label: "Học viên hài lòng" },
-        { number: "100+", label: "Quốc gia" },
-        { number: "24/7", label: "Hỗ trợ" }
-    ];
-
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
             {/* Hero Section */}
-            <section className="relative bg-[#333333] text-white py-20">
-                <div className="absolute inset-0 bg-black opacity-20"></div>
-                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center">
-                        <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                            Trở thành Gia sư
-                            <span className="block text-white-300">Thay đổi cuộc sống</span>
-                        </h1>
-                        <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
-                            Chia sẻ kiến thức, kết nối với học viên trên toàn thế giới và xây dựng sự nghiệp giảng dạy trực tuyến của riêng bạn
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <button
-                                onClick={() => navigate('/become-tutor/register')}
-                                className="bg-gray-300 hover:bg-white text-black hover:text-black font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
-                            >
-                                Bắt đầu ngay
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 inline" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                            </button>
-                            <button className="border-2 border-white text-white hover:bg-white hover:text-black font-bold py-4 px-8 rounded-full text-lg transition-all duration-300">
-                                Tìm hiểu thêm
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Stats Section */}
-            <section className="py-16 bg-gray-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        {stats.map((stat, index) => (
-                            <div key={index} className="text-center">
-                                <div className="text-3xl md:text-4xl font-bold text-black mb-2">{stat.number}</div>
-                                <div className="text-gray-600 font-medium">{stat.label}</div>
-                            </div>
-                        ))}
+            <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10"></div>
+                <div className="relative max-w-7xl mx-auto text-center">
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+                        Trở thành <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Gia sư</span>
+                        <span className="block text-gray-900">Thay đổi cuộc sống</span>
+                    </h1>
+                    <p className="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed mb-10">
+                        Chia sẻ kiến thức, kết nối với học viên trên toàn thế giới và xây dựng sự nghiệp giảng dạy trực tuyến của riêng bạn
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button
+                            onClick={() => navigate('/become-tutor/register')}
+                            className="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        >
+                            Bắt đầu ngay
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                        <button className="inline-flex items-center justify-center px-8 py-3 border-2 border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:scale-105">
+                            Tìm hiểu thêm
+                        </button>
                     </div>
                 </div>
             </section>
 
             {/* Benefits Section */}
-            <section className="py-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+                <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                        <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
                             Tại sao chọn chúng tôi?
                         </h2>
-                        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                        <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
                             Khám phá những lợi ích tuyệt vời khi trở thành gia sư trên nền tảng của chúng tôi
                         </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {benefits.map((benefit, index) => (
-                            <div key={index} className="text-center p-6 rounded-xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                                <div className="text-4xl mb-4">{benefit.icon}</div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-3">{benefit.title}</h3>
-                                <p className="text-gray-600">{benefit.description}</p>
+                            <div key={index} className="text-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                                <div className="text-6xl mb-4">{benefit.icon}</div>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-3">{benefit.title}</h3>
+                                <p className="text-gray-600 leading-relaxed">{benefit.description}</p>
                             </div>
                         ))}
                     </div>
@@ -152,31 +129,31 @@ const BecomeATutorLandingPage = () => {
             </section>
 
             {/* Process Section */}
-            <section className="py-20 bg-gray-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-20 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                        <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
                             Quy trình đăng ký
                         </h2>
-                        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                        <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
                             Chỉ 5 bước đơn giản để bắt đầu hành trình giảng dạy của bạn
                         </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                         {steps.map((step, index) => (
                             <div key={index} className="relative">
-                                <div className="bg-white p-4 rounded-xl shadow-lg h-full">
-                                    <div className="flex flex-col items-center text-center mb-3">
-                                        <div className="bg-black text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm mb-2">
-                                            {step.number}
+                                <div className="bg-white p-6 rounded-2xl shadow-lg h-full hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4 shadow-lg">
+                                            <span className="text-lg font-bold text-white">{step.number}</span>
                                         </div>
-                                        <h3 className="text-sm font-bold text-gray-900 mb-2">{step.title}</h3>
+                                        <h3 className="text-base font-semibold text-gray-900 mb-3">{step.title}</h3>
+                                        <p className="text-sm text-gray-600 text-center leading-relaxed">{step.description}</p>
                                     </div>
-                                    <p className="text-xs text-gray-600 text-center">{step.description}</p>
                                 </div>
                                 {index < steps.length - 1 && (
-                                    <div className="hidden lg:block absolute top-1/2 -right-2 transform -translate-y-1/2">
-                                        <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                    <div className="hidden lg:block absolute top-1/2 -right-3 transform -translate-y-1/2">
+                                        <svg className="w-6 h-6 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
                                             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                                         </svg>
                                     </div>
@@ -188,26 +165,26 @@ const BecomeATutorLandingPage = () => {
             </section>
 
             {/* FAQ Section */}
-            <section className="py-20">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+                <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                        <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
                             Câu hỏi thường gặp
                         </h2>
-                        <p className="text-xl text-gray-600">
+                        <p className="text-xl text-gray-600 leading-relaxed">
                             Những thắc mắc phổ biến từ các gia sư
                         </p>
                     </div>
                     <div className="space-y-6">
                         {faqs.map((faq, index) => (
-                            <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                            <div key={index} className="bg-gradient-to-r from-gray-50 to-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300">
                                 <button
                                     onClick={() => setActiveTab(activeTab === index ? -1 : index)}
-                                    className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
+                                    className="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300"
                                 >
                                     <span className="text-lg font-semibold text-gray-900">{faq.question}</span>
                                     <svg
-                                        className={`w-5 h-5 text-gray-500 transition-transform ${activeTab === index ? 'rotate-180' : ''}`}
+                                        className={`w-6 h-6 text-blue-500 transition-transform duration-300 ${activeTab === index ? 'rotate-180' : ''}`}
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -216,8 +193,8 @@ const BecomeATutorLandingPage = () => {
                                     </svg>
                                 </button>
                                 {activeTab === index && (
-                                    <div className="px-6 pb-4">
-                                        <p className="text-gray-600">{faq.answer}</p>
+                                    <div className="px-8 pb-6">
+                                        <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
                                     </div>
                                 )}
                             </div>
@@ -227,28 +204,25 @@ const BecomeATutorLandingPage = () => {
             </section>
 
             {/* CTA Section */}
-            <section className="py-20 bg-[#333333] text-white">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
+                <div className="max-w-4xl mx-auto text-center">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
                         Sẵn sàng bắt đầu hành trình của bạn?
                     </h2>
-                    <p className="text-xl mb-8 opacity-90">
+                    <p className="text-xl text-blue-100 mb-8 leading-relaxed">
                         Tham gia cộng đồng gia sư và bắt đầu kiếm tiền từ kiến thức của bạn ngay hôm nay
                     </p>
                     <button
                         onClick={() => navigate('/become-tutor/register')}
-                        className="bg-gray-300 hover:bg-white text-black hover:text-black font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        className="inline-flex items-center justify-center px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors duration-300 transform hover:scale-105 shadow-lg"
                     >
                         Đăng ký ngay
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 inline" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
                     </button>
                 </div>
             </section>
-
-            {/* Footer */}
-
         </div>
     );
 };

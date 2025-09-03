@@ -122,9 +122,9 @@ const getBookingStatusFromAPI = (status) => {
 const getSlotStatusInfo = (status) => {
   switch (status) {
     case 0: // Pending
-      return { text: 'Đang diễn ra', color: 'bg-yellow-100 text-yellow-700' };
+      return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
     case 1: // AwaitingConfirmation  
-      return { text: 'Hoàn thành, đợi 24h', color: 'bg-blue-100 text-blue-700' };
+      return { text: 'Đang chờ hệ thống thanh toán cho gia sư', color: 'bg-blue-100 text-blue-700' };
     case 2: // Completed
       return { text: 'Đã hoàn thành', color: 'bg-green-100 text-green-700' };
     case 3: // Cancelled
@@ -152,64 +152,6 @@ const getHeldFundStatusInfo = (status) => {
     default:
       return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
   }
-};
-
-// Helper function to get booking overall status based on slots
-const getBookingOverallStatus = (booking) => {
-  // If no booking detail is available, we can't determine the status
-  if (!booking.bookedSlots || booking.bookedSlots.length === 0) {
-    return null;
-  }
-
-  const slots = booking.bookedSlots;
-  const totalSlots = slots.length;
-  const completedSlots = slots.filter(slot => slot.status === 2).length;
-  const cancelledSlots = slots.filter(slot => slot.status === 3).length;
-  const cancelledDisputedSlots = slots.filter(slot => slot.status === 4).length;
-  const pendingSlots = slots.filter(slot => slot.status === 0).length;
-  const awaitingSlots = slots.filter(slot => slot.status === 1).length;
-
-  // If all slots are completed
-  if (completedSlots === totalSlots) {
-    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
-  }
-  
-  // If all slots are cancelled
-  if (cancelledSlots === totalSlots) {
-    return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
-  }
-  
-  // If all slots are cancelled due to dispute
-  if (cancelledDisputedSlots === totalSlots) {
-    return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
-  }
-  
-  // If all slots are pending
-  if (pendingSlots === totalSlots) {
-    return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
-  }
-  
-  // If all slots are awaiting confirmation
-  if (awaitingSlots === totalSlots) {
-    return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
-  }
-  
-  // If there are any awaiting confirmation slots (status = 1), the booking is still in progress
-  if (awaitingSlots > 0) {
-    return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
-  }
-
-  if (completedSlots > 0 && cancelledDisputedSlots > 0) {
-    return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
-  }
-  
-  // If there are completed slots but no awaiting slots, consider as completed
-  if (completedSlots > 0 && awaitingSlots === 0) {
-    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
-  }
-  
-  // Mixed status without completed slots or awaiting slots - show as in progress
-  return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
 };
 
 const ScheduleTracking = () => {
@@ -282,6 +224,8 @@ const ScheduleTracking = () => {
 
     try {
       // Use booking status directly from API response
+      // The API already provides the correct status for each booking
+      // No need to calculate or derive status from other data
       bookingsList.forEach((booking) => {
         const status = getBookingStatusFromAPI(booking.status);
         newStatuses[booking.id] = status;
@@ -383,40 +327,9 @@ const ScheduleTracking = () => {
         setBookingDetail(convertedDetail);
       }
       
-      // Update the booking status in the main list without reloading
-      setBookings(prevBookings => 
-        prevBookings.map(booking => {
-          if (booking.id === selectedBooking?.id) {
-            // Update the booking status to reflect the completion
-            // If all slots are completed, change status to 4 (Complete)
-            const updatedSlots = bookingDetail?.bookedSlots?.map(slot => 
-              slot.id === bookedSlotId ? { ...slot, status: 1 } : slot
-            ) || [];
-            
-            const allSlotsCompleted = updatedSlots.every(slot => slot.status === 1 || slot.status === 2);
-            const newStatus = allSlotsCompleted ? 4 : booking.status;
-            
-            return { ...booking, status: newStatus };
-          }
-          return booking;
-        })
-      );
-      
-      // Update booking statuses without reloading
-      setBookingStatuses(prev => {
-        const newStatuses = { ...prev };
-        if (selectedBooking?.id) {
-          const updatedSlots = bookingDetail?.bookedSlots?.map(slot => 
-            slot.id === bookedSlotId ? { ...slot, status: 1 } : slot
-          ) || [];
-          
-          const allSlotsCompleted = updatedSlots.every(slot => slot.status === 1 || slot.status === 2);
-          const newStatus = allSlotsCompleted ? 4 : selectedBooking.status;
-          
-          newStatuses[selectedBooking.id] = getBookingStatusFromAPI(newStatus);
-        }
-        return newStatuses;
-      });
+      // Since we're using the status directly from API, we don't need to manually calculate it
+      // The API will return the updated status when we refresh the data
+      // Just show success message and let the user refresh if needed
       
       // Show success message
       toast.success("Slot đã được hoàn thành thành công!");
