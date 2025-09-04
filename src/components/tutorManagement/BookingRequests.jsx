@@ -18,7 +18,7 @@ const BookingRequests = () => {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [bookingType, setBookingType] = useState(1); // Chỉ hiển thị Book thẳng (1=Instant)
+  const [bookingType, setBookingType] = useState(1); // Chỉ hiển thị Book nhanh (1=Instant)
   const [cancelBookingModalOpen, setCancelBookingModalOpen] = useState(false);
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -310,7 +310,7 @@ const BookingRequests = () => {
       currentPage, 
       totalPages, 
       totalItems, 
-      bookingType: 1, // Fixed to Book thẳng
+      bookingType: 1, // Fixed to Book nhanh
       bookingsCount: bookings.length 
     });
   }, [currentPage, totalPages, totalItems, bookings.length]);
@@ -328,7 +328,7 @@ const BookingRequests = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Học viên đã book thẳng</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Học viên đã book nhanh</h2>
           <p className="text-gray-600">Quản lý booking từ học viên</p>
         </div>
       </div>
@@ -349,14 +349,6 @@ const BookingRequests = () => {
               <p className="text-sm text-blue-600">
                 Trang {currentPage} / {totalPages}
               </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Book thẳng từ học viên
             </div>
           </div>
         </div>
@@ -549,7 +541,7 @@ const BookingRequests = () => {
                           </div>
                           <div className="ml-3">
                             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tổng giá</p>
-                            <p className="text-lg font-bold text-gray-900">{booking.totalPrice || 0} VNĐ</p>
+                            <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(booking.totalPrice || 0)}</p>
                           </div>
                         </div>
                       </div>
@@ -719,7 +711,7 @@ const BookingRequests = () => {
                     <div className="space-y-1 text-sm text-gray-600">
                       <p><strong>Học viên:</strong> {selectedBookingForCancel.learnerName}</p>
                       <p><strong>Bài học:</strong> {selectedBookingForCancel.lessonName}</p>
-                      <p><strong>Tổng giá:</strong> {selectedBookingForCancel.totalPrice || 0} VNĐ</p>
+                      <p><strong>Tổng giá:</strong> {formatPriceWithCommas(selectedBookingForCancel.totalPrice || 0)}</p>
                       <p><strong>Số slot:</strong> {selectedBookingForCancel.slotCount}</p>
                       <p><strong>Ngày sớm nhất:</strong> {selectedBookingForCancel.earliestBookedDate ? formatTutorDate(selectedBookingForCancel.earliestBookedDate) : 'N/A'}</p>
                     </div>
@@ -949,7 +941,7 @@ const BookingRequests = () => {
                             </div>
                             <div>
                               <p className="text-sm text-gray-500 font-medium">Tổng giá</p>
-                              <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(bookingDetail.totalPrice || 0)} VNĐ</p>
+                              <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(bookingDetail.totalPrice || 0)}</p>
                             </div>
                           </div>
                         </div>
@@ -1077,7 +1069,7 @@ const BookingRequests = () => {
                             </div>
                             <div className="space-y-2">
                               <p className="text-sm text-gray-500 font-medium">Giá mỗi slot</p>
-                              <p className="text-lg font-bold text-green-600">{formatPriceWithCommas(bookingDetail.lessonSnapshot.price || 0)} {bookingDetail.lessonSnapshot.currency || 'VNĐ'}</p>
+                              <p className="text-lg font-bold text-green-600">{formatPriceWithCommas(bookingDetail.lessonSnapshot.price || 0)}</p>
                             </div>
                             <div className="space-y-2">
                               <p className="text-sm text-gray-500 font-medium">Thời lượng</p>
@@ -1132,7 +1124,7 @@ const BookingRequests = () => {
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                       <div className="space-y-1">
                                         <p className="text-xs text-gray-500 font-medium">Số tiền</p>
-                                        <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)} VNĐ</p>
+                                        <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)}</p>
                                       </div>
                                       <div className="space-y-1">
                                         <p className="text-xs text-gray-500 font-medium">Trạng thái</p>
@@ -1481,7 +1473,7 @@ const BookingRequests = () => {
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                               <div className="space-y-1">
                                 <p className="text-xs text-gray-500 font-medium">Số tiền</p>
-                                <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)} VNĐ</p>
+                                <p className="text-lg font-bold text-gray-900">{formatPriceWithCommas(slot.heldFund.amount || 0)}</p>
                               </div>
                               <div className="space-y-1">
                                 <p className="text-xs text-gray-500 font-medium">Trạng thái</p>
@@ -1569,7 +1561,7 @@ const StatusTag = ({ status }) => {
         };
       case 1:
         return {
-          text: "Hoàn thành, đợi 24h",
+          text: "Đã yêu cầu khiếu nại",
           className: "bg-blue-50 text-blue-700 border border-blue-200",
           icon: (
             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -1579,7 +1571,7 @@ const StatusTag = ({ status }) => {
         };
       case 2:
         return {
-          text: "Đã hoàn thành",
+          text: "Đang tranh chấp",
           className: "bg-green-50 text-green-700 border border-green-200",
           icon: (
             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -1599,7 +1591,7 @@ const StatusTag = ({ status }) => {
         };
         case 4:
         return {
-          text: "Đang bị báo cáo",
+          text: "Hoàn thành",
           className: "bg-orange-50 text-orange-700 border border-orange-200",
           icon: (
             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">

@@ -1298,7 +1298,7 @@ const TutorWeeklyPatternDetailModal = ({
         <LegalDocumentModal
           isOpen={showLegalDocumentModal}
           onClose={() => setShowLegalDocumentModal(false)}
-          category="Book thẳng"
+          category="Book nhanh"
         />
       </Portal>
       </Dialog>

@@ -431,15 +431,6 @@ const TeachingHistory = () => {
               Đã hủy
             </button>
           </div>
-          
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-          >
-            <option value="date">Sắp xếp theo ngày</option>
-            <option value="subject">Sắp xếp theo môn học</option>
-          </select>
         </div>
       </div>
 

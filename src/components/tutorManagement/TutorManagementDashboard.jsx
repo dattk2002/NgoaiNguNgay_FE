@@ -15,7 +15,7 @@ const TutorManagementDashboard = () => {
   const tabs = [
     { id: 'schedule', label: 'Theo dõi lịch dạy', component: ScheduleTracking },
     // { id: 'requests', label: 'Yêu cầu từ học viên', component: StudentRequests }, // Đã xóa
-    { id: 'booking-requests', label: 'Quản lý booking từ học viên', component: BookingRequests },
+    { id: 'booking-requests', label: 'Book nhanh từ học viên', component: BookingRequests },
     { id: 'offers', label: 'Quản lý đề xuất đến học viên', component: OfferManagement },
             { id: 'disputes', label: 'Quản lý báo cáo', component: TutorDisputes },
     { id: 'history', label: 'Lịch sử dạy học', component: TeachingHistory },
