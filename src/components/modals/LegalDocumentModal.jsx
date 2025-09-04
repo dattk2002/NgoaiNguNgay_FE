@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'react-toastify';
+import { showSuccess, showError, showWarning } from '../../utils/toastManager.js';
 import { getLegalDocumentByCategory, getLegalDocumentVersionById } from '../api/auth';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 import '../manager/LegalDocumentManagement.css';
@@ -38,7 +38,7 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
       }
     } catch (error) {
       console.error('Failed to fetch legal document:', error);
-      toast.error('Không thể tải tài liệu pháp lý');
+      showError('Không thể tải tài liệu pháp lý');
       setDocument(null);
       setSelectedVersion(null);
     } finally {
@@ -53,7 +53,7 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
       setSelectedVersion(versionData);
     } catch (error) {
       console.error('Failed to fetch version content:', error);
-      toast.error('Không thể tải nội dung phiên bản');
+      showError('Không thể tải nội dung phiên bản');
       setSelectedVersion(null);
     } finally {
       setVersionLoading(false);

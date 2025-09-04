@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import "react-toastify/dist/ReactToastify.css";
 import { 
   fetchTutorWeeklyPattern, 
@@ -496,7 +496,7 @@ const OfferUpdateModal = ({
   const handleUpdateOffer = () => {
     // Don't allow update if offer is expired
     if (offer?.isExpired) {
-      toast.error("Không thể cập nhật đề xuất đã hết hạn.", {
+      showError("Không thể cập nhật đề xuất đã hết hạn.", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -507,7 +507,7 @@ const OfferUpdateModal = ({
     const allSelectedSlots = Object.values(selectedSlotsByWeek).flat();
     
     if (allSelectedSlots.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một khung giờ để cập nhật.", {
+      showError("Vui lòng chọn ít nhất một khung giờ để cập nhật.", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -610,24 +610,22 @@ const OfferUpdateModal = ({
       
       // Finally show success toast after a short delay to ensure modal is closed
       setTimeout(() => {
-        toast.success("Cập nhật đề xuất thành công!", {
+        showSuccess("Cập nhật đề xuất thành công!", {
           position: "top-right",
-          autoClose: 5000,
+          autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
-          pauseOnHover: true,
           draggable: true,
         });
       }, 100);
     } catch (err) {
       console.error("❌ OfferUpdateModal - Error during offer update:", err);
       
-      toast.error(err.message || "Cập nhật đề xuất thất bại. Vui lòng thử lại.", {
+      showError(err.message || "Cập nhật đề xuất thất bại. Vui lòng thử lại.", {
         position: "top-right",
-        autoClose: 5000,
+        autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
         draggable: true,
       });
       
@@ -1307,19 +1305,6 @@ const OfferUpdateModal = ({
         )}
       </div>
 
-      {/* Toast Container */}
-      <ToastContainer 
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 };

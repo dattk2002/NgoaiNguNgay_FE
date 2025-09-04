@@ -5,7 +5,7 @@ import {
     fetchTutorApplicationById, 
     reviewTutorApplication
 } from '../api/auth';
-import { toast } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import { motion, AnimatePresence } from "framer-motion";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 import { formatLanguageCode, formatProficiencyLevel } from '../../utils/formatLanguageCode';
@@ -350,10 +350,10 @@ const TutorManagement = () => {
             setReviewingTutor(null);
             setReviewNotes('');
 
-            toast.success('Đã phê duyệt hồ sơ gia sư thành công!');
+            showSuccess('Đã phê duyệt hồ sơ gia sư thành công!');
         } catch (error) {
             console.error('Error approving tutor:', error);
-            toast.error('Có lỗi xảy ra khi phê duyệt hồ sơ: ' + error.message);
+            showError('Có lỗi xảy ra khi phê duyệt hồ sơ: ' + error.message);
         } finally {
             setReviewLoading(false);
         }
@@ -361,7 +361,7 @@ const TutorManagement = () => {
 
     const confirmReject = async () => {
         if (!reviewingTutor || !reviewNotes.trim()) {
-            toast.error('Vui lòng nhập lý do từ chối');
+            showError('Vui lòng nhập lý do từ chối');
             return;
         }
 
@@ -382,10 +382,10 @@ const TutorManagement = () => {
             setReviewingTutor(null);
             setReviewNotes('');
 
-            toast.success('Đã từ chối hồ sơ gia sư!');
+            showSuccess('Đã từ chối hồ sơ gia sư!');
         } catch (error) {
             console.error('Error rejecting tutor:', error);
-            toast.error('Có lỗi xảy ra khi từ chối hồ sơ: ' + error.message);
+            showError('Có lỗi xảy ra khi từ chối hồ sơ: ' + error.message);
         } finally {
             setReviewLoading(false);
         }
@@ -393,7 +393,7 @@ const TutorManagement = () => {
 
     const confirmRequestInfo = async () => {
         if (!reviewingTutor || !reviewNotes.trim()) {
-            toast.error('Vui lòng nhập thông tin cần bổ sung');
+            showError('Vui lòng nhập thông tin cần bổ sung');
             return;
         }
 
@@ -414,10 +414,10 @@ const TutorManagement = () => {
             setReviewingTutor(null);
             setReviewNotes('');
 
-            toast.success('Đã yêu cầu bổ sung thông tin!');
+            showSuccess('Đã yêu cầu bổ sung thông tin!');
         } catch (error) {
             console.error('Error requesting info:', error);
-            toast.error('Có lỗi xảy ra khi yêu cầu thông tin: ' + error.message);
+            showError('Có lỗi xảy ra khi yêu cầu thông tin: ' + error.message);
         } finally {
             setReviewLoading(false);
         }

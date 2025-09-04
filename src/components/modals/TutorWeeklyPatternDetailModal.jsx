@@ -29,7 +29,7 @@ import Alert from "@mui/material/Alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import LegalDocumentModal from "./LegalDocumentModal";
 
 const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
@@ -412,12 +412,11 @@ const TutorWeeklyPatternDetailModal = ({
       console.log("✅ TutorWeeklyPatternDetailModal - Instant booking created successfully");
 
       // Show success toast
-      toast.success("Đặt lịch thành công! Gia sư sẽ liên hệ với bạn sớm nhất.", {
+      showSuccess("Đặt lịch thành công! Gia sư sẽ liên hệ với bạn sớm nhất.", {
         position: "top-right",
-        autoClose: 5000,
+        autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
         draggable: true,
       });
 
@@ -432,22 +431,20 @@ const TutorWeeklyPatternDetailModal = ({
       
       // Handle specific 400 error for slots less than 24 hours
       if (err.message && err.message.includes("Cannot book slots that start less than 24 hour(s) from now")) {
-        toast.error("Không thể đặt lịch cho các khung giờ bắt đầu trong vòng 24 giờ tới. Vui lòng chọn khung giờ khác.", {
+        showError("Không thể đặt lịch cho các khung giờ bắt đầu trong vòng 24 giờ tới. Vui lòng chọn khung giờ khác.", {
           position: "top-right",
-          autoClose: 6000,
+          autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
-          pauseOnHover: true,
           draggable: true,
         });
       } else {
         // Handle other errors
-        toast.error(err.message || "Đặt lịch thất bại. Vui lòng thử lại.", {
+        showError(err.message || "Đặt lịch thất bại. Vui lòng thử lại.", {
           position: "top-right",
-          autoClose: 5000,
+          autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
-          pauseOnHover: true,
           draggable: true,
         });
       }

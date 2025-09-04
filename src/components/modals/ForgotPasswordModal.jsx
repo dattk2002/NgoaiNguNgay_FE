@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import { forgotPassword, resetPassword } from "../api/auth";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 
@@ -169,12 +169,12 @@ const ForgotPasswordModal = ({
 
     try {
       const response = await forgotPassword(email);
-      toast.success("OTP đã được gửi đến email của bạn!");
+      showSuccess("OTP đã được gửi đến email của bạn!");
       setStep(2);
     } catch (error) {
       console.error("Send OTP error:", error);
       setGeneralError(error.message || "Không thể gửi OTP. Vui lòng thử lại.");
-      toast.error(error.message || "Không thể gửi OTP. Vui lòng thử lại.");
+      showError(error.message || "Không thể gửi OTP. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
@@ -202,7 +202,7 @@ const ForgotPasswordModal = ({
     } catch (error) {
       console.error("Verify OTP error:", error);
       setGeneralError(error.message || "OTP không hợp lệ. Vui lòng thử lại.");
-      toast.error(error.message || "OTP không hợp lệ. Vui lòng thử lại.");
+      showError(error.message || "OTP không hợp lệ. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
@@ -238,13 +238,13 @@ const ForgotPasswordModal = ({
 
     try {
       const response = await resetPassword(email, otp, newPassword);
-      toast.success("Đặt lại mật khẩu thành công!");
+      showSuccess("Đặt lại mật khẩu thành công!");
       onClose();
       onBackToLogin();
     } catch (error) {
       console.error("Reset password error:", error);
       setGeneralError(error.message || "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
-      toast.error(error.message || "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+      showError(error.message || "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }

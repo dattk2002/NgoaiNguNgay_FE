@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { tutorBookingList, tutorCancelBookingByBookingId, fetchBookingDetailbyBookingId, viewRescheduleRequests } from '../api/auth';
-import { toast, ToastContainer } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion, AnimatePresence } from "framer-motion";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
@@ -142,7 +142,7 @@ const BookingRequests = () => {
     } catch (err) {
       setError(err.message);
       console.error('Error loading bookings:', err);
-      toast.error("Không thể tải danh sách booking. Vui lòng thử lại!");
+      showError("Không thể tải danh sách booking. Vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
@@ -185,7 +185,7 @@ const BookingRequests = () => {
       await fetchRescheduleRequestsForBooking(booking.id);
     } catch (error) {
       console.error('Error fetching booking detail:', error);
-      toast.error("Không thể tải thông tin chi tiết booking. Vui lòng thử lại!");
+      showError("Không thể tải thông tin chi tiết booking. Vui lòng thử lại!");
     } finally {
       setLoadingBookingDetail(false);
     }
@@ -236,7 +236,7 @@ const BookingRequests = () => {
       }
     } catch (error) {
       console.error('Error fetching booking detail for modal:', error);
-      toast.error("Không thể tải thông tin chi tiết booking. Vui lòng thử lại!");
+      showError("Không thể tải thông tin chi tiết booking. Vui lòng thử lại!");
       setBookedSlotsForModal([]);
     } finally {
       setLoadingBookedSlots(false);
@@ -257,7 +257,7 @@ const BookingRequests = () => {
   const handleConfirmCancelBooking = async () => {
     if (!selectedBookingForCancel || !cancelReason.trim()) {
       console.log("🚫 Toast: Vui lòng nhập lý do hủy booking!");
-      toast.error("Vui lòng nhập lý do hủy booking!");
+      showError("Vui lòng nhập lý do hủy booking!");
       return;
     }
 
@@ -276,7 +276,7 @@ const BookingRequests = () => {
       // Show success toast after a small delay
       setTimeout(() => {
         console.log("✅ Toast: Đã hủy booking thành công!");
-        toast.success("Đã hủy booking thành công!");
+        showSuccess("Đã hủy booking thành công!");
       }, 100);
       
     } catch (error) {
@@ -292,7 +292,7 @@ const BookingRequests = () => {
       }
       
       console.log("❌ Toast:", errorMessage);
-      toast.error(errorMessage);
+      showError(errorMessage);
     } finally {
       setCancellingBooking(false);
     }
@@ -1549,20 +1549,6 @@ const BookingRequests = () => {
         )}
       </AnimatePresence>
        
-       {/* Toast Container for this component */}
-       <ToastContainer
-         position="top-right"
-         autoClose={4000}
-         hideProgressBar={false}
-         newestOnTop={false}
-         closeOnClick
-         rtl={false}
-         pauseOnFocusLoss
-         draggable
-         pauseOnHover
-         theme="light"
-         style={{ zIndex: 99999 }}
-       />
      </div>
    );
  };

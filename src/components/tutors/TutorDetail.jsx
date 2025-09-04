@@ -32,7 +32,7 @@ import Collapse from "@mui/material/Collapse";
 import LessonDetailModal from "../modals/LessonDetailModal";
 import formatPriceWithCommas from "../../utils/formatPriceWithCommas";
 import TutorWeeklyPatternDetailModal from "../modals/TutorWeeklyPatternDetailModal";
-import { ToastContainer, toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import "react-toastify/dist/ReactToastify.css";
 import LessonSelectionModal from "../modals/LessonSelectionModal";
 
@@ -104,7 +104,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   // Handler to show toast and add notification
   const handleBookingSuccess = () => {
-    toast.success("Gửi yêu cầu thành công!", {
+    showSuccess("Gửi yêu cầu thành công!", {
       onClose: () => {
         // Add notification after toast closes
         if (window.addNotification && teacher) {
@@ -313,13 +313,13 @@ const TutorDetail = ({ user, onRequireLogin }) => {
     
     // Check if tutor has lessons available
     if (!lessons || lessons.length === 0) {
-      toast.error("Gia sư này chưa có khóa học nào khả dụng.");
+      showError("Gia sư này chưa có khóa học nào khả dụng.");
       return;
     }
     
     // Check if instant booking is allowed
     if (bookingConfig && !bookingConfig.allowInstantBooking) {
-      toast.error("Gia sư này không cho phép đặt lịch tức thì. Vui lòng liên hệ trực tiếp.");
+      showError("Gia sư này không cho phép đặt lịch tức thì. Vui lòng liên hệ trực tiếp.");
       return;
     }
     
@@ -662,7 +662,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
 
   return (
     <div className="container mx-auto px-4 py-12 bg-white min-h-screen rounded-3xl max-w-7xl">
-      <ToastContainer />
       <div className="flex flex-col md:flex-row md:items-start gap-8">
         {/* LEFT COLUMN */}
         <div className="flex-1">

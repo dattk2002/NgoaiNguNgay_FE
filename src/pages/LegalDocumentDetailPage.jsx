@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { showSuccess, showError } from '../utils/toastManager.js';
 import { getLegalDocumentById, fetchLegalDocumentVersionById } from '../components/api/auth';
 import {
   FaArrowLeft,
@@ -58,7 +58,7 @@ const LegalDocumentDetailPage = () => {
       }
     } catch (error) {
       console.error('Failed to fetch document:', error);
-      toast.error('Không thể tải tài liệu pháp lý');
+      showError('Không thể tải tài liệu pháp lý');
       navigate('/legal-documents');
     } finally {
       setLoading(false);
@@ -79,7 +79,7 @@ const LegalDocumentDetailPage = () => {
       }
     } catch (error) {
       console.error('Failed to fetch version details:', error);
-      toast.error('Không thể tải chi tiết phiên bản');
+      showError('Không thể tải chi tiết phiên bản');
     } finally {
       setLoadingVersion(false);
     }
@@ -306,7 +306,7 @@ const LegalDocumentDetailPage = () => {
             <button 
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.href);
-                  toast.success('Đã sao chép link vào clipboard');
+                  showSuccess('Đã sao chép link vào clipboard');
                 }}
               className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
             >

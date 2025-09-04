@@ -28,18 +28,7 @@ import {
 } from "./api/auth"; // add acceptLearnerBookingOffer
 import LegalDocumentModal from "./modals/LegalDocumentModal";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-
-// Toast configuration
-const toastConfig = {
-  position: "top-right",
-  autoClose: 3000,
-  hideProgressBar: false,
-  closeOnClick: true,
-  pauseOnHover: true,
-  draggable: true,
-};
+import { showSuccess, showError, testToast, debugToast, forceClearAll } from "../utils/toastManager.js";
 
 function getWeekInfoForDialog(expectedStartDate = null, weekOffset = 0) {
   let baseDate;
@@ -293,7 +282,7 @@ export default function MyBookingTable({
     setAcceptingOffer(true);
     try {
       await acceptLearnerBookingOffer(offerDetail.id);
-      toast.success("Đã chấp nhận đề xuất thành công!", toastConfig);
+      showSuccess("Đã chấp nhận đề xuất thành công!");
       handleCloseDialog();
       // Call the refresh callback instead of reloading the page
       if (onRefreshRequests) {
@@ -346,7 +335,7 @@ export default function MyBookingTable({
     setRejectingOffer(true);
     try {
       await rejectLearnerBookingOffer(offerDetail.id);
-      toast.success("Đã từ chối đề xuất thành công!", toastConfig);
+      showSuccess("Đã từ chối đề xuất thành công!");
       handleCloseDialog();
       // Call the refresh callback instead of reloading the page
       if (onRefreshRequests) {
@@ -1247,19 +1236,6 @@ export default function MyBookingTable({
         />
       </Portal>
 
-      {/* Toast Container */}
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </>
   );
 }

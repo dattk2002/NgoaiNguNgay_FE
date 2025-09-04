@@ -15,7 +15,7 @@ import {
   FaClock,
   FaRegBell,
 } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { showError, showInfo } from "../utils/toastManager.js";
 import logo from "../assets/logo.png";
 import NoFocusOutLineButton from "../utils/noFocusOutlineButton";
 import { useNotification } from "../contexts/NotificationContext";
@@ -165,22 +165,33 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
     const handleStorageChange = () => {
       try {
         const updatedUser = JSON.parse(localStorage.getItem("user"));
-        if (updatedUser && updatedUser.profileImageUrl) {
-          const timestamp = Date.now();
-          let newUrl = updatedUser.profileImageUrl;
-          if (!newUrl.includes("?")) {
-            newUrl = `${newUrl}?t=${timestamp}`;
-          }
+        if (updatedUser) {
+          if (updatedUser.profileImageUrl) {
+            // Avatar exists
+            const timestamp = Date.now();
+            let newUrl = updatedUser.profileImageUrl;
+            if (!newUrl.includes("?")) {
+              newUrl = `${newUrl}?t=${timestamp}`;
+            }
 
-          setCurrentAvatar(newUrl);
-          setAvatarKey(timestamp);
+            setCurrentAvatar(newUrl);
+            setAvatarKey(timestamp);
 
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = newUrl;
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = newUrl;
 
-          if (imgRef.current) {
-            imgRef.current.src = newUrl;
+            if (imgRef.current) {
+              imgRef.current.src = newUrl;
+            }
+          } else {
+            // Avatar was deleted
+            setCurrentAvatar(null);
+            setAvatarKey(Date.now());
+            
+            if (imgRef.current) {
+              imgRef.current.src = "https://avatar.iran.liara.run/public";
+            }
           }
         }
       } catch (error) {
@@ -196,25 +207,38 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
 
   useEffect(() => {
     const handleAvatarUpdate = (event) => {
-      if (event.detail && event.detail.profileImageUrl) {
-        let newUrl = event.detail.profileImageUrl;
-        if (!newUrl.includes("?")) {
-          newUrl = `${newUrl}?t=${Date.now()}`;
-        }
-
-        setCurrentAvatar(newUrl);
-        setAvatarKey(Date.now());
-
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = newUrl;
-        img.onload = () => {
-          setAvatarKey(Date.now() + 1);
-
-          if (imgRef.current) {
-            imgRef.current.src = newUrl + "&reload=" + Date.now();
+      if (event.detail) {
+        const { profileImageUrl } = event.detail;
+        
+        if (profileImageUrl) {
+          // Avatar was uploaded/updated
+          let newUrl = profileImageUrl;
+          if (!newUrl.includes("?")) {
+            newUrl = `${newUrl}?t=${Date.now()}`;
           }
-        };
+
+          setCurrentAvatar(newUrl);
+          setAvatarKey(Date.now());
+
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = newUrl;
+          img.onload = () => {
+            setAvatarKey(Date.now() + 1);
+
+            if (imgRef.current) {
+              imgRef.current.src = newUrl + "&reload=" + Date.now();
+            }
+          };
+        } else {
+          // Avatar was deleted
+          setCurrentAvatar(null);
+          setAvatarKey(Date.now());
+          
+          if (imgRef.current) {
+            imgRef.current.src = "https://avatar.iran.liara.run/public";
+          }
+        }
       }
     };
 
@@ -280,7 +304,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
-      toast.error("Không thể tải thông báo");
+      showError("Không thể tải thông báo");
     } finally {
       setLoadingNotifications(false);
     }
@@ -367,7 +391,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
             // Ignore parse errors
           }
         }
-        
+
         // Use utility functions to get standardized messages
         return {
           id: notif.id,
@@ -381,25 +405,25 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       });
       
       result.push(...processed);
-      
+
       // Yield to main thread to avoid UI blocking
       if (i + batchSize < notifications.length) {
         await new Promise(r => setTimeout(r, 0));
       }
     }
-    
+
     return result;
   };
 
   // Cleanup on user logout or component unmount
   useEffect(() => {
     // Setup listeners and fetch initial data
-    
+
     return () => {
       // Clear cached data
       setSenderProfiles({});
       setNotifications([]);
-      
+
       // Clear local storage for this user
       if (user && user.id) {
         const storageKey = `notifications_${user.id}`;
@@ -522,7 +546,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       }
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
-      toast.error("Không thể cập nhật trạng thái thông báo");
+      showError("Không thể cập nhật trạng thái thông báo");
       
       // Revert local state on error
       setNotifications((prev) =>
@@ -575,7 +599,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       }
     } catch (error) {
       console.error("Failed to mark all notifications as read:", error);
-      toast.error("Không thể cập nhật trạng thái thông báo");
+      showError("Không thể cập nhật trạng thái thông báo");
       
       // Revert local state on error
       const originalUnreadCount = notifications.filter((n) => !n.isRead).length;
@@ -1238,7 +1262,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                       if (firstTutorId) {
                         navigate(`/message/${firstTutorId}`);
                       } else {
-                        toast.info("Bạn chưa từng nhắn tin với gia sư nào.");
+                        showInfo("Bạn chưa từng nhắn tin với gia sư nào.");
                       }
                     }}
                     aria-label="show messages"

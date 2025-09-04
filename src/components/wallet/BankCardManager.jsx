@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchBankAccounts as apiFetchBankAccounts, createBankAccount as apiCreateBankAccount, deleteBankAccount as apiDeleteBankAccount } from '../api/auth';
-import { toast } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import ConfirmDeleteBankAccountModal from '../modals/ConfirmDeleteBankAccountModal';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 
@@ -99,10 +99,10 @@ const BankCardManager = () => {
       setAccountToDelete(null);
       
       // Show success toast
-      toast.success('Xóa tài khoản ngân hàng thành công!');
+      showSuccess('Xóa tài khoản ngân hàng thành công!');
     } catch (error) {
       console.error('Failed to delete bank account:', error);
-      toast.error(error.message || 'Không thể xóa tài khoản ngân hàng. Vui lòng thử lại.');
+      showError(error.message || 'Không thể xóa tài khoản ngân hàng. Vui lòng thử lại.');
     } finally {
       setDeleting(false);
     }

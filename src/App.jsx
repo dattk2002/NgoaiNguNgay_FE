@@ -1014,33 +1014,19 @@ function AppWithNotifications() {
       </Snackbar>
       <ToastContainer
         position="top-right"
-        autoClose={4000}
+        autoClose={3000}
         hideProgressBar={false}
         newestOnTop={false}
         closeOnClick
         rtl={false}
-        pauseOnFocusLoss
         draggable
         pauseOnHover
+        pauseOnFocusLoss
         theme="light"
         style={{ zIndex: 99999 }}
-        toastStyle={{
-          backgroundColor: '#28a745',
-          color: 'white',
-        }}
-        bodyStyle={{
-          color: 'white',
-          fontSize: '14px',
-          fontWeight: '400',
-        }}
-        closeButton={{
-          style: {
-            color: 'white',
-          },
-        }}
-        progressStyle={{
-          backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        }}
+        limit={5}
+        enableMultiContainer={false}
+        containerId="main-toast"
       />
     </Router>
   );

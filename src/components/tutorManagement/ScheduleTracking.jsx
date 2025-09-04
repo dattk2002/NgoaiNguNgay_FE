@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt, FaEye, FaTimes, FaGraduationCap, FaCheck, FaExclamationTriangle, FaStar } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaVideo, FaMapMarkerAlt, FaEye, FaTimes, FaGraduationCap, FaExclamationTriangle, FaStar } from 'react-icons/fa';
 import { 
   Skeleton, 
   Box, 
@@ -8,9 +8,9 @@ import {
   CardContent, 
   Container 
 } from '@mui/material';
-import { toast, ToastContainer } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import 'react-toastify/dist/ReactToastify.css';
-import { fetchTutorBookings, fetchBookingDetail, completeBookedSlot } from '../api/auth';
+import { fetchTutorBookings, fetchBookingDetail } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
 import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from '../../utils/formatCentralTimestamp';
 import { formatSlotDateTime, calculateUTC7SlotIndex, formatSlotDateTimeUTC0, sortSlotsByProximityToCurrentDate } from '../../utils/formatSlotTime';
@@ -122,7 +122,7 @@ const getBookingStatusFromAPI = (status) => {
 const getSlotStatusInfo = (status) => {
   switch (status) {
     case 0: // Pending
-      return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
+      return { text: 'Đang chờ diễn ra', color: 'bg-yellow-100 text-yellow-700' };
     case 1: // AwaitingConfirmation  
       return { text: 'Đang chờ hệ thống thanh toán cho gia sư', color: 'bg-blue-100 text-blue-700' };
     case 2: // Completed
@@ -130,7 +130,7 @@ const getSlotStatusInfo = (status) => {
     case 3: // Cancelled
       return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
     case 4: // CancelledDisputed
-      return { text: 'Đang bị báo cáo', color: 'bg-orange-100 text-orange-700' };
+      return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
     default:
       return { text: 'Không xác định', color: 'bg-gray-100 text-gray-700' };
   }
@@ -170,7 +170,6 @@ const ScheduleTracking = () => {
   const [bookingDetail, setBookingDetail] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [completingSlots, setCompletingSlots] = useState(new Set());
   const [bookingStatuses, setBookingStatuses] = useState({});
   const [statusLoading, setStatusLoading] = useState(new Set());
 
@@ -267,85 +266,12 @@ const ScheduleTracking = () => {
     setSelectedBooking(null);
     setBookingDetail(null);
     setDetailLoading(false);
-    setCompletingSlots(new Set()); // Clear completing slots state when closing modal
   };
 
   const handlePageChange = (newPage) => {
     loadBookings(newPage);
   };
 
-  const handleCompleteSlot = async (bookedSlotId, event) => {
-    // Prevent default form submission behavior
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    
-    try {
-      // Validate sequential completion
-      if (!bookingDetail || !bookingDetail.bookedSlots) {
-        toast.error("Không thể xác thực thông tin slot. Vui lòng thử lại.");
-        return;
-      }
-
-      // Find the slot being completed
-      const targetSlot = bookingDetail.bookedSlots.find(slot => slot.id === bookedSlotId);
-      if (!targetSlot) {
-        toast.error("Không tìm thấy thông tin slot. Vui lòng thử lại.");
-        return;
-      }
-
-      // Check if this slot is in "pending" status (status = 0)
-      if (targetSlot.status !== 0) {
-        toast.error("Slot này không thể hoàn thành. Vui lòng kiểm tra trạng thái slot.");
-        return;
-      }
-
-      // Find the first slot with status 0 (pending)
-      const firstPendingSlot = bookingDetail.bookedSlots.find(slot => slot.status === 0);
-      if (!firstPendingSlot) {
-        toast.error("Không có slot nào đang chờ.");
-        return;
-      }
-
-      // Check if the target slot is the first one that can be completed
-      if (firstPendingSlot.id !== bookedSlotId) {
-        toast.error("Bạn phải hoàn thành các slot theo thứ tự. Vui lòng hoàn thành slot trước đó trước.");
-        return;
-      }
-
-      // Add slot ID to completing set to show loading state
-      setCompletingSlots(prev => new Set([...prev, bookedSlotId]));
-      
-      await completeBookedSlot(bookedSlotId);
-      
-      // Refresh booking detail to get updated status
-      if (selectedBooking) {
-        const updatedDetail = await fetchBookingDetail(selectedBooking.id);
-        // Convert UTC+0 to UTC+7 and sort booked slots by chronological order
-        const convertedDetail = convertBookingDetailToUTC7(updatedDetail);
-        setBookingDetail(convertedDetail);
-      }
-      
-      // Since we're using the status directly from API, we don't need to manually calculate it
-      // The API will return the updated status when we refresh the data
-      // Just show success message and let the user refresh if needed
-      
-      // Show success message
-      toast.success("Slot đã được hoàn thành thành công!");
-      
-    } catch (error) {
-      console.error("Error completing slot:", error);
-      toast.error("Có lỗi xảy ra khi hoàn thành slot. Vui lòng thử lại.");
-    } finally {
-      // Remove slot ID from completing set
-      setCompletingSlots(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(bookedSlotId);
-        return newSet;
-      });
-    }
-  };
 
 
 
@@ -695,26 +621,6 @@ const ScheduleTracking = () => {
                                         {statusInfo.text}
                                       </span>
                                     </div>
-                                    {slot.status === 0 && ( // Show complete button only for "Đang chờ" status
-                                      <button
-                                        type="button"
-                                        onClick={(e) => handleCompleteSlot(slot.id, e)}
-                                        disabled={completingSlots.has(slot.id)}
-                                        className="no-focus-outline flex items-center gap-1 px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        {completingSlots.has(slot.id) ? (
-                                          <>
-                                            <div className="inline-block w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="ml-1">Đang xử lý...</span>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <FaCheck className="w-3 h-3" />
-                                            <span>Hoàn thành</span>
-                                          </>
-                                        )}
-                                      </button>
-                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -747,19 +653,6 @@ const ScheduleTracking = () => {
 
 
 
-      {/* Toast Container for notifications */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
 
     </div>
   );

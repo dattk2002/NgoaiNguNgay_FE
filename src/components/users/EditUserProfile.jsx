@@ -7,7 +7,7 @@ import {
   getAccessToken,
   uploadProfileImage,
 } from "../api/auth";
-import { toast, ToastContainer } from "react-toastify";
+import { showSuccess, showError, showWarning } from "../../utils/toastManager.js";
 import "react-toastify/dist/ReactToastify.css";
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
@@ -274,13 +274,13 @@ function EditUserProfile() {
 
       // Validate file size (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
-        toast.error("Kích thước ảnh phải nhỏ hơn 2MB");
+        showError("Kích thước ảnh phải nhỏ hơn 2MB");
         return;
       }
 
       // Validate file type
       if (!file.type.startsWith("image/")) {
-        toast.error("Chỉ chấp nhận file hình ảnh");
+        showError("Chỉ chấp nhận file hình ảnh");
         return;
       }
 
@@ -382,7 +382,7 @@ function EditUserProfile() {
           };
 
           // Notify user of success
-          toast.success("Cập nhật ảnh đại diện thành công");
+          showSuccess("Cập nhật ảnh đại diện thành công");
 
           // Release object URL to avoid memory leaks
           URL.revokeObjectURL(previewUrl);
@@ -412,7 +412,7 @@ function EditUserProfile() {
               console.error("Error updating localStorage:", error);
             }
 
-            toast.success("Cập nhật ảnh đại diện thành công");
+            showSuccess("Cập nhật ảnh đại diện thành công");
 
             // Dispatch avatar update event
             window.dispatchEvent(
@@ -442,7 +442,7 @@ function EditUserProfile() {
         }
       } catch (error) {
         console.error("Error uploading profile image:", error);
-        toast.error(error.message || "Cập nhật ảnh đại diện thất bại");
+        showError(error.message || "Cập nhật ảnh đại diện thất bại");
 
         // Revert to previous state if there was an error
         try {
@@ -488,7 +488,7 @@ function EditUserProfile() {
     try {
       const token = getAccessToken();
       if (!token) {
-        toast.error("Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.");
+        showError("Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.");
         throw new Error("Không tìm thấy mã xác thực. Vui lòng đăng nhập lại.");
       }
 
@@ -501,7 +501,7 @@ function EditUserProfile() {
       const validationErrors = validateField(fieldName, valueToSave);
       if (Object.keys(validationErrors).length > 0) {
         setFieldErrors((prev) => ({ ...prev, ...validationErrors }));
-        toast.error(validationErrors[fieldName]);
+        showError(validationErrors[fieldName]);
         setIsSaving(false);
         return;
       }
@@ -520,12 +520,12 @@ function EditUserProfile() {
             if (!isNaN(date.getTime())) {
               updateData = { dateOfBirth: date.toISOString() };
             } else {
-              toast.error("Định dạng ngày không hợp lệ.");
+              showError("Định dạng ngày không hợp lệ.");
               setIsSaving(false);
               return;
             }
           } catch (err) {
-            toast.error("Lỗi xử lý ngày.");
+            showError("Lỗi xử lý ngày.");
             console.error("Date processing error:", err);
             setIsSaving(false);
             return;
@@ -541,7 +541,7 @@ function EditUserProfile() {
           updateData = { timezone: valueToSave };
           break;
         default:
-          toast.warning(
+          showWarning(
             `Việc lưu trường "${fieldName}" chưa được triển khai với API.`
           );
           setIsSaving(false);
@@ -563,7 +563,7 @@ function EditUserProfile() {
 
       // Update was successful
       setEditingFields((prev) => ({ ...prev, [fieldName]: false }));
-      toast.success(`Đã được cập nhật thành công!`);
+      showSuccess(`Đã được cập nhật thành công!`);
     } catch (err) {
       console.error("Error updating profile:", err);
 
@@ -589,12 +589,12 @@ function EditUserProfile() {
         const normalizedFieldName =
           fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
         if (apiErrors[normalizedFieldName]) {
-          toast.error(apiErrors[normalizedFieldName][0]);
+          showError(apiErrors[normalizedFieldName][0]);
         } else {
-          toast.error(`Cập nhật ${fieldName} thất bại: ${err.message}`);
+          showError(`Cập nhật ${fieldName} thất bại: ${err.message}`);
         }
       } else {
-        toast.error(`Cập nhật ${fieldName} thất bại: ${err.message}`);
+        showError(`Cập nhật ${fieldName} thất bại: ${err.message}`);
       }
     } finally {
       setIsSaving(false);
@@ -987,7 +987,6 @@ function EditUserProfile() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <ToastContainer position="top-right" autoClose={3000} />
       <div className="max-w-4xl mx-auto bg-gray-50 min-h-screen">
         {isLoading ? (
           <div className="px-6 md:px-16 py-10">

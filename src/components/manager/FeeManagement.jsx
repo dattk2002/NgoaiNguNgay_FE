@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fetchSystemFees, updateSystemFee } from '../api/auth';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
-import { toast } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Spinner Icon for loading states
@@ -163,12 +163,11 @@ const FeeManagement = () => {
             if (response) {
                 // Show success toast notification
                 console.log('🎉 Showing success toast notification');
-                toast.success('Cập nhật phí thành công!', {
+                showSuccess('Cập nhật phí thành công!', {
                     position: "top-right",
                     autoClose: 3000,
                     hideProgressBar: false,
                     closeOnClick: true,
-                    pauseOnHover: true,
                     draggable: true,
                     style: {
                         backgroundColor: '#10b981',
@@ -196,12 +195,11 @@ const FeeManagement = () => {
             
             // Show error toast notification
             console.log('❌ Showing error toast notification');
-            toast.error(err.message || 'Cập nhật phí thất bại', {
+            showError(err.message || 'Cập nhật phí thất bại', {
                 position: "top-right",
                 autoClose: 4000,
                 hideProgressBar: false,
                 closeOnClick: true,
-                pauseOnHover: true,
                 draggable: true,
                 style: {
                     backgroundColor: '#ef4444',

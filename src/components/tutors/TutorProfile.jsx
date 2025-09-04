@@ -54,7 +54,7 @@ import {
 } from "react-icons/fi";
 import { MdOutlineEditCalendar } from "react-icons/md";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
+import { showSuccess, showError, showWarning } from "../../utils/toastManager.js";
 import "react-toastify/dist/ReactToastify.css";
 
 import { styled } from "@mui/material/styles";
@@ -1241,13 +1241,13 @@ const TutorProfile = ({
       for (const file of filesToUpload) {
         if (file.size > 25 * 1024 * 1024) {
           // 25MB limit
-          toast.error(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
+          showError(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
           setCertificateUploading(false);
           return;
         }
 
         if (!file.type.includes("pdf") && !file.type.startsWith("image/")) {
-          toast.error(
+          showError(
             `File ${file.name} không đúng định dạng. Chỉ chấp nhận PDF và hình ảnh.`
           );
           setCertificateUploading(false);
@@ -1262,7 +1262,7 @@ const TutorProfile = ({
       );
 
       if (!tutorData?.applicationId) {
-        toast.error("Không tìm thấy Application ID. Vui lòng thử lại sau.");
+        showError("Không tìm thấy Application ID. Vui lòng thử lại sau.");
         setCertificateUploading(false);
         return;
       }
@@ -1313,10 +1313,10 @@ const TutorProfile = ({
       });
 
       setUploadedCertificates(transformedDocuments);
-      toast.success("Tải lên chứng chỉ thành công!");
+      showSuccess("Tải lên chứng chỉ thành công!");
     } catch (error) {
       console.error("Certificate upload failed:", error);
-      toast.error(`Tải lên chứng chỉ thất bại: ${error.message}`);
+      showError(`Tải lên chứng chỉ thất bại: ${error.message}`);
     } finally {
       setCertificateUploading(false);
     }
@@ -1324,14 +1324,14 @@ const TutorProfile = ({
 
   const handleRequestVerification = async () => {
     if (uploadedCertificates.length === 0) {
-      toast.error(
+      showError(
         "Vui lòng tải lên ít nhất một chứng chỉ trước khi yêu cầu xác minh."
       );
       return;
     }
 
     if (!tutorData?.applicationId) {
-      toast.error("Không tìm thấy Application ID. Vui lòng thử lại sau.");
+      showError("Không tìm thấy Application ID. Vui lòng thử lại sau.");
       return;
     }
 
@@ -1339,10 +1339,10 @@ const TutorProfile = ({
     try {
       // Using tutorData.applicationId as the tutorApplicationId
       await requestTutorVerification(tutorData?.applicationId);
-      toast.success("Yêu cầu xác minh đã được gửi thành công!");
+      showSuccess("Yêu cầu xác minh đã được gửi thành công!");
     } catch (error) {
       console.error("Verification request failed:", error);
-      toast.error(`Yêu cầu xác minh thất bại: ${error.message}`);
+      showError(`Yêu cầu xác minh thất bại: ${error.message}`);
     } finally {
       setVerificationRequesting(false);
     }
@@ -1363,10 +1363,10 @@ const TutorProfile = ({
       setUploadedCertificates((prev) =>
         prev.filter((cert) => cert.id !== certificateToDelete.id)
       );
-      toast.success("Xóa chứng chỉ thành công!");
+      showSuccess("Xóa chứng chỉ thành công!");
     } catch (error) {
       console.error("Failed to delete certificate:", error);
-      toast.error(`Xóa chứng chỉ thất bại: ${error.message}`);
+      showError(`Xóa chứng chỉ thất bại: ${error.message}`);
     } finally {
       setDeleteCertificateDialogOpen(false);
       setCertificateToDelete(null);
@@ -1552,7 +1552,7 @@ const TutorProfile = ({
     } catch (error) {
       console.error("Failed to fetch tutor lessons:", error);
       setAvailableLessons([]);
-      toast.error("Không thể tải danh sách bài học");
+      showError("Không thể tải danh sách bài học");
     } finally {
       setLessonsLoading(false);
     }
@@ -1615,7 +1615,7 @@ const TutorProfile = ({
         }
 
         await updateTutorBookingOfferByOfferId(offerDetail.id, cleanUpdateData);
-        toast.success("Đã cập nhật đề nghị thành công!");
+        showSuccess("Đã cập nhật đề nghị thành công!");
       } else {
         // Create new offer with lessonId - Clean payload to match API spec exactly
         const cleanOfferData = {
@@ -1646,7 +1646,7 @@ const TutorProfile = ({
           throw new Error("At least one offered slot is required");
         }
         await createTutorBookingOffer(cleanOfferData);
-        toast.success("Đã gửi đề xuất thành công!");
+        showSuccess("Đã gửi đề xuất thành công!");
       }
 
       // Clear temporary slots for this week after successful offer
@@ -1669,7 +1669,7 @@ const TutorProfile = ({
         console.error("Error details:", err.details);
       }
 
-      toast.error(
+      showError(
         "Gửi đề nghị thất bại: " + (err.message || "Unexpected error")
       );
     }
@@ -1849,7 +1849,7 @@ const TutorProfile = ({
 
       // Ensure we have at least one slot selected
       if (slots.length === 0) {
-        toast.error(
+        showError(
           "Vui lòng chọn ít nhất một khung giờ trước khi tạo lịch trình"
         );
         setCreatePatternLoading(false);
@@ -1890,7 +1890,7 @@ const TutorProfile = ({
       await createTutorWeeklyPattern(patternData);
 
       // Show success message
-      toast.success("Tạo lịch trình tuần thành công!");
+      showSuccess("Tạo lịch trình tuần thành công!");
 
       // Close dialog and reset state
       setCreatePatternDialogOpen(false);
@@ -1903,7 +1903,7 @@ const TutorProfile = ({
       setWeeklyPatternsList(updatedPatternsList || []);
     } catch (error) {
       console.error("Failed to create weekly pattern:", error);
-      toast.error(`Tạo lịch trình thất bại: ${error.message}`);
+      showError(`Tạo lịch trình thất bại: ${error.message}`);
     } finally {
       setCreatePatternLoading(false);
     }
@@ -2108,13 +2108,13 @@ const TutorProfile = ({
 
   const handleCalendarInputConfirm = () => {
     if (!selectedAppliedFromDate) {
-      toast.error("Vui lòng chọn ngày bắt đầu áp dụng");
+      showError("Vui lòng chọn ngày bắt đầu áp dụng");
       return;
     }
 
     const picked = new Date(selectedAppliedFromDate);
     if (picked.getDay() !== 1) {
-      toast.error("Ngày bắt đầu áp dụng phải là Thứ Hai");
+      showError("Ngày bắt đầu áp dụng phải là Thứ Hai");
       return;
     }
 
@@ -2771,7 +2771,7 @@ const TutorProfile = ({
       setEditPatternWeekStart(weekStart);
     } catch (error) {
       console.error("Failed to fetch pattern detail for editing:", error);
-      toast.error("Không thể tải chi tiết lịch trình để chỉnh sửa");
+      showError("Không thể tải chi tiết lịch trình để chỉnh sửa");
       setEditPatternDialogOpen(false);
     } finally {
       setEditPatternLoading(false);
@@ -2944,7 +2944,7 @@ const TutorProfile = ({
 
       // Ensure we have at least one slot selected
       if (slots.length === 0) {
-        toast.error(
+        showError(
           "Vui lòng chọn ít nhất một khung giờ trước khi cập nhật lịch trình"
         );
         setEditPatternLoading(false);
@@ -2956,7 +2956,7 @@ const TutorProfile = ({
       await updateTutorWeeklyPattern(editingPattern.id, slots);
 
       // Show success message
-      toast.success("Cập nhật lịch trình tuần thành công!");
+      showSuccess("Cập nhật lịch trình tuần thành công!");
 
       // Refresh blocked slots after update
       try {
@@ -2983,7 +2983,7 @@ const TutorProfile = ({
       setWeeklyPatternsList(updatedPatternsList || []);
     } catch (error) {
       console.error("Failed to update weekly pattern:", error);
-      toast.error(`Cập nhật lịch trình thất bại: ${error.message}`);
+      showError(`Cập nhật lịch trình thất bại: ${error.message}`);
     } finally {
       setEditPatternLoading(false);
     }
@@ -3006,10 +3006,10 @@ const TutorProfile = ({
         prev.filter((pattern) => pattern.id !== patternToDelete.id)
       );
 
-      toast.success("Xóa lịch trình thành công!");
+      showSuccess("Xóa lịch trình thành công!");
     } catch (error) {
       console.error("Failed to delete pattern:", error);
-      toast.error(`Xóa lịch trình thất bại: ${error.message}`);
+      showError(`Xóa lịch trình thất bại: ${error.message}`);
     } finally {
       setDeletePatternModalOpen(false);
       setPatternToDelete(null);
@@ -3070,10 +3070,10 @@ const TutorProfile = ({
     try {
       setBookingConfigLoading(true);
       await updateTutorBookingConfig(bookingConfig);
-      toast.success("Cập nhật cấu hình đặt lịch thành công!");
+      showSuccess("Cập nhật cấu hình đặt lịch thành công!");
     } catch (error) {
       console.error("Failed to update booking configuration:", error);
-      toast.error(`Cập nhật cấu hình thất bại: ${error.message}`);
+      showError(`Cập nhật cấu hình thất bại: ${error.message}`);
     } finally {
       setBookingConfigLoading(false);
     }
@@ -3136,12 +3136,12 @@ const TutorProfile = ({
       }
 
       await uploadTutorIntroductionVideo({ url: videoForm.url.trim() });
-      toast.success("Tải lên video giới thiệu thành công!");
+      showSuccess("Tải lên video giới thiệu thành công!");
       setVideoForm({ url: "" });
       fetchIntroductionVideos(); // Refresh the list
     } catch (error) {
       console.error("Failed to upload video:", error);
-      toast.error(`Tải lên video thất bại: ${error.message}`);
+      showError(`Tải lên video thất bại: ${error.message}`);
     } finally {
       setVideoUploading(false);
     }
@@ -3157,11 +3157,11 @@ const TutorProfile = ({
 
     try {
       await deleteTutorIntroductionVideo(videoToDelete.id);
-      toast.success("Xóa video giới thiệu thành công!");
+      showSuccess("Xóa video giới thiệu thành công!");
       fetchIntroductionVideos(); // Refresh the list
     } catch (error) {
       console.error("Failed to delete video:", error);
-      toast.error(`Xóa video thất bại: ${error.message}`);
+      showError(`Xóa video thất bại: ${error.message}`);
     } finally {
       setDeleteVideoModalOpen(false);
       setVideoToDelete(null);
@@ -3178,11 +3178,11 @@ const TutorProfile = ({
       // Use the new PATCH endpoint for setting active/inactive
       await setTutorIntroductionVideoActive({ id: videoId, status: newStatus });
 
-      toast.success(`Video đã được ${statusText} thành công!`);
+      showSuccess(`Video đã được ${statusText} thành công!`);
       fetchIntroductionVideos(); // Refresh the list
     } catch (error) {
       console.error("Failed to update video status:", error);
-      toast.error(`Cập nhật trạng thái video thất bại: ${error.message}`);
+      showError(`Cập nhật trạng thái video thất bại: ${error.message}`);
     } finally {
       setUpdatingVideoStatus(null);
     }
@@ -6181,17 +6181,17 @@ const TutorProfile = ({
                       l.id === editLesson.id ? { ...l, ...lessonData } : l
                     )
                   );
-                  toast.success("Cập nhật bài học thành công!");
+                  showSuccess("Cập nhật bài học thành công!");
                 } else {
                   const res = await createLesson(lessonData);
                   setLessons([...lessons, res.data]);
-                  toast.success("Tạo bài học thành công!");
+                  showSuccess("Tạo bài học thành công!");
                 }
                 setLessonDialogOpen(false);
                 setLessonFormErrors({});
                 setEditLesson(null);
               } catch (err) {
-                toast.error("Lưu bài học thất bại: " + err.message);
+                showError("Lưu bài học thất bại: " + err.message);
               } finally {
                 setLessonLoading(false);
               }
@@ -6221,9 +6221,9 @@ const TutorProfile = ({
             await deleteLesson(lessonToDelete.id);
             setLessons(lessons.filter((l) => l.id !== lessonToDelete.id));
             setDeleteModalOpen(false);
-            toast.success("Xóa bài học thành công!");
+            showSuccess("Xóa bài học thành công!");
           } catch (err) {
-            toast.error("Xóa bài học thất bại: " + err.message);
+            showError("Xóa bài học thất bại: " + err.message);
           } finally {
             setLessonLoading(false);
           }
@@ -7611,18 +7611,6 @@ const TutorProfile = ({
         confirmColor="error"
       />
 
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
 
       {/* Add the create pattern dialog before the closing tags */}
       <Dialog

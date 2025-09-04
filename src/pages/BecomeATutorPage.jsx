@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { showSuccess, showError, showWarning } from "../utils/toastManager.js";
 import "react-toastify/dist/ReactToastify.css";
 import { getAccessToken, editUserProfile } from "../components/api/auth";
 import { formatLanguageCode } from '../utils/formatLanguageCode';
@@ -145,7 +145,7 @@ const BecomeATutorPage = ({
                 ]);
             } catch (error) {
                 console.error("Error fetching initial data:", error);
-                toast.error("Không thể tải dữ liệu ban đầu. Vui lòng thử lại.");
+                showError("Không thể tải dữ liệu ban đầu. Vui lòng thử lại.");
             } finally {
                 setIsLoading(false);
             }
@@ -158,7 +158,7 @@ const BecomeATutorPage = ({
         try {
             const token = getAccessToken();
             if (!token) {
-                toast.error("Bạn phải đăng nhập để đăng ký làm gia sư.");
+                showError("Bạn phải đăng nhập để đăng ký làm gia sư.");
                 onRequireLogin();
                 return;
             }
@@ -175,7 +175,7 @@ const BecomeATutorPage = ({
             }
         } catch (error) {
             console.error("Error fetching profile data:", error);
-            toast.error("Không thể tải dữ liệu hồ sơ.");
+            showError("Không thể tải dữ liệu hồ sơ.");
         }
     };
 
@@ -190,7 +190,7 @@ const BecomeATutorPage = ({
             }
         } catch (error) {
             console.error("Error fetching hashtags:", error);
-            toast.error("Không thể tải các thẻ hashtag.");
+            showError("Không thể tải các thẻ hashtag.");
         }
     };
 
@@ -209,13 +209,13 @@ const BecomeATutorPage = ({
 
             // Validate file size (max 2MB)
             if (file.size > 2 * 1024 * 1024) {
-                toast.error('Kích thước ảnh phải nhỏ hơn 2MB');
+                showError('Kích thước ảnh phải nhỏ hơn 2MB');
                 return;
             }
 
             // Validate file type
             if (!file.type.startsWith('image/')) {
-                toast.error('Chỉ chấp nhận các tệp ảnh');
+                showError('Chỉ chấp nhận các tệp ảnh');
                 return;
             }
 
@@ -241,11 +241,31 @@ const BecomeATutorPage = ({
                     ...prev,
                     profilePhotoPreview: response.data.profileImageUrl
                 }));
-                toast.success("Ảnh hồ sơ đã được tải lên thành công");
+                
+                // Update localStorage with new profile image URL
+                try {
+                    const storedUser = JSON.parse(localStorage.getItem("user"));
+                    if (storedUser) {
+                        storedUser.profileImageUrl = response.data.profileImageUrl;
+                        localStorage.setItem("user", JSON.stringify(storedUser));
+                        
+                        // Dispatch custom event to notify Header and other components
+                        const avatarUpdateEvent = new CustomEvent("avatar-updated", {
+                            detail: {
+                                profileImageUrl: response.data.profileImageUrl
+                            }
+                        });
+                        window.dispatchEvent(avatarUpdateEvent);
+                    }
+                } catch (storageError) {
+                    console.error("Error updating localStorage:", storageError);
+                }
+                
+                showSuccess("Ảnh hồ sơ đã được tải lên thành công");
             }
         } catch (error) {
             console.error("Error uploading profile image:", error);
-            toast.error("Không thể tải ảnh hồ sơ. Vui lòng thử lại.");
+            showError("Không thể tải ảnh hồ sơ. Vui lòng thử lại.");
         }
     };
 
@@ -260,10 +280,29 @@ const BecomeATutorPage = ({
                 profilePhotoPreview: ""
             }));
 
-            toast.success("Ảnh hồ sơ đã được gỡ bỏ thành công");
+            // Update localStorage to remove profile image URL
+            try {
+                const storedUser = JSON.parse(localStorage.getItem("user"));
+                if (storedUser) {
+                    storedUser.profileImageUrl = null;
+                    localStorage.setItem("user", JSON.stringify(storedUser));
+                    
+                    // Dispatch custom event to notify Header and other components
+                    const avatarUpdateEvent = new CustomEvent("avatar-updated", {
+                        detail: {
+                            profileImageUrl: null
+                        }
+                    });
+                    window.dispatchEvent(avatarUpdateEvent);
+                }
+            } catch (storageError) {
+                console.error("Error updating localStorage:", storageError);
+            }
+
+            showSuccess("Ảnh hồ sơ đã được gỡ bỏ thành công");
         } catch (error) {
             console.error("Error deleting profile image:", error);
-            toast.error("Không thể xóa ảnh hồ sơ. Vui lòng thử lại.");
+            showError("Không thể xóa ảnh hồ sơ. Vui lòng thử lại.");
         }
     };
 
@@ -273,18 +312,18 @@ const BecomeATutorPage = ({
         try {
             const token = getAccessToken();
             if (!token) {
-                toast.error("Bạn phải đăng nhập để cập nhật thông tin.");
+                showError("Bạn phải đăng nhập để cập nhật thông tin.");
                 onRequireLogin();
                 return;
             }
 
             // Validate required fields
             if (!profileEditData.fullName || profileEditData.fullName.trim() === "") {
-                toast.error("Họ và tên đầy đủ là bắt buộc");
+                showError("Họ và tên đầy đủ là bắt buộc");
                 return;
             }
             if (!profileEditData.dateOfBirth) {
-                toast.error("Ngày sinh là bắt buộc");
+                showError("Ngày sinh là bắt buộc");
                 return;
             }
 
@@ -302,11 +341,11 @@ const BecomeATutorPage = ({
             await fetchProfileData();
             
             setIsEditingProfile(false);
-            toast.success("Cập nhật thông tin thành công!");
+            showSuccess("Cập nhật thông tin thành công!");
             
         } catch (error) {
             console.error("Error updating profile:", error);
-            toast.error(error.message || "Cập nhật thông tin thất bại. Vui lòng thử lại.");
+            showError(error.message || "Cập nhật thông tin thất bại. Vui lòng thử lại.");
         } finally {
             setIsUpdatingProfile(false);
         }
@@ -409,14 +448,14 @@ const BecomeATutorPage = ({
 
             // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
-                toast.error('Kích thước file phải nhỏ hơn 5MB');
+                showError('Kích thước file phải nhỏ hơn 5MB');
                 return;
             }
 
             // Validate file type
             const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
             if (!allowedTypes.includes(file.type)) {
-                toast.error('Chỉ chấp nhận file PDF hoặc ảnh (JPG, PNG)');
+                showError('Chỉ chấp nhận file PDF hoặc ảnh (JPG, PNG)');
                 return;
             }
 
@@ -488,25 +527,25 @@ const BecomeATutorPage = ({
             case 1: // Basic Information
                 // Check if user is currently editing profile
                 if (isEditingProfile) {
-                    toast.error("Vui lòng hoàn thành việc cập nhật thông tin trước khi tiếp tục");
+                    showError("Vui lòng hoàn thành việc cập nhật thông tin trước khi tiếp tục");
                     return false;
                 }
                 
                 // Validate required profile information
                 if (!formData.fullName || formData.fullName.trim() === "") {
-                    toast.error("Vui lòng cập nhật họ và tên đầy đủ trong hồ sơ cá nhân");
+                    showError("Vui lòng cập nhật họ và tên đầy đủ trong hồ sơ cá nhân");
                     return false;
                 }
                 if (!formData.dateOfBirth) {
-                    toast.error("Vui lòng cập nhật ngày sinh trong hồ sơ cá nhân");
+                    showError("Vui lòng cập nhật ngày sinh trong hồ sơ cá nhân");
                     return false;
                 }
                 if (formData.gender === undefined || formData.gender === null) {
-                    toast.error("Vui lòng cập nhật giới tính trong hồ sơ cá nhân");
+                    showError("Vui lòng cập nhật giới tính trong hồ sơ cá nhân");
                     return false;
                 }
                 if (!formData.timezone) {
-                    toast.error("Vui lòng cập nhật múi giờ trong hồ sơ cá nhân");
+                    showError("Vui lòng cập nhật múi giờ trong hồ sơ cá nhân");
                     return false;
                 }
                 return true;
@@ -515,11 +554,11 @@ const BecomeATutorPage = ({
                 // Validate nickName (optional but if provided, must be valid)
                 if (formData.nickName && formData.nickName.trim() !== "") {
                     if (formData.nickName.trim().length < 5) {
-                        toast.error("Biệt danh phải có ít nhất 5 ký tự");
+                        showError("Biệt danh phải có ít nhất 5 ký tự");
                         return false;
                     }
                     if (formData.nickName.trim().length > 20) {
-                        toast.error("Biệt danh không được vượt quá 20 ký tự");
+                        showError("Biệt danh không được vượt quá 20 ký tự");
                         return false;
                     }
                 }
@@ -527,61 +566,61 @@ const BecomeATutorPage = ({
                 // Validate brief (optional but if provided, must be valid)
                 if (formData.brief && formData.brief.trim() !== "") {
                     if (formData.brief.trim().length < 10) {
-                        toast.error("Giới thiệu ngắn gọn phải có ít nhất 10 ký tự");
+                        showError("Giới thiệu ngắn gọn phải có ít nhất 10 ký tự");
                         return false;
                     }
                     if (formData.brief.trim().length > 100) {
-                        toast.error("Giới thiệu ngắn gọn không được vượt quá 100 ký tự");
+                        showError("Giới thiệu ngắn gọn không được vượt quá 100 ký tự");
                         return false;
                     }
                 }
 
                 // Validate description (required)
                 if (!formData.description || formData.description.trim() === "") {
-                    toast.error("Mô tả đầy đủ là bắt buộc");
+                    showError("Mô tả đầy đủ là bắt buộc");
                     return false;
                 }
                 if (formData.description.trim().length < 100) {
-                    toast.error("Mô tả phải có ít nhất 100 ký tự");
+                    showError("Mô tả phải có ít nhất 100 ký tự");
                     return false;
                 }
                 if (formData.description.trim().length > 300) {
-                    toast.error("Mô tả không được vượt quá 300 ký tự");
+                    showError("Mô tả không được vượt quá 300 ký tự");
                     return false;
                 }
 
                 // Validate teachingMethod (required)
                 if (!formData.teachingMethod || formData.teachingMethod.trim() === "") {
-                    toast.error("Phương pháp giảng dạy là bắt buộc");
+                    showError("Phương pháp giảng dạy là bắt buộc");
                     return false;
                 }
                 if (formData.teachingMethod.trim().length < 10) {
-                    toast.error("Phương pháp giảng dạy phải có ít nhất 10 ký tự");
+                    showError("Phương pháp giảng dạy phải có ít nhất 10 ký tự");
                     return false;
                 }
                 if (formData.teachingMethod.trim().length > 100) {
-                    toast.error("Phương pháp giảng dạy không được vượt quá 100 ký tự");
+                    showError("Phương pháp giảng dạy không được vượt quá 100 ký tự");
                     return false;
                 }
                 return true;
 
             case 3: // Languages
                 if (formData.languages.length === 0) {
-                    toast.error("Vui lòng thêm ít nhất một ngôn ngữ");
+                    showError("Vui lòng thêm ít nhất một ngôn ngữ");
                     return false;
                 }
 
                 // Validate each language
                 for (let i = 0; i < formData.languages.length; i++) {
                     if (!formData.languages[i].languageCode) {
-                        toast.error(`Vui lòng chọn một ngôn ngữ cho Ngôn ngữ ${i + 1}`);
+                        showError(`Vui lòng chọn một ngôn ngữ cho Ngôn ngữ ${i + 1}`);
                         return false;
                     }
                 }
 
                 // Ensure at least one language is marked as primary
                 if (!formData.languages.some(lang => lang.isPrimary)) {
-                    toast.error("Vui lòng đánh dấu ít nhất một ngôn ngữ là ngôn ngữ chính");
+                    showError("Vui lòng đánh dấu ít nhất một ngôn ngữ là ngôn ngữ chính");
                     return false;
                 }
 
@@ -590,7 +629,7 @@ const BecomeATutorPage = ({
             case 4:
                 // Make sure hashtagIds array exists
                 if (!formData.hashtagIds || !Array.isArray(formData.hashtagIds) || formData.hashtagIds.length === 0) {
-                    toast.error("Vui lòng chọn ít nhất một hashtag");
+                    showError("Vui lòng chọn ít nhất một hashtag");
                     return false;
                 }
 
@@ -601,7 +640,7 @@ const BecomeATutorPage = ({
 
                 if (invalidHashtags.length > 0) {
                     console.error("Invalid hashtag IDs detected:", invalidHashtags);
-                    toast.error("Một số hashtag đã chọn không hợp lệ. Vui lòng làm mới trang và thử lại.");
+                    showError("Một số hashtag đã chọn không hợp lệ. Vui lòng làm mới trang và thử lại.");
                     return false;
                 }
 
@@ -610,14 +649,14 @@ const BecomeATutorPage = ({
             case 5:
                 // Certificates are required
                 if (!formData.certificates || formData.certificates.length === 0) {
-                    toast.error("Vui lòng tải lên ít nhất một chứng chỉ");
+                    showError("Vui lòng tải lên ít nhất một chứng chỉ");
                     return false;
                 }
 
                 for (let i = 0; i < formData.certificates.length; i++) {
                     const cert = formData.certificates[i];
                     if (!cert.file) {
-                        toast.error(`Vui lòng tải lên file cho chứng chỉ thứ ${i + 1}`);
+                        showError(`Vui lòng tải lên file cho chứng chỉ thứ ${i + 1}`);
                         return false;
                     }
                 }
@@ -642,7 +681,7 @@ const BecomeATutorPage = ({
             try {
                 const token = getAccessToken();
                 if (!token) {
-                    toast.error("Bạn phải đăng nhập để đăng ký làm gia sư");
+                    showError("Bạn phải đăng nhập để đăng ký làm gia sư");
                     onRequireLogin();
                     return;
                 }
@@ -684,17 +723,17 @@ const BecomeATutorPage = ({
                 } else {
                     console.warn("No application ID found in response:", response);
                     // Still proceed to step 5, but show a warning
-                    toast.warning("Đăng ký thành công nhưng không tìm thấy ID ứng dụng. Vui lòng liên hệ hỗ trợ nếu gặp vấn đề.");
+                    showWarning("Đăng ký thành công nhưng không tìm thấy ID ứng dụng. Vui lòng liên hệ hỗ trợ nếu gặp vấn đề.");
                 }
 
                 // Show success message and go to step 5
-                toast.success("Đăng ký cơ bản thành công! Bây giờ bạn có thể tải lên chứng chỉ (tùy chọn).");
+                showSuccess("Đăng ký cơ bản thành công! Bây giờ bạn có thể tải lên chứng chỉ (tùy chọn).");
                 setActiveStep(5);
                 window.scrollTo(0, 0);
 
             } catch (error) {
                 console.error("Error submitting tutor registration:", error);
-                toast.error(error.message || "Đăng ký thất bại. Vui lòng thử lại sau.");
+                showError(error.message || "Đăng ký thất bại. Vui lòng thử lại sau.");
             } finally {
                 setIsSubmitting(false);
             }
@@ -712,13 +751,13 @@ const BecomeATutorPage = ({
             try {
                 const token = getAccessToken();
                 if (!token) {
-                    toast.error("Bạn phải đăng nhập để hoàn thành đăng ký");
+                    showError("Bạn phải đăng nhập để hoàn thành đăng ký");
                     onRequireLogin();
                     return;
                 }
 
                 if (!tutorApplicationId) {
-                    toast.error("Không tìm thấy thông tin đăng ký. Vui lòng thử lại hoặc liên hệ hỗ trợ.");
+                    showError("Không tìm thấy thông tin đăng ký. Vui lòng thử lại hoặc liên hệ hỗ trợ.");
                     return;
                 }
 
@@ -734,7 +773,7 @@ const BecomeATutorPage = ({
                 // Request verification
                 await requestTutorVerificationApi(tutorApplicationId);
 
-                toast.success("Hoàn thành đăng ký gia sư! Hồ sơ của bạn hiện đang được xem xét trong vòng 1-3 ngày làm việc.");
+                showSuccess("Hoàn thành đăng ký gia sư! Hồ sơ của bạn hiện đang được xem xét trong vòng 1-3 ngày làm việc.");
 
                 // Redirect to home page after 2 seconds
                 setTimeout(() => {
@@ -743,7 +782,7 @@ const BecomeATutorPage = ({
 
             } catch (error) {
                 console.error("Error submitting certificates and verification request:", error);
-                toast.error(error.message || "Hoàn thành đăng ký thất bại. Vui lòng thử lại sau.");
+                showError(error.message || "Hoàn thành đăng ký thất bại. Vui lòng thử lại sau.");
             } finally {
                 setIsSubmitting(false);
             }
@@ -904,9 +943,42 @@ const BecomeATutorPage = ({
                                             </svg>
                                         </div>
                                     )}
+                                    
+                                    {/* Upload and Delete buttons */}
+                                    <div className="flex flex-col gap-2">
+                                        <input
+                                            type="file"
+                                            id="profilePhoto"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            className="hidden"
+                                        />
+                                        <label
+                                            htmlFor="profilePhoto"
+                                            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors cursor-pointer"
+                                        >
+                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                            </svg>
+                                            Tải ảnh lên
+                                        </label>
+                                        
+                                        {formData.profilePhotoPreview && (
+                                            <button
+                                                type="button"
+                                                onClick={deleteProfileImage}
+                                                className="inline-flex items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Xóa ảnh
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    Thông tin này được lấy từ hồ sơ của bạn và không thể chỉnh sửa
+                                    Tải lên ảnh hồ sơ của bạn (JPG, PNG, tối đa 2MB)
                                 </p>
                             </div>
 
@@ -1612,19 +1684,6 @@ const BecomeATutorPage = ({
             `}</style>
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Toast container */}
-                <ToastContainer
-                    position="top-right"
-                    autoClose={3000}
-                    hideProgressBar={false}
-                    newestOnTop
-                    closeOnClick
-                    rtl={false}
-                    pauseOnFocusLoss
-                    draggable
-                    pauseOnHover
-                    theme="colored"
-                />
 
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                     <div className="bg-[#333333] py-6 px-6">

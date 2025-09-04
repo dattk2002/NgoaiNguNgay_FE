@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { toast, ToastContainer } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import 'react-toastify/dist/ReactToastify.css';
 import { 
   getAllTutorBookingOffer, 
@@ -46,12 +46,11 @@ const OfferManagement = () => {
       console.error('Error fetching offers:', err);
       
       // Hiển thị toast thông báo lỗi
-      toast.error('Không thể tải danh sách yêu cầu. Vui lòng thử lại.', {
+      showError('Không thể tải danh sách yêu cầu. Vui lòng thử lại.', {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
         draggable: true,
       });
     } finally {
@@ -98,24 +97,22 @@ const OfferManagement = () => {
       setOfferToDelete(null);
       
       // Hiển thị toast thông báo thành công
-      toast.success('Xóa yêu cầu thành công!', {
+      showSuccess('Xóa yêu cầu thành công!', {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
         draggable: true,
       });
     } catch (err) {
       console.error('Error deleting offer:', err);
       
       // Hiển thị toast thông báo lỗi
-      toast.error('Không thể xóa yêu cầu. Vui lòng thử lại.', {
+      showError('Không thể xóa yêu cầu. Vui lòng thử lại.', {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
         draggable: true,
       });
     }
@@ -411,19 +408,6 @@ const OfferManagement = () => {
         />
       )}
 
-      {/* Toast Container */}
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
 
     </div>
   );

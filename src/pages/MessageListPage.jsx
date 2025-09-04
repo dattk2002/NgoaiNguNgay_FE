@@ -24,7 +24,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { FaUser, FaBan, FaFlag, FaTimes } from "react-icons/fa";
 import TutorScheduleCalendarModal from '../components/modals/TutorScheduleCalendarModal';
-import { toast } from 'react-toastify'; // Add this import
+import { showSuccess, showError } from '../utils/toastManager.js';
 
 // Utility functions for role checking
 const hasRole = (user, roleName) => {
@@ -977,12 +977,11 @@ const MessagePage = ({ user }) => {
   };
 
   const handleOfferSuccess = (learnerName) => {
-    toast.success(`Đề xuất thành công cho học viên ${learnerName}`, {
+    showSuccess(`Đề xuất thành công cho học viên ${learnerName}`, {
       position: "top-right",
       autoClose: 3000,
       hideProgressBar: false,
       closeOnClick: true,
-      pauseOnHover: true,
       draggable: true,
     });
   };
