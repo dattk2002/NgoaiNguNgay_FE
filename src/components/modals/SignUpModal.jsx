@@ -173,7 +173,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
     
     // 2. Validate terms agreed
     if (!termsAgreed) {
-      setError("Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật.");
+      setError("Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách.");
       formIsValid = false; // Keep this to prevent submission if other checks pass somehow
     }
 
@@ -274,7 +274,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                 onClick={handleLegalDocumentClick}
                 className="no-underline hover:text-blue-700 hover:cursor-pointer text-[#333333]"
               >
-                {" "}Điều khoản dịch vụ và Chính sách bảo mật
+                {" "}Điều khoản dịch vụ và Chính sách
               </a>{" "}
 
               .
@@ -427,7 +427,7 @@ function SignUpModal({ isOpen, onClose, onSwitchToLogin, onSignUpSuccess }) {
                         onClick={handleLegalDocumentClick}
                         className="font-medium text-[#333333] hover:text-blue-700 hover:cursor-pointer"
                       >
-                        Điều khoản dịch vụ và Chính sách bảo mật
+                        Điều khoản dịch vụ và Chính sách
                       </a>
                     </label>
                   </div>

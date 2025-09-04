@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 import '../../utils/notFocusOutline.css';
@@ -11,9 +11,11 @@ const ConfirmDeleteBankAccountModal = ({
   isLoading = false
 }) => {
   const modalRef = useRef(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setAgreedToTerms(false);
       const originalOverflow = document.body.style.overflow;
       const originalPaddingRight = document.body.style.paddingRight;
       const scrollbarWidth =
@@ -63,6 +65,7 @@ const ConfirmDeleteBankAccountModal = ({
 
   const handleClose = () => {
     if (!isLoading) {
+      setAgreedToTerms(false);
       onClose();
     }
   };
@@ -164,6 +167,21 @@ const ConfirmDeleteBankAccountModal = ({
               </p>
             </div>
 
+            {/* Agreement Checkbox */}
+            <div className="mb-6">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="text-sm text-gray-700">
+                  Tôi đồng ý với Điều khoản dịch vụ và Chính sách
+                </span>
+              </label>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex gap-3">
               <NoFocusOutLineButton
@@ -176,8 +194,12 @@ const ConfirmDeleteBankAccountModal = ({
               
               <NoFocusOutLineButton
                 onClick={handleConfirm}
-                disabled={isLoading}
-                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || !agreedToTerms}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  agreedToTerms && !isLoading 
+                    ? 'bg-red-600 text-white hover:bg-red-700' 
+                    : 'bg-gray-300 text-gray-500'
+                }`}
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">

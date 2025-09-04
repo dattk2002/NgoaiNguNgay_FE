@@ -10,8 +10,6 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [versionLoading, setVersionLoading] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-
   useEffect(() => {
     if (isOpen && category) {
       fetchLegalDocument();
@@ -21,7 +19,6 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
       setSelectedVersion(null);
       setLoading(false);
       setVersionLoading(false);
-      setAgreed(false);
     }
   }, [isOpen, category]);
 
@@ -86,19 +83,8 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
     exit: { opacity: 0 },
   };
 
-  const handleAgree = () => {
-    if (agreed && onAgree) {
-      onAgree();
-      onClose();
-    }
-  };
-
   const handleClose = () => {
-    if (agreed) {
-      onClose();
-    } else {
-      toast.warning('Vui lòng đồng ý với điều khoản dịch vụ trước khi đóng');
-    }
+    onClose();
   };
 
   return (
@@ -141,7 +127,7 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
 
             <div className="mb-6">
               <h2 className="text-black text-2xl font-semibold text-center mb-2">
-                Điều khoản dịch vụ và Chính sách bảo mật
+                Điều khoản dịch vụ và Chính sách
               </h2>
               <p className="text-sm text-gray-500 text-center">
                 {category === "Đăng nhập" ? "Điều khoản áp dụng cho việc đăng nhập" : 
@@ -323,43 +309,13 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
               </div>
             )}
 
-            <div className="mt-8 space-y-4">
-              {/* Agreement Checkbox */}
-              <div className="flex items-center justify-center">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                  />
-                  <span className="text-sm text-gray-700">
-                    Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật
-                  </span>
-                </label>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-center space-x-4">
-                <NoFocusOutLineButton
-                  onClick={handleAgree}
-                  disabled={!agreed}
-                  className={`px-6 py-2 rounded-lg font-semibold transition duration-200 ${
-                    agreed 
-                      ? 'bg-black text-white hover:bg-gray-800' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  Tôi đồng ý
-                </NoFocusOutLineButton>
-                
-                <NoFocusOutLineButton
-                  onClick={handleClose}
-                  className="bg-white text-black border border-gray-300 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition duration-200"
-                >
-                  Đóng
-                </NoFocusOutLineButton>
-              </div>
+            <div className="mt-8 flex justify-center">
+              <NoFocusOutLineButton
+                onClick={handleClose}
+                className="bg-white text-black border border-gray-300 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition duration-200"
+              >
+                Đóng
+              </NoFocusOutLineButton>
             </div>
           </motion.div>
         </motion.div>

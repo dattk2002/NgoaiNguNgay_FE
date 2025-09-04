@@ -435,15 +435,13 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
                   <div className="text-sm text-blue-800">
                     <p className="font-medium mb-1">Điều khoản dịch vụ</p>
                     <p>
-                      Bằng cách gửi báo cáo, bạn đồng ý với{" "}
                       <button
                         type="button"
                         onClick={handleLegalDocumentClick}
                         className="text-blue-600 underline hover:text-blue-800 font-medium"
                       >
-                        Điều khoản dịch vụ và Chính sách bảo mật
+                        Điều khoản dịch vụ và Chính sách
                       </button>
-                      {" "}của chúng tôi.
                     </p>
                   </div>
                 </div>

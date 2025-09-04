@@ -49,6 +49,7 @@ const LessonManagement = () => {
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingBooking, setCancellingBooking] = useState(false);
+  const [agreedToCancelTerms, setAgreedToCancelTerms] = useState(false);
   
   // Add legal document modal state
   const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
@@ -1417,7 +1418,10 @@ const LessonManagement = () => {
       />
 
       {/* Cancel Booking Modal */}
-      <Dialog open={cancelBookingModalOpen} onClose={() => setCancelBookingModalOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={cancelBookingModalOpen} onClose={() => {
+        setCancelBookingModalOpen(false);
+        setAgreedToCancelTerms(false);
+      }} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Typography variant="h6" component="div" sx={{ color: "#dc2626", fontWeight: 600 }}>
             Xác nhận hủy booking
@@ -1466,7 +1470,6 @@ const LessonManagement = () => {
           {/* Legal terms notice */}
           <Box sx={{ p: 2, backgroundColor: "#f0f9ff", borderRadius: 1, border: "1px solid #0ea5e9", mb: 2 }}>
             <Typography variant="body2" sx={{ color: "#0369a1", fontSize: "0.875rem" }}>
-              Bằng cách hủy booking, bạn đồng ý với{" "}
               <Button
                 onClick={handleLegalDocumentClick}
                 sx={{ 
@@ -1481,9 +1484,21 @@ const LessonManagement = () => {
                   }
                 }}
               >
-                Điều khoản dịch vụ và Chính sách bảo mật
+                Điều khoản dịch vụ và Chính sách
               </Button>
-              {" "}của chúng tôi.
+            </Typography>
+          </Box>
+          
+          {/* Agreement Checkbox */}
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={agreedToCancelTerms}
+              onChange={(e) => setAgreedToCancelTerms(e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <Typography variant="body2" sx={{ color: "#374151" }}>
+              Tôi đồng ý với Điều khoản dịch vụ và Chính sách
             </Typography>
           </Box>
           
@@ -1495,7 +1510,10 @@ const LessonManagement = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button 
-            onClick={() => setCancelBookingModalOpen(false)} 
+            onClick={() => {
+              setCancelBookingModalOpen(false);
+              setAgreedToCancelTerms(false);
+            }} 
             disabled={cancellingBooking}
             variant="outlined"
           >
@@ -1542,7 +1560,7 @@ const LessonManagement = () => {
               }
             }}
             variant="contained"
-            disabled={cancellingBooking || !cancelReason.trim()}
+            disabled={cancellingBooking || !cancelReason.trim() || !agreedToCancelTerms}
             sx={{ 
               bgcolor: "#dc2626", 
               "&:hover": { bgcolor: "#b91c1c" },

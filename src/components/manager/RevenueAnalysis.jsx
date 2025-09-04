@@ -175,16 +175,16 @@ const RevenueAnalysis = () => {
     const paginatedTransactions = getPaginatedTransactions();
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
             {/* Filters */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex flex-col sm:flex-row gap-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                <div className="flex flex-col lg:flex-row gap-4">
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Khoảng thời gian</label>
+                        <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Khoảng thời gian</label>
                         <select
                             value={dateFilter}
                             onChange={(e) => handleDateFilterChange(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
+                            className="w-full px-2 lg:px-3 py-1 lg:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-black text-xs lg:text-sm"
                         >
                             <option value="all">Tất cả thời gian</option>
                             <option value="week">7 ngày qua</option>
@@ -194,11 +194,11 @@ const RevenueAnalysis = () => {
                         </select>
                     </div>
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
+                        <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Danh mục</label>
                         <select
                             value={selectedCategory}
                             onChange={(e) => handleCategoryChange(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
+                            className="w-full px-2 lg:px-3 py-1 lg:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-black text-xs lg:text-sm"
                         >
                             <option value="all">Tất cả danh mục</option>
                             <option value="english">Tiếng Anh</option>
@@ -208,7 +208,7 @@ const RevenueAnalysis = () => {
                         </select>
                     </div>
                     <div className="flex items-end">
-                        <NoFocusOutLineButton className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <NoFocusOutLineButton className="px-3 lg:px-4 py-1 lg:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs lg:text-sm">
                             Xuất báo cáo
                         </NoFocusOutLineButton>
                     </div>
@@ -216,10 +216,10 @@ const RevenueAnalysis = () => {
             </div>
 
             {/* Recent Transactions Section */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Giao dịch gần đây</h3>
-                    <div className="text-sm text-gray-500">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+                    <h3 className="text-base lg:text-lg font-medium text-gray-900">Giao dịch gần đây</h3>
+                    <div className="text-xs lg:text-sm text-gray-500">
                         Tổng cộng: {filteredTransactions.length} giao dịch
                         {dateFilter && dateFilter !== 'all' && (
                             <span className="ml-2">
@@ -232,9 +232,9 @@ const RevenueAnalysis = () => {
                 </div>
 
                 {loading ? (
-                    <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                        <span className="ml-2 text-gray-600">Đang tải...</span>
+                    <div className="flex items-center justify-center py-6 lg:py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 lg:h-8 lg:w-8 border-b-2 border-green-600"></div>
+                        <span className="ml-2 text-gray-600 text-sm lg:text-base">Đang tải...</span>
                     </div>
                 ) : filteredTransactions.length > 0 ? (
                     <>
@@ -242,41 +242,41 @@ const RevenueAnalysis = () => {
                             <table className="min-w-full">
                                 <thead>
                                     <tr className="border-b border-gray-200">
-                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Thời gian</th>
-                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Loại</th>
-                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Từ</th>
-                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Đến</th>
-                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Số tiền</th>
-                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Trạng thái</th>
-                                        <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">Mô tả</th>
+                                        <th className="text-left py-2 lg:py-3 px-2 lg:px-4 font-medium text-gray-500 text-xs lg:text-sm">Thời gian</th>
+                                        <th className="text-left py-2 lg:py-3 px-2 lg:px-4 font-medium text-gray-500 text-xs lg:text-sm">Loại</th>
+                                        <th className="text-left py-2 lg:py-3 px-2 lg:px-4 font-medium text-gray-500 text-xs lg:text-sm hidden sm:table-cell">Từ</th>
+                                        <th className="text-left py-2 lg:py-3 px-2 lg:px-4 font-medium text-gray-500 text-xs lg:text-sm hidden md:table-cell">Đến</th>
+                                        <th className="text-left py-2 lg:py-3 px-2 lg:px-4 font-medium text-gray-500 text-xs lg:text-sm">Số tiền</th>
+                                        <th className="text-left py-2 lg:py-3 px-2 lg:px-4 font-medium text-gray-500 text-xs lg:text-sm">Trạng thái</th>
+                                        <th className="text-left py-2 lg:py-3 px-2 lg:px-4 font-medium text-gray-500 text-xs lg:text-sm hidden lg:table-cell">Mô tả</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {paginatedTransactions.map((transaction) => (
                                         <tr key={transaction.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="py-3 px-4 text-sm text-gray-900">
+                                            <td className="py-2 lg:py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">
                                                 {formatDate(transaction.createdAt)}
                                             </td>
-                                            <td className="py-3 px-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionTypeColor(transaction.type)}`}>
+                                            <td className="py-2 lg:py-3 px-2 lg:px-4">
+                                                <span className={`inline-flex items-center px-1.5 lg:px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionTypeColor(transaction.type)}`}>
                                                     {transaction.type}
                                                 </span>
                                             </td>
-                                            <td className="py-3 px-4 text-sm text-gray-900 font-medium">
+                                            <td className="py-2 lg:py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-900 font-medium hidden sm:table-cell">
                                                 {transaction.sourceUser}
                                             </td>
-                                            <td className="py-3 px-4 text-sm text-gray-900 font-medium">
+                                            <td className="py-2 lg:py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-900 font-medium hidden md:table-cell">
                                                 {transaction.targetUser}
                                             </td>
-                                            <td className="py-3 px-4 text-sm font-medium text-green-600">
+                                            <td className="py-2 lg:py-3 px-2 lg:px-4 text-xs lg:text-sm font-medium text-green-600">
                                                 {formatCurrency(transaction.amount)}
                                             </td>
-                                            <td className="py-3 px-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionStatusColor(transaction.status)}`}>
+                                            <td className="py-2 lg:py-3 px-2 lg:px-4">
+                                                <span className={`inline-flex items-center px-1.5 lg:px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionStatusColor(transaction.status)}`}>
                                                     {transaction.status}
                                                 </span>
                                             </td>
-                                            <td className="py-3 px-4 text-sm text-gray-600 max-w-xs truncate" title={transaction.description}>
+                                            <td className="py-2 lg:py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-600 max-w-xs truncate hidden lg:table-cell" title={transaction.description}>
                                                 {transaction.description}
                                             </td>
                                         </tr>
@@ -287,25 +287,25 @@ const RevenueAnalysis = () => {
 
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div className="flex items-center justify-between mt-6">
-                                <div className="text-sm text-gray-700">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 lg:mt-6 space-y-3 sm:space-y-0">
+                                <div className="text-xs lg:text-sm text-gray-700">
                                     Hiển thị {((currentPage - 1) * pageSize) + 1} đến {Math.min(currentPage * pageSize, filteredTransactions.length)} trong tổng số {filteredTransactions.length} giao dịch
                                 </div>
                                 <div className="flex space-x-2">
                                     <NoFocusOutLineButton
                                         onClick={() => handlePageChange(currentPage - 1)}
                                         disabled={!hasPreviousPage}
-                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="px-2 lg:px-3 py-1 text-xs lg:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Trước
                                     </NoFocusOutLineButton>
-                                    <span className="px-3 py-1 text-sm text-gray-700">
+                                    <span className="px-2 lg:px-3 py-1 text-xs lg:text-sm text-gray-700">
                                         Trang {currentPage} / {totalPages}
                                     </span>
                                     <NoFocusOutLineButton
                                         onClick={() => handlePageChange(currentPage + 1)}
                                         disabled={!hasNextPage}
-                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="px-2 lg:px-3 py-1 text-xs lg:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Sau
                                     </NoFocusOutLineButton>
@@ -314,8 +314,10 @@ const RevenueAnalysis = () => {
                         )}
                     </>
                 ) : (
-                    <div className="text-center py-8 text-gray-500">
-                        {loading ? 'Đang tải...' : 'Không có dữ liệu giao dịch'}
+                    <div className="text-center py-6 lg:py-8 text-gray-500">
+                        <div className="text-sm lg:text-base">
+                            {loading ? 'Đang tải...' : 'Không có dữ liệu giao dịch'}
+                        </div>
                     </div>
                 )}
             </div>

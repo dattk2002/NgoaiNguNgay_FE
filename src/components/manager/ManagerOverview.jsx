@@ -69,11 +69,11 @@ const ManagerOverview = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
             {/* Financial Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
                 {/* Total Money in Circulation */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
                             <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
@@ -82,15 +82,15 @@ const ManagerOverview = () => {
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Tiền lưu hành</p>
-                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(financialData.totalMoneyInCirculation)}</p>
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">Tiền lưu hành</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">{formatCurrency(financialData.totalMoneyInCirculation)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Total Successful Deposits */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
                             <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -99,15 +99,15 @@ const ManagerOverview = () => {
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Nạp tiền thành công</p>
-                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(financialData.totalSuccessfulDeposits)}</p>
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">Nạp tiền thành công</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">{formatCurrency(financialData.totalSuccessfulDeposits)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Total Completed Withdrawals */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
                             <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
@@ -116,15 +116,15 @@ const ManagerOverview = () => {
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Rút tiền hoàn thành</p>
-                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(financialData.totalCompletedWithdrawals)}</p>
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">Rút tiền hoàn thành</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">{formatCurrency(financialData.totalCompletedWithdrawals)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Total Wallet Balances */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
                             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -133,15 +133,15 @@ const ManagerOverview = () => {
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Số dư ví</p>
-                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(financialData.totalWalletBalances)}</p>
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">Số dư ví</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">{formatCurrency(financialData.totalWalletBalances)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Total Held Funds */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
                             <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -150,29 +150,29 @@ const ManagerOverview = () => {
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Tiền đang giữ</p>
-                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(financialData.totalHeldFunds)}</p>
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">Tiền đang giữ</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">{formatCurrency(financialData.totalHeldFunds)}</p>
                         </div>
                     </div>
                 </div>
             </div>  
 
             {/* Financial Components Explanation from Metadata */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Giải thích các thành phần tài chính</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-3 lg:mb-4">Giải thích các thành phần tài chính</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                     {metadata.FinancialComponents && 
                         Object.entries(metadata.FinancialComponents).map(([key, description]) => (
-                            <div key={key} className="p-4 bg-gray-50 rounded-lg">
-                                <h4 className="text-sm font-medium text-gray-900 mb-2">
+                            <div key={key} className="p-3 lg:p-4 bg-gray-50 rounded-lg">
+                                <h4 className="text-xs lg:text-sm font-medium text-gray-900 mb-1 lg:mb-2">
                                     {key === 'totalMoneyInCirculation' && 'Tiền lưu hành'}
                                     {key === 'totalSuccessfulDeposits' && 'Nạp tiền thành công'}
                                     {key === 'totalCompletedWithdrawals' && 'Rút tiền hoàn thành'}
                                     {key === 'totalWalletBalances' && 'Số dư ví'}
                                     {key === 'totalHeldFunds' && 'Tiền đang giữ'}
                                 </h4>
-                                <p className="text-xs text-gray-600">{description}</p>
+                                <p className="text-xs text-gray-600 leading-relaxed">{description}</p>
                             </div>
                         ))
                     }
@@ -180,30 +180,30 @@ const ManagerOverview = () => {
             </div>
 
             {/* Financial Summary */}
-            <div className="bg-gradient-to-r from-green-500 to-blue-600 rounded-lg p-6 text-white">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="text-lg font-medium mb-2">Tổng quan tài chính hệ thống</h3>
-                        <p className="text-sm opacity-90">
+            <div className="bg-gradient-to-r from-green-500 to-blue-600 rounded-lg p-4 lg:p-6 text-white">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-base lg:text-lg font-medium mb-1 lg:mb-2">Tổng quan tài chính hệ thống</h3>
+                        <p className="text-xs lg:text-sm opacity-90 break-words">
                             Hệ thống đang quản lý {formatCurrency(financialData.totalWalletBalances)} tổng số dư ví
                         </p>
                     </div>
-                    <div className="text-right">
-                        <div className="text-2xl font-bold">{formatCurrency(financialData.totalMoneyInCirculation)}</div>
-                        <div className="text-sm opacity-90">Tiền lưu hành</div>
+                    <div className="text-left sm:text-right flex-shrink-0">
+                        <div className="text-xl lg:text-2xl font-bold break-words">{formatCurrency(financialData.totalMoneyInCirculation)}</div>
+                        <div className="text-xs lg:text-sm opacity-90">Tiền lưu hành</div>
                     </div>
                 </div>
             </div>
 
             {/* Metadata Information Note */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 lg:p-4">
                 <div className="flex items-start">
-                    <svg className="w-5 h-5 text-blue-400 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 lg:w-5 lg:h-5 text-blue-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
-                    <div>
-                        <h4 className="text-sm font-medium text-blue-900 mb-1">Lưu ý về dữ liệu</h4>
-                        <p className="text-sm text-blue-700">
+                    <div className="min-w-0 flex-1">
+                        <h4 className="text-xs lg:text-sm font-medium text-blue-900 mb-1">Lưu ý về dữ liệu</h4>
+                        <p className="text-xs lg:text-sm text-blue-700 leading-relaxed">
                             Dữ liệu tài chính được cập nhật theo thời gian thực. Các định nghĩa trạng thái và mô tả thành phần 
                             được lấy từ metadata API để đảm bảo tính nhất quán và chính xác.
                         </p>

@@ -486,7 +486,7 @@ const LoginModal = ({
                 onClick={handleLegalDocumentClick}
                 className="underline hover:text-blue-700 hover:cursor-pointer text-[#333333]"
               >
-                Điều khoản dịch vụ và Chính sách bảo mật
+                Điều khoản dịch vụ và Chính sách
               </a>
               <p>của chúng tôi&nbsp;</p>
               

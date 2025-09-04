@@ -1,7 +1,7 @@
 # Hướng dẫn sử dụng LegalDocumentModal
 
 ## Tổng quan
-`LegalDocumentModal` là component hiển thị điều khoản dịch vụ và chính sách bảo mật với yêu cầu người dùng phải đồng ý trước khi có thể đóng modal.
+`LegalDocumentModal` là component hiển thị điều khoản dịch vụ và chính sách với yêu cầu người dùng phải đồng ý trước khi có thể đóng modal.
 
 ## Props
 

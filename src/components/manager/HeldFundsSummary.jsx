@@ -139,25 +139,25 @@ const HeldFundsSummary = () => {
     const timeRangeOptions = getTimeRangeOptions();
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
             {/* Header with Time Range Selector and Metadata Toggle */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Thống kê tiền giữ</h2>
-                    <p className="text-sm text-gray-600 mt-1">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                    <h2 className="text-lg lg:text-2xl font-bold text-gray-900">Thống kê tiền giữ</h2>
+                    <p className="text-xs lg:text-sm text-gray-600 mt-1">
                         Tổng hợp tiền đang được giữ trong ví
                     </p>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                     <div className="flex items-center space-x-2">
-                        <label htmlFor="timeRange" className="text-sm font-medium text-gray-700">
+                        <label htmlFor="timeRange" className="text-xs lg:text-sm font-medium text-gray-700 whitespace-nowrap">
                             Thời gian:
                         </label>
                         <select
                             id="timeRange"
                             value={selectedTimeRange}
                             onChange={(e) => setSelectedTimeRange(parseInt(e.target.value))}
-                            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="border border-gray-300 rounded-md px-2 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         >
                             {timeRangeOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
@@ -168,7 +168,7 @@ const HeldFundsSummary = () => {
                     </div>
                     <button
                         onClick={() => setShowMetadata(!showMetadata)}
-                        className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                        className="px-2 lg:px-3 py-1 lg:py-2 text-xs lg:text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors whitespace-nowrap"
                     >
                         {showMetadata ? 'Ẩn giải thích' : 'Hiển thị giải thích'}
                     </button>
@@ -177,15 +177,15 @@ const HeldFundsSummary = () => {
 
             {/* Metadata Information Panel */}
             {showMetadata && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-4">Giải thích dữ liệu</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 lg:p-6">
+                    <h3 className="text-base lg:text-lg font-semibold text-blue-900 mb-3 lg:mb-4">Giải thích dữ liệu</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                         {/* Held Fund Statuses */}
                         <div>
-                            <h4 className="font-medium text-blue-800 mb-2">Trạng thái tiền giữ:</h4>
+                            <h4 className="text-sm lg:text-base font-medium text-blue-800 mb-2">Trạng thái tiền giữ:</h4>
                             <div className="space-y-2">
                                 {heldFundsMetadata?.HeldFundStatus?.map((status) => (
-                                    <div key={status.name} className="text-sm">
+                                    <div key={status.name} className="text-xs lg:text-sm">
                                         <span className="font-medium text-gray-700">{status.name}:</span>
                                         <span className="text-gray-600 ml-2">{status.description}</span>
                                     </div>
@@ -195,10 +195,10 @@ const HeldFundsSummary = () => {
                         
                         {/* Held Fund Types */}
                         <div>
-                            <h4 className="font-medium text-blue-800 mb-2">Loại tiền giữ:</h4>
+                            <h4 className="text-sm lg:text-base font-medium text-blue-800 mb-2">Loại tiền giữ:</h4>
                             <div className="space-y-2">
                                 {heldFundsMetadata?.HeldFundType?.map((type) => (
-                                    <div key={type.name} className="text-sm">
+                                    <div key={type.name} className="text-xs lg:text-sm">
                                         <span className="font-medium text-gray-700">{type.name}:</span>
                                         <span className="text-gray-600 ml-2">{type.description}</span>
                                     </div>
@@ -210,77 +210,77 @@ const HeldFundsSummary = () => {
             )}
 
             {/* Main Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                 {/* Total Held Amount */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 shadow-sm">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
-                            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-6 h-6 lg:w-8 lg:h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">
                                 {getComponentDescription('totalHeldAmount')}
                             </p>
-                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(heldFundsData.totalHeldAmount)}</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">{formatCurrency(heldFundsData.totalHeldAmount)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Total Disputed Amount */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 shadow-sm">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
-                            <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-6 h-6 lg:w-8 lg:h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 lg:w-5 lg:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">
                                 {getComponentDescription('totalDisputedAmount')}
                             </p>
-                            <p className="text-xl font-semibold text-gray-900">{formatCurrency(heldFundsData.totalDisputedAmount)}</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">{formatCurrency(heldFundsData.totalDisputedAmount)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Total Held Funds Count */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 shadow-sm">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
-                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-6 h-6 lg:w-8 lg:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">
                                 {getComponentDescription('totalHeldFundsCount')}
                             </p>
-                            <p className="text-xl font-semibold text-gray-900">{formatNumber(heldFundsData.totalHeldFundsCount)}</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">{formatNumber(heldFundsData.totalHeldFundsCount)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Statistics Data (if available) */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 shadow-sm">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
-                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-6 h-6 lg:w-8 lg:h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                             </div>
                         </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">Thống kê {timeRangeOptions.find(opt => opt.value === selectedTimeRange)?.label}</p>
-                            <p className="text-xl font-semibold text-gray-900">
+                        <div className="ml-3 lg:ml-4 min-w-0 flex-1">
+                            <p className="text-xs lg:text-sm font-medium text-gray-600 truncate">Thống kê {timeRangeOptions.find(opt => opt.value === selectedTimeRange)?.label}</p>
+                            <p className="text-lg lg:text-xl font-semibold text-gray-900 truncate">
                                 {statisticsData ? formatCurrency(statisticsData.totalAmount || 0) : 'N/A'}
                             </p>
                         </div>
@@ -289,30 +289,30 @@ const HeldFundsSummary = () => {
             </div>
 
             {/* Detailed Breakdown */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 {/* Held Amount by Type */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 shadow-sm">
+                    <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">
                         {getComponentDescription('heldAmountByType')}
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-3 lg:space-y-4">
                         {Object.entries(heldFundsData.heldAmountByType).map(([type, amount]) => (
                             <div key={type} className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                                    <div>
-                                        <span className="text-sm font-medium text-gray-700">
+                                <div className="flex items-center min-w-0 flex-1">
+                                    <div className="w-2 h-2 lg:w-3 lg:h-3 bg-blue-500 rounded-full mr-2 lg:mr-3 flex-shrink-0"></div>
+                                    <div className="min-w-0 flex-1">
+                                        <span className="text-xs lg:text-sm font-medium text-gray-700 block truncate">
                                             {type === 'BookingPayment' ? 'Thanh toán buổi học' : 'Rút tiền'}
                                         </span>
                                         {showMetadata && (
-                                            <div className="text-xs text-gray-500 mt-1">
+                                            <div className="text-xs text-gray-500 mt-1 truncate">
                                                 {getTypeDescription(type)}
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-sm font-semibold text-gray-900">{formatCurrency(amount)}</div>
+                                <div className="text-right flex-shrink-0 ml-2">
+                                    <div className="text-xs lg:text-sm font-semibold text-gray-900">{formatCurrency(amount)}</div>
                                     <div className="text-xs text-gray-500">{formatNumber(heldFundsData.heldCountByType[type])} giao dịch</div>
                                 </div>
                             </div>
@@ -321,11 +321,11 @@ const HeldFundsSummary = () => {
                 </div>
 
                 {/* Held Amount by Status */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 shadow-sm">
+                    <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">
                         {getComponentDescription('heldAmountByStatus')}
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-3 lg:space-y-4">
                         {Object.entries(heldFundsData.heldAmountByStatus).map(([status, amount]) => {
                             const getStatusColor = (status) => {
                                 switch (status) {
@@ -351,19 +351,19 @@ const HeldFundsSummary = () => {
 
                             return (
                                 <div key={status} className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <div className={`w-3 h-3 ${getStatusColor(status)} rounded-full mr-3`}></div>
-                                        <div>
-                                            <span className="text-sm font-medium text-gray-700">{getStatusLabel(status)}</span>
+                                    <div className="flex items-center min-w-0 flex-1">
+                                        <div className={`w-2 h-2 lg:w-3 lg:h-3 ${getStatusColor(status)} rounded-full mr-2 lg:mr-3 flex-shrink-0`}></div>
+                                        <div className="min-w-0 flex-1">
+                                            <span className="text-xs lg:text-sm font-medium text-gray-700 block truncate">{getStatusLabel(status)}</span>
                                             {showMetadata && (
-                                                <div className="text-xs text-gray-500 mt-1">
+                                                <div className="text-xs text-gray-500 mt-1 truncate">
                                                     {getStatusDescription(status)}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(amount)}</div>
+                                    <div className="text-right flex-shrink-0 ml-2">
+                                        <div className="text-xs lg:text-sm font-semibold text-gray-900">{formatCurrency(amount)}</div>
                                         <div className="text-xs text-gray-500">{formatNumber(heldFundsData.heldCountByStatus[status])} giao dịch</div>
                                     </div>
                                 </div>
@@ -375,25 +375,25 @@ const HeldFundsSummary = () => {
 
             {/* Statistics Chart Section (if statistics data is available) */}
             {statisticsData && (
-                <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 shadow-sm">
+                    <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">
                         Thống kê chi tiết - {timeRangeOptions.find(opt => opt.value === selectedTimeRange)?.label}
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                         {Object.entries(statisticsData).map(([key, value]) => {
                             if (typeof value === 'number' && key !== 'totalAmount') {
                                 const componentDescription = statisticsMetadata?.HeldFundStatisticsComponents?.[key];
                                 return (
-                                    <div key={key} className="bg-gray-50 rounded-lg p-4">
-                                        <div className="text-sm font-medium text-gray-600 capitalize">
+                                    <div key={key} className="bg-gray-50 rounded-lg p-3 lg:p-4">
+                                        <div className="text-xs lg:text-sm font-medium text-gray-600 capitalize truncate">
                                             {key.replace(/([A-Z])/g, ' $1').trim()}
                                         </div>
                                         {showMetadata && componentDescription && (
-                                            <div className="text-xs text-gray-500 mt-1">
+                                            <div className="text-xs text-gray-500 mt-1 truncate">
                                                 {componentDescription}
                                             </div>
                                         )}
-                                        <div className="text-lg font-semibold text-gray-900 mt-1">
+                                        <div className="text-base lg:text-lg font-semibold text-gray-900 mt-1 truncate">
                                             {key.toLowerCase().includes('amount') ? formatCurrency(value) : formatNumber(value)}
                                         </div>
                                     </div>
