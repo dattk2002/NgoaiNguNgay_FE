@@ -111,8 +111,8 @@ const DisputeManagement = () => {
   const getReasonLabel = (reason) => {
     // Map reason dài về label ngắn
     const reasonMap = {
-      "Giáo viên vắng mặt không thông báo trước": "Vắng mặt",
-      "Giáo viên đến muộn quá 15 phút": "Trễ",
+      "Giáo viên vắng mặt": "Vắng mặt",
+      "Giáo viên đến muộn": "Trễ",
       "Vấn đề khác cần báo cáo": "Khác"
     };
     return reasonMap[reason] || reason || "Không xác định";
