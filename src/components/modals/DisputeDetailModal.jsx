@@ -18,8 +18,8 @@ import {
   FaMoneyBillWave,
   FaCheck
 } from "react-icons/fa";
-import { toast } from "react-toastify";
-import { fetchLearnerDisputeDetail, fetchTutorDisputeDetail, fetchStaffDisputeDetail, withdrawDispute, fetchBookingInfo, respondToDispute, resolveDispute } from "../api/auth";
+import { showSuccess, showError } from "../../utils/toastManager.js";
+import { fetchLearnerDisputeDetail, fetchTutorDisputeDetail, fetchStaffDisputeDetail, withdrawDispute, fetchBookingInfo, fetchBookingBySlotId, respondToDispute, resolveDispute } from "../api/auth";
 
 const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView = false, isStaffView = false, onDisputeUpdated, disputeMetadata: propDisputeMetadata }) => {
   const [disputeDetail, setDisputeDetail] = useState(null);
@@ -76,20 +76,20 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
     }
   }, [isOpen, dispute, disputeId]);
 
-  const loadBookingInfo = async (bookingId) => {
-    if (!bookingId) {
-      console.warn("No booking ID provided to load booking info.");
+  const loadBookingInfo = async (slotId) => {
+    if (!slotId) {
+      console.warn("No slot ID provided to load booking info.");
       return;
     }
     
-    console.log("Loading booking info for ID:", bookingId);
+    console.log("Loading booking info for slot ID:", slotId);
     setIsLoadingBooking(true);
     try {
-      const response = await fetchBookingInfo(bookingId);
-      console.log("✅ Booking info loaded:", response);
+      const response = await fetchBookingBySlotId(slotId);
+      console.log("✅ Booking info loaded by slot ID:", response);
       setBookingInfo(response);
     } catch (error) {
-      console.error("❌ Error loading booking info:", error);
+      console.error("❌ Error loading booking info by slot ID:", error);
       // Don't show toast error for booking info as it's not critical
       setBookingInfo(null);
     } finally {
@@ -210,9 +210,9 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
         console.log("- canResolveDispute():", response.data.dispute.status === 3);
       }
 
-      // Load booking information if bookingId is available
-      if (response.data.dispute.bookingId) {
-        await loadBookingInfo(response.data.dispute.bookingId);
+      // Load booking information if bookedSlotId is available
+      if (response.data.dispute.bookedSlotId) {
+        await loadBookingInfo(response.data.dispute.bookedSlotId);
       }
 
     } catch (error) {
@@ -236,8 +236,8 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
          setDisputeMetadata(propDisputeMetadata);
          
          // Load booking info if available
-         if (dispute.bookingId) {
-           await loadBookingInfo(dispute.bookingId);
+         if (dispute.bookedSlotId) {
+           await loadBookingInfo(dispute.bookedSlotId);
          }
        } else if (dispute && dispute.id) {
          // General fallback for any view if we have dispute data from props
@@ -246,11 +246,11 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
          setDisputeMetadata(propDisputeMetadata);
          
          // Load booking info if available
-         if (dispute.bookingId) {
-           await loadBookingInfo(dispute.bookingId);
+         if (dispute.bookedSlotId) {
+           await loadBookingInfo(dispute.bookedSlotId);
          }
        } else {
-         toast.error(error.message || "Không thể tải chi tiết báo cáo");
+         showError(error.message || "Không thể tải chi tiết báo cáo");
        }
     } finally {
       setIsLoadingDetail(false);
@@ -348,7 +348,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
 
   const handleWithdrawDispute = async () => {
     if (!disputeDetail || !disputeDetail.id) {
-      toast.error("Không thể rút báo cáo");
+      showError("Không thể rút báo cáo");
       return;
     }
 
@@ -361,7 +361,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
     
     try {
       await withdrawDispute({ disputeId: disputeDetail.id });
-      toast.success("Đã rút báo cáo thành công!");
+      showSuccess("Đã rút báo cáo thành công!");
       
       // Refresh dispute detail
       await loadDisputeDetail();
@@ -371,7 +371,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
       
     } catch (error) {
       console.error("Error withdrawing dispute:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi rút báo cáo. Vui lòng thử lại.");
+      showError(error.message || "Có lỗi xảy ra khi rút báo cáo. Vui lòng thử lại.");
     } finally {
       setIsWithdrawing(false);
     }
@@ -437,29 +437,44 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
     
     if (!disputeDetail || !disputeDetail.id) {
       console.log("❌ No dispute detail or ID available");
-      toast.error("Không thể gửi phản hồi");
+      showError("Không thể gửi phản hồi");
       return;
     }
 
     if (!tutorResponseType) {
       console.log("❌ No response type selected");
-      toast.error("Vui lòng chọn quyết định");
+      showError("Vui lòng chọn quyết định");
       return;
     }
 
     if (tutorResponseType === 'disagree' && tutorResponse.trim().length < 10) {
       console.log("❌ Response too short for disagree:", tutorResponse.trim().length);
-      toast.error("Bằng chứng hỗ trợ phải có ít nhất 10 ký tự");
+      showError("Bằng chứng hỗ trợ phải có ít nhất 10 ký tự");
       return;
     }
 
     console.log("✅ Validation passed, submitting response...");
     setIsSubmittingResponse(true);
     try {
+      // Map response type to the correct resolution value based on backend logic
+      let resolutionValue = 0;
+      let responseValue = '';
+      
+      if (tutorResponseType === 'agree_100') {
+        resolutionValue = 7; // TutorFullRefund - 100% refund
+        responseValue = 'Tôi đồng ý hoàn 100% tiền cho học viên. Xin lỗi vì sự bất tiện này.';
+      } else if (tutorResponseType === 'propose_50') {
+        resolutionValue = 6; // TutorPartialRefund - 50% refund
+        responseValue = 'Tôi đề xuất hoàn 50% tiền cho học viên. Mong được xem xét và thông cảm.';
+      } else if (tutorResponseType === 'disagree') {
+        resolutionValue = 0; // None - no resolution yet, escalate to staff
+        responseValue = tutorResponse.trim(); // Use the text evidence for disagree
+      }
+
       const responseData = {
         disputeId: disputeDetail.id,
-        responseType: tutorResponseType,
-        response: tutorResponseType === 'disagree' ? tutorResponse.trim() : ''
+        response: responseValue,
+        resolution: resolutionValue
       };
       console.log("📤 Sending response data:", responseData);
       
@@ -467,7 +482,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
       console.log("✅ Response submitted successfully:", result);
       
       // Hiển thị toast thông báo thành công
-      toast.success("Phản hồi đã được gửi thành công! Học viên sẽ được thông báo về quyết định của bạn.");
+      showSuccess("Phản hồi đã được gửi thành công! Học viên sẽ được thông báo về quyết định của bạn.");
       setTutorResponse('');
       setTutorResponseType('');
       setShowResponseForm(false);
@@ -478,6 +493,9 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
       // Notify parent component to refresh dispute list
       onDisputeUpdated?.();
       
+      // Close modal after successful response
+      onClose();
+      
     } catch (error) {
       console.error("❌ Error submitting response:", error);
       console.error("Error details:", {
@@ -485,7 +503,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
         stack: error.stack,
         name: error.name
       });
-      toast.error(error.message || "Có lỗi xảy ra khi gửi phản hồi. Vui lòng thử lại.");
+      showError(error.message || "Có lỗi xảy ra khi gửi phản hồi. Vui lòng thử lại.");
     } finally {
       setIsSubmittingResponse(false);
     }
@@ -501,12 +519,12 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
 
   const handleResolveDispute = async () => {
     if (!disputeDetail || !disputeDetail.id) {
-      toast.error("Không thể giải quyết báo cáo");
+      showError("Không thể giải quyết báo cáo");
       return;
     }
 
     if (!staffNotes.trim()) {
-      toast.error("Vui lòng nhập ghi chú giải quyết");
+      showError("Vui lòng nhập ghi chú giải quyết");
       return;
     }
 
@@ -522,7 +540,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
       const result = await resolveDispute(resolveData);
       console.log("✅ Dispute resolved successfully:", result);
       
-      toast.success("Đã giải quyết báo cáo thành công!");
+      showSuccess("Đã giải quyết báo cáo thành công!");
       setStaffNotes('');
       setShowResolveForm(false);
       
@@ -532,6 +550,9 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
       // Notify parent component to refresh dispute list
       onDisputeUpdated?.();
       
+      // Close modal after successful resolution
+      onClose();
+      
     } catch (error) {
       console.error("❌ Error resolving dispute:", error);
       console.error("Error details:", {
@@ -539,7 +560,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
         stack: error.stack,
         name: error.name
       });
-      toast.error(error.message || "Có lỗi xảy ra khi giải quyết báo cáo. Vui lòng thử lại.");
+      showError(error.message || "Có lỗi xảy ra khi giải quyết báo cáo. Vui lòng thử lại.");
     } finally {
       setIsResolvingDispute(false);
     }
@@ -753,35 +774,74 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                       Đang tải thông tin khóa học...
                     </div>
                   ) : bookingInfo ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Tên khóa học:</span>
-                        <span className="ml-2 font-medium text-black">{bookingInfo.lessonSnapshot?.name || "N/A"}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Số buổi học:</span>
-                        <span className="ml-2 font-medium text-black">{bookingInfo.bookedSlots?.length || 0} buổi</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Tổng tiền:</span>
-                        <span className="ml-2 font-medium text-orange-600">
-                          {bookingInfo.totalPrice ? `${bookingInfo.totalPrice.toLocaleString('vi-VN')}đ` : "N/A"}
-                        </span>
-                      </div>
-                      {bookingInfo.expectedStartDate && (
+                    <div className="space-y-4">
+                      {/* Basic Booking Info */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-600">Ngày bắt đầu dự kiến:</span>
-                          <span className="ml-2 font-medium text-black">
-                            {new Date(bookingInfo.expectedStartDate).toLocaleDateString('vi-VN')}
+                          <span className="text-gray-600">Tên khóa học:</span>
+                          <span className="ml-2 font-medium text-black">{bookingInfo.lessonSnapshot?.name || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Ngôn ngữ:</span>
+                          <span className="ml-2 font-medium text-black">{bookingInfo.lessonSnapshot?.languageCode?.toUpperCase() || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Thể loại:</span>
+                          <span className="ml-2 font-medium text-black">{bookingInfo.lessonSnapshot?.category || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Thời lượng:</span>
+                          <span className="ml-2 font-medium text-black">{bookingInfo.lessonSnapshot?.durationInMinutes || "N/A"} phút</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Giá mỗi buổi:</span>
+                          <span className="ml-2 font-medium text-orange-600">
+                            {bookingInfo.lessonSnapshot?.price ? `${bookingInfo.lessonSnapshot.price.toLocaleString('vi-VN')}đ` : "N/A"}
                           </span>
                         </div>
-                      )}
-                      {bookingInfo.createdTime && (
                         <div>
-                          <span className="text-gray-600">Ngày tạo booking:</span>
-                          <span className="ml-2 font-medium text-black">
-                            {new Date(bookingInfo.createdTime).toLocaleDateString('vi-VN')}
+                          <span className="text-gray-600">Tổng tiền:</span>
+                          <span className="ml-2 font-medium text-orange-600">
+                            {bookingInfo.totalPrice ? `${bookingInfo.totalPrice.toLocaleString('vi-VN')}đ` : "N/A"}
                           </span>
+                        </div>
+                      </div>
+                      
+                      {/* Tutor and Learner Info */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Giáo viên:</span>
+                          <span className="ml-2 font-medium text-black">{bookingInfo.tutorName || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Học viên:</span>
+                          <span className="ml-2 font-medium text-black">{bookingInfo.learnerName || "N/A"}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Booking Details */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Số buổi học:</span>
+                          <span className="ml-2 font-medium text-black">{bookingInfo.bookedSlots?.length || 0} buổi</span>
+                        </div>
+                        {bookingInfo.createdTime && (
+                          <div>
+                            <span className="text-gray-600">Ngày tạo booking:</span>
+                            <span className="ml-2 font-medium text-black">
+                              {new Date(bookingInfo.createdTime).toLocaleDateString('vi-VN')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Lesson Description */}
+                      {bookingInfo.lessonSnapshot?.description && (
+                        <div>
+                          <span className="text-gray-600">Mô tả khóa học:</span>
+                          <p className="mt-1 text-sm text-gray-800 bg-gray-50 p-2 rounded">
+                            {bookingInfo.lessonSnapshot.description}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -815,38 +875,100 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                 </div>
 
                 {/* Evidence URLs and Description */}
-                {displayDispute.evidenceUrls && displayDispute.evidenceUrls.length > 0 && (
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
-                      <FaPaperclip className="w-4 h-4" />
-                      Thông tin hỗ trợ
-                    </h4>
-                    <div className="space-y-2">
-                      {displayDispute.evidenceUrls.map((item, index) => {
-                        // Check if it's a URL
-                        const isUrl = item.startsWith('http://') || item.startsWith('https://');
-                        // Only show URL items, skip non-URL items like reasons
-                        if (!isUrl) return null;
-                        
-                        return (
-                          <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <FaLink className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                              <a
-                                href={item}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate"
-                              >
-                                {item}
-                              </a>
+                {(() => {
+                  // Debug logging for all possible evidence fields
+                  console.log("🔍 Evidence Debug - All fields:", {
+                    evidenceUrls: displayDispute.evidenceUrls,
+                    evidenceUrlsType: typeof displayDispute.evidenceUrls,
+                    evidenceUrlsLength: displayDispute.evidenceUrls?.length,
+                    evidenceUrlsArray: Array.isArray(displayDispute.evidenceUrls),
+                    // Check other possible fields
+                    evidence: displayDispute.evidence,
+                    evidenceLinks: displayDispute.evidenceLinks,
+                    supportInfo: displayDispute.supportInfo,
+                    attachments: displayDispute.attachments,
+                    // Check if there are any other fields that might contain URLs
+                    allKeys: Object.keys(displayDispute || {})
+                  });
+                  
+                  // Try multiple possible fields for evidence URLs
+                  let evidenceData = null;
+                  
+                  if (displayDispute.evidenceUrls && Array.isArray(displayDispute.evidenceUrls)) {
+                    evidenceData = displayDispute.evidenceUrls;
+                  } else if (displayDispute.evidence && Array.isArray(displayDispute.evidence)) {
+                    evidenceData = displayDispute.evidence;
+                  } else if (displayDispute.evidenceLinks && Array.isArray(displayDispute.evidenceLinks)) {
+                    evidenceData = displayDispute.evidenceLinks;
+                  } else if (displayDispute.attachments && Array.isArray(displayDispute.attachments)) {
+                    evidenceData = displayDispute.attachments;
+                  } else if (displayDispute.supportInfo && Array.isArray(displayDispute.supportInfo)) {
+                    evidenceData = displayDispute.supportInfo;
+                  }
+                  
+                  console.log("🔍 Evidence data found:", evidenceData);
+                  
+                  // Check if we have evidence data
+                  const hasEvidenceData = evidenceData && Array.isArray(evidenceData) && evidenceData.length > 0;
+                  
+                  if (!hasEvidenceData) {
+                    console.log("🔍 No evidence data found in any field");
+                    return null;
+                  }
+                  
+                  // Filter and map evidence URLs
+                  const validUrls = evidenceData.filter(item => {
+                    if (!item || typeof item !== 'string') return false;
+                    // More flexible URL detection
+                    const isUrl = item.startsWith('http://') || 
+                                 item.startsWith('https://') || 
+                                 item.startsWith('www.') ||
+                                 item.includes('.') && (item.includes('://') || item.includes('www.'));
+                    console.log("🔍 URL check:", { item, isUrl });
+                    return isUrl;
+                  });
+                  
+                  console.log("🔍 Valid URLs found:", validUrls);
+                  
+                  if (validUrls.length === 0) {
+                    console.log("🔍 No valid URLs found after filtering");
+                    return null;
+                  }
+                  
+                  return (
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                        <FaPaperclip className="w-4 h-4" />
+                        Thông tin hỗ trợ
+                      </h4>
+                      <div className="space-y-2">
+                        {validUrls.map((item, index) => {
+                          // Ensure URL has protocol
+                          let url = item;
+                          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                            url = url.startsWith('www.') ? `https://${url}` : `https://${url}`;
+                          }
+                          
+                          return (
+                            <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <FaLink className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate"
+                                >
+                                  {item}
+                                </a>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Timeline Information */}
                 <div className="bg-purple-50 rounded-lg p-4">

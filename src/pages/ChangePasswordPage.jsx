@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../utils/toastManager.js";
 import { 
   Box, 
   Card, 
@@ -99,16 +99,16 @@ function ChangePasswordPage() {
       const response = await forgotPassword(email);
       
       if (response && response.statusCode === 200) {
-        toast.success(response.message || "Đã gửi OTP đến email của bạn");
+        showSuccess(response.message || "Đã gửi OTP đến email của bạn");
         setStep(2);
         setCountdown(60); // Start 60 second countdown
         setCanResend(false);
       } else {
-        toast.error(response?.message || "Có lỗi xảy ra khi gửi OTP");
+        showError(response?.message || "Có lỗi xảy ra khi gửi OTP");
       }
     } catch (error) {
       console.error("Forgot password error:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi gửi OTP");
+      showError(error.message || "Có lỗi xảy ra khi gửi OTP");
     } finally {
       setIsLoading(false);
     }
@@ -123,15 +123,15 @@ function ChangePasswordPage() {
       const response = await forgotPassword(email);
       
       if (response && response.statusCode === 200) {
-        toast.success("Đã gửi lại OTP đến email của bạn");
+        showSuccess("Đã gửi lại OTP đến email của bạn");
         setCountdown(60);
         setCanResend(false);
       } else {
-        toast.error(response?.message || "Có lỗi xảy ra khi gửi lại OTP");
+        showError(response?.message || "Có lỗi xảy ra khi gửi lại OTP");
       }
     } catch (error) {
       console.error("Resend OTP error:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi gửi lại OTP");
+      showError(error.message || "Có lỗi xảy ra khi gửi lại OTP");
     } finally {
       setIsLoading(false);
     }
@@ -185,10 +185,10 @@ function ChangePasswordPage() {
       const response = await changePassword(email, otp, newPassword);
       
       if (response && response.statusCode === 200) {
-        toast.success("Đổi mật khẩu thành công");
+        showSuccess("Đổi mật khẩu thành công");
         navigate("/");
       } else {
-        toast.error(response?.message || "Có lỗi xảy ra khi đổi mật khẩu");
+        showError(response?.message || "Có lỗi xảy ra khi đổi mật khẩu");
       }
     } catch (error) {
       console.error("Change password error:", error);
@@ -208,9 +208,9 @@ function ChangePasswordPage() {
           setPasswordError(passwordErrors[0]);
         }
         
-        toast.error("Vui lòng kiểm tra lại thông tin");
+        showError("Vui lòng kiểm tra lại thông tin");
       } else {
-        toast.error(error.message || "Có lỗi xảy ra khi đổi mật khẩu");
+        showError(error.message || "Có lỗi xảy ra khi đổi mật khẩu");
       }
     } finally {
       setIsLoading(false);

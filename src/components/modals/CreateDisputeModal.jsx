@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaExclamationTriangle, FaPaperclip, FaTimes, FaUpload, FaTrash, FaLink, FaPlus } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import { createDispute } from "../api/auth";
 import LegalDocumentModal from "./LegalDocumentModal";
 
@@ -73,12 +73,12 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
 
   const addEvidence = () => {
     if (!newUrl.trim()) {
-      toast.error("Vui lòng nhập thông tin");
+      showError("Vui lòng nhập thông tin");
       return;
     }
 
     if (formData.evidenceUrls.includes(newUrl.trim())) {
-      toast.error("Thông tin này đã được thêm");
+      showError("Thông tin này đã được thêm");
       return;
     }
 
@@ -102,17 +102,17 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
       const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
       
       if (!isValidType) {
-        toast.error(`File ${file.name} không được hỗ trợ. Chỉ chấp nhận: JPG, PNG, GIF, PDF, MP4`);
+        showError(`File ${file.name} không được hỗ trợ. Chỉ chấp nhận: JPG, PNG, GIF, PDF, MP4`);
       }
       if (!isValidSize) {
-        toast.error(`File ${file.name} quá lớn. Kích thước tối đa: 10MB`);
+        showError(`File ${file.name} quá lớn. Kích thước tối đa: 10MB`);
       }
       
       return isValidType && isValidSize;
     });
 
     if (validFiles.length + formData.evidence.length > 5) {
-      toast.error("Tối đa 5 file được phép upload");
+      showError("Tối đa 5 file được phép upload");
       return;
     }
 
@@ -171,12 +171,12 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
 
       await createDispute(disputeData);
       
-      toast.success("Báo cáo đã được gửi thành công!");
+      showSuccess("Báo cáo đã được gửi thành công!");
       onSuccess?.();
       handleClose();
       
     } catch (error) {
-      toast.error(error.message || "Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại.");
+      showError(error.message || "Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }

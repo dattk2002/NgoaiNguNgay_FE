@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createDepositRequest, fetchBankAccounts as apiFetchBankAccounts, createWithdrawalRequest, fetchSystemFeeByCode } from '../api/auth';
-import { toast } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import formatPriceInputWithCommas from "../../utils/formatPriceInputWithCommas";
 
 const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
@@ -95,7 +95,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       }
     } catch (error) {
       console.error('Failed to fetch bank accounts:', error);
-      toast.error('Không thể tải danh sách tài khoản ngân hàng');
+      showError('Không thể tải danh sách tài khoản ngân hàng');
       setBankAccounts([]);
     } finally {
       setLoadingBankAccounts(false);
@@ -111,12 +111,12 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
 
   const handleDeposit = async () => {
     if (!amount || parseInt(amount.replace(/,/g, '')) <= 0) {
-      toast.error('Vui lòng nhập số tiền hợp lệ');
+      showError('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
     if (parseInt(amount.replace(/,/g, '')) < 10000) {
-              toast.error('Số tiền nạp tối thiểu là 10,000 VNĐ');
+              showError('Số tiền nạp tối thiểu là 10,000 VNĐ');
       return;
     }
 
@@ -137,7 +137,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       }
     } catch (error) {
       console.error('Deposit failed:', error);
-      toast.error(`Lỗi tạo yêu cầu nạp tiền: ${error.message}`);
+      showError(`Lỗi tạo yêu cầu nạp tiền: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -145,12 +145,12 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
 
   const handleWithdraw = async () => {
     if (!amount || parseInt(amount.replace(/,/g, '')) <= 0) {
-      toast.error('Vui lòng nhập số tiền hợp lệ');
+      showError('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
     if (parseInt(amount.replace(/,/g, '')) < 50000) {
-              toast.error('Số tiền rút tối thiểu là 50,000 VNĐ');
+              showError('Số tiền rút tối thiểu là 50,000 VNĐ');
       return;
     }
 
@@ -159,12 +159,12 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
     const totalDeduction = parseInt(amount.replace(/,/g, '')) + withdrawalDetails.feeAmount;
 
     if (totalDeduction > currentBalance) {
-      toast.error(`Số dư không đủ để thực hiện giao dịch. Cần ${formatCurrency(totalDeduction)} (bao gồm phí ${withdrawalDetails.feeDisplay})`);
+      showError(`Số dư không đủ để thực hiện giao dịch. Cần ${formatCurrency(totalDeduction)} (bao gồm phí ${withdrawalDetails.feeDisplay})`);
       return;
     }
 
     if (!selectedBankAccountId) {
-      toast.error('Vui lòng chọn tài khoản ngân hàng nhận tiền');
+      showError('Vui lòng chọn tài khoản ngân hàng nhận tiền');
       return;
     }
 
@@ -179,7 +179,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       const response = await createWithdrawalRequest(withdrawalData);
       
       if (response) {
-        toast.success('Yêu cầu rút tiền đã được gửi thành công! Chúng tôi sẽ xử lý trong vòng 1-3 ngày làm việc.');
+        showSuccess('Yêu cầu rút tiền đã được gửi thành công! Chúng tôi sẽ xử lý trong vòng 1-3 ngày làm việc.');
         
         // Reset form
         setAmount('');
@@ -192,7 +192,7 @@ const DepositWithdraw = ({ onBalanceUpdate, currentBalance }) => {
       }
     } catch (error) {
       console.error('Withdraw failed:', error);
-      toast.error(`Lỗi tạo yêu cầu rút tiền: ${error.message}`);
+      showError(`Lỗi tạo yêu cầu rút tiền: ${error.message}`);
     } finally {
       setLoading(false);
     }

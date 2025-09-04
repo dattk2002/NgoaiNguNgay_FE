@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import { Skeleton } from "@mui/material";
 import { 
   createRescheduleRequests,
@@ -199,7 +199,7 @@ const RescheduleUpdateModal = ({
   // Cập nhật hàm handleSlotClick để chỉ chọn 1 slot
   const handleSlotClick = (dayInWeek, slotIndex) => {
     if (!canSelectSlot(dayInWeek, slotIndex)) {
-      toast.error("Chỉ có thể chọn lịch có sẵn để thay đổi");
+      showError("Chỉ có thể chọn lịch có sẵn để thay đổi");
       return;
     }
 
@@ -296,7 +296,7 @@ const RescheduleUpdateModal = ({
 
       } catch (error) {
         console.error("Error loading tutor data:", error);
-        toast.error("Không thể tải dữ liệu lịch trình");
+        showError("Không thể tải dữ liệu lịch trình");
       } finally {
         setLessonLoading(false);
       }
@@ -350,12 +350,12 @@ const RescheduleUpdateModal = ({
     }
 
     if (!selectedSlot) {
-      toast.error("Vui lòng chọn ít nhất một khung giờ để thay đổi");
+      showError("Vui lòng chọn ít nhất một khung giờ để thay đổi");
       return;
     }
 
     if (!selectedOriginalSlot) {
-      toast.error("Vui lòng chọn slot gốc để thay đổi");
+      showError("Vui lòng chọn slot gốc để thay đổi");
       return;
     }
 
@@ -384,11 +384,11 @@ const RescheduleUpdateModal = ({
       const response = await createRescheduleRequests(request);
       
       if (response) {
-        toast.success("Đã gửi yêu cầu thay đổi lịch thành công!");
+        showSuccess("Đã gửi yêu cầu thay đổi lịch thành công!");
         onSuccess && onSuccess();
         onClose();
       } else {
-        toast.error("Không thể tạo yêu cầu thay đổi lịch. Vui lòng thử lại!");
+        showError("Không thể tạo yêu cầu thay đổi lịch. Vui lòng thử lại!");
       }
     } catch (error) {
       console.error("❌ Error creating reschedule request:", error);
@@ -402,7 +402,7 @@ const RescheduleUpdateModal = ({
         errorMessage = error.message;
       }
       
-      toast.error(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }

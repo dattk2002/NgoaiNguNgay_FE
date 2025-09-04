@@ -13,7 +13,7 @@ import {
   FaFilter,
   FaSearch
 } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import { fetchAllDisputes, updateDisputeStatus } from "../api/auth";
 import DisputeDetailModal from "../modals/DisputeDetailModal";
 
@@ -63,7 +63,7 @@ const DisputeManagement = () => {
       });
     } catch (error) {
       console.error("Error loading disputes:", error);
-      toast.error("Không thể tải danh sách báo cáo. Vui lòng thử lại!");
+      showError("Không thể tải danh sách báo cáo. Vui lòng thử lại!");
       setDisputes([]);
     } finally {
       setLoading(false);

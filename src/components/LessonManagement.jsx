@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
+import { showSuccess, showError } from "../utils/toastManager.js";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchLearnerBookings, fetchLearnerDisputes, learnerCancelBookingByBookingId, fetchBookingDetail, viewRescheduleRequests, viewRescheduleRequestDetailByRequestId, learnerAcceptRescheduleRequest, learnerRejectRescheduleRequest } from "./api/auth";
 import { formatCentralTimestamp, formatUTC0ToUTC7, convertBookingDetailToUTC7 } from "../utils/formatCentralTimestamp";
@@ -142,7 +142,7 @@ const LessonManagement = () => {
       }
     } catch (error) {
       console.error("Failed to fetch reschedule request details:", error);
-      toast.error("Không thể tải chi tiết yêu cầu thay đổi lịch");
+      showError("Không thể tải chi tiết yêu cầu thay đổi lịch");
     } finally {
       setLoadingRescheduleDetails(prev => {
         const newSet = new Set(prev);
@@ -164,10 +164,10 @@ const LessonManagement = () => {
       await fetchRescheduleRequests();
       
       // Show success message
-      toast.success("Đã chấp nhận thay đổi lịch thành công!");
+      showSuccess("Đã chấp nhận thay đổi lịch thành công!");
     } catch (error) {
       console.error("Failed to accept reschedule request:", error);
-      toast.error("Không thể chấp nhận thay đổi lịch. Vui lòng thử lại!");
+      showError("Không thể chấp nhận thay đổi lịch. Vui lòng thử lại!");
     }
   };
 
@@ -181,10 +181,10 @@ const LessonManagement = () => {
       await fetchRescheduleRequests();
       
       // Show success message
-      toast.success("Đã từ chối thay đổi lịch thành công!");
+      showSuccess("Đã từ chối thay đổi lịch thành công!");
     } catch (error) {
       console.error("Failed to reject reschedule request:", error);
-      toast.error("Không thể từ chối thay đổi lịch. Vui lòng thử lại!");
+      showError("Không thể từ chối thay đổi lịch. Vui lòng thử lại!");
     }
   };
 
@@ -407,7 +407,7 @@ const LessonManagement = () => {
       setLessons([]);
       setTotalCount(0);
       setOriginalTotalCount(0);
-      toast.error("Không thể tải danh sách buổi học. Vui lòng thử lại sau.");
+      showError("Không thể tải danh sách buổi học. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -490,7 +490,7 @@ const LessonManagement = () => {
     // Pending = 0, AwaitingPayout = 1, Completed = 2, Cancelled = 3, CancelledDisputed = 4
     const statusMap = {
       0: { label: "Đang chờ diễn ra", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-      1: { label: "Đang chờ thanh toán cho gia sư", class: "bg-blue-50 text-blue-700 border border-blue-200" },
+      1: { label: "Đang chờ hệ thống thanh toán cho gia sư", class: "bg-blue-50 text-blue-700 border border-blue-200" },
       2: { label: "Hoàn thành", class: "bg-green-50 text-green-700 border border-green-200" },
       3: { label: "Đã hủy", class: "bg-red-50 text-red-700 border border-red-200" },
       4: { label: "Đã hủy do tranh chấp", class: "bg-orange-50 text-orange-700 border border-orange-200" }
@@ -558,7 +558,7 @@ const LessonManagement = () => {
         lessonData: null,
         error: `Không thể tải thông tin khóa học "${booking.lessonName || 'Khóa học'}". Lỗi: ${error.message}`
       });
-      toast.error(`Không thể tải thông tin khóa học: ${error.message}`);
+      showError(`Không thể tải thông tin khóa học: ${error.message}`);
     } finally {
       setLoadingLessonInfo(false);
     }
@@ -572,7 +572,7 @@ const LessonManagement = () => {
     const handleCreateDispute = (slot) => {
       // Kiểm tra slot đã hoàn thành chưa (status = 1: AwaitingPayout)
       if (slot.status !== 1) {
-        toast.error("Chỉ có thể báo cáo slot đã hoàn thành!");
+        showError("Chỉ có thể báo cáo slot đã hoàn thành!");
         return;
       }
     
@@ -589,7 +589,7 @@ const LessonManagement = () => {
   const handleDisputeSuccess = () => {
     // Refresh disputes list after successful creation
     fetchDisputes();
-    toast.success("Báo cáo đã được gửi thành công!");
+    // Toast success is already shown in CreateDisputeModal, no need to show again
   };
 
   // Modal animation variants
@@ -1522,7 +1522,7 @@ const LessonManagement = () => {
           <Button 
             onClick={async () => {
               if (!selectedBookingForCancel || !cancelReason.trim()) {
-                toast.error("Vui lòng nhập lý do hủy booking!");
+                showError("Vui lòng nhập lý do hủy booking!");
                 return;
               }
               try {
@@ -1539,7 +1539,7 @@ const LessonManagement = () => {
                 
                 // Show success toast after a small delay
                 setTimeout(() => {
-                  toast.success("Đã hủy booking thành công!");
+                  showSuccess("Đã hủy booking thành công!");
                 }, 100);
                 
               } catch (error) {
@@ -1554,7 +1554,7 @@ const LessonManagement = () => {
                   errorMessage = error.message;
                 }
                 
-                toast.error(errorMessage);
+                showError(errorMessage);
               } finally {
                 setCancellingBooking(false);
               }
@@ -1581,16 +1581,6 @@ const LessonManagement = () => {
         category="hủy booking"
       />
 
-      {/* ToastContainer for notifications */}
-      <ToastContainer 
-        position="top-right" 
-        autoClose={4000}
-        hideProgressBar={false}
-        closeOnClick={true}
-        pauseOnHover={true}
-        draggable={true}
-        theme="light"
-      />
     </div>
   );
 };

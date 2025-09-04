@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../utils/toastManager.js";
 import {
   getAllLegalDocumentCategories,
   getLegalDocumentByCategory,
@@ -61,7 +61,7 @@ const LegalDocumentsPage = () => {
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error);
-      toast.error("Không thể tải danh mục tài liệu pháp lý");
+      showError("Không thể tải danh mục tài liệu pháp lý");
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ const LegalDocumentsPage = () => {
       setHasMore(documentsData.length === 10);
     } catch (error) {
       console.error("Failed to fetch documents:", error);
-      toast.error("Không thể tải tài liệu pháp lý");
+      showError("Không thể tải tài liệu pháp lý");
     } finally {
       setLoadingDocuments(false);
     }
