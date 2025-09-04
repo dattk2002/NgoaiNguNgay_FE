@@ -960,24 +960,6 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                         />
                       )}
                     </Box>
-                    {unreadCount > 0 && (
-                      <Tooltip title="Đánh dấu đã đọc tất cả" arrow>
-                        <IconButton
-                          size="small"
-                          onClick={markAllAsRead}
-                          sx={{
-                            color: "primary.main",
-                            flexShrink: 0,
-                            "&:hover": {
-                              backgroundColor: "primary.light",
-                              color: "white",
-                            },
-                          }}
-                        >
-                          <FaCheckDouble />
-                        </IconButton>
-                      </Tooltip>
-                    )}
                   </Box>
 
                   {/* Content */}
