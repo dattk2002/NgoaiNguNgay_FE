@@ -691,7 +691,7 @@ const TutorLanguageList = () => {
             description: t.description || "No description available.",
             price: t.price || "N/A", // Assuming price is directly available in the API response
             availabilityText: "Availability not specified",
-            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            videoUrl: t.videoUrl || null, // Use actual videoUrl from API or null
             introductionVideoUrl: t.introductionVideoUrl, // Add introductionVideoUrl from API
             availabilityGrid: [],
             badges: [],

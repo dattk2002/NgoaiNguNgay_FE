@@ -321,12 +321,27 @@ const TutorCard = memo(
           >
             {/* Video Player */}
             <div className="mb-4">
-              <VideoPlayer 
-                videoUrl={hoveredTutor.introductionVideoUrl || hoveredTutor.videoUrl}
-                width="100%"
-                height="225"
-                title={`Video giới thiệu của ${hoveredTutor.name}`}
-              />
+              {(hoveredTutor.introductionVideoUrl || hoveredTutor.videoUrl) ? (
+                <VideoPlayer 
+                  videoUrl={hoveredTutor.introductionVideoUrl || hoveredTutor.videoUrl}
+                  width="100%"
+                  height="225"
+                  title={`Video giới thiệu của ${hoveredTutor.name}`}
+                />
+              ) : (
+                <div className="relative rounded-lg overflow-hidden bg-gray-100 h-[225px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="mx-auto h-12 w-12 text-gray-400 mb-3">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-600 text-sm font-medium">
+                      Gia sư này không có video giới thiệu
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
             {/* Availability Grid */}
             <div className="grid grid-cols-8 text-center p-4">
