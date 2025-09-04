@@ -611,7 +611,6 @@ function AppWithNotifications() {
 
   // Handle notifications globally with detailed debugging
   useEffect(() => {
-    
     if (process.env.NODE_ENV === 'development') {
       console.log("📨 Notification triggered:", !!notification);
     }
