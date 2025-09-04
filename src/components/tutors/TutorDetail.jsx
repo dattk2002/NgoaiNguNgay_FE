@@ -194,7 +194,7 @@ const TutorDetail = ({ user, onRequireLogin }) => {
            certifications: apiTeacherData.hashtags.map(
              (hashtag) => hashtag.name
            ), // Get from API hashtags
-           videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Mocked
+           videoUrl: apiTeacherData.videoUrl || null, // Use actual videoUrl from API or null
            introductionVideoUrl: apiTeacherData.introductionVideoUrl, // Add introductionVideoUrl from API
            price: 10.0, // Mocked - Use a default or handle null if price is in API later
            responseRate: "95%", // Mocked
@@ -870,10 +870,10 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                               </svg>
                             </div>
                             <h4 className="text-lg font-medium text-gray-900 mb-2">
-                              Chưa có video giới thiệu
+                              Gia sư này không có video giới thiệu
                             </h4>
                             <p className="text-gray-500 text-sm">
-                              Gia sư này chưa tải lên video giới thiệu hoặc video đang chờ phê duyệt.
+                              Gia sư này chưa tải lên video giới thiệu.
                             </p>
                           </div>
                         )}
@@ -889,14 +889,29 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         <div className="w-full md:w-[350px] flex-shrink-0 md:ml-0 mt-8 md:mt-0">
           <div className="md:sticky md:top-8">
             <div className="bg-white rounded-2xl shadow-lg p-4">
-                             <div className="relative rounded-lg overflow-hidden">
-                 <VideoPlayer 
-                   videoUrl={teacher.introductionVideoUrl || teacher.videoUrl}
-                   width="100%"
-                   height="200"
-                   title={`Video giới thiệu của ${teacher.name}`}
-                 />
-               </div>
+              {(teacher.introductionVideoUrl || teacher.videoUrl) ? (
+                <div className="relative rounded-lg overflow-hidden">
+                  <VideoPlayer 
+                    videoUrl={teacher.introductionVideoUrl || teacher.videoUrl}
+                    width="100%"
+                    height="200"
+                    title={`Video giới thiệu của ${teacher.name}`}
+                  />
+                </div>
+              ) : (
+                <div className="relative rounded-lg overflow-hidden bg-gray-100 h-[200px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="mx-auto h-12 w-12 text-gray-400 mb-3">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-600 text-sm font-medium">
+                      Gia sư này không có video giới thiệu
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="mt-4">
                 <p className="text-gray-800 font-semibold text-sm">
                   {(() => {

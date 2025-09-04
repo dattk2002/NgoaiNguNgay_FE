@@ -338,60 +338,6 @@ const TransactionSummary = () => {
                 </div>
             </div>
 
-            {/* Transaction Types and Status */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Transaction Types */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Loại giao dịch</h3>
-                    <div className="space-y-3">
-                        {metadata.TransactionType?.map((type, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center">
-                                    <div className={`w-3 h-3 rounded-full mr-3 ${
-                                        type.numericValue === 0 ? 'bg-green-500' :
-                                        type.numericValue === 1 ? 'bg-red-500' :
-                                        type.numericValue === 2 ? 'bg-blue-500' :
-                                        type.numericValue === 3 ? 'bg-yellow-500' :
-                                        type.numericValue === 4 ? 'bg-indigo-500' : 'bg-orange-500'
-                                    }`}></div>
-                                    <div>
-                                        <div className="text-sm font-medium text-gray-900">{type.name}</div>
-                                        <div className="text-xs text-gray-500">{type.description}</div>
-                                    </div>
-                                </div>
-                                <div className="text-sm font-medium text-gray-600">
-                                    #{type.numericValue}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Transaction Status */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Trạng thái giao dịch</h3>
-                    <div className="space-y-3">
-                        {metadata.TransactionStatus?.map((status, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center">
-                                    <div className={`w-3 h-3 rounded-full mr-3 ${
-                                        status.numericValue === 0 ? 'bg-yellow-500' :
-                                        status.numericValue === 1 ? 'bg-green-500' : 'bg-red-500'
-                                    }`}></div>
-                                    <div>
-                                        <div className="text-sm font-medium text-gray-900">{status.name}</div>
-                                        <div className="text-xs text-gray-500">{status.description}</div>
-                                    </div>
-                                </div>
-                                <div className="text-sm font-medium text-gray-600">
-                                    #{status.numericValue}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
             {/* Transaction Summary Components Explanation */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Giải thích các thành phần tổng hợp giao dịch</h3>
