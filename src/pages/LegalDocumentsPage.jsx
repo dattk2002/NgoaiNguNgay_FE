@@ -128,7 +128,7 @@ const LegalDocumentsPage = () => {
 
   const getCategoryIcon = (category) => {
     const categoryLower = category.toLowerCase();
-    if (categoryLower.includes("book") || categoryLower.includes("thẳng"))
+    if (categoryLower.includes("book") || categoryLower.includes("nhanh"))
       return <FaBookOpen />;
     if (
       categoryLower.includes("chính sách") ||

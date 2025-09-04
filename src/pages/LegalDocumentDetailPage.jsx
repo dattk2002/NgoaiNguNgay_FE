@@ -137,7 +137,7 @@ const LegalDocumentDetailPage = () => {
 
   const getCategoryIcon = (category) => {
     const categoryLower = category?.toLowerCase();
-    if (categoryLower?.includes('book') || categoryLower?.includes('thẳng')) return <FaBookOpen />;
+    if (categoryLower?.includes('book') || categoryLower?.includes('nhanh')) return <FaBookOpen />;
     if (categoryLower?.includes('chính sách') || categoryLower?.includes('policy')) return <FaShieldAlt />;
     if (categoryLower?.includes('luật') || categoryLower?.includes('law')) return <FaGavel />;
     if (categoryLower?.includes('quy định') || categoryLower?.includes('regulation')) return <FaBalanceScale />;
