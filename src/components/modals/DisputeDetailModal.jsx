@@ -339,8 +339,8 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
   const getReasonLabel = (reason) => {
     // Map reason dài về label ngắn
     const reasonMap = {
-      "Giáo viên vắng mặt không thông báo trước": "Vắng mặt",
-      "Giáo viên đến muộn quá 15 phút": "Trễ",
+      "Giáo viên vắng mặt": "Vắng mặt",
+      "Giáo viên đến muộn": "Trễ",
       "Vấn đề khác cần báo cáo": "Khác"
     };
     return reasonMap[reason] || reason || "Không xác định";
@@ -796,7 +796,7 @@ const DisputeDetailModal = ({ isOpen, onClose, dispute, disputeId, isTutorView =
                         <div>
                           <span className="text-gray-600">Giá mỗi buổi:</span>
                           <span className="ml-2 font-medium text-orange-600">
-                            {bookingInfo.lessonSnapshot?.price ? `${bookingInfo.lessonSnapshot.price.toLocaleString('vi-VN')}đ` : "N/A"}
+                            {bookingInfo.lessonSnapshot?.price ? `${bookingInfo.lessonSnapshot.price.toLocaleString('vi-VN')}VNĐ` : "N/A"}
                           </span>
                         </div>
                         <div>

@@ -23,8 +23,8 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
   const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
 
   const disputeReasons = [
-    { value: "Giáo viên vắng mặt không thông báo trước", label: "Vắng mặt" },
-    { value: "Giáo viên đến muộn quá 15 phút", label: "Trễ" },
+    { value: "Giáo viên vắng mặt", label: "Vắng mặt" },
+    { value: "Giáo viên đến muộn", label: "Trễ" },
     { value: "Vấn đề khác cần báo cáo", label: "Khác" }
   ];
 
