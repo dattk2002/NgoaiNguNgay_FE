@@ -346,9 +346,19 @@ const TutorManagement = () => {
                 )
             );
 
+            // Close all modals
             setShowApproveModal(false);
+            setSelectedTutor(null);
+            setSelectedTutorDetails(null);
             setReviewingTutor(null);
             setReviewNotes('');
+
+            // Update overall statistics
+            setOverallStatistics(prev => ({
+                ...prev,
+                pending: prev.pending - 1,
+                approved: prev.approved + 1
+            }));
 
             showSuccess('Đã phê duyệt hồ sơ gia sư thành công!');
         } catch (error) {
@@ -378,9 +388,19 @@ const TutorManagement = () => {
                 )
             );
 
+            // Close all modals
             setShowRejectModal(false);
+            setSelectedTutor(null);
+            setSelectedTutorDetails(null);
             setReviewingTutor(null);
             setReviewNotes('');
+
+            // Update overall statistics
+            setOverallStatistics(prev => ({
+                ...prev,
+                pending: prev.pending - 1,
+                rejected: prev.rejected + 1
+            }));
 
             showSuccess('Đã từ chối hồ sơ gia sư!');
         } catch (error) {
@@ -410,9 +430,19 @@ const TutorManagement = () => {
                 )
             );
 
+            // Close all modals
             setShowInfoRequestModal(false);
+            setSelectedTutor(null);
+            setSelectedTutorDetails(null);
             setReviewingTutor(null);
             setReviewNotes('');
+
+            // Update overall statistics
+            setOverallStatistics(prev => ({
+                ...prev,
+                pending: prev.pending - 1,
+                needInfo: prev.needInfo + 1
+            }));
 
             showSuccess('Đã yêu cầu bổ sung thông tin!');
         } catch (error) {
