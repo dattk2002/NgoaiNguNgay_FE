@@ -136,7 +136,9 @@ import RoleBasedRouteGuard from "./components/rbac/RoleBasedRouteGuard";
 import { NotificationProvider, useNotification } from "./contexts/NotificationContext";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
-
+import { setupCacheCleanup } from "./utils/notificationMessages";
+import { initMemoryMonitoring } from "./utils/memoryManager";
+import { cleanupMemory } from "./utils/memoryManager";
 // Import optimized functions
 import {
   getNotificationTitle,
