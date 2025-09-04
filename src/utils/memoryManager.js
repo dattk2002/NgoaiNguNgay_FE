@@ -38,6 +38,22 @@ export const cleanupMemory = () => {
   if (typeof clearNotificationCache === 'function') {
     clearNotificationCache();
   }
+
+  // Reset counters with accurate values if possible
+  memoryUsage = { notifications: 0, cache: 0, objects: 0 };
+  
+  // Try to force garbage collection in Node.js environments
+  if (typeof global !== 'undefined' && global.gc) {
+    global.gc();
+  }
+};
+
+// Initialize memory monitoring
+export const initMemoryMonitoring = () => {
+  // Clear existing interval if any
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
  // Set new interval
  cleanupInterval = setInterval(cleanupMemory, 5 * 60 * 1000);
    // Try to force garbage collection in Node.js environments

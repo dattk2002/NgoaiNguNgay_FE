@@ -129,7 +129,6 @@ export const parseAdditionalData = (jsonString, cacheKey) => {
     
     // Cache the result with timestamp
     if (additionalDataCache.size >= CACHE_SIZE_LIMIT) {
-      // Remove oldest entries if cache is full
       // Find oldest entry to remove
       let oldestKey = null;
       let oldestTime = Infinity;
@@ -183,19 +182,19 @@ export const setupCacheCleanup = () => {
   const cleanupInterval = setInterval(() => {
     const now = Date.now();
     let cleanupCount = 0;
-
+    
     for (const [key, entry] of additionalDataCache.entries()) {
       if (now - entry.timestamp > CACHE_TTL) {
         additionalDataCache.delete(key);
         cleanupCount++;
       }
     }
-
+    
     if (cleanupCount > 0) {
       console.log(`Cache cleanup: removed ${cleanupCount} expired entries`);
     }
   }, 5 * 60 * 1000); // Run every 5 minutes
-
+  
   return () => clearInterval(cleanupInterval); // Return cleanup function
 };
 

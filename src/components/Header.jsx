@@ -283,16 +283,9 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
              .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
          });
 
-        // Convert back to array and sort by timestamp (newest first)
-        const mergedNotifications = Array.from(notificationMap.values()).sort(
-          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-        );
-
-        setNotifications(mergedNotifications);
-
-        // Calculate unread count
-        const unread = mergedNotifications.filter((n) => !n.isRead).length;
-        setUnreadCount(unread);
+         const unread = processedBatch.filter(n => !n.isRead).length;
+         setUnreadCount(prev => Math.max(0, prev + unread));
+        
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -301,6 +294,93 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
       setLoadingNotifications(false);
     }
   };
+
+  // Process notifications in batches
+  const processBatch = async (notifications) => {
+    const result = [];
+    const batchSize = 5;
+    
+    for (let i = 0; i < notifications.length; i += batchSize) {
+      const batch = notifications.slice(i, i + batchSize);
+      
+      // Process each notification in the batch
+      const processed = await Promise.all(batch.map(async (notif) => {
+        // Extract minimal data to avoid memory bloat
+        let senderId = null;
+        
+        if (notif.additionalData) {
+          try {
+            // Use optimized parseAdditionalData with TTL
+            const additionalData = parseAdditionalData(
+              notif.additionalData, 
+              `notif_${notif.id}`
+            );
+            senderId = additionalData.SenderId;
+          } catch (e) {
+            console.warn("Failed to parse additionalData", e);
+          }
+        }
+        
+        // Only fetch profile if not already cached
+        let senderProfile = senderId ? senderProfiles[senderId] : null;
+        if (senderId && !senderProfile) {
+          try {
+            senderProfile = await getSenderProfile(senderId);
+            if (senderProfile) {
+              setSenderProfiles(prev => ({
+                ...prev,
+                [senderId]: senderProfile
+              }));
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch profile: ${senderId}`, error);
+          }
+        }
+        
+        // Use utility functions to get standardized messages
+        return {
+          id: notif.id,
+          title: getNotificationTitle(notif.title),
+          message: getNotificationContent(notif.content),
+          timestamp: notif.createdAt || new Date().toISOString(),
+          isRead: notif.isRead || false,
+          type: notif.type || "info",
+          senderId
+        };
+      }));
+      
+      result.push(...processed);
+      
+      // Yield to main thread to avoid UI blocking
+      if (i + batchSize < notifications.length) {
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    
+    return result;
+  };
+
+  // Cleanup on user logout or component unmount
+  useEffect(() => {
+    // Setup listeners and fetch initial data
+    
+    return () => {
+      // Clear cached data
+      setSenderProfiles({});
+      setNotifications([]);
+      
+      // Clear local storage for this user
+      if (user && user.id) {
+        const storageKey = `notifications_${user.id}`;
+        localStorage.removeItem(storageKey);
+      }
+      
+      // Signal memory cleanup
+      if (typeof window.cleanupMemory === 'function') {
+        window.cleanupMemory();
+      }
+    };
+  }, [user?.id]);
 
   // Fetch notifications when user is available
   useEffect(() => {
