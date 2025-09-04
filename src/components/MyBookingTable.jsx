@@ -222,6 +222,7 @@ export default function MyBookingTable({
   
   // Add legal document modal state
   const [showLegalDocumentModal, setShowLegalDocumentModal] = React.useState(false);
+  const [agreedToTerms, setAgreedToTerms] = React.useState(false);
 
   // Handler to open dialog and fetch booking detail
   const handleOpenBookingDetail = async (tutorId, tutorBookingOfferId) => {
@@ -268,6 +269,7 @@ export default function MyBookingTable({
   const handleCloseDialog = () => {
     setBookingDetailDialogOpen(false);
     setCurrentWeekOffset(0); // Reset week offset when closing dialog
+    setAgreedToTerms(false); // Reset checkbox when closing dialog
     navigate("/my-bookings");
   };
 
@@ -283,6 +285,7 @@ export default function MyBookingTable({
     try {
       await acceptLearnerBookingOffer(offerDetail.id);
       showSuccess("Đã chấp nhận đề xuất thành công!");
+      setAgreedToTerms(false); // Reset checkbox after successful acceptance
       handleCloseDialog();
       // Call the refresh callback instead of reloading the page
       if (onRefreshRequests) {
@@ -1105,18 +1108,35 @@ export default function MyBookingTable({
               )}
             </Box>
           )}
+
+          {/* Agreement Checkbox */}
+          <Box sx={{ mt: 3, display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <Typography variant="body2" sx={{ color: "#374151" }}>
+              Tôi đồng ý với Điều khoản dịch vụ và Chính sách
+            </Typography>
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmAcceptOpen(false)} disabled={acceptingOffer}>
+          <Button onClick={() => {
+            setConfirmAcceptOpen(false);
+            setAgreedToTerms(false);
+          }} disabled={acceptingOffer}>
             Hủy
           </Button>
           <Button 
             onClick={handleConfirmAccept} 
             variant="contained"
-            disabled={acceptingOffer}
+            disabled={acceptingOffer || !agreedToTerms}
             sx={{ 
               bgcolor: "#10b981", 
-              "&:hover": { bgcolor: "#059669" }
+              "&:hover": { bgcolor: "#059669" },
+              "&:disabled": { bgcolor: "#9ca3af" }
             }}
           >
             {acceptingOffer ? "Đang xử lý..." : "Chấp nhận"}

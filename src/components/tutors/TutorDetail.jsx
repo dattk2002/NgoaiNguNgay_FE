@@ -801,19 +801,21 @@ const TutorDetail = ({ user, onRequireLogin }) => {
                             </span>
                           ))}
                         </p>
-                        <Collapse in={showFullAboutMe} collapsedSize={80}>
-                          <p className="text-gray-700 text-sm mt-4 leading-relaxed line-clamp-3 break-words">
+                        <div className="mt-4">
+                          <p className={`text-gray-700 text-sm leading-relaxed break-words ${
+                            !showFullAboutMe ? 'line-clamp-3' : ''
+                          }`}>
                             {tutorDescription}
                           </p>
-                        </Collapse>
-                        {tutorDescription && tutorDescription.length > 10 && (
-                          <div
-                            onClick={() => setShowFullAboutMe(!showFullAboutMe)}
-                            className="text-blue-600 text-sm mt-2 hover:underline"
-                          >
-                            {showFullAboutMe ? "Ẩn bớt" : "Đọc thêm"}
-                          </div>
-                        )}
+                          {tutorDescription && tutorDescription.length > 100 && (
+                            <div
+                              onClick={() => setShowFullAboutMe(!showFullAboutMe)}
+                              className="text-blue-600 text-sm mt-2 hover:underline cursor-pointer"
+                            >
+                              {showFullAboutMe ? "Ẩn bớt" : "Đọc thêm"}
+                            </div>
+                          )}
+                        </div>
                       </>
                     )}
                     {activeTab === 1 && (

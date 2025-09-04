@@ -21,6 +21,7 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
   
   // Add legal document modal state
   const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const disputeReasons = [
     { value: "Giáo viên vắng mặt", label: "Vắng mặt" },
@@ -50,6 +51,10 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
 
     if (!formData.reason) {
       newErrors.reason = "Vui lòng chọn lý do báo cáo";
+    }
+
+    if (!agreedToTerms) {
+      newErrors.terms = "Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách";
     }
 
     // Bỏ validation description vì server sẽ validate evidenceUrls
@@ -338,7 +343,7 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
                 />
                 <div className="flex justify-between items-center mt-1">
                   {/* Bỏ validation error display */}
-                  <p className="text-sm text-gray-500 ml-auto text-black">
+                  <p className="text-sm text-gray-500 ml-auto">
                     {formData.description.length}/500
                   </p>
                 </div>
@@ -445,6 +450,25 @@ const CreateDisputeModal = ({ isOpen, onClose, bookingData, booking, onSuccess }
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Agreement Checkbox */}
+              <div className="mt-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="agreeTerms"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <label htmlFor="agreeTerms" className="text-sm text-gray-700">
+                    Tôi đồng ý với Điều khoản dịch vụ và Chính sách
+                  </label>
+                </div>
+                {errors.terms && (
+                  <p className="text-red-500 text-xs mt-1">{errors.terms}</p>
+                )}
               </div>
 
               {/* Submit Button */}

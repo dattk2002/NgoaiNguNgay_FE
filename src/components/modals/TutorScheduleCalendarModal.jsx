@@ -15,6 +15,7 @@ import { fetchTutorScheduleToOfferAndBook } from "../api/auth";
 import { createTutorBookingOffer } from "../api/auth";
 import { fetchTutorLesson } from "../api/auth";
 import { convertUTC7ToUTC0 } from "../../utils/formatCentralTimestamp";
+import LegalDocumentModal from "./LegalDocumentModal";
 import {
   Dialog,
   DialogTitle,
@@ -62,6 +63,7 @@ const TutorScheduleCalendarModal = ({
   const [submitting, setSubmitting] = useState(false);
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
 
   // Lesson selection states
   const [lessonSelectionDialogOpen, setLessonSelectionDialogOpen] =
@@ -404,6 +406,7 @@ const TutorScheduleCalendarModal = ({
       setLessonSelectionDialogOpen(false);
       setError(null);
       setConfirmSubmitOpen(false);
+      setAgreedToTerms(false);
 
       // Close modal
       onClose();
@@ -517,7 +520,13 @@ const TutorScheduleCalendarModal = ({
     setSelectedSlots([]);
     setError(null);
     setConfirmSubmitOpen(false);
+    setAgreedToTerms(false);
+    setShowLegalDocumentModal(false);
     onClose();
+  };
+
+  const handleLegalDocumentClick = () => {
+    setShowLegalDocumentModal(true);
   };
 
   // Add cleanup effect for past slots
@@ -1492,7 +1501,7 @@ const TutorScheduleCalendarModal = ({
           <Box sx={{ mt: 2, p: 2, backgroundColor: "#f0f9ff", borderRadius: 1, border: "1px solid #0ea5e9" }}>
             <Typography variant="body2" sx={{ color: "#0369a1", fontSize: "0.875rem" }}>
               <Button
-                onClick={() => {/* Handle legal document click */}}
+                onClick={handleLegalDocumentClick}
                 sx={{ 
                   p: 0, 
                   minWidth: "auto", 
@@ -1507,19 +1516,6 @@ const TutorScheduleCalendarModal = ({
               >
                 Điều khoản dịch vụ và Chính sách
               </Button>
-            </Typography>
-          </Box>
-          
-          {/* Agreement Checkbox */}
-          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
-            <input
-              type="checkbox"
-              checked={agreedToTerms}
-              onChange={(e) => setAgreedToTerms(e.target.checked)}
-              style={{ marginRight: '8px' }}
-            />
-            <Typography variant="body2" sx={{ color: "#374151" }}>
-              Tôi đồng ý với Điều khoản dịch vụ và Chính sách
             </Typography>
           </Box>
           
@@ -1545,6 +1541,18 @@ const TutorScheduleCalendarModal = ({
               </Typography>
             </Box>
           )}
+          {/* Agreement Checkbox */}
+          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <Typography variant="body2" sx={{ color: "#374151" }}>
+              Tôi đồng ý với Điều khoản dịch vụ và Chính sách
+            </Typography>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => {
@@ -1566,6 +1574,13 @@ const TutorScheduleCalendarModal = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Legal Document Modal */}
+      <LegalDocumentModal
+        isOpen={showLegalDocumentModal}
+        onClose={() => setShowLegalDocumentModal(false)}
+        category="offer_booking"
+      />
     </>
   );
 };
