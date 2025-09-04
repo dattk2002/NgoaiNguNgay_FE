@@ -61,6 +61,7 @@ const TutorScheduleCalendarModal = ({
   });
   const [submitting, setSubmitting] = useState(false);
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Lesson selection states
   const [lessonSelectionDialogOpen, setLessonSelectionDialogOpen] =
@@ -1480,12 +1481,51 @@ const TutorScheduleCalendarModal = ({
       </Dialog>
 
       {/* Confirm Submit Dialog */}
-      <Dialog open={confirmSubmitOpen} onClose={() => setConfirmSubmitOpen(false)}>
+      <Dialog open={confirmSubmitOpen} onClose={() => {
+        setConfirmSubmitOpen(false);
+        setAgreedToTerms(false);
+      }}>
         <DialogTitle>Xác nhận gửi đề xuất</DialogTitle>
         <DialogContent>
           <Typography>
             Bạn có chắc chắn muốn gửi đề xuất này không?
           </Typography>
+          
+          {/* Legal terms notice */}
+          <Box sx={{ mt: 2, p: 2, backgroundColor: "#f0f9ff", borderRadius: 1, border: "1px solid #0ea5e9" }}>
+            <Typography variant="body2" sx={{ color: "#0369a1", fontSize: "0.875rem" }}>
+              <Button
+                onClick={() => {/* Handle legal document click */}}
+                sx={{ 
+                  p: 0, 
+                  minWidth: "auto", 
+                  textTransform: "none", 
+                  textDecoration: "underline",
+                  color: "#0369a1",
+                  "&:hover": { 
+                    backgroundColor: "transparent",
+                    textDecoration: "underline"
+                  }
+                }}
+              >
+                Điều khoản dịch vụ và Chính sách
+              </Button>
+            </Typography>
+          </Box>
+          
+          {/* Agreement Checkbox */}
+          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <Typography variant="body2" sx={{ color: "#374151" }}>
+              Tôi đồng ý với Điều khoản dịch vụ và Chính sách
+            </Typography>
+          </Box>
+          
           {selectedLesson && (
             <Box sx={{ mt: 2, p: 2, backgroundColor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", mb: 1 }}>
@@ -1510,16 +1550,19 @@ const TutorScheduleCalendarModal = ({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmSubmitOpen(false)} disabled={submitting}>
+          <Button onClick={() => {
+            setConfirmSubmitOpen(false);
+            setAgreedToTerms(false);
+          }} disabled={submitting}>
             Hủy
           </Button>
           <Button 
             onClick={handleConfirmSubmit} 
             variant="contained"
-            disabled={submitting}
+            disabled={submitting || !agreedToTerms}
             sx={{ 
-              bgcolor: "#10b981", 
-              "&:hover": { bgcolor: "#059669" }
+              bgcolor: agreedToTerms ? "#10b981" : "#9ca3af", 
+              "&:hover": { bgcolor: agreedToTerms ? "#059669" : "#9ca3af" }
             }}
           >
             {submitting ? "Đang gửi..." : "Gửi đề xuất"}

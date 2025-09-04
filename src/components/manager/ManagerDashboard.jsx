@@ -171,41 +171,41 @@ const ManagerDashboard = () => {
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
-            <div className="w-64 bg-gray-900 text-white">
+            <div className="w-64 lg:w-64 md:w-56 sm:w-48 bg-gray-900 text-white flex-shrink-0">
                 {/* Logo/Brand */}
-                <div className="p-6 border-b border-gray-800">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <div className="p-4 lg:p-6 border-b border-gray-800">
+                    <div className="flex items-center space-x-2 lg:space-x-3">
+                        <div className="w-6 h-6 lg:w-8 lg:h-8 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
                             </svg>
                         </div>
-                        <div>
-                            <h2 className="text-base font-semibold text-2xl">Manager Panel</h2>
-                            <p className="text-xs text-gray-400">Financial Management</p>
+                        <div className="min-w-0 flex-1">
+                            <h2 className="text-sm lg:text-base font-semibold text-lg lg:text-2xl truncate">Manager Panel</h2>
+                            <p className="text-xs text-gray-400 truncate">Financial Management</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Navigation */}
-                <nav className="p-4 space-y-2">
+                <nav className="p-2 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto flex-1">
                     {console.log('Menu items count:', menuItems.length)}
                     {menuItems.map((item) => (
                         <NoFocusOutLineButton
                             key={item.id}
-                            className={`w-full text-left p-3 rounded-lg transition-all duration-200 group ${activeTab === item.id
+                            className={`w-full text-left p-2 lg:p-3 rounded-lg transition-all duration-200 group ${activeTab === item.id
                                 ? 'bg-green-600 text-white'
                                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                                 }`}
                             onClick={() => setActiveTab(item.id)}
                         >
-                            <div className="flex items-center space-x-3">
-                                <div className={`${activeTab === item.id ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+                            <div className="flex items-center space-x-2 lg:space-x-3">
+                                <div className={`flex-shrink-0 ${activeTab === item.id ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
                                     {item.icon}
                                 </div>
-                                <div>
-                                    <div className="font-medium text-sm">{item.title}</div>
-                                    <div className={`text-xs ${activeTab === item.id ? 'text-green-100' : 'text-gray-500 group-hover:text-gray-400'}`}>
+                                <div className="min-w-0 flex-1">
+                                    <div className="font-medium text-xs lg:text-sm truncate">{item.title}</div>
+                                    <div className={`text-xs truncate ${activeTab === item.id ? 'text-green-100' : 'text-gray-500 group-hover:text-gray-400'}`}>
                                         {item.description}
                                     </div>
                                 </div>
@@ -215,23 +215,23 @@ const ManagerDashboard = () => {
                 </nav>
 
                 {/* User Info */}
-                <div className="absolute bottom-0 left-0 right-0 w-64 p-4 border-t border-gray-800">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-green-700 rounded-full flex items-center justify-center">
-                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <div className="p-2 lg:p-4 border-t border-gray-800 flex-shrink-0">
+                    <div className="flex items-center space-x-2 lg:space-x-3">
+                        <div className="w-6 h-6 lg:w-8 lg:h-8 bg-green-700 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 lg:w-4 lg:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                             </svg>
                         </div>
-                        <div className="flex-1">
-                            <div className="text-sm font-medium text-white">Financial Manager</div>
-                            <div className="text-xs text-gray-400">Revenue Access</div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-xs lg:text-sm font-medium text-white truncate">Financial Manager</div>
+                            <div className="text-xs text-gray-400 truncate">Revenue Access</div>
                         </div>
                         <NoFocusOutLineButton
-                            className="p-1 text-gray-400 hover:text-white transition-colors"
+                            className="p-1 text-gray-400 hover:text-white transition-colors flex-shrink-0"
                             onClick={handleLogout}
                             title="Đăng xuất"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3 h-3 lg:w-4 lg:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
                         </NoFocusOutLineButton>
@@ -240,15 +240,15 @@ const ManagerDashboard = () => {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
                 {/* Top Header */}
-                <header className="bg-white border-b border-gray-200 px-6 py-4">
+                <header className="bg-white border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4 flex-shrink-0">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-lg lg:text-2xl font-semibold text-gray-900 truncate">
                                 {menuItems.find(item => item.id === activeTab)?.title}
                             </h1>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-xs lg:text-sm text-gray-500 mt-1 truncate">
                                 {menuItems.find(item => item.id === activeTab)?.description}
                             </p>
                         </div>
@@ -256,7 +256,7 @@ const ManagerDashboard = () => {
                 </header>
 
                 {/* Content Area */}
-                <main className="flex-1 overflow-auto bg-gray-50 p-6">
+                <main className="flex-1 overflow-auto bg-gray-50 p-3 lg:p-6">
                     {renderActiveComponent()}
                 </main>
             </div>

@@ -5,6 +5,7 @@ import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 const ConfirmRejectWithdrawalModal = ({ isOpen, onClose, onConfirm, withdrawal, isLoading }) => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [error, setError] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ const ConfirmRejectWithdrawalModal = ({ isOpen, onClose, onConfirm, withdrawal, 
     if (isOpen) {
       setRejectionReason("");
       setError("");
+      setAgreedToTerms(false);
     }
   }, [isOpen]);
 
@@ -61,6 +63,11 @@ const ConfirmRejectWithdrawalModal = ({ isOpen, onClose, onConfirm, withdrawal, 
 
     if (rejectionReason.trim().length < 10) {
       setError("Lý do từ chối phải có ít nhất 10 ký tự");
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setError("Vui lòng đồng ý với điều khoản dịch vụ");
       return;
     }
 
@@ -180,6 +187,24 @@ const ConfirmRejectWithdrawalModal = ({ isOpen, onClose, onConfirm, withdrawal, 
                   </p>
                 </div>
 
+                {/* Agreement Checkbox */}
+                <div className="mb-4">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => {
+                        setAgreedToTerms(e.target.checked);
+                        setError("");
+                      }}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <span className="text-sm text-gray-700">
+                      Tôi đồng ý với Điều khoản dịch vụ và Chính sách
+                    </span>
+                  </label>
+                </div>
+
                 {/* Buttons */}
                 <div className="flex space-x-3">
                   <NoFocusOutLineButton
@@ -192,10 +217,12 @@ const ConfirmRejectWithdrawalModal = ({ isOpen, onClose, onConfirm, withdrawal, 
                   </NoFocusOutLineButton>
                   <NoFocusOutLineButton
                     type="submit"
-                    className={`flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium ${
-                      isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
+                      agreedToTerms && !isLoading 
+                        ? 'bg-red-600 text-white hover:bg-red-700' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
-                    disabled={isLoading}
+                    disabled={isLoading || !agreedToTerms}
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center">

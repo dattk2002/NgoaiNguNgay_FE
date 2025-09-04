@@ -64,27 +64,6 @@ const hasRole = (user, roleName) => {
 const isLearner = (user) => hasRole(user, "Learner");
 const isTutor = (user) => hasRole(user, "Tutor");
 
-// Local storage utilities for selected slots
-const getSelectedSlotsKey = (weekStart, tutorId, learnerId) => {
-  const weekStartStr = weekStart.toISOString().split('T')[0];
-  return `selectedSlots_${tutorId}_${learnerId}_${weekStartStr}`;
-};
-
-const saveSelectedSlots = (weekStart, tutorId, learnerId, slots) => {
-  const key = getSelectedSlotsKey(weekStart, tutorId, learnerId);
-  localStorage.setItem(key, JSON.stringify(slots));
-};
-
-const loadSelectedSlots = (weekStart, tutorId, learnerId) => {
-  const key = getSelectedSlotsKey(weekStart, tutorId, learnerId);
-  const saved = localStorage.getItem(key);
-  return saved ? JSON.parse(saved) : [];
-};
-
-const clearSelectedSlots = (weekStart, tutorId, learnerId) => {
-  const key = getSelectedSlotsKey(weekStart, tutorId, learnerId);
-  localStorage.removeItem(key);
-};
 
 const TutorWeeklyPatternDetailModal = ({
   open,
@@ -118,6 +97,9 @@ const TutorWeeklyPatternDetailModal = ({
 
   // Add legal document modal state
   const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
+  
+  // Add agreement checkbox state
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Only allow slot selection for learners and when not in read-only mode
   const learnerPermission = isLearner(currentUser) && !isReadOnly;
@@ -186,10 +168,9 @@ const TutorWeeklyPatternDetailModal = ({
     
     setWeekStart(initialWeekStart); // Reset week when dialog opens
     
-    // Load saved selected slots for this week and tutor (only if not read-only)
-    if (learnerPermission && currentUser?.id && !isReadOnly) {
-      const savedSlots = loadSelectedSlots(initialWeekStart, tutorId, currentUser.id);
-      setSelectedSlots(savedSlots);
+    // Initialize selected slots as empty array (slots will persist across weeks)
+    if (learnerPermission && !isReadOnly) {
+      setSelectedSlots([]);
     } else {
       // Clear selected slots in read-only mode
       setSelectedSlots([]);
@@ -233,12 +214,6 @@ const TutorWeeklyPatternDetailModal = ({
     prevMonday.setDate(monday.getDate() - 7);
     if (prevMonday < currentMonday) return; // Block navigation
     setWeekStart(prevMonday);
-    
-    // Load saved slots for the new week
-    if (learnerPermission && currentUser?.id) {
-      const savedSlots = loadSelectedSlots(prevMonday, tutorId, currentUser.id);
-      setSelectedSlots(savedSlots);
-    }
 
     // Fetch schedule data for the new week
     fetchScheduleForWeek(prevMonday);
@@ -249,12 +224,6 @@ const TutorWeeklyPatternDetailModal = ({
     const nextMonday = new Date(monday);
     nextMonday.setDate(monday.getDate() + 7);
     setWeekStart(nextMonday);
-    
-    // Load saved slots for the new week
-    if (learnerPermission && currentUser?.id) {
-      const savedSlots = loadSelectedSlots(nextMonday, tutorId, currentUser.id);
-      setSelectedSlots(savedSlots);
-    }
 
     // Fetch schedule data for the new week
     fetchScheduleForWeek(nextMonday);
@@ -361,15 +330,17 @@ const TutorWeeklyPatternDetailModal = ({
     const slotStatus = getSlotStatus(dayInWeek, slotIndex);
     if (slotStatus !== 'available') return;
     
+    // Calculate the actual date for this slot to store it with date format
+    const slotDate = new Date(monday);
+    // dayInWeek: 2=Mon, ..., 7=Sat, 1=Sun
+    let jsDay = dayInWeek === 1 ? 6 : dayInWeek - 2; // 0=Mon, ..., 6=Sun
+    slotDate.setDate(monday.getDate() + jsDay);
+    const dateStr = slotDate.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+    
     setSelectedSlots((prev) => {
-      const newSlots = prev.some((s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIndex)
-        ? prev.filter((s) => !(s.dayInWeek === dayInWeek && s.slotIndex === slotIndex))
-        : [...prev, { dayInWeek, slotIndex }];
-      
-      // Save to localStorage
-      if (currentUser?.id) {
-        saveSelectedSlots(weekStart, tutorId, currentUser.id, newSlots);
-      }
+      const newSlots = prev.some((s) => s.date === dateStr && s.slotIndex === slotIndex)
+        ? prev.filter((s) => !(s.date === dateStr && s.slotIndex === slotIndex))
+        : [...prev, { date: dateStr, slotIndex }];
       
       return newSlots;
     });
@@ -410,11 +381,9 @@ const TutorWeeklyPatternDetailModal = ({
       
       // Convert selected slots to the format expected by the API
       const slots = selectedSlots.map(slot => {
-        // Calculate the actual date for this slot
-        const slotDate = new Date(monday);
-        // dayInWeek: 2=Mon, ..., 7=Sat, 1=Sun
-        let jsDay = slot.dayInWeek === 1 ? 6 : slot.dayInWeek - 2; // 0=Mon, ..., 6=Sun
-        slotDate.setDate(monday.getDate() + jsDay);
+        // Parse the date string to get the actual date
+        const [year, month, day] = slot.date.split("-").map(Number);
+        const slotDate = new Date(year, month - 1, day); // month is 0-indexed
         
         // Set the time based on slotIndex
         const hour = Math.floor(slot.slotIndex / 2);
@@ -455,11 +424,6 @@ const TutorWeeklyPatternDetailModal = ({
       setSubmitSuccess(true);
       setSelectedSlots([]);
       setConfirmSubmitOpen(false);
-      
-      // Clear saved slots after successful submission
-      if (currentUser?.id) {
-        clearSelectedSlots(weekStart, tutorId, currentUser.id);
-      }
       
       if (onBookingSuccess) onBookingSuccess();
       onClose();
@@ -793,8 +757,14 @@ const TutorWeeklyPatternDetailModal = ({
                     </Box>
                     {/* For each day, render a cell for this 30-min slot */}
                     {dayInWeekOrder.map((dayInWeek, dayIdx) => {
+                      // Calculate the actual date for this slot to check if it's selected
+                      const slotDate = new Date(monday);
+                      let jsDay = dayInWeek === 1 ? 6 : dayInWeek - 2; // 0=Mon, ..., 6=Sun
+                      slotDate.setDate(monday.getDate() + jsDay);
+                      const dateStr = slotDate.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+                      
                       const isSelected = selectedSlots.some(
-                        (s) => s.dayInWeek === dayInWeek && s.slotIndex === slotIdx
+                        (s) => s.date === dateStr && s.slotIndex === slotIdx
                       );
                       
                       // Check if slot is in the past
@@ -946,18 +916,25 @@ const TutorWeeklyPatternDetailModal = ({
                       }}>
                         <AnimatePresence>
                           {selectedSlots.map((slot, index) => {
-                            // Map dayInWeek to the correct day label
+                            // Parse the date string to get the actual date
+                            const [year, month, day] = slot.date.split("-").map(Number);
+                            const slotDate = new Date(year, month - 1, day); // month is 0-indexed
+                            const dayOfWeek = slotDate.getDay();
+                            
+                            // Map JavaScript day to our day labels
                             const dayIndexMap = {
-                              1: 6, // Sun -> index 6
-                              2: 0, // Mon -> index 0
-                              3: 1, // Tue -> index 1
-                              4: 2, // Wed -> index 2
-                              5: 3, // Thu -> index 3
-                              6: 4, // Fri -> index 4
-                              7: 5, // Sat -> index 5
+                              0: 0, // Sun -> index 0 (but we use dayLabels[6])
+                              1: 0, // Mon -> index 0
+                              2: 1, // Tue -> index 1
+                              3: 2, // Wed -> index 2
+                              4: 3, // Thu -> index 3
+                              5: 4, // Fri -> index 4
+                              6: 5, // Sat -> index 5
                             };
-                            const dayLabel = dayLabels[dayIndexMap[slot.dayInWeek]];
-                            const dayDate = weekDates[dayIndexMap[slot.dayInWeek]];
+                            
+                            // For Sunday, we need to use index 6 in dayLabels
+                            const dayLabelIndex = dayOfWeek === 0 ? 6 : dayIndexMap[dayOfWeek];
+                            const dayLabel = dayLabels[dayLabelIndex];
                             
                             const hour = Math.floor(slot.slotIndex / 2);
                             const minute = slot.slotIndex % 2 === 0 ? "00" : "30";
@@ -967,7 +944,7 @@ const TutorWeeklyPatternDetailModal = ({
 
                             return (
                               <motion.div
-                                key={`${slot.dayInWeek}-${slot.slotIndex}`}
+                                key={`${slot.date}-${slot.slotIndex}`}
                                 initial={{ 
                                   opacity: 0, 
                                   x: 30,
@@ -1007,7 +984,7 @@ const TutorWeeklyPatternDetailModal = ({
                                       {dayLabel}
                                     </Typography>
                                     <Typography variant="body2" color="textSecondary">
-                                      {dayDate}
+                                      {slotDate.toLocaleDateString("vi-VN")}
                                     </Typography>
                                     <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 'medium' }}>
                                       {timeLabel}
@@ -1025,7 +1002,11 @@ const TutorWeeklyPatternDetailModal = ({
                                   >
                                     <IconButton
                                       size="small"
-                                      onClick={() => handleSlotClick(slot.dayInWeek, slot.slotIndex, true)}
+                                      onClick={() => {
+                                        setSelectedSlots((prev) => 
+                                          prev.filter((s) => !(s.date === slot.date && s.slotIndex === slot.slotIndex))
+                                        );
+                                      }}
                                       sx={{
                                         color: '#dc3545',
                                         '&:hover': {
@@ -1069,9 +1050,6 @@ const TutorWeeklyPatternDetailModal = ({
                               size="small"
                               onClick={() => {
                                 setSelectedSlots([]);
-                                if (currentUser?.id) {
-                                  clearSelectedSlots(weekStart, tutorId, currentUser.id);
-                                }
                               }}
                               sx={{ color: '#dc3545', borderColor: '#dc3545' }}
                             >
@@ -1221,7 +1199,10 @@ const TutorWeeklyPatternDetailModal = ({
       {/* Confirm Submit Dialog */}
       <Dialog 
         open={confirmSubmitOpen} 
-        onClose={() => setConfirmSubmitOpen(false)}
+        onClose={() => {
+          setConfirmSubmitOpen(false);
+          setAgreedToTerms(false);
+        }}
         sx={{
           '& .MuiDialog-paper': {
             zIndex: 1000
@@ -1239,7 +1220,6 @@ const TutorWeeklyPatternDetailModal = ({
           {/* Legal terms notice */}
           <Box sx={{ mt: 2, p: 2, backgroundColor: "#f0f9ff", borderRadius: 1, border: "1px solid #0ea5e9" }}>
             <Typography variant="body2" sx={{ color: "#0369a1", fontSize: "0.875rem" }}>
-              Bằng cách đặt lịch, bạn đồng ý với{" "}
               <Button
                 onClick={handleLegalDocumentClick}
                 sx={{ 
@@ -1254,9 +1234,21 @@ const TutorWeeklyPatternDetailModal = ({
                   }
                 }}
               >
-                Điều khoản dịch vụ và Chính sách bảo mật
+                Điều khoản dịch vụ và Chính sách
               </Button>
-              {" "}của chúng tôi.
+            </Typography>
+          </Box>
+          
+          {/* Agreement Checkbox */}
+          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <Typography variant="body2" sx={{ color: "#374151" }}>
+              Tôi đồng ý với Điều khoản dịch vụ và Chính sách
             </Typography>
           </Box>
           
@@ -1284,16 +1276,19 @@ const TutorWeeklyPatternDetailModal = ({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmSubmitOpen(false)} disabled={submitting}>
+          <Button onClick={() => {
+            setConfirmSubmitOpen(false);
+            setAgreedToTerms(false);
+          }} disabled={submitting}>
             Hủy
           </Button>
           <Button 
             onClick={handleConfirmSubmit} 
             variant="contained"
-            disabled={submitting}
+            disabled={submitting || !agreedToTerms}
             sx={{ 
-              bgcolor: "#10b981", 
-              "&:hover": { bgcolor: "#059669" }
+              bgcolor: agreedToTerms ? "#10b981" : "#9ca3af", 
+              "&:hover": { bgcolor: agreedToTerms ? "#059669" : "#9ca3af" }
             }}
           >
             {submitting ? "Đang đặt lịch..." : "Đặt lịch"}
