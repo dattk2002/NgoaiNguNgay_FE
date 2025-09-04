@@ -319,67 +319,6 @@ const RevenueAnalysis = () => {
                     </div>
                 )}
             </div>
-
-            {/* Revenue Chart Placeholder */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Biểu đồ doanh thu theo thời gian</h3>
-                <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                        <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        <p className="text-gray-500">Biểu đồ doanh thu sẽ được hiển thị ở đây</p>
-                        <p className="text-sm text-gray-400 mt-1">Tích hợp với thư viện chart như Chart.js hoặc Recharts</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Category Analysis */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Phân tích theo danh mục</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                </div>
-            </div>
-
-            {/* Performance Insights */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Thông tin chi tiết</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                            <svg className="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                            <div>
-                                <p className="text-sm font-medium text-green-800">Danh mục tăng trưởng mạnh nhất</p>
-                                <p className="text-lg font-bold text-green-900">Tiếng Trung (+22.1%)</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                            <svg className="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                            </svg>
-                            <div>
-                                <p className="text-sm font-medium text-blue-800">Doanh thu cao nhất</p>
-                                <p className="text-lg font-bold text-blue-900">Tiếng Anh</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                            <svg className="w-8 h-8 text-orange-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div>
-                                <p className="text-sm font-medium text-orange-800">Cần cải thiện</p>
-                                <p className="text-lg font-bold text-orange-900">Vật lý (-3.2%)</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
