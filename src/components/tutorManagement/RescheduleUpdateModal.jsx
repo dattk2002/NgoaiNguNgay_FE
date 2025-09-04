@@ -962,7 +962,7 @@ const RescheduleUpdateModal = ({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-400 border border-red-500"></div>
-                  <span className="text-red-700 font-medium">Lịch học viên đã book thẳng (không thể chọn)</span>
+                  <span className="text-red-700 font-medium">Lịch học viên đã book nhanh (không thể chọn)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-blue-600 border border-blue-700"></div>

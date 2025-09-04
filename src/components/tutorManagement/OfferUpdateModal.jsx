@@ -665,6 +665,9 @@ const OfferUpdateModal = ({
 
   // Get current week's selected slots for display
   const currentWeekSelectedSlots = getSelectedSlotsForCurrentWeek();
+  
+  // Get all selected slots from all weeks for display in sidebar
+  const allSelectedSlots = Object.values(selectedSlotsByWeek).flat();
 
   return (
       <div className="fixed inset-0 bg-black/50 flex justify-center items-end z-[1000] p-4">
@@ -962,7 +965,7 @@ const OfferUpdateModal = ({
 
               {/* Right side - Selected slots */}
               <AnimatePresence>
-                {currentWeekSelectedSlots.length > 0 && (
+                {allSelectedSlots.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, x: 50, scale: 0.9 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -973,7 +976,7 @@ const OfferUpdateModal = ({
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        <h4 className="font-semibold text-gray-900 text-base">Khung giờ đã chọn (Tuần này)</h4>
+                        <h4 className="font-semibold text-gray-900 text-base">Khung giờ đã chọn</h4>
                       </div>
                       
                       {/* Lesson Details */}
@@ -994,12 +997,14 @@ const OfferUpdateModal = ({
                         </div>
                       )}
 
-                      {/* Selected slots list for current week */}
+                      {/* Selected slots list for all weeks */}
                       <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {currentWeekSelectedSlots.map((slot, index) => {
+                        {allSelectedSlots.map((slot, index) => {
                           // Calculate the actual date for this slot
                           let dayLabel = 'N/A';
                           let dateLabel = 'N/A';
+                          let weekLabel = 'N/A';
+                          let isCurrentWeek = false;
                           
                           if (slot.slotDateTime) {
                             const slotDate = new Date(slot.slotDateTime);
@@ -1011,6 +1016,24 @@ const OfferUpdateModal = ({
                               const month = slotDate.getMonth() + 1;
                               const year = slotDate.getFullYear();
                               dateLabel = `${dayDate}/${month}/${year}`;
+                              
+                              // Calculate which week this slot belongs to
+                              const slotMonday = new Date(slotDate);
+                              const day = slotMonday.getDay();
+                              const diff = day === 0 ? -6 : 1 - day; // Get Monday of the week
+                              slotMonday.setDate(slotMonday.getDate() + diff);
+                              slotMonday.setHours(0, 0, 0, 0);
+                              
+                              // Check if this is the current week being viewed
+                              isCurrentWeek = weekStart && 
+                                slotMonday.getFullYear() === weekStart.getFullYear() &&
+                                slotMonday.getMonth() === weekStart.getMonth() &&
+                                slotMonday.getDate() === weekStart.getDate();
+                              
+                              // Format week label
+                              const weekEnd = new Date(slotMonday);
+                              weekEnd.setDate(slotMonday.getDate() + 6);
+                              weekLabel = `${slotMonday.getDate()}/${slotMonday.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`;
                             } else {
                               // Fallback: calculate date from weekStart and dayInWeek
                               if (weekStart) {
@@ -1029,6 +1052,9 @@ const OfferUpdateModal = ({
                                 const month = slotDate.getMonth() + 1;
                                 const year = slotDate.getFullYear();
                                 dateLabel = `${dayDate}/${month}/${year}`;
+                                
+                                isCurrentWeek = true;
+                                weekLabel = "Tuần hiện tại";
                               }
                             }
                           } else {
@@ -1049,6 +1075,9 @@ const OfferUpdateModal = ({
                               const month = slotDate.getMonth() + 1;
                               const year = slotDate.getFullYear();
                               dateLabel = `${dayDate}/${month}/${year}`;
+                              
+                              isCurrentWeek = true;
+                              weekLabel = "Tuần hiện tại";
                             }
                           }
                           
@@ -1074,9 +1103,16 @@ const OfferUpdateModal = ({
                               }`}>
                                 <div className="flex justify-between items-start">
                                   <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                                       <span className="text-xs font-semibold text-gray-800">{dayLabel}</span>
                                       <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">{dateLabel}</span>
+                                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                                        isCurrentWeek 
+                                          ? 'text-blue-600 bg-blue-100' 
+                                          : 'text-gray-600 bg-gray-100'
+                                      }`}>
+                                        {isCurrentWeek ? 'Tuần hiện tại' : weekLabel}
+                                      </span>
                                       {isSlotPartOfCurrentOffer(slot.dayInWeek, slot.slotIndex) && (
                                         <span className="text-xs text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded-full font-medium">
                                           Từ offer hiện tại
@@ -1091,7 +1127,29 @@ const OfferUpdateModal = ({
                                     <p className="text-xs font-bold text-blue-600">{timeLabel}</p>
                                   </div>
                                   <button
-                                    onClick={() => handleSlotClick(slot.dayInWeek, slot.slotIndex)}
+                                    onClick={() => {
+                                      // Find which week this slot belongs to and remove it from that week
+                                      const slotWeekKey = Object.keys(selectedSlotsByWeek).find(weekKey => {
+                                        const weekSlots = selectedSlotsByWeek[weekKey] || [];
+                                        return weekSlots.some(s => 
+                                          s.dayInWeek === slot.dayInWeek && 
+                                          s.slotIndex === slot.slotIndex &&
+                                          s.slotDateTime === slot.slotDateTime
+                                        );
+                                      });
+                                      
+                                      if (slotWeekKey) {
+                                        const updatedSlots = (selectedSlotsByWeek[slotWeekKey] || []).filter(s => 
+                                          !(s.dayInWeek === slot.dayInWeek && 
+                                            s.slotIndex === slot.slotIndex &&
+                                            s.slotDateTime === slot.slotDateTime)
+                                        );
+                                        setSelectedSlotsByWeek(prev => ({
+                                          ...prev,
+                                          [slotWeekKey]: updatedSlots
+                                        }));
+                                      }
+                                    }}
                                     className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-full transition-colors"
                                     title="Xóa khung giờ này"
                                     disabled={isPastSlot}
@@ -1107,40 +1165,40 @@ const OfferUpdateModal = ({
                         })}
                       </div>
 
-                      {/* Summary for current week */}
+                      {/* Summary for all weeks */}
                       <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-600">Tuần này:</span>
-                            <span className="text-xs font-semibold text-gray-800">{currentWeekSelectedSlots.length} slot</span>
+                            <span className="text-xs text-gray-600">Tổng cộng:</span>
+                            <span className="text-xs font-semibold text-gray-800">{allSelectedSlots.length} slot</span>
                           </div>
                           
                           {lessonDetails && lessonDetails.price && (
                             <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-600">Giá tuần này:</span>
+                              <span className="text-xs text-gray-600">Tổng giá:</span>
                               <span className="text-sm font-bold text-blue-600">
-                                {formatPriceWithCommas(lessonDetails.price * currentWeekSelectedSlots.length)} VNĐ
+                                {formatPriceWithCommas(lessonDetails.price * allSelectedSlots.length)} VNĐ
                               </span>
                             </div>
                           )}
                           
-                          {/* Show total across all weeks */}
+                          {/* Show breakdown by week if multiple weeks */}
                           {Object.keys(selectedSlotsByWeek).length > 1 && (
                             <div className="pt-2 border-t border-gray-100">
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-500">Tổng tất cả tuần:</span>
-                                <span className="text-xs font-medium text-green-600">
-                                  {Object.values(selectedSlotsByWeek).flat().length} slot
-                                </span>
-                              </div>
-                              {lessonDetails && lessonDetails.price && (
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs text-gray-500">Tổng giá:</span>
-                                  <span className="text-xs font-bold text-green-600">
-                                    {formatPriceWithCommas(lessonDetails.price * Object.values(selectedSlotsByWeek).flat().length)} VNĐ
-                                  </span>
-                                </div>
-                              )}
+                              <div className="text-xs text-gray-500 mb-2">Phân bổ theo tuần:</div>
+                              {Object.entries(selectedSlotsByWeek).map(([weekKey, weekSlots]) => {
+                                const weekDate = new Date(weekKey);
+                                const weekEnd = new Date(weekDate);
+                                weekEnd.setDate(weekDate.getDate() + 6);
+                                const weekLabel = `${weekDate.getDate()}/${weekDate.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`;
+                                
+                                return (
+                                  <div key={weekKey} className="flex justify-between items-center text-xs">
+                                    <span className="text-gray-500">{weekLabel}:</span>
+                                    <span className="text-gray-700 font-medium">{weekSlots.length} slot</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
@@ -1194,7 +1252,7 @@ const OfferUpdateModal = ({
               </button>
               <button
                 onClick={handleUpdateOffer}
-                disabled={currentWeekSelectedSlots.length === 0 || submitting || offer?.isExpired}
+                disabled={allSelectedSlots.length === 0 || submitting || offer?.isExpired}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-sm hover:shadow-md text-sm"
               >
                 {submitting ? (
@@ -1254,28 +1312,28 @@ const OfferUpdateModal = ({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Số slots:</span>
-                      <span className="text-sm font-medium text-gray-900">{currentWeekSelectedSlots.length}</span>
+                      <span className="text-sm font-medium text-gray-900">{allSelectedSlots.length}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Tổng giá:</span>
-                      <span className="text-sm font-bold text-blue-600">{formatPriceWithCommas(lessonDetails.price * currentWeekSelectedSlots.length)} VNĐ</span>
+                      <span className="text-sm font-bold text-blue-600">{formatPriceWithCommas(lessonDetails.price * allSelectedSlots.length)} VNĐ</span>
                     </div>
                   </div>
 
                   {/* Changes summary */}
-                  {offer?.offeredSlots && offer.offeredSlots.length !== currentWeekSelectedSlots.length && (
+                  {offer?.offeredSlots && offer.offeredSlots.length !== allSelectedSlots.length && (
                     <div className="pt-3 border-t border-gray-200">
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Thay đổi slots:</span>
                         <span className="text-sm font-medium text-blue-600">
-                          {offer.offeredSlots.length} → {currentWeekSelectedSlots.length}
+                          {offer.offeredSlots.length} → {allSelectedSlots.length}
                         </span>
                       </div>
                       {offer?.totalPrice && (
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Thay đổi giá:</span>
                           <span className="text-sm font-medium text-blue-600">
-                            {formatPriceWithCommas(offer.totalPrice)} → {formatPriceWithCommas(lessonDetails.price * currentWeekSelectedSlots.length)} VNĐ
+                            {formatPriceWithCommas(offer.totalPrice)} → {formatPriceWithCommas(lessonDetails.price * allSelectedSlots.length)} VNĐ
                           </span>
                         </div>
                       )}

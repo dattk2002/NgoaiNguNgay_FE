@@ -8,86 +8,19 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh, onViewAllTransa
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Translation function for transaction descriptions
-  const translateDescription = (description) => {
+  // Simple description formatter - no translation needed as backend returns Vietnamese
+  const formatDescription = (description) => {
     if (!description) return 'Giao dịch ví';
     
-    let translatedDescription = String(description);
+    let formattedDescription = String(description);
     
-    // Common English patterns to Vietnamese translations
-    const translations = {
-      'payment release from escrow for booking slot': 'Giải phóng tiền từ ký quỹ cho lịch học',
-      'payment for completed lesson': 'Thanh toán cho buổi học đã hoàn thành',
-      'heldfund': 'Ký quỹ',
-      'booking slot': 'Lịch học',
-      'completed lesson': 'Buổi học đã hoàn thành',
-      'lesson payment': 'Thanh toán buổi học',
-      'tutor payment': 'Thanh toán cho gia sư',
-      'student payment': 'Thanh toán của học viên',
-      'refund': 'Hoàn tiền',
-      'fee': 'Phí',
-      'commission': 'Hoa hồng',
-      'service fee': 'Phí dịch vụ',
-      'transaction fee': 'Phí giao dịch',
-      'withdrawal fee': 'Phí rút tiền',
-      'deposit fee': 'Phí nạp tiền',
-      'escrow': 'Ký quỹ',
-      'release': 'Giải phóng',
-      'payment': 'Thanh toán',
-      'for': 'cho',
-      'from': 'từ',
-      'to': 'về',
-      'withdrawal': 'Rút tiền',
-      'deposit': 'Nạp tiền',
-      'transfer': 'Chuyển khoản',
-      'wallet transaction': 'Giao dịch ví',
-      'transaction': 'Giao dịch',
-      'successful': 'Thành công',
-      'pending': 'Đang xử lý',
-      'failed': 'Thất bại',
-      'completed': 'Đã hoàn thành',
-      'cancelled': 'Đã hủy',
-      'rejected': 'Bị từ chối',
-      'payos': 'PayOS',
-      'vnpay': 'VNPay',
-      'momo': 'MoMo',
-      'zalopay': 'ZaloPay',
-      'bank transfer': 'Chuyển khoản ngân hàng',
-      'cash deposit': 'Nạp tiền mặt',
-      'online payment': 'Thanh toán trực tuyến'
-    };
-
-    // Apply translations in order of specificity (longer phrases first)
-    const sortedTranslations = Object.entries(translations).sort((a, b) => b[0].length - a[0].length);
-    
-    sortedTranslations.forEach(([english, vietnamese]) => {
-      translatedDescription = translatedDescription.replace(
-        new RegExp(english, 'gi'),
-        vietnamese
-      );
-    });
-
-    // Special handling for HeldFund IDs - replace with more readable format
-    translatedDescription = translatedDescription.replace(
-      /(HeldFund:\s*)([a-f0-9]+)/gi,
-      'Ký quỹ: $2'
-    );
-
     // Special handling for booking slot IDs - make them more readable
-    translatedDescription = translatedDescription.replace(
+    formattedDescription = formattedDescription.replace(
       /([a-f0-9]{32})/g,
       (match) => `#${match.substring(0, 8)}...`
     );
 
-    // Special handling for specific patterns
-    if (translatedDescription.toLowerCase().includes('payment release from escrow for booking slot')) {
-      translatedDescription = translatedDescription.replace(
-        /payment release from escrow for booking slot ([a-f0-9]+)/gi,
-        'Giải phóng tiền từ ký quỹ cho lịch học #$1...'
-      );
-    }
-
-    return translatedDescription;
+    return formattedDescription;
   };
 
   const formatCurrency = (amount) => {
@@ -172,7 +105,7 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh, onViewAllTransa
             type: transactionType,
             amount: parseFloat(t.amount) || 0,
             date: t.createdAt || t.date || t.createdTime || new Date().toISOString(),
-            description: translateDescription(t.description || t.transactionType || t.note)
+            description: formatDescription(t.description || t.transactionType || t.note)
           };
         }),
              ...depositHistory.map(d => {
@@ -192,7 +125,7 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh, onViewAllTransa
            type: 'deposit',
            amount: parseFloat(d.amount) || 0,
            date: d.createdTime || d.createdAt || d.requestTime || new Date().toISOString(),
-           description: translateDescription(`Nạp tiền qua ${d.paymentGateway || 'PayOS'} ${statusText}`)
+           description: `Nạp tiền qua ${d.paymentGateway || 'PayOS'} ${statusText}`
          };
        }),
       // Add withdrawal history
@@ -215,7 +148,7 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh, onViewAllTransa
           type: 'withdraw',
           amount: parseFloat(w.grossAmount || w.amount) || 0,
           date: w.createdTime || w.createdAt || w.requestTime || new Date().toISOString(),
-          description: translateDescription(`Rút tiền về ${w.bankAccount?.bankName || 'ngân hàng'} ${statusText}`)
+          description: `Rút tiền về ${w.bankAccount?.bankName || 'ngân hàng'} ${statusText}`
         };
       })
     ];
@@ -284,7 +217,7 @@ const WalletDashboard = ({ balance, availableBalance, onRefresh, onViewAllTransa
                      transaction.type === 'withdraw' ? '↙' : '↔'}
                   </div>
                   <div>
-                    <div className="font-medium text-gray-800 text-sm">{transaction.description}</div>
+                    <div className="font-medium text-gray-800 text-sm leading-relaxed">{transaction.description}</div>
                     <div className="text-xs text-gray-500">
                       {new Date(transaction.date).toLocaleDateString('vi-VN')}
                     </div>
