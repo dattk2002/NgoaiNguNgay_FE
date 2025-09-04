@@ -737,7 +737,7 @@ const TutorManagement = () => {
 
                                             {/* Hashtags */}
                                             <div className="bg-gray-50 p-4 rounded-lg">
-                                                <h4 className="text-lg font-semibold text-gray-800 mb-3">Kỹ năng & Chứng chỉ</h4>
+                                                <h4 className="text-lg font-semibold text-gray-800 mb-3">Hastag</h4>
                                                 {(() => {
                                                     console.log("🔍 Modal - Hashtags data:", selectedTutorDetails.hashtags);
                                                     return selectedTutorDetails.hashtags && selectedTutorDetails.hashtags.length > 0 ? (
