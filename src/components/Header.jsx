@@ -265,26 +265,17 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
         const fetchedNotifications = response.data.items || response.data || [];
 
          // Process in batches to avoid blocking UI
-         const processedBatch = await processBatch(fetchedNotifications);
+          const processedBatch = await processBatch(fetchedNotifications);
 
-         // Update state with new notifications
-         setNotifications(prev => {
-           // Deduplicate by ID
-           const notifMap = new Map();
- 
-           // Add existing notifications first
-           prev.forEach(n => notifMap.set(n.id, n));
- 
-           // Add new notifications, overwriting existing ones
-           processedBatch.forEach(n => notifMap.set(n.id, n));
- 
-           // Convert back to array and sort
-           return Array.from(notifMap.values())
-             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-         });
+          // Update state with new notifications
+          const MAX_NOTIFICATIONS = 50;
+          setNotifications(prev => {
+            const merged = [...processedBatch, ...prev];
+            return merged.slice(0, MAX_NOTIFICATIONS);
+          });
 
-         const unread = processedBatch.filter(n => !n.isRead).length;
-         setUnreadCount(prev => Math.max(0, prev + unread));
+          const unread = processedBatch.filter(n => !n.isRead).length;
+          setUnreadCount(prev => Math.max(0, prev + unread));
         
       }
     } catch (error) {
@@ -300,40 +291,80 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
     const result = [];
     const batchSize = 5;
     
+    // Collect unique sender IDs first
+    const uniqueSenderIds = new Set();
+    
+    // Extract sender IDs first
+    notifications.forEach(notif => {
+      if (notif.additionalData) {
+        try {
+          const additionalData = parseAdditionalData(
+            notif.additionalData, 
+            `notif_${notif.id}`
+          );
+          if (additionalData.SenderId) {
+            uniqueSenderIds.add(additionalData.SenderId);
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    });
+    
+    // Fetch profiles for unique senders in one batch
+    const uniqueSenderIdsArray = Array.from(uniqueSenderIds);
+    const senderProfilesToAdd = {};
+    
+    // Only fetch profiles we don't already have
+    const idsToFetch = uniqueSenderIdsArray.filter(id => !senderProfiles[id]);
+    
+    if (idsToFetch.length > 0) {
+      try {
+        // Ideally, modify your API to support batch profile fetching
+        const profilePromises = idsToFetch.slice(0, 10).map(id => 
+          getSenderProfile(id)
+            .then(profile => [id, profile])
+            .catch(() => [id, null])
+        );
+        
+        const profiles = await Promise.all(profilePromises);
+        
+        // Add to profiles map
+        profiles.forEach(([id, profile]) => {
+          if (profile) {
+            senderProfilesToAdd[id] = profile;
+          }
+        });
+        
+        // Update state once with all profiles
+        if (Object.keys(senderProfilesToAdd).length > 0) {
+          setSenderProfiles(prev => ({
+            ...prev,
+            ...senderProfilesToAdd
+          }));
+        }
+      } catch (error) {
+        console.warn('Failed to fetch sender profiles batch:', error);
+      }
+    }
+    
+    // Process notifications in batches
     for (let i = 0; i < notifications.length; i += batchSize) {
       const batch = notifications.slice(i, i + batchSize);
       
-      // Process each notification in the batch
-      const processed = await Promise.all(batch.map(async (notif) => {
-        // Extract minimal data to avoid memory bloat
+      // Now map each notification (profiles are already loaded)
+      const processed = batch.map(notif => {
         let senderId = null;
         
         if (notif.additionalData) {
           try {
-            // Use optimized parseAdditionalData with TTL
             const additionalData = parseAdditionalData(
               notif.additionalData, 
               `notif_${notif.id}`
             );
             senderId = additionalData.SenderId;
           } catch (e) {
-            console.warn("Failed to parse additionalData", e);
-          }
-        }
-        
-        // Only fetch profile if not already cached
-        let senderProfile = senderId ? senderProfiles[senderId] : null;
-        if (senderId && !senderProfile) {
-          try {
-            senderProfile = await getSenderProfile(senderId);
-            if (senderProfile) {
-              setSenderProfiles(prev => ({
-                ...prev,
-                [senderId]: senderProfile
-              }));
-            }
-          } catch (error) {
-            console.warn(`Failed to fetch profile: ${senderId}`, error);
+            // Ignore parse errors
           }
         }
         
@@ -347,7 +378,7 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
           type: notif.type || "info",
           senderId
         };
-      }));
+      });
       
       result.push(...processed);
       
@@ -375,8 +406,8 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
         localStorage.removeItem(storageKey);
       }
       
-      // Signal memory cleanup
-      if (typeof window.cleanupMemory === 'function') {
+      // Signal memory cleanup - check if exists first
+      if (typeof window !== 'undefined' && typeof window.cleanupMemory === 'function') {
         window.cleanupMemory();
       }
     };

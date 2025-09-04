@@ -1051,18 +1051,23 @@ function App() {
   useEffect(() => {
     // Setup cache cleanup interval
     const cleanupCacheFn = setupCacheCleanup();
-
+    
     // Setup memory monitoring
     const cleanupMemoryFn = initMemoryMonitoring();
-
+    
     // Expose cleanup function globally for emergencies
-    window.cleanupMemory = cleanupMemory;
-
-    // Clear all on unmount
+    if (typeof window !== 'undefined') {
+      window.cleanupMemory = cleanupMemory;
+    }
+    
+    // Clear all on unmount - QUAN TRỌNG
     return () => {
-      cleanupCacheFn();
-      cleanupMemoryFn();
-      delete window.cleanupMemory;
+      if (cleanupCacheFn) cleanupCacheFn();
+      if (cleanupMemoryFn) cleanupMemoryFn();
+      
+      if (typeof window !== 'undefined') {
+        delete window.cleanupMemory;
+      }
     };
   }, []);
   return (

@@ -2,7 +2,6 @@
  * Memory management utilities to prevent R14 errors
  */
 
-// memoryManager.js - Cải tiến
 import { clearNotificationCache } from './notificationMessages';
 
 // Track memory usage with limits
@@ -70,8 +69,3 @@ export const initMemoryMonitoring = () => {
 export const getMemoryStats = () => {
   return { ...memoryUsage };
 };
-
-// Auto-cleanup every 5 minutes
-if (typeof window !== 'undefined') {
-  setInterval(cleanupMemory, 5 * 60 * 1000);
-}
