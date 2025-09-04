@@ -1070,7 +1070,6 @@ export default function MyBookingTable({
           {/* Legal terms notice */}
           <Box sx={{ mt: 2, p: 2, backgroundColor: "#f0f9ff", borderRadius: 1, border: "1px solid #0ea5e9" }}>
             <Typography variant="body2" sx={{ color: "#0369a1", fontSize: "0.875rem" }}>
-              Bằng cách chấp nhận đề xuất, bạn đồng ý với{" "}
               <Button
                 onClick={handleLegalDocumentClick}
                 sx={{ 
@@ -1085,9 +1084,8 @@ export default function MyBookingTable({
                   }
                 }}
               >
-                Điều khoản dịch vụ và Chính sách bảo mật
+                Điều khoản dịch vụ và Chính sách
               </Button>
-              {" "}của chúng tôi.
             </Typography>
           </Box>
           
