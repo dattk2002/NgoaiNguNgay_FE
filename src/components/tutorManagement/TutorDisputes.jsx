@@ -18,7 +18,7 @@ import {
   Chip,
   Typography
 } from '@mui/material';
-import { toast } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import { fetchTutorDisputes } from '../api/auth';
 import DisputeDetailModal from '../modals/DisputeDetailModal';
 import { formatCentralTimestamp } from '../../utils/formatCentralTimestamp';
@@ -62,7 +62,7 @@ const TutorDisputes = () => {
       }
     } catch (error) {
       console.error('Failed to fetch tutor disputes:', error);
-      toast.error('Không thể tải danh sách báo cáo');
+      showError('Không thể tải danh sách báo cáo');
       setDisputes([]);
     } finally {
       setLoading(false);

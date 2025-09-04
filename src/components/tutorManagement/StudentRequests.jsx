@@ -25,7 +25,7 @@ import {
   Autocomplete
 } from '@mui/material';
 import { FiPlusCircle, FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { ToastContainer, toast } from 'react-toastify';
+import { showSuccess, showError, showWarning } from '../../utils/toastManager.js';
 import 'react-toastify/dist/ReactToastify.css';
 import { 
   tutorBookingTimeSlotFromLearner, 
@@ -201,7 +201,7 @@ const StudentRequests = () => {
     } catch (error) {
       console.error("Failed to fetch offers:", error);
       setAllOffers([]);
-      toast.error("Lỗi khi tải danh sách đề xuất");
+      showError("Lỗi khi tải danh sách đề xuất");
     }
   };
 
@@ -222,7 +222,7 @@ const StudentRequests = () => {
     } catch (error) {
       console.error("Failed to fetch tutor lessons:", error);
       setAvailableLessons([]);
-      toast.error("Lỗi khi tải danh sách bài học");
+      showError("Lỗi khi tải danh sách bài học");
     } finally {
       setLessonsLoading(false);
     }
@@ -247,7 +247,7 @@ const StudentRequests = () => {
         } catch (lessonError) {
           console.error("Failed to fetch learner's lesson details:", lessonError);
           setLearnerLessonDetails(null);
-          toast.warning("Không thể tải thông tin bài học của học viên");
+          showWarning("Không thể tải thông tin bài học của học viên");
         }
       } else {
         setLearnerLessonDetails(null);
@@ -291,7 +291,7 @@ const StudentRequests = () => {
           setOfferDetail(offer);
         } catch (error) {
           console.error("Failed to fetch offer detail:", error);
-          toast.warning("Không thể tải thông tin đề xuất hiện tại");
+          showWarning("Không thể tải thông tin đề xuất hiện tại");
         }
       }
 
@@ -361,10 +361,10 @@ const StudentRequests = () => {
         fetchAllOffers()
       ]);
       
-      toast.success("Đã gửi đề xuất thành công! Học viên sẽ nhận được thông báo về đề xuất của bạn.");
+      showSuccess("Đã gửi đề xuất thành công! Học viên sẽ nhận được thông báo về đề xuất của bạn.");
     } catch (error) {
       console.error("Failed to submit offer:", error);
-      toast.error("Lỗi khi gửi đề xuất: " + (error.message || "Không thể gửi đề xuất. Vui lòng thử lại sau."));
+      showError("Lỗi khi gửi đề xuất: " + (error.message || "Không thể gửi đề xuất. Vui lòng thử lại sau."));
     }
   };
 
@@ -424,7 +424,7 @@ const StudentRequests = () => {
               setLearnerRequests(res?.data || []);
             } catch (error) {
               console.error("Failed to refresh learner requests:", error);
-              toast.error("Lỗi khi làm mới danh sách yêu cầu");
+              showError("Lỗi khi làm mới danh sách yêu cầu");
             } finally {
               setLearnerRequestsLoading(false);
             }
@@ -1234,18 +1234,6 @@ const StudentRequests = () => {
         </DialogActions>
       </Dialog>
 
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 };

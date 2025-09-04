@@ -1710,6 +1710,37 @@ export async function fetchBookingInfo(bookingId) {
 }
 
 /**
+ * Fetch booking information by slot ID
+ * @param {string} slotId - The slot ID
+ * @returns {Promise<Object>} API response with booking data
+ */
+export async function fetchBookingBySlotId(slotId) {
+  try {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error("Authentication token is required");
+    }
+
+    const response = await callApi(
+      `/api/booking/by-slot-id/${slotId}`,
+      "GET",
+      null,
+      token
+    );
+
+    if (response && response.data) {
+      console.log("✅ Booking info by slot ID fetched successfully:", response.data);
+      return response.data;
+    } else {
+      throw new Error("Invalid response format for booking info by slot ID.");
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch booking info by slot ID:", error.message);
+    throw error;
+  }
+}
+
+/**
  * Fetch notifications for the current user.
  * @param {number} page - The page number (default: 1)
  * @param {number} size - The number of notifications per page (default: 10)

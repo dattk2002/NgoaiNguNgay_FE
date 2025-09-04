@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
+import { showSuccess, showError, showInfo } from '../../utils/toastManager.js';
 import { adminCreateAccount, adminFetchManagers, adminFetchStaffs, adminManageUsers } from '../api/auth';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -59,7 +59,7 @@ const AccountCreation = () => {
                 
             } catch (error) {
                 console.error('Failed to fetch account data:', error);
-                toast.error('Không thể tải dữ liệu thống kê tài khoản', {
+                showError('Không thể tải dữ liệu thống kê tài khoản', {
                     position: "top-right",
                     autoClose: 3000,
                 });
@@ -143,17 +143,16 @@ const AccountCreation = () => {
             
             if (response && response.data) {
                 const accountTypeText = formData.accountType === 1 ? 'Manager' : 'Staff';
-                toast.success(`Tạo tài khoản ${accountTypeText} thành công cho ${formData.fullName}!`, {
+                showSuccess(`Tạo tài khoản ${accountTypeText} thành công cho ${formData.fullName}!`, {
                     position: "top-right",
                     autoClose: 5000,
                     hideProgressBar: false,
                     closeOnClick: true,
-                    pauseOnHover: true,
                     draggable: true,
                 });
                 
                 // Show account details in a more detailed toast
-                toast.info(
+                showInfo(
                     <div>
                         <div><strong>Tài khoản đã được tạo:</strong></div>
                         <div>Username: {response.data.username}</div>
@@ -166,7 +165,6 @@ const AccountCreation = () => {
                         autoClose: 10000,
                         hideProgressBar: false,
                         closeOnClick: true,
-                        pauseOnHover: true,
                         draggable: true,
                     }
                 );
@@ -223,12 +221,11 @@ const AccountCreation = () => {
             }
         } catch (error) {
             console.error('Failed to create account:', error);
-            toast.error(`Lỗi khi tạo tài khoản: ${error.message}`, {
+            showError(`Lỗi khi tạo tài khoản: ${error.message}`, {
                 position: "top-right",
                 autoClose: 5000,
                 hideProgressBar: false,
                 closeOnClick: true,
-                pauseOnHover: true,
                 draggable: true,
             });
         } finally {
@@ -557,7 +554,6 @@ const AccountCreation = () => {
                     </div>
                 </div>
             )}
-            <ToastContainer />
         </div>
     );
 };

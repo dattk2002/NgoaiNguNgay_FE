@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaCalendarAlt,
@@ -305,14 +305,13 @@ const TutorScheduleCalendarModal = ({
     });
 
     if (invalidSlots.length > 0) {
-      toast.error(
+      showError(
         "Tất cả khung giờ phải cách hiện tại ít nhất 2 ngày. Vui lòng chọn lại các khung giờ phù hợp.",
         {
           position: "top-right",
-          autoClose: 5000,
+          autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
-          pauseOnHover: true,
           draggable: true,
         }
       );
@@ -349,14 +348,13 @@ const TutorScheduleCalendarModal = ({
       fortyEightHoursFromNow.setHours(now.getHours() + 48);
 
       if (firstSlotDateTime < fortyEightHoursFromNow) {
-        toast.error(
+        showError(
           "Slot đầu tiên phải cách thời điểm hiện tại ít nhất 48 giờ.",
           {
             position: "top-right",
-            autoClose: 5000,
+            autoClose: 3000,
             hideProgressBar: false,
             closeOnClick: true,
-            pauseOnHover: true,
             draggable: true,
           }
         );
@@ -416,12 +414,11 @@ const TutorScheduleCalendarModal = ({
       }
     } catch (err) {
       console.error("Failed to create booking offer:", err);
-      toast.error(err.message || "Không thể gửi lời mời đặt lịch", {
+      showError(err.message || "Không thể gửi lời mời đặt lịch", {
         position: "top-right",
-        autoClose: 5000,
+        autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
         draggable: true,
       });
     } finally {

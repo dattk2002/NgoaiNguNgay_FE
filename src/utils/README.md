@@ -540,27 +540,24 @@ export const showSuccess = (message) => {
     autoClose: 3000,
     hideProgressBar: false,
     closeOnClick: true,
-    pauseOnHover: true
   });
 };
 
 export const showError = (message) => {
   toast.error(message, {
     position: "top-right",
-    autoClose: 5000,
+    autoClose: 3000,
     hideProgressBar: false,
     closeOnClick: true,
-    pauseOnHover: true
   });
 };
 
 export const showInfo = (message) => {
   toast.info(message, {
     position: "top-right",
-    autoClose: 4000,
+    autoClose: 3000,
     hideProgressBar: false,
     closeOnClick: true,
-    pauseOnHover: true
   });
 };
 ```

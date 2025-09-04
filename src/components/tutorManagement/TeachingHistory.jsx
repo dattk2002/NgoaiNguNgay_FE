@@ -7,7 +7,7 @@ import {
   CardContent, 
   Grid 
 } from '@mui/material';
-import { toast, ToastContainer } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import 'react-toastify/dist/ReactToastify.css';
 import { fetchTutorBookings, fetchBookingDetail, getBookingRating } from '../api/auth';
 import formatPriceWithCommas from '../../utils/formatPriceWithCommas';
@@ -118,65 +118,6 @@ const getBookingStatusFromAPI = (status) => {
   }
 };
 
-// Helper function to get booking overall status based on slots
-// This function is no longer needed since we get status directly from API
-// Keeping for backward compatibility but it's not used in the main logic
-const getBookingOverallStatus = (booking) => {
-  // If no booking detail is available, we can't determine the status
-  if (!booking.bookedSlots || booking.bookedSlots.length === 0) {
-    return null;
-  }
-
-  const slots = booking.bookedSlots;
-  const totalSlots = slots.length;
-  const completedSlots = slots.filter(slot => slot.status === 2).length;
-  const cancelledSlots = slots.filter(slot => slot.status === 3).length;
-  const cancelledDisputedSlots = slots.filter(slot => slot.status === 4).length;
-  const pendingSlots = slots.filter(slot => slot.status === 0).length;
-  const awaitingSlots = slots.filter(slot => slot.status === 1).length;
-
-  // If all slots are completed
-  if (completedSlots === totalSlots) {
-    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
-  }
-  
-  // If all slots are cancelled
-  if (cancelledSlots === totalSlots) {
-    return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
-  }
-  
-  // If all slots are cancelled due to dispute
-  if (cancelledDisputedSlots === totalSlots) {
-    return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
-  }
-  
-  // If all slots are pending
-  if (pendingSlots === totalSlots) {
-    return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
-  }
-  
-  // If all slots are awaiting confirmation
-  if (awaitingSlots === totalSlots) {
-    return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
-  }
-  
-  // If there are any awaiting confirmation slots (status = 1), the booking is still in progress
-  if (awaitingSlots > 0) {
-    return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
-  }
-
-  if (completedSlots > 0 && cancelledDisputedSlots > 0) {
-    return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
-  }
-  
-  // If there are completed slots but no awaiting slots, consider as completed
-  if (completedSlots > 0 && awaitingSlots === 0) {
-    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
-  }
-  
-  // Mixed status without completed slots or awaiting slots - show as in progress
-  return { text: 'Đang diễn ra', color: 'bg-blue-100 text-blue-700' };
-};
 
 const TeachingHistory = () => {
   const [history, setHistory] = useState([]);
@@ -228,7 +169,7 @@ const TeachingHistory = () => {
       await fetchBookingRatings(filteredBookings);
     } catch (error) {
       console.error("Error loading teaching history:", error);
-      toast.error('Không thể tải lịch sử dạy học. Vui lòng thử lại.');
+      showError('Không thể tải lịch sử dạy học. Vui lòng thử lại.');
       setHistory([]);
     } finally {
       setLoading(false);
@@ -303,7 +244,7 @@ const TeachingHistory = () => {
       }
     } catch (error) {
       console.error("Error loading booking detail:", error);
-      toast.error('Không thể tải thông tin chi tiết. Vui lòng thử lại.');
+      showError('Không thể tải thông tin chi tiết. Vui lòng thử lại.');
     } finally {
       setDetailLoading(false);
     }
@@ -320,20 +261,6 @@ const TeachingHistory = () => {
     setPagination(prev => ({ ...prev, pageIndex: newPage }));
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Hoàn thành':
-        return 'bg-green-100 text-green-800';
-      case 'Đã hủy do tranh chấp':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status) => {
-    return status || 'Không xác định';
-  };
 
   const renderStars = (rating) => {
     if (!rating || rating <= 0) return null;
@@ -821,8 +748,8 @@ const TeachingHistory = () => {
                         {bookingDetail.bookedSlots.map((slot, index) => {
                           const getSlotStatusInfo = (status) => {
                             switch (status) {
-                              case 0: return { text: 'Đang chờ', color: 'bg-yellow-100 text-yellow-700' };
-                              case 1: return { text: 'Đang chờ xác nhận', color: 'bg-blue-100 text-blue-700' };
+                              case 0: return { text: 'Đang chờ diễn ra', color: 'bg-yellow-100 text-yellow-700' };
+                              case 1: return { text: 'Đang chờ hệ thống thanh toán cho gia sư', color: 'bg-blue-100 text-blue-700' };
                               case 2: return { text: 'Đã hoàn thành', color: 'bg-green-100 text-green-700' };
                               case 3: return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
                               case 4: return { text: 'Đã hủy do tranh chấp', color: 'bg-orange-100 text-orange-700' };
@@ -893,19 +820,6 @@ const TeachingHistory = () => {
         </div>
       )}
 
-      {/* Toast Container for notifications */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 };

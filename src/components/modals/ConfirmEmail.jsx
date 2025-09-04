@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import { confirmEmail } from "../api/auth";
 
 const ConfirmEmail = ({ isOpen, onClose, email, onConfirmSuccess }) => {
@@ -21,7 +21,7 @@ const ConfirmEmail = ({ isOpen, onClose, email, onConfirmSuccess }) => {
 
     try {
       await confirmEmail(email, otp);
-      toast.success("Email confirmed successfully!");
+      showSuccess("Email confirmed successfully!");
       onConfirmSuccess();
       onClose();
     } catch (error) {

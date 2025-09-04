@@ -6,7 +6,7 @@ import MyDisputes from "../components/MyDisputes";
 import { getAllLearnerBookingOffer, deleteLearnerBookingTimeSlot, fetchLearnerBookings, fetchBookingDetail, submitBookingRating, getBookingRating } from "../components/api/auth";
 import ConfirmDialog from "../components/modals/ConfirmDialog";
 import CreateDisputeModal from "../components/modals/CreateDisputeModal";
-import { toast, ToastContainer } from "react-toastify";
+import { showSuccess, showError } from "../utils/toastManager.js";
 import "react-toastify/dist/ReactToastify.css";
 import { Avatar, Typography, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, TextField } from "@mui/material";
 import { convertBookingDetailToUTC7 } from "../utils/formatCentralTimestamp";
@@ -19,7 +19,6 @@ const toastConfig = {
   autoClose: 3000,
   hideProgressBar: false,
   closeOnClick: true,
-  pauseOnHover: true,
   draggable: true,
 };
 
@@ -100,7 +99,7 @@ const BookingHistory = () => {
     } catch (error) {
       console.error("Lỗi khi tải lịch sử booking:", error);
       setHistoryBookings([]);
-      toast.error("Không thể tải lịch sử booking. Vui lòng thử lại sau.");
+      showError("Không thể tải lịch sử booking. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -185,13 +184,13 @@ const BookingHistory = () => {
   // Handle rate booking
   const handleRateBooking = (booking) => {
     if (booking.status !== 4) {
-      toast.error("Chỉ có thể đánh giá booking đã hoàn thành!");
+      showError("Chỉ có thể đánh giá booking đã hoàn thành!");
       return;
     }
     
     // Check if booking already has a rating
     if (hasBookingRating(booking.id)) {
-      toast.error("Booking này đã được đánh giá rồi!");
+      showError("Booking này đã được đánh giá rồi!");
       return;
     }
     
@@ -217,7 +216,7 @@ const BookingHistory = () => {
     }
 
     if (!selectedBookingForRating.bookingId) {
-      toast.error("Không có booking ID để đánh giá!");
+      showError("Không có booking ID để đánh giá!");
       return;
     }
 
@@ -235,7 +234,7 @@ const BookingHistory = () => {
       await submitBookingRating(ratingPayload);
       
       // Show success message
-      toast.success("Đánh giá khóa học đã được gửi thành công!");
+      showSuccess("Đánh giá khóa học đã được gửi thành công!");
       
       // Close modal after showing toast
       setShowRatingModal(false);
@@ -245,7 +244,7 @@ const BookingHistory = () => {
       await fetchBookingRatings(historyBookings);
     } catch (error) {
       console.error("Failed to submit rating:", error);
-      toast.error("Không thể gửi đánh giá");
+      showError("Không thể gửi đánh giá");
       setShowRatingModal(false);
       setSelectedBookingForRating(null);
     } finally {
@@ -279,11 +278,11 @@ const BookingHistory = () => {
 
   const getSlotStatusBadge = (status) => {
     const statusMap = {
-      0: { label: "Đang chờ", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-      1: { label: "Hoàn thành, nếu có vấn đề báo cáo trong 24h", class: "bg-blue-50 text-blue-700 border border-blue-200" },
+      0: { label: "Đang chờ diễn ra", class: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+      1: { label: "Đang chờ hệ thống thanh toán cho gia sư", class: "bg-blue-50 text-blue-700 border border-blue-200" },
       2: { label: "Hoàn thành", class: "bg-green-50 text-green-700 border border-green-200" },
       3: { label: "Đã hủy", class: "bg-red-50 text-red-700 border border-red-200" },
-      4: { label: "Đang báo cáo", class: "bg-orange-50 text-orange-700 border border-orange-200" }
+      4: { label: "Đã hủy do tranh chấp", class: "bg-orange-50 text-orange-700 border border-orange-200" }
     };
     const statusInfo = statusMap[status] || { label: "Không xác định", class: "bg-gray-50 text-gray-700 border border-gray-200" };
     
@@ -830,7 +829,7 @@ export default function MyBookingPage({ user }) {
       } catch (err) {
         console.error("Error fetching booking offers:", err);
         setBookingOffers([]);
-        toast.error("Không thể tải danh sách đề xuất. Vui lòng thử lại!", toastConfig);
+        showError("Không thể tải danh sách đề xuất. Vui lòng thử lại!", toastConfig);
       } finally {
         setLoadingOffers(false);
       }
@@ -853,9 +852,9 @@ export default function MyBookingPage({ user }) {
     try {
       await deleteLearnerBookingTimeSlot(pendingDeleteTutorId);
       setBookingOffers(prev => prev.filter(offer => offer.tutor.id !== pendingDeleteTutorId));
-      toast.success("Đã xóa yêu cầu thành công!", toastConfig);
+      showSuccess("Đã xóa yêu cầu thành công!", toastConfig);
     } catch (error) {
-      toast.error("Xóa yêu cầu thất bại. Vui lòng thử lại!", toastConfig);
+      showError("Xóa yêu cầu thất bại. Vui lòng thử lại!", toastConfig);
     } finally {
       setConfirmDeleteOpen(false);
       setPendingDeleteTutorId(null);
@@ -869,7 +868,7 @@ export default function MyBookingPage({ user }) {
 
   const handleDisputeSuccess = () => {
     // Refresh disputes list if needed
-    toast.success("Báo cáo đã được gửi thành công!");
+    // Toast success is already shown in CreateDisputeModal, no need to show again
   };
 
   const handleRefreshRequests = async () => {
@@ -879,7 +878,7 @@ export default function MyBookingPage({ user }) {
       setBookingOffers(data);
     } catch (err) {
       console.error("Error refreshing booking offers:", err);
-      toast.error("Không thể tải lại danh sách đề xuất. Vui lòng thử lại!", toastConfig);
+      showError("Không thể tải lại danh sách đề xuất. Vui lòng thử lại!", toastConfig);
     } finally {
       setLoadingOffers(false);
     }
@@ -1047,19 +1046,6 @@ export default function MyBookingPage({ user }) {
         onSuccess={handleDisputeSuccess}
       />
 
-      {/* Toast Container */}
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 }

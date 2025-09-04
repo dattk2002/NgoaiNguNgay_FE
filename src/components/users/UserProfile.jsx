@@ -45,7 +45,7 @@ import {
   FiMessageSquare,
   FiX,
 } from "react-icons/fi";
-import { toast, ToastContainer } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import "react-toastify/dist/ReactToastify.css";
 import {
   fetchUserProfileById,
@@ -575,7 +575,7 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
   // Certificate management functions
   const handleCertificateUpload = async (files) => {
     if (!uploadCertificate) {
-      toast.error("Chức năng tải lên chứng chỉ không khả dụng");
+      showError("Chức năng tải lên chứng chỉ không khả dụng");
       return;
     }
 
@@ -587,13 +587,13 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
       for (const file of filesToUpload) {
         if (file.size > 25 * 1024 * 1024) {
           // 25MB limit
-          toast.error(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
+          showError(`File ${file.name} quá lớn. Kích thước tối đa là 25MB.`);
           setCertificateUploading(false);
           return;
         }
 
         if (!file.type.includes("pdf") && !file.type.startsWith("image/")) {
-          toast.error(
+          showError(
             `File ${file.name} không đúng định dạng. Chỉ chấp nhận PDF và hình ảnh.`
           );
           setCertificateUploading(false);
@@ -608,7 +608,7 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
       );
 
       if (!tutorData?.applicationId) {
-        toast.error("Không tìm thấy Application ID. Vui lòng đăng ký làm gia sư trước khi tải lên chứng chỉ.");
+        showError("Không tìm thấy Application ID. Vui lòng đăng ký làm gia sư trước khi tải lên chứng chỉ.");
         setCertificateUploading(false);
         return;
       }
@@ -661,10 +661,10 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
       });
 
       setUploadedCertificates(transformedDocuments);
-      toast.success("Tải lên chứng chỉ thành công!");
+      showSuccess("Tải lên chứng chỉ thành công!");
     } catch (error) {
       console.error("Certificate upload failed:", error);
-      toast.error(`Tải lên chứng chỉ thất bại: ${error.message}`);
+      showError(`Tải lên chứng chỉ thất bại: ${error.message}`);
       } finally {
       setCertificateUploading(false);
     }
@@ -672,19 +672,19 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
 
   const handleRequestVerification = async () => {
     if (!requestTutorVerification) {
-      toast.error("Chức năng yêu cầu xác minh không khả dụng");
+      showError("Chức năng yêu cầu xác minh không khả dụng");
       return;
     }
 
     if (uploadedCertificates.length === 0) {
-      toast.error(
+      showError(
         "Vui lòng tải lên ít nhất một chứng chỉ trước khi yêu cầu xác minh."
       );
       return;
     }
 
     if (!tutorData?.applicationId) {
-      toast.error("Không tìm thấy Application ID. Vui lòng đăng ký làm gia sư trước khi yêu cầu xác minh.");
+      showError("Không tìm thấy Application ID. Vui lòng đăng ký làm gia sư trước khi yêu cầu xác minh.");
       return;
     }
 
@@ -692,10 +692,10 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
     try {
       // Using tutorData.applicationId as the tutorApplicationId like in TutorProfile
       await requestTutorVerification(tutorData?.applicationId);
-      toast.success("Yêu cầu xác minh đã được gửi thành công!");
+      showSuccess("Yêu cầu xác minh đã được gửi thành công!");
     } catch (error) {
       console.error("Verification request failed:", error);
-      toast.error(`Yêu cầu xác minh thất bại: ${error.message}`);
+      showError(`Yêu cầu xác minh thất bại: ${error.message}`);
     } finally {
       setVerificationRequesting(false);
     }
@@ -716,10 +716,10 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
       setUploadedCertificates((prev) =>
         prev.filter((cert) => cert.id !== certificateToDelete.id)
       );
-      toast.success("Xóa chứng chỉ thành công!");
+      showSuccess("Xóa chứng chỉ thành công!");
     } catch (error) {
       console.error("Failed to delete certificate:", error);
-      toast.error(`Xóa chứng chỉ thất bại: ${error.message}`);
+      showError(`Xóa chứng chỉ thất bại: ${error.message}`);
     } finally {
       setDeleteCertificateDialogOpen(false);
       setCertificateToDelete(null);
@@ -741,26 +741,26 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
   const handleUpdateApplication = async () => {
     // Validate form data
     if (!editFormData.nickName.trim()) {
-      toast.error("Vui lòng nhập biệt danh");
+      showError("Vui lòng nhập biệt danh");
       return;
     }
     if (!editFormData.brief.trim()) {
-      toast.error("Vui lòng nhập mô tả ngắn");
+      showError("Vui lòng nhập mô tả ngắn");
       return;
     }
     if (!editFormData.description.trim()) {
-      toast.error("Vui lòng nhập mô tả chi tiết");
+      showError("Vui lòng nhập mô tả chi tiết");
       return;
     }
     if (!editFormData.teachingMethod.trim()) {
-      toast.error("Vui lòng nhập phương pháp giảng dạy");
+      showError("Vui lòng nhập phương pháp giảng dạy");
       return;
     }
 
     setEditingApplication(true);
     try {
       await updateTutorProfile(editFormData);
-      toast.success("Cập nhật thông tin đơn đăng ký thành công!");
+      showSuccess("Cập nhật thông tin đơn đăng ký thành công!");
       
       // Refresh application data
       if (tutorData?.applicationId) {
@@ -770,7 +770,7 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
       setEditApplicationDialogOpen(false);
     } catch (error) {
       console.error("Failed to update application:", error);
-      toast.error(`Cập nhật thông tin thất bại: ${error.message}`);
+      showError(`Cập nhật thông tin thất bại: ${error.message}`);
     } finally {
       setEditingApplication(false);
     }
@@ -2017,18 +2017,6 @@ function UserProfile({ loggedInUser, getUserById, requestTutorVerification, uplo
         confirmColor="error"
       />
 
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import { Editor } from '@tinymce/tinymce-react';
 import { useTinyMCE } from '../../contexts/TinyMCEContext';
 import { 
@@ -145,7 +145,7 @@ const LegalDocumentManagement = () => {
         } catch (error) {
             console.error('Error fetching documents:', error);
             setGeneralError(error.message || "Có lỗi xảy ra khi tải danh sách tài liệu");
-            toast.error(error.message || "Có lỗi xảy ra khi tải danh sách tài liệu");
+            showError(error.message || "Có lỗi xảy ra khi tải danh sách tài liệu");
         } finally {
             setLoading(false);
         }
@@ -182,7 +182,7 @@ const LegalDocumentManagement = () => {
                 setShowCreateModal(false);
                 setNewDocument({ name: '', description: '', category: '' });
                 fetchDocuments(); // Refresh the list
-                toast.success("Tài liệu pháp lý đã được tạo thành công!");
+                showSuccess("Tài liệu pháp lý đã được tạo thành công!");
             }
         } catch (error) {
             console.error('Error creating document:', error);
@@ -212,7 +212,7 @@ const LegalDocumentManagement = () => {
             } else {
                 setGeneralError(error.message || "Có lỗi xảy ra khi tạo tài liệu pháp lý");
             }
-            toast.error(error.message || "Có lỗi xảy ra khi tạo tài liệu pháp lý");
+            showError(error.message || "Có lỗi xảy ra khi tạo tài liệu pháp lý");
         } finally {
             setLoading(false);
         }
@@ -250,7 +250,7 @@ const LegalDocumentManagement = () => {
                 setSelectedDocument(null);
                 setEditDocument({ name: '', description: '', category: '' });
                 fetchDocuments(); // Refresh the list
-                toast.success("Tài liệu pháp lý đã được cập nhật thành công!");
+                showSuccess("Tài liệu pháp lý đã được cập nhật thành công!");
             }
         } catch (error) {
             console.error('Error updating document:', error);
@@ -280,7 +280,7 @@ const LegalDocumentManagement = () => {
             } else {
                 setGeneralError(error.message || "Có lỗi xảy ra khi cập nhật tài liệu pháp lý");
             }
-            toast.error(error.message || "Có lỗi xảy ra khi cập nhật tài liệu pháp lý");
+            showError(error.message || "Có lỗi xảy ra khi cập nhật tài liệu pháp lý");
         } finally {
             setLoading(false);
         }
@@ -296,11 +296,11 @@ const LegalDocumentManagement = () => {
                 setShowDeleteModal(false);
                 setSelectedDocument(null);
                 fetchDocuments(); // Refresh the list
-                toast.success("Tài liệu pháp lý đã được xóa thành công!");
+                showSuccess("Tài liệu pháp lý đã được xóa thành công!");
             }
         } catch (error) {
             console.error('Error deleting document:', error);
-            toast.error(error.message || "Có lỗi xảy ra khi xóa tài liệu pháp lý");
+            showError(error.message || "Có lỗi xảy ra khi xóa tài liệu pháp lý");
         } finally {
             setLoading(false);
         }
@@ -352,11 +352,11 @@ const LegalDocumentManagement = () => {
             if (response && response.data) {
                 setDetailedDocument(response.data);
             } else {
-                toast.error("Không thể tải chi tiết tài liệu");
+                showError("Không thể tải chi tiết tài liệu");
             }
         } catch (error) {
             console.error('Error fetching document details:', error);
-            toast.error(error.message || "Có lỗi xảy ra khi tải chi tiết tài liệu");
+            showError(error.message || "Có lỗi xảy ra khi tải chi tiết tài liệu");
         } finally {
             setLoadingDetail(false);
         }
@@ -412,7 +412,7 @@ const LegalDocumentManagement = () => {
         
         if (!document || !document.id) {
             console.error("❌ Document or document.id is missing:", document);
-            toast.error("Không thể mở quản lý phiên bản: thiếu thông tin tài liệu");
+            showError("Không thể mở quản lý phiên bản: thiếu thông tin tài liệu");
             return;
         }
         
@@ -466,7 +466,7 @@ const LegalDocumentManagement = () => {
             const response = await createLegalDocumentVersion(newVersion);
             
             if (response && response.data) {
-                toast.success("Tạo phiên bản thành công!");
+                showSuccess("Tạo phiên bản thành công!");
                 setShowCreateVersionModal(false);
                 setNewVersion({
                     legalDocumentId: selectedDocument.id,
@@ -497,7 +497,7 @@ const LegalDocumentManagement = () => {
                 setGeneralError("Vui lòng sửa các lỗi được đánh dấu");
             } else {
                 setGeneralError(error.message || "Có lỗi xảy ra khi tạo phiên bản");
-                toast.error(error.message || "Có lỗi xảy ra khi tạo phiên bản");
+                showError(error.message || "Có lỗi xảy ra khi tạo phiên bản");
             }
         } finally {
             setLoading(false);
@@ -586,7 +586,7 @@ const LegalDocumentManagement = () => {
             const response = await updateLegalDocumentVersion(selectedVersion.id, editVersion);
             
             if (response && response.data) {
-                toast.success("Cập nhật phiên bản thành công!");
+                showSuccess("Cập nhật phiên bản thành công!");
                 setShowEditVersionModal(false);
                 await fetchVersions(selectedDocument.id);
             }
@@ -610,7 +610,7 @@ const LegalDocumentManagement = () => {
                 setGeneralError("Vui lòng sửa các lỗi được đánh dấu");
             } else {
                 setGeneralError(error.message || "Có lỗi xảy ra khi cập nhật phiên bản");
-                toast.error(error.message || "Có lỗi xảy ra khi cập nhật phiên bản");
+                showError(error.message || "Có lỗi xảy ra khi cập nhật phiên bản");
             }
         } finally {
             setLoading(false);
@@ -630,13 +630,13 @@ const LegalDocumentManagement = () => {
             const response = await deleteLegalDocumentVersion(selectedVersion.id);
             
             if (response) {
-                toast.success("Xóa phiên bản thành công!");
+                showSuccess("Xóa phiên bản thành công!");
                 setShowDeleteVersionModal(false);
                 await fetchVersions(selectedDocument.id);
             }
         } catch (error) {
             console.error('Error deleting version:', error);
-            toast.error(error.message || "Có lỗi xảy ra khi xóa phiên bản");
+            showError(error.message || "Có lỗi xảy ra khi xóa phiên bản");
         } finally {
             setLoading(false);
         }
@@ -674,7 +674,7 @@ const LegalDocumentManagement = () => {
             }
         } catch (error) {
             console.error('Error fetching version detail:', error);
-            toast.error(error.message || "Có lỗi xảy ra khi tải chi tiết phiên bản");
+            showError(error.message || "Có lỗi xảy ra khi tải chi tiết phiên bản");
         } finally {
             setLoadingVersionDetail(false);
         }

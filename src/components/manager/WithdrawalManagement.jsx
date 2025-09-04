@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import { fetchWithdrawalRequests, processWithdrawal, rejectWithdrawal } from '../api/auth';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 import WithdrawalDetailModal from '../modals/WithdrawalDetailModal';
@@ -76,7 +76,7 @@ const WithdrawalManagement = () => {
             }
         } catch (error) {
             console.error('Error fetching withdrawal requests:', error);
-            toast.error('Lỗi khi tải danh sách lệnh rút tiền: ' + error.message);
+            showError('Lỗi khi tải danh sách lệnh rút tiền: ' + error.message);
         } finally {
             setLoading(false);
         }
@@ -99,7 +99,7 @@ const WithdrawalManagement = () => {
 
     const handleRefresh = () => {
         fetchData();
-        toast.success('Đã làm mới dữ liệu');
+        showSuccess('Đã làm mới dữ liệu');
     };
 
     const handleViewDetail = (withdrawal) => {
@@ -117,13 +117,13 @@ const WithdrawalManagement = () => {
             setProcessingId(withdrawal.id);
             await processWithdrawal(withdrawal.id);
             
-            toast.success(`Đã xác nhận lệnh rút tiền ${formatCurrency(withdrawal.grossAmount)} của ${withdrawal.userFullName}`);
+            showSuccess(`Đã xác nhận lệnh rút tiền ${formatCurrency(withdrawal.grossAmount)} của ${withdrawal.userFullName}`);
             
             // Refresh data
             await fetchData();
         } catch (error) {
             console.error('Error approving withdrawal:', error);
-            toast.error('Lỗi khi xác nhận lệnh rút tiền: ' + error.message);
+            showError('Lỗi khi xác nhận lệnh rút tiền: ' + error.message);
         } finally {
             setProcessingId(null);
         }
@@ -141,7 +141,7 @@ const WithdrawalManagement = () => {
             setRejectingId(withdrawalToReject.id);
             await rejectWithdrawal(withdrawalToReject.id, rejectionReason);
             
-            toast.success(`Đã từ chối lệnh rút tiền ${formatCurrency(withdrawalToReject.grossAmount)} của ${withdrawalToReject.userFullName}`);
+            showSuccess(`Đã từ chối lệnh rút tiền ${formatCurrency(withdrawalToReject.grossAmount)} của ${withdrawalToReject.userFullName}`);
             
             // Close modal and refresh data
             setShowRejectModal(false);
@@ -149,7 +149,7 @@ const WithdrawalManagement = () => {
             await fetchData();
         } catch (error) {
             console.error('Error rejecting withdrawal:', error);
-            toast.error('Lỗi khi từ chối lệnh rút tiền: ' + error.message);
+            showError('Lỗi khi từ chối lệnh rút tiền: ' + error.message);
         } finally {
             setRejectingId(null);
         }

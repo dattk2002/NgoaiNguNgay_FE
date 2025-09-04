@@ -9,7 +9,7 @@ import {
   FacebookAuthProvider,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../utils/toastManager.js";
 import { login, loginGoogleToFirebase } from "../api/auth";
 import NoFocusOutLineButton from "../../utils/noFocusOutlineButton";
 import LegalDocumentModal from "./LegalDocumentModal";
@@ -235,13 +235,13 @@ const LoginModal = ({
         };
 
         onLogin(userDetails);
-        toast.success(response.message || "Đăng nhập thành công!");
+        showSuccess(response.message || "Đăng nhập thành công!");
         onClose();
       } else {
         setGeneralError(
           "Đăng nhập không thành công. Dữ liệu phản hồi không hợp lệ."
         );
-        toast.error("Đăng nhập không thành công. Vui lòng thử lại.");
+        showError("Đăng nhập không thành công. Vui lòng thử lại.");
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -267,7 +267,7 @@ const LoginModal = ({
         if (updatedFieldErrors.username || updatedFieldErrors.password) {
           setGeneralError(GENERIC_VALIDATION_ERROR_MESSAGE);
         }
-        toast.error(
+        showError(
           "Thông tin đăng nhập không hợp lệ. Vui lòng kiểm tra lại các trường."
         );
       } else {
@@ -276,7 +276,7 @@ const LoginModal = ({
             "Tên đăng nhập hoặc mật khẩu không đúng hoặc đã xảy ra lỗi."
         );
         setFieldErrors({ username: "", password: "" });
-        toast.error(error.message || "Đăng nhập không thành công.");
+        showError(error.message || "Đăng nhập không thành công.");
       }
     } finally {
       setIsLoading(false);
@@ -343,7 +343,7 @@ const LoginModal = ({
 
         onLogin(userDetails);
 
-        toast.success("Đăng nhập Google thành công!", {
+        showSuccess("Đăng nhập Google thành công!", {
           position: "top-center",
         });
         onClose();
@@ -370,7 +370,7 @@ const LoginModal = ({
       }
 
       setGeneralError(userFacingErrorMessage);
-      toast.error(userFacingErrorMessage);
+      showError(userFacingErrorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -389,7 +389,7 @@ const LoginModal = ({
             email: email,
             profileImageUrl: photoURL,
           });
-          toast.success("Đăng nhập Facebook thành công!", {
+          showSuccess("Đăng nhập Facebook thành công!", {
             position: "top-center",
           });
           onClose();
@@ -400,7 +400,7 @@ const LoginModal = ({
         let userFacingErrorMessage =
           "Đăng nhập Facebook thất bại. Vui lòng thử lại.";
         setGeneralError(userFacingErrorMessage);
-        toast.error(userFacingErrorMessage);
+        showError(userFacingErrorMessage);
       });
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import { 
   getPendingTutorIntroductionVideos, 
   reviewTutorIntroductionVideo,
@@ -79,14 +79,14 @@ const VideoManagement = () => {
       
       await reviewTutorIntroductionVideo({ id: videoId, status });
       
-      toast.success(`Video đã được ${statusText} thành công!`);
+      showSuccess(`Video đã được ${statusText} thành công!`);
       
       // Refresh the list
       console.log('🔄 Refreshing video list after review');
       fetchVideos();
     } catch (error) {
       console.error('Failed to review video:', error);
-      toast.error(`Thất bại khi cập nhật video: ${error.message}`);
+      showError(`Thất bại khi cập nhật video: ${error.message}`);
     } finally {
       setReviewingVideo(null);
     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminManageUsers, adminToggleUserStatus } from '../api/auth';
 import ConfirmDialog from '../modals/ConfirmDialog';
-import { toast, ToastContainer } from 'react-toastify';
+import { showSuccess, showError } from '../../utils/toastManager.js';
 import 'react-toastify/dist/ReactToastify.css';
 
 const UserManagement = () => {
@@ -270,24 +270,22 @@ const UserManagement = () => {
             await fetchUsersForDisplay(pagination.currentPage - 1);
             
             // Show success toast
-            toast.success(`Người dùng đã được ${userToToggle.actionText} thành công!`, {
+            showSuccess(`Người dùng đã được ${userToToggle.actionText} thành công!`, {
                 position: "top-right",
                 autoClose: 3000,
                 hideProgressBar: false,
                 closeOnClick: true,
-                pauseOnHover: true,
                 draggable: true,
             });
             
         } catch (err) {
             console.error('Failed to toggle user status:', err.message);
             // Show error toast
-            toast.error(`Lỗi khi ${userToToggle.actionText} người dùng: ${err.message}`, {
+            showError(`Lỗi khi ${userToToggle.actionText} người dùng: ${err.message}`, {
                 position: "top-right",
                 autoClose: 4000,
                 hideProgressBar: false,
                 closeOnClick: true,
-                pauseOnHover: true,
                 draggable: true,
             });
         } finally {
@@ -629,19 +627,6 @@ const UserManagement = () => {
                 confirmColor="primary"
             />
 
-            {/* Toast Container */}
-            <ToastContainer
-                position="top-right"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="light"
-            />
         </div>
     );
 };
