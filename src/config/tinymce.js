@@ -3,7 +3,7 @@
 // You can get a free API key from: https://www.tiny.cloud/
 
 export const TINYMCE_CONFIG = {
-  apiKey: "4uk8zkbrrj3eyjdnhnq6lw1sndrla0tmn21z706wwlkzesmw", // Replace this with your actual API key
+  apiKey: "4uk8zkbrrj3eyjdnhnq6lw1sndrla0tmn21z706wwlkzesmw",
   height: 400,
   menubar: false,
   plugins: [
