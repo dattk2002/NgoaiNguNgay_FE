@@ -741,7 +741,7 @@ const TutorLanguageList = () => {
     selectedTimes,
     priceRange,
     filters.speakingLanguage,
-    filters.searchTerm, // Add searchTerm to dependencies
+    filters.searchTerm, // Keep searchTerm in dependencies for when it changes via handleSearch
   ]);
 
   // Reset to page 1 when filters change
@@ -1037,11 +1037,29 @@ const TutorLanguageList = () => {
 
   // Add search input state
   const [searchInput, setSearchInput] = useState(searchFromQuery);
+  
+  // Add ref for search input to maintain focus
+  const searchInputRef = useRef(null);
 
   // Add search handler similar to Banner.jsx
   const handleSearch = () => {
     const trimmed = searchInput.trim();
-    if (!trimmed) return;
+    
+    // If search input is empty, clear the search term and fetch data
+    if (!trimmed) {
+      setFilters(prev => ({ ...prev, searchTerm: "" }));
+      // Update URL to remove search parameter
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.delete("search");
+      navigate(`${location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""}`);
+      // Focus back to search input
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
+      return;
+    }
 
     const lower = trimmed.toLowerCase();
     let subject = languageList.find(lang => lower === lang.name.toLowerCase());
@@ -1073,45 +1091,17 @@ const TutorLanguageList = () => {
       const newSearchParams = new URLSearchParams(location.search);
       newSearchParams.set("search", trimmed);
       navigate(`${location.pathname}?${newSearchParams.toString()}`);
+      
+      // Focus back to search input after search
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
     }
   };
 
-  // Add useEffect for real-time search
-  useEffect(() => {
-    const trimmed = searchInput.trim();
-    
-    // If search input is empty, clear the search term
-    if (!trimmed) {
-      setFilters(prev => ({ ...prev, searchTerm: "" }));
-      // Update URL to remove search parameter
-      const newSearchParams = new URLSearchParams(location.search);
-      newSearchParams.delete("search");
-      navigate(`${location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""}`);
-      return;
-    }
-
-    // Check if it's a language search
-    const lower = trimmed.toLowerCase();
-    let subject = languageList.find(lang => lower === lang.name.toLowerCase());
-
-    // Special case: "Brazilian" should map to "Portuguese"
-    if (subject?.name.toLowerCase() === "brazilian") {
-      subject = languageList.find(lang => lang.name.toLowerCase() === "portuguese");
-    }
-
-    if (subject) {
-      // Don't update filters for language search, let handleSearch handle navigation
-      return;
-    } else {
-      // Update search term for tutor name search
-      setFilters(prev => ({ ...prev, searchTerm: trimmed }));
-      
-      // Update URL with search parameter
-      const newSearchParams = new URLSearchParams(location.search);
-      newSearchParams.set("search", trimmed);
-      navigate(`${location.pathname}?${newSearchParams.toString()}`);
-    }
-  }, [searchInput, navigate, location.pathname, location.search]);
+  // Remove real-time search useEffect - search will only trigger on Enter or button click
 
   // Update the render logic to use different loading states
   if (initialLoading) {
@@ -1224,6 +1214,7 @@ const TutorLanguageList = () => {
           </div>
           <div className="relative flex-grow h-full flex items-center">
             <input
+              ref={searchInputRef}
               type="text"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
