@@ -1446,7 +1446,7 @@ const LessonManagement = () => {
                 <Typography variant="body2" sx={{ mb: 1 }}>
                   <strong>Số slot:</strong> {selectedBookingForCancel.bookedSlots?.length || 0} slots
                 </Typography>
-                <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: "#dc2626"}}>
                   <strong>Ngày đặt lịch sớm nhất:</strong> {selectedBookingForCancel.bookedSlots?.[0] ? new Date(selectedBookingForCancel.bookedSlots[0].bookedDate).toLocaleDateString() : 'N/A'}
                 </Typography>
               </Box>
@@ -1521,8 +1521,8 @@ const LessonManagement = () => {
           </Button>
           <Button 
             onClick={async () => {
-              if (!selectedBookingForCancel || !cancelReason.trim()) {
-                showError("Vui lòng nhập lý do hủy booking!");
+              // Validation is now handled by button disabled state
+              if (!selectedBookingForCancel || !cancelReason.trim() || !agreedToCancelTerms) {
                 return;
               }
               try {
@@ -1578,7 +1578,7 @@ const LessonManagement = () => {
       <LegalDocumentModal
         isOpen={showLegalDocumentModal}
         onClose={() => setShowLegalDocumentModal(false)}
-        category="hủy booking"
+        category="Chính sách hủy booking"
       />
 
     </div>

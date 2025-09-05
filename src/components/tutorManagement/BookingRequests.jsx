@@ -9,6 +9,7 @@ import { formatSlotTime } from '../../utils/formatSlotTime';
 import { formatTutorDate } from '../../utils/formatTutorDate';
 import RescheduleUpdateModal from './RescheduleUpdateModal';
 import { FaEye, FaClock, FaInfoCircle, FaCalendarAlt } from 'react-icons/fa';
+import LegalDocumentModal from '../modals/LegalDocumentModal';
 
 const BookingRequests = () => {
   const [bookings, setBookings] = useState([]);
@@ -23,6 +24,10 @@ const BookingRequests = () => {
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancellingBooking, setCancellingBooking] = useState(false);
+  
+  // Add legal document modal state
+  const [showLegalDocumentModal, setShowLegalDocumentModal] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   
   // States for booking detail modal
   const [bookingDetailModalOpen, setBookingDetailModalOpen] = useState(false);
@@ -165,7 +170,14 @@ const BookingRequests = () => {
   const handleCancelBooking = (booking) => {
     setSelectedBookingForCancel(booking);
     setCancelReason("");
+    setAgreeToTerms(false); // Reset checkbox
     setCancelBookingModalOpen(true);
+  };
+
+  // Handler to open legal document modal
+  const handleLegalDocumentClick = (e) => {
+    e.preventDefault();
+    setShowLegalDocumentModal(true);
   };
 
   // Handle view booking detail
@@ -255,9 +267,8 @@ const BookingRequests = () => {
 
   // Handle confirm cancel booking
   const handleConfirmCancelBooking = async () => {
-    if (!selectedBookingForCancel || !cancelReason.trim()) {
-      console.log("🚫 Toast: Vui lòng nhập lý do hủy booking!");
-      showError("Vui lòng nhập lý do hủy booking!");
+    // Validation is now handled by button disabled state
+    if (!selectedBookingForCancel || !cancelReason.trim() || !agreeToTerms) {
       return;
     }
 
@@ -732,6 +743,52 @@ const BookingRequests = () => {
                   />
                 </div>
                 
+                {/* Legal terms notice */}
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                    </div>
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Điều khoản dịch vụ</p>
+                      <p>
+                        {" "}
+                        <button
+                          type="button"
+                          onClick={handleLegalDocumentClick}
+                          className="text-blue-600 underline hover:text-blue-800 font-medium"
+                        >
+                          Điều khoản dịch vụ và Chính sách bảo mật
+                        </button>
+                        {" "}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Checkbox for agreement */}
+                <div className="mt-3 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="agreeToTerms"
+                    checked={agreeToTerms}
+                    onChange={(e) => setAgreeToTerms(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <label htmlFor="agreeToTerms" className="text-sm text-gray-700 cursor-pointer">
+                    Tôi đồng ý với{" "}
+                    <button
+                      type="button"
+                      onClick={handleLegalDocumentClick}
+                      className="text-blue-600 underline hover:text-blue-800 font-medium"
+                    >
+                      Điều khoản dịch vụ và Chính sách
+                    </button>
+                  </label>
+                </div>
+                
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-red-700">
                     ⚠️ Lưu ý: Việc hủy booking sẽ không thể hoàn tác. Vui lòng cân nhắc kỹ trước khi thực hiện.
@@ -748,9 +805,13 @@ const BookingRequests = () => {
                   Hủy
                 </NoFocusOutLineButton>
                 <NoFocusOutLineButton
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors flex items-center gap-2"
+                  className={`px-4 py-2 rounded-md transition-colors flex items-center gap-2 ${
+                    cancellingBooking || !cancelReason.trim() || !agreeToTerms
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      : 'bg-red-500 text-white hover:bg-red-600'
+                  }`}
                   onClick={handleConfirmCancelBooking}
-                  disabled={cancellingBooking || !cancelReason.trim()}
+                  disabled={cancellingBooking || !cancelReason.trim() || !agreeToTerms}
                 >
                   {cancellingBooking ? (
                     <>
@@ -1540,6 +1601,13 @@ const BookingRequests = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Legal Document Modal */}
+      <LegalDocumentModal
+        isOpen={showLegalDocumentModal}
+        onClose={() => setShowLegalDocumentModal(false)}
+        category="Chính sách hủy booking"
+      />
        
      </div>
    );
