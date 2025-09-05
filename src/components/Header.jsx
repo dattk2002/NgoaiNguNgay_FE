@@ -820,12 +820,14 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                 Ngôn ngữ
               </Link>
 
-              <Link
-                to="/my-bookings"
-                className="text-gray-700 hover:text-black text-sm sm:text-base"
-              >
-                Booking của tôi
-              </Link>
+              {!isTutor(user) && (
+                <Link
+                  to="/my-bookings"
+                  className="text-gray-700 hover:text-black text-sm sm:text-base"
+                >
+                  Booking của tôi
+                </Link>
+              )}
 
 
               <Link
@@ -1481,6 +1483,15 @@ function Header({ user, onLogout, onLoginClick, onSignUpClick, firstTutorId }) {
                 >
                   Ngôn ngữ
                 </Link>
+                {!isTutor(user) && (
+                  <Link
+                    to="/my-bookings"
+                    className="text-gray-700 hover:text-black text-sm py-2"
+                    onClick={toggleMenu}
+                  >
+                    Booking của tôi
+                  </Link>
+                )}
                 <Link
                   to="/how-it-works"
                   className="text-gray-700 hover:text-black text-sm py-2"

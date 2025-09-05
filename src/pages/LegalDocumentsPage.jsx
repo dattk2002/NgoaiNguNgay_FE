@@ -220,7 +220,7 @@ const LegalDocumentsPage = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
             <h3 className="text-lg font-semibold text-gray-900">
-              Danh mục tài liệu pháp lý
+              Tên tài liệu pháp lý
             </h3>
             {selectedCategory && (
               <NoFocusOutlineButton
@@ -253,7 +253,7 @@ const LegalDocumentsPage = () => {
           
           {/* Category description */}
           <p className="text-sm text-gray-500 mt-3">
-            Click vào danh mục để xem tài liệu pháp lý thuộc danh mục đó
+            Click vào tên tài liệu để xem chi tiết tài liệu pháp lý
           </p>
         </div>
 
@@ -360,10 +360,6 @@ const LegalDocumentsPage = () => {
                         <FaEye className="inline mr-1" />
                         Xem
                       </NoFocusOutlineButton>
-                      <NoFocusOutlineButton className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                        <FaDownload className="inline mr-1" />
-                        Tải
-                      </NoFocusOutlineButton>
                     </div>
                   </div>
                 ))}
@@ -390,10 +386,10 @@ const LegalDocumentsPage = () => {
               <FaFilter className="text-5xl text-gray-400" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Chọn danh mục để xem tài liệu
+              Chọn tên tài liệu để xem chi tiết
             </h2>
             <p className="text-gray-600 max-w-md mx-auto mb-8">
-              Vui lòng chọn một danh mục từ bên trên để xem các tài liệu pháp lý
+              Vui lòng chọn một tên tài liệu từ bên trên để xem chi tiết tài liệu pháp lý
             </p>
             <NoFocusOutlineButton
               onClick={() => navigate('/')}

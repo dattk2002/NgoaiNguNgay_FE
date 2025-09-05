@@ -1353,7 +1353,6 @@ const BecomeATutorPage = ({
                                         Thêm các ngôn ngữ bạn có thể giảng dạy và trình độ của bạn (A1-C2).
                                     </p>
                                     <div className="mt-2 text-xs">
-                                        <p><span className="font-bold">A1-A2:</span> Người mới bắt đầu</p>
                                         <p><span className="font-bold">B1-B2:</span> Trung cấp</p>
                                         <p><span className="font-bold">C1-C2:</span> Nâng cao</p>
                                     </div>

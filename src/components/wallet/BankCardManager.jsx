@@ -4,6 +4,40 @@ import { showSuccess, showError } from '../../utils/toastManager.js';
 import ConfirmDeleteBankAccountModal from '../modals/ConfirmDeleteBankAccountModal';
 import NoFocusOutLineButton from '../../utils/noFocusOutlineButton';
 
+// Danh sách các ngân hàng Việt Nam
+const VIETNAM_BANKS = [
+  'Vietcombank (VCB)',
+  'VietinBank (CTG)',
+  'BIDV',
+  'Agribank',
+  'Techcombank (TCB)',
+  'MB Bank (MBB)',
+  'ACB',
+  'VPBank',
+  'TPBank',
+  'HDBank',
+  'Sacombank (STB)',
+  'Eximbank (EIB)',
+  'MSB',
+  'VIB',
+  'SeABank',
+  'LienVietPostBank',
+  'VietABank',
+  'ABBank',
+  'NamABank',
+  'PGBank',
+  'GPBank',
+  'BacABank',
+  'SCB',
+  'OCB',
+  'DongABank',
+  'Kienlongbank',
+  'NCB',
+  'SHB',
+  'VietBank',
+  'PVcomBank'
+];
+
 const BankCardManager = () => {
   const [bankAccounts, setBankAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +45,13 @@ const BankCardManager = () => {
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAccount, setNewAccount] = useState({
+    bankName: '',
+    accountNumber: '',
+    accountHolderName: ''
+  });
+  
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState({
     bankName: '',
     accountNumber: '',
     accountHolderName: ''
@@ -42,16 +83,31 @@ const BankCardManager = () => {
     try {
       setSubmitting(true);
       setError(null);
+      setValidationErrors({ bankName: '', accountNumber: '', accountHolderName: '' });
       
       const response = await apiCreateBankAccount(accountData);
       
       if (response) {
         await fetchBankAccounts(); // Refresh the list
+        showSuccess('Thêm tài khoản ngân hàng thành công!');
         return response;
       }
     } catch (err) {
       console.error('Failed to create bank account:', err);
-      setError(err.message || 'Không thể tạo tài khoản ngân hàng');
+      
+      // Handle validation errors from API
+      if (err.response && err.response.data && err.response.data.errors) {
+        const apiErrors = err.response.data.errors;
+        setValidationErrors({
+          bankName: apiErrors.bankName || '',
+          accountNumber: apiErrors.accountNumber || '',
+          accountHolderName: apiErrors.accountHolderName || ''
+        });
+      } else {
+        // Handle general error
+        const errorMessage = err.response?.data?.message || err.message || 'Không thể tạo tài khoản ngân hàng';
+        setError(errorMessage);
+      }
       throw err;
     } finally {
       setSubmitting(false);
@@ -62,20 +118,53 @@ const BankCardManager = () => {
     fetchBankAccounts();
   }, []);
 
+  // Validation function
+  const validateForm = () => {
+    const errors = {
+      bankName: '',
+      accountNumber: '',
+      accountHolderName: ''
+    };
+
+    if (!newAccount.bankName.trim()) {
+      errors.bankName = 'Vui lòng chọn tên ngân hàng';
+    }
+
+    if (!newAccount.accountNumber.trim()) {
+      errors.accountNumber = 'Vui lòng nhập số tài khoản';
+    } else if (!/^\d+$/.test(newAccount.accountNumber.trim())) {
+      errors.accountNumber = 'Số tài khoản chỉ được chứa số';
+    } else if (newAccount.accountNumber.trim().length !== 12) {
+      errors.accountNumber = 'Số tài khoản phải có đúng 12 chữ số';
+    }
+
+    if (!newAccount.accountHolderName.trim()) {
+      errors.accountHolderName = 'Vui lòng nhập tên chủ tài khoản';
+    } else if (newAccount.accountHolderName.trim().length < 2) {
+      errors.accountHolderName = 'Tên chủ tài khoản phải có ít nhất 2 ký tự';
+    }
+
+    setValidationErrors(errors);
+    return !Object.values(errors).some(error => error !== '');
+  };
+
   const handleAddAccount = async () => {
-    if (newAccount.bankName && newAccount.accountNumber && newAccount.accountHolderName) {
-      try {
-        await createBankAccount({
-          bankName: newAccount.bankName,
-          accountNumber: newAccount.accountNumber,
-          accountHolderName: newAccount.accountHolderName
-        });
-        
-        setNewAccount({ bankName: '', accountNumber: '', accountHolderName: '' });
-        setShowAddForm(false);
-      } catch (err) {
-        // Error is already handled in createBankAccount
-      }
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await createBankAccount({
+        bankName: newAccount.bankName,
+        accountNumber: newAccount.accountNumber,
+        accountHolderName: newAccount.accountHolderName
+      });
+      
+      setNewAccount({ bankName: '', accountNumber: '', accountHolderName: '' });
+      setValidationErrors({ bankName: '', accountNumber: '', accountHolderName: '' });
+      setShowAddForm(false);
+    } catch (err) {
+      // Error is already handled in createBankAccount
     }
   };
 
@@ -159,36 +248,71 @@ const BankCardManager = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Tên ngân hàng *</label>
-              <input
-                type="text"
+              <select
                 value={newAccount.bankName}
-                onChange={(e) => setNewAccount({...newAccount, bankName: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 transition-all focus:outline-none"
-                placeholder="VD: Techcombank"
+                onChange={(e) => {
+                  setNewAccount({...newAccount, bankName: e.target.value});
+                  if (validationErrors.bankName) {
+                    setValidationErrors({...validationErrors, bankName: ''});
+                  }
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 transition-all focus:outline-none ${
+                  validationErrors.bankName ? 'border-red-500' : 'border-gray-300'
+                }`}
                 disabled={submitting}
-              />
+              >
+                <option value="">Chọn ngân hàng</option>
+                {VIETNAM_BANKS.map((bank) => (
+                  <option key={bank} value={bank}>
+                    {bank}
+                  </option>
+                ))}
+              </select>
+              {validationErrors.bankName && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.bankName}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Tên chủ tài khoản *</label>
               <input
                 type="text"
                 value={newAccount.accountHolderName}
-                onChange={(e) => setNewAccount({...newAccount, accountHolderName: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 transition-all focus:outline-none"
+                onChange={(e) => {
+                  setNewAccount({...newAccount, accountHolderName: e.target.value});
+                  if (validationErrors.accountHolderName) {
+                    setValidationErrors({...validationErrors, accountHolderName: ''});
+                  }
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 transition-all focus:outline-none ${
+                  validationErrors.accountHolderName ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="NGUYEN VAN A"
                 disabled={submitting}
               />
+              {validationErrors.accountHolderName && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.accountHolderName}</p>
+              )}
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">Số tài khoản *</label>
               <input
                 type="text"
                 value={newAccount.accountNumber}
-                onChange={(e) => setNewAccount({...newAccount, accountNumber: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 transition-all focus:outline-none"
-                placeholder="1234567890123456"
+                onChange={(e) => {
+                  setNewAccount({...newAccount, accountNumber: e.target.value});
+                  if (validationErrors.accountNumber) {
+                    setValidationErrors({...validationErrors, accountNumber: ''});
+                  }
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-gray-800 transition-all focus:outline-none ${
+                  validationErrors.accountNumber ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="123456789012"
                 disabled={submitting}
               />
+              {validationErrors.accountNumber && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.accountNumber}</p>
+              )}
             </div>
           </div>
           <div className="flex gap-4 mt-8">
@@ -203,6 +327,7 @@ const BankCardManager = () => {
               onClick={() => {
                 setShowAddForm(false);
                 setNewAccount({ bankName: '', accountNumber: '', accountHolderName: '' });
+                setValidationErrors({ bankName: '', accountNumber: '', accountHolderName: '' });
                 setError(null);
               }}
               disabled={submitting}

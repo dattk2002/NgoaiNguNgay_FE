@@ -131,10 +131,10 @@ const LegalDocumentModal = ({ isOpen, onClose, category, onAgree }) => {
               </h2>
               <p className="text-sm text-gray-500 text-center">
                 {category === "Đăng nhập" ? "Điều khoản áp dụng cho việc đăng nhập" : 
-                 category === "Book nhanh" ? "Điều khoản áp dụng cho việc đặt lịch trực tiếp" :
-                 category === "offer_booking" ? "Điều khoản áp dụng cho việc chấp nhận đề xuất từ gia sư" :
-                 category === "khiếu nại" ? "Điều khoản áp dụng cho việc tạo báo cáo và khiếu nại" :
-                 category === "hủy booking" ? "Điều khoản áp dụng cho việc hủy booking" :
+                 category === "Chính sách Book nhanh" ? "Điều khoản áp dụng cho việc đặt lịch trực tiếp" :
+                 category === "Chính sách dành cho Offer Booking" ? "Điều khoản áp dụng cho việc chấp nhận đề xuất từ gia sư" :
+                 category === "Chính sách khiếu nại" ? "Điều khoản áp dụng cho việc tạo báo cáo và khiếu nại" :
+                 category === "Chính sách hủy booking" ? "Điều khoản áp dụng cho việc hủy booking" :
                  "Điều khoản áp dụng cho việc đăng ký"}
               </p>
             </div>
