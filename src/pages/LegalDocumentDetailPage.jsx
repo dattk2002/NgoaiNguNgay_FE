@@ -297,11 +297,6 @@ const LegalDocumentDetailPage = () => {
               <FaEye />
                 Xem tài liệu
             </button>
-            
-            <button className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
-              <FaDownload />
-                Tải xuống
-            </button>
               
             <button 
                 onClick={() => {

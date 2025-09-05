@@ -1034,29 +1034,6 @@ const TutorDetail = ({ user, onRequireLogin }) => {
         />
       </div>
 
-      {/* Additional Statistics */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaUsers className="text-blue-500" /> {teacher.students || 0}
-          </p>
-          <p className="text-gray-600 mt-2">Học viên</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaBook className="text-blue-500" /> {lessons.length || 0}
-          </p>
-          <p className="text-gray-600 mt-2">Khóa học</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <p className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <FaClock className="text-blue-500" />{" "}
-            {teacher.responseRate || "N/A"}
-          </p>
-          <p className="text-gray-600 mt-2">Tỷ lệ phản hồi</p>
-        </div>
-      </div>
-
       <div className="mt-10">
         <h2 className="text-2xl font-semibold text-gray-800">Khóa học</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
