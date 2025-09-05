@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button, Typography, Box, Container } from "@mui/material";
-import { FaArrowRight } from "react-icons/fa6";
+import { FaArrowRight, FaBook } from "react-icons/fa6";
+import { FiSearch } from "react-icons/fi";
 import { fetchRecommendTutor } from "../api/auth";
 import RecommendTutorCard from "./RecommendTutorCard";
 import { formatLanguageCode } from "../../utils/formatLanguageCode";
@@ -50,6 +51,11 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
   const [error, setError] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("");
   const [visibleTutors, setVisibleTutors] = useState(3);
+  
+  // Search state
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     const loadTutors = async () => {
@@ -97,6 +103,57 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
 
   const handleLoadMore = () => {
     setVisibleTutors((prev) => prev + 3);
+  };
+
+  // Search handler similar to TutorLanguageList
+  const handleSearch = () => {
+    const trimmed = searchInput.trim();
+    
+    // If search input is empty, clear the search term
+    if (!trimmed) {
+      setSearchTerm("");
+      // Focus back to search input
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
+      return;
+    }
+
+    const lower = trimmed.toLowerCase();
+    let subject = languageList.find(lang => lower === lang.name.toLowerCase());
+
+    // Special case: "Brazilian" should map to "Portuguese"
+    if (subject?.name.toLowerCase() === "brazilian") {
+      subject = languageList.find(lang => lang.name.toLowerCase() === "portuguese");
+    }
+
+    if (subject) {
+      // Route to /tutor/{languageName} for language search
+      console.log("🔍 RecommendTutorList Search - Language Search:", {
+        searchInput: trimmed,
+        matchedSubject: subject.name,
+        route: `/tutor/${subject.name.toLowerCase()}`,
+        timestamp: new Date().toISOString()
+      });
+      window.location.href = `/tutor/${subject.name.toLowerCase()}`;
+    } else {
+      // Update search term for tutor name search
+      console.log("🔍 RecommendTutorList Search - Tutor Name Search:", {
+        searchInput: trimmed,
+        searchType: "tutor_name",
+        timestamp: new Date().toISOString()
+      });
+      setSearchTerm(trimmed);
+      
+      // Focus back to search input after search
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
+    }
   };
 
   if (loading) {
@@ -228,6 +285,89 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
           </Typography>
         </Box>
 
+        {/* Search Bar Section */}
+        <Box sx={{ mb: 6 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            mb: 4 
+          }}>
+            <Box sx={{ 
+              width: '100%', 
+              maxWidth: '600px',
+              backgroundColor: 'white',
+              borderRadius: '50px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'all 0.3s ease',
+              '&:focus-within': {
+                boxShadow: '0 6px 30px rgba(0,0,0,0.15)',
+              }
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: 'black', 
+                pl: 3, 
+                pr: 2 
+              }}>
+                <FaBook size={24} />
+              </Box>
+              <Box sx={{ 
+                position: 'relative', 
+                flexGrow: 1, 
+                height: '100%', 
+                display: 'flex', 
+                alignItems: 'center' 
+              }}>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchInput}
+                  onChange={e => setSearchInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleSearch(); }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    padding: '12px 8px',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '18px',
+                    color: '#374151',
+                    backgroundColor: 'transparent',
+                    zIndex: 10,
+                    position: 'relative'
+                  }}
+                  placeholder="Tìm kiếm gia sư hoặc ngôn ngữ..."
+                />
+              </Box>
+              <Box
+                onClick={handleSearch}
+                sx={{
+                  backgroundColor: '#333333',
+                  color: 'white',
+                  padding: '12px 16px',
+                  borderRadius: '50%',
+                  margin: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: 'black',
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                  }
+                }}
+              >
+                <FiSearch size={20} />
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+
         {/* Language Filter */}
         <Box sx={{ mb: 8 }}>      
           {/* All Languages Button */}
@@ -302,16 +442,24 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
         </Box>
 
         {/* Tutor Grid */}
-        {filteredTutors.length > 0 ? (
-          <>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-              gap: 4,
-              px: { xs: 2, md: 4 },
-              mb: 6
-            }}>
-              {filteredTutors.slice(0, visibleTutors).map((tutor) => (
+        {(() => {
+          // Apply search filter to filteredTutors
+          const searchFilteredTutors = searchTerm 
+            ? filteredTutors.filter(tutor => 
+                tutor.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+            : filteredTutors;
+          
+          return searchFilteredTutors.length > 0 ? (
+            <>
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+                gap: 4,
+                px: { xs: 2, md: 4 },
+                mb: 6
+              }}>
+                {searchFilteredTutors.slice(0, visibleTutors).map((tutor) => (
                 <RecommendTutorCard
                   key={tutor.tutorId}
                   tutor={{
@@ -336,7 +484,7 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
             </Box>
             
             {/* Load More Button */}
-            {visibleTutors < filteredTutors.length && (
+            {visibleTutors < searchFilteredTutors.length && (
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'center', 
@@ -371,35 +519,42 @@ const RecommendTutorList = ({ user, onRequireLogin }) => {
               </Box>
             )}
           </>
-        ) : (
-          <Box sx={{ 
-            textAlign: 'center', 
-            py: 8,
-            px: 4
-          }}>
-            <Typography 
-              variant="h6" 
-              color="text.secondary"
-              sx={{ 
-                fontWeight: 500,
-                maxWidth: 500,
-                mx: 'auto'
-              }}
-            >
-              Không tìm thấy gia sư nào cho ngôn ngữ đã chọn.
-            </Typography>
-            <Typography 
-              variant="body1" 
-              color="text.secondary"
-              sx={{ 
-                mt: 2,
-                opacity: 0.8
-              }}
-            >
-              Vui lòng thử chọn ngôn ngữ khác hoặc quay lại sau.
-            </Typography>
-          </Box>
-        )}
+          ) : (
+            <Box sx={{ 
+              textAlign: 'center', 
+              py: 8,
+              px: 4
+            }}>
+              <Typography 
+                variant="h6" 
+                color="text.secondary"
+                sx={{ 
+                  fontWeight: 500,
+                  maxWidth: 500,
+                  mx: 'auto'
+                }}
+              >
+                {searchTerm 
+                  ? `Không tìm thấy gia sư nào với tên "${searchTerm}".`
+                  : "Không tìm thấy gia sư nào cho ngôn ngữ đã chọn."
+                }
+              </Typography>
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ 
+                  mt: 2,
+                  opacity: 0.8
+                }}
+              >
+                {searchTerm 
+                  ? "Vui lòng thử tìm kiếm với tên khác hoặc xóa bộ lọc tìm kiếm."
+                  : "Vui lòng thử chọn ngôn ngữ khác hoặc quay lại sau."
+                }
+              </Typography>
+            </Box>
+          );
+        })()}
       </Container>
     </Box>
   );
